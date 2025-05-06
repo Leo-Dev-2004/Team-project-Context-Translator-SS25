@@ -34,15 +34,12 @@ Our planned pipeline is as follows:
 To implement this ambitious project, we have formed three specialized groups:
 
 1.  **App Group:** Responsible for the integration with **Google Meet**. This includes developing a plugin/extension to access meeting content (audio streams) and to display the generated information (e.g., pop-ups with explanations) within the Google Meet interface.
-    * **Interested:** Leon, Luiz, Hannah, Konstantin
 
 2.  **`STT` Group:** Focuses on the implementation and optimization of speech-to-text conversion from the Google Meet audio streams.
     * **Technology:** Use of existing models, e.g., via [Hugging Face SpeechToText](https://huggingface.co/docs/transformers/en/model_doc/speech_to_text).
-    * **Interested:** Luiz, Ziyue, Yihua, Leo, Konstantinos
 
 3.  **`LLM` Group:** Responsible for processing the transcribed text to identify technical terms and generate explanations or other desired outputs using `LLMs`. This includes crafting effective prompts and potentially fine-tuning models.
     * **Possible Models:** Qwen 2.5-VL ([QwenLM/Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL)), Qwen 3 ([QwenLM/Qwen3](https://github.com/QwenLM/Qwen3)), or other models via frameworks like Hugging Face.
-    * **Interested:** Andrew, Ziyue, Hannah, Leo, Konstantinos
 
 ## 💻 Development Environment (Optional)
 
