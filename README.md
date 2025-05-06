@@ -1,5 +1,5 @@
-![Header](./header.png)
 # Team Project - Summer 25: Real-time Virtual Meeting Assistant
+![Header](./header.png)
 
 ## 🌟 About the Project
 
