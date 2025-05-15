@@ -5,8 +5,7 @@
 
 Welcome to the **Real-time Virtual Meeting Assistant**! Our goal is to revolutionize virtual meeting applications by enabling real-time interactions based on meeting context and user-specific knowledge. Imagine you're attending an online lecture and a complex concept you're unfamiliar with is mentioned – our assistant will instantly provide a concise, understandable explanation, allowing you to follow the rest of the session seamlessly.
 
-# Access project board via Miro
-URL[https://miro.com/welcomeonboard/YnFMWXpjUjdaelJ3Q2pNb0lTVTczelRwTWUvUk9YTHNqOUtWZzdBM2lDa1VjZWZiNnNFSWtqMXRKS2xQd3pNa3VxQ25oTTBad2JLd2pJME5UTVRoeVVPRFZFWVF1dEpQcGJJbTFJa0R1ckRWaDlEZU1VQ0ZmdjFicndBazV5NHZhWWluRVAxeXRuUUgwWDl3Mk1qRGVRPT0hdjE=?share_link_id=674549526661]
+# ([Access project board via Miro](https://miro.com/welcomeonboard/YnFMWXpjUjdaelJ3Q2pNb0lTVTczelRwTWUvUk9YTHNqOUtWZzdBM2lDa1VjZWZiNnNFSWtqMXRKS2xQd3pNa3VxQ25oTTBad2JLd2pJME5UTVRoeVVPRFZFWVF1dEpQcGJJbTFJa0R1ckRWaDlEZU1VQ0ZmdjFicndBazV5NHZhWWluRVAxeXRuUUgwWDl3Mk1qRGVRPT0hdjE=?share_link_id=674549526661))
 
 This project originated from the idea of explaining complex concepts in real-time during virtual meetings and has since expanded to include a variety of dynamic content. This includes:
 
