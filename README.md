@@ -46,8 +46,9 @@ To implement this ambitious project, we have formed three specialized groups:
 
 ## 💻 Development Environment (Optional)
 
-For computationally intensive tasks, especially `LLM` experiments, a workstation with an NVIDIA 3090 (24GB VRAM) is available. Access is via `SSH`. Team members will receive access credentials after submitting their public `SSH` key.
-
+{deprecated} For computationally intensive tasks, especially `LLM` experiments, a workstation with an NVIDIA 3090 (24GB VRAM) is available. Access is via `SSH`. Team members will receive access credentials after submitting their public `SSH` key.
+For now, we'll use a cloud computing solution. 
+# ❗️Please fill in the details @Andrew @konstantin
 
 ### 1. App Group (Frontend - Google Meet Integration)
 
@@ -71,6 +72,7 @@ This group focuses on the interface and interaction within Google Meet, acting a
 
 This group is responsible for converting the raw audio from the meeting into accurate, structured text that the LLM group can process.
 
+# ❗️@yihua bitte updaten
 * **Model Selection & Setup:**
     * Research and select suitable Speech-to-Text models, prioritizing real-time performance and accuracy for conversational speech (e.g., exploring options on Hugging Face).
     * Set up the necessary environment for running the chosen STT model(s), potentially leveraging the available GPU workstation.
