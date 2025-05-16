@@ -1,0 +1,16 @@
+{
+  "addOns": {
+    "common": {
+      "name": "Context Translator",
+      "logoUrl": "https://my-addon.pages.dev/logo.png"
+    },
+    "meet": {
+      "web": {
+        "sidePanelUrl": "https://my-addon.pages.dev/index.html",
+        "addOnOrigins": ["https://my-addon.pages.dev"],
+        "darkModeLogoUrl": "https://my-addon.pages.dev/logo-dark.png",
+        "supportsScreenSharing": false
+      }
+    }
+  }
+}
