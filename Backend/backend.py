@@ -27,6 +27,8 @@ async def simulate_entries():
     global simulation_running
     simulation_running = True
     counter = 0
+    print("Simulation started - generating test entries")
+    
     while simulation_running:
         counter += 1
         entry = {
@@ -36,18 +38,28 @@ async def simulate_entries():
             "timestamp": time.time(),
             "status": "pending"
         }
+        
+        print(f"Generating entry {counter}: {entry}")
+        
         # Add to backend queue for processing
         to_backend_queue.enqueue(entry)
+        print(f"Added to backend queue (size: {to_backend_queue.size()})")
+        
         # Also send directly to frontend for display
-        to_frontend_queue.enqueue({
+        frontend_msg = {
             "type": "simulation_update",
             "data": entry,
             "queue_sizes": {
                 "to_backend": to_backend_queue.size(),
                 "from_backend": from_backend_queue.size()
             }
-        })
+        }
+        to_frontend_queue.enqueue(frontend_msg)
+        print(f"Sent to frontend queue (size: {to_frontend_queue.size()})")
+        
         await asyncio.sleep(3)
+    
+    print("Simulation stopped")
 
 @app.on_event("shutdown")
 def shutdown_event():
