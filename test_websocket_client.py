@@ -43,14 +43,14 @@ async def test_websocket():
                 if attempt == max_attempts - 1:  # Last attempt failed
                     return test_results
                 continue
-                    
-                    # Test message roundtrip
-                test_msg = {
-                    "type": "test_message",
-                    "data": "ping",
-                    "timestamp": datetime.now().timestamp()
-                }
-                await websocket.send(json.dumps(test_msg))
+            
+            # Test message roundtrip
+            test_msg = {
+                "type": "test_message",
+                "data": "ping",
+                "timestamp": datetime.now().timestamp()
+            }
+            await websocket.send(json.dumps(test_msg))
             except Exception as e:
                 print(f"Attempt {attempt + 1} failed: {e}")
                 continue
