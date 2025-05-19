@@ -119,14 +119,23 @@ async function stopSimulation() {
     }
 }
 
-// Initialize WebSocket connection
+// Initialize WebSocket connection with debug logging
 const ws = new WebSocket('ws://localhost:8000/ws');
+console.log('WebSocket created, readyState:', ws.readyState);
 
-// Connection verification
 ws.onopen = () => {
-    console.log('WebSocket connection established');
+    console.log('WebSocket connection established, readyState:', ws.readyState);
     document.dispatchEvent(new Event('websocket-ready'));
 };
+
+ws.onerror = (error) => {
+    console.error('WebSocket connection error:', error, 'readyState:', ws.readyState);
+};
+
+// Log WebSocket state changes
+ws.addEventListener('open', () => console.log('WebSocket open, readyState:', ws.readyState));
+ws.addEventListener('error', () => console.log('WebSocket error, readyState:', ws.readyState));
+ws.addEventListener('close', () => console.log('WebSocket closed, readyState:', ws.readyState));
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {

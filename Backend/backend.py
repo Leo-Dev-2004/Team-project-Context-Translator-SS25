@@ -90,6 +90,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_websockets=["*"]  # Explicitly allow WebSockets
 )
 
 # WebSocket endpoint
@@ -97,8 +98,13 @@ app.add_middleware(
 async def websocket_endpoint(websocket: WebSocket):
     client = websocket.client
     logging.info(f"WebSocket connection request from {client.host}:{client.port}")
-    await websocket.accept()
-    logging.info(f"WebSocket connection established with {client.host}:{client.port}")
+    try:
+        await websocket.accept()
+        logging.info(f"WebSocket connection established with {client.host}:{client.port}")
+        logging.info(f"Current WebSocket connections: {app.state.websockets if hasattr(app.state, 'websockets') else 'None'}")
+    except Exception as e:
+        logging.error(f"WebSocket accept failed: {e}")
+        raise
     
     # Start background tasks for queue processing
     processor_task = asyncio.create_task(process_messages())
