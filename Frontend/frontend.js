@@ -186,20 +186,9 @@ window.wsManager = WebSocketManager;
 Frontend/frontend.js
 ```javascript
 <<<<<<< SEARCH
-        // Ensure WebSocket is connected before sending
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: "test",
-                message: "Simulation started from frontend",
-                timestamp: Date.now()
-            }));
-        } else {
-            console.warn('WebSocket not ready, cannot send test message');
-        }
-
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Setup WebSocket handlers
+    // Setup WebSocket message handler
     WebSocketManager.ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
