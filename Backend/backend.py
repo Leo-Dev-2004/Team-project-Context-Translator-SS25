@@ -40,38 +40,45 @@ async def simulate_entries(websocket: WebSocket):
     
     while simulation_running:
         counter += 1
-        await asyncio.sleep(3)  # Move sleep to start of loop to prevent race conditions
+        await asyncio.sleep(1)  # Faster generation
+        
+        # Generate different types of messages
+        msg_type = "message" if counter % 2 else "alert"
+        status = "pending" if counter % 3 else "urgent"
         
         entry = {
             "id": str(counter),
-            "type": "simulated",
-            "data": f"Test entry {counter}",
+            "type": msg_type,
+            "data": f"{msg_type} entry {counter}",
             "timestamp": time.time(),
-            "status": "pending"
+            "status": status,
+            "priority": counter % 5
         }
         
         print(f"Generating entry {counter}: {entry}")
         
-        # Send to frontend first
-        frontend_msg = {
-            "type": "frontend_message",
-            "data": entry,
-            "status": "created",
-            "timestamp": time.time()
-        }
-        to_frontend_queue.enqueue(frontend_msg)
+        # Randomize queue destinations
+        if counter % 4 == 0:
+            # Send directly to backend
+            backend_msg = {
+                "type": "backend_message",
+                "data": entry,
+                "status": "processing",
+                "timestamp": time.time()
+            }
+            to_backend_queue.enqueue(backend_msg)
+        else:
+            # Normal frontend flow
+            frontend_msg = {
+                "type": "frontend_message",
+                "data": entry,
+                "status": "created",
+                "timestamp": time.time()
+            }
+            to_frontend_queue.enqueue(frontend_msg)
         
-        # Then send to backend for processing
-        backend_msg = {
-            "type": "backend_message",
-            "data": entry,
-            "status": "processing",
-            "timestamp": time.time()
-        }
-        to_backend_queue.enqueue(backend_msg)
-        print(f"Sent to frontend queue (size: {to_frontend_queue.size()})")
-        
-        await asyncio.sleep(3)
+        # Random delay between 0.5-2 seconds
+        await asyncio.sleep(0.5 + 1.5 * random.random())
     
     print("Simulation stopped")
 

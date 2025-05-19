@@ -55,21 +55,36 @@ function updateQueueLog(logId, queue) {
     
     logElement.innerHTML = visibleItems.map(item => {
         const timeDiff = (now - (item.timestamp * 1000)) / 1000;
-        let statusClass = '';
+        let statusClass = item.status || '';
+        let priorityClass = item.data?.priority ? `priority-${item.data.priority}` : '';
         let content = '';
         
         if (item.data && item.data.id) {
-            if (item.status === 'created') statusClass = 'status-created';
-            if (item.status === 'processing') statusClass = 'status-processing';
-            if (item.status === 'processed') statusClass = 'status-processed';
-            content = `${item.data.id}: ${item.data.data}<br>
-                      <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
+            content = `
+                <div class="message-header">
+                    <span class="message-id">${item.data.id}</span>
+                    <span class="message-type ${item.data.type}">${item.data.type}</span>
+                    <span class="message-priority ${priorityClass}">P${item.data.priority || 0}</span>
+                </div>
+                <div class="message-content">${item.data.data}</div>
+                <div class="message-footer">
+                    <span class="message-status ${statusClass}">${item.status?.toUpperCase() || ''}</span>
+                    <span class="message-time">${timeDiff.toFixed(1)}s ago</span>
+                </div>
+            `;
         } else {
-            content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
-                      <small>${timeDiff.toFixed(1)}s ago</small>`;
+            content = `
+                <div class="message-header">
+                    <span class="message-type">${item.type || 'message'}</span>
+                </div>
+                <div class="message-content">${JSON.stringify(item.data || item)}</div>
+                <div class="message-footer">
+                    <span class="message-time">${timeDiff.toFixed(1)}s ago</span>
+                </div>
+            `;
         }
         
-        return `<div class="log-entry ${statusClass}">${content}</div>`;
+        return `<div class="log-entry ${statusClass} ${priorityClass}">${content}</div>`;
     }).join('');
     
     // Auto-scroll to bottom
