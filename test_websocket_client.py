@@ -51,26 +51,31 @@ async def test_websocket():
                 "timestamp": datetime.now().timestamp()
             }
             await websocket.send(json.dumps(test_msg))
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed: {e}")
-                continue
             
             # Validate response
-            response = json.loads(await websocket.recv())
-            assert response.get('response') == 'ack', "Missing ack response"
-            assert response.get('original', {}).get('type') == 'test_message', "Invalid message type"
-            test_results['message_roundtrip'] = True
+            try:
+                response = json.loads(await websocket.recv())
+                assert response.get('response') == 'ack', "Missing ack response"
+                assert response.get('original', {}).get('type') == 'test_message', "Invalid message type"
+                test_results['message_roundtrip'] = True
+            except Exception as e:
+                print(f"Message validation failed: {e}")
+                test_results['message_roundtrip'] = False
             
             # Test ping/pong
-            ping_time = time.time()
-            await websocket.send(json.dumps({
-                "type": "ping",
-                "timestamp": ping_time
-            }))
-            pong = json.loads(await websocket.recv())
-            assert pong['type'] == 'pong', "Invalid pong response"
-            assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
-            test_results['ping_pong'] = True
+            try:
+                ping_time = time.time()
+                await websocket.send(json.dumps({
+                    "type": "ping",
+                    "timestamp": ping_time
+                }))
+                pong = json.loads(await websocket.recv())
+                assert pong['type'] == 'pong', "Invalid pong response"
+                assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
+                test_results['ping_pong'] = True
+            except Exception as e:
+                print(f"Ping/pong test failed: {e}")
+                test_results['ping_pong'] = False
             
             # Test error handling
             try:
