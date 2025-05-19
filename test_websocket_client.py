@@ -112,9 +112,9 @@ async def run_tests_with_server():
     """Run tests with managed server instance"""
     server = None
     try:
-        # Start backend server
+        # Start backend server with explicit log level
         server = subprocess.Popen(
-            ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+            ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -141,26 +141,35 @@ async def run_tests_with_server():
         # Wait for server to start with better verification
         max_wait = 30  # seconds
         start_time = time.time()
+        server_ready = False
+        
         while time.time() - start_time < max_wait:
             try:
-                # Check both HTTP and WebSocket connectivity
+                # Check HTTP health endpoint first
                 http_response = requests.get('http://localhost:8000/health', timeout=1)
                 if http_response.status_code == 200:
+                    # Then verify WebSocket connection
                     try:
                         async with websockets.connect(
                             'ws://localhost:8000/ws',
                             timeout=2,
                             ping_interval=None
                         ) as ws:
-                            await ws.close()
-                            break
-                    except:
-                        pass
-            except:
-                pass
+                            await ws.send(json.dumps({"type": "ping"}))
+                            response = await ws.recv()
+                            if json.loads(response).get("type") == "pong":
+                                server_ready = True
+                                break
+                    except Exception as e:
+                        print(f"WebSocket check failed: {e}")
+            except Exception as e:
+                print(f"HTTP check failed: {e}")
+            
+            print(f"Waiting for server to start... ({int(time.time() - start_time)}s)")
             time.sleep(1)
-        else:
-            raise TimeoutError(f"Server didn't start within {max_wait} seconds")
+            
+        if not server_ready:
+            raise TimeoutError(f"Server didn't become ready within {max_wait} seconds")
         
         # Run tests
         return await test_websocket()
