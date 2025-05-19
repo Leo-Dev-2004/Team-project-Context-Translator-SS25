@@ -31,12 +31,27 @@
         
         .log-entry {
             border-left: 4px solid #ddd;
-            padding: 8px;
-            margin: 4px 0;
+            padding: 12px;
+            margin: 6px 0;
             background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
-            border-radius: 4px;
+            border-radius: 6px;
+            position: relative;
+        }
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .log-entry:hover::before {
+            opacity: 1;
         }
         .log-entry:hover {
             transform: translateX(2px);

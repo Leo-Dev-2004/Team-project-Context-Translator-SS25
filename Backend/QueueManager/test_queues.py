@@ -19,7 +19,27 @@ async def test_websocket_flow():
     
     async with AsyncClient(app=app, base_url="http://test") as client:
         async with client.websocket_connect("/ws") as websocket:
-            test_msg = {"test": "data"}
+            # Test connection ack
+            ack = await websocket.receive_json()
+            assert ack["type"] == "connection_ack"
+            
+            # Test message roundtrip
+            test_msg = {
+                "type": "test_message",
+                "data": "ping",
+                "timestamp": time.time()
+            }
             await websocket.send_json(test_msg)
             response = await websocket.receive_json()
-            assert "test" in response
+            assert response["response"] == "ack"
+            assert response["original"]["type"] == "test_message"
+            
+            # Test ping/pong
+            ping_time = time.time()
+            await websocket.send_json({
+                "type": "ping",
+                "timestamp": ping_time
+            })
+            pong = await websocket.receive_json()
+            assert pong["type"] == "pong"
+            assert pong["timestamp"] == ping_time
