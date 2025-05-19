@@ -34,42 +34,6 @@ const fromFrontendQueue = new MessageQueue();
 let websocket = null;
 let lastMessage = null;
 
-// WebSocket message handler
-ws.onmessage = (event) => {
-    try {
-        const data = JSON.parse(event.data);
-        console.log('Received from backend:', data);
-        
-        // Add to appropriate queue based on type
-        if (data.type === "frontend_message") {
-            toFrontendQueue.enqueue(data);
-        } else if (data.type === "backend_message") {
-            toBackendQueue.enqueue(data);
-        } else if (data.type === "processed_message") {
-            fromBackendQueue.enqueue(data);
-        }
-        
-        updateQueueDisplay();
-    } catch (e) {
-        console.error('Error processing message:', e);
-    }
-};
-
-ws.onopen = () => {
-    console.log('WebSocket connection established');
-    updateQueueDisplay();
-};
-
-ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-};
-
-ws.onclose = () => {
-    console.log('WebSocket disconnected - attempting to reconnect...');
-    setTimeout(() => {
-        window.ws = new WebSocket('ws://localhost:8000/ws');
-    }, 1000);
-};
 
 const MAX_LOG_LINES = 50;
 const MAX_LOG_HEIGHT = 350; // pixels
@@ -149,8 +113,44 @@ async function stopSimulation() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    initWebSocket();
-    
+    // Setup WebSocket handlers
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            console.log('Received from backend:', data);
+            
+            // Add to appropriate queue based on type
+            if (data.type === "frontend_message") {
+                toFrontendQueue.enqueue(data);
+            } else if (data.type === "backend_message") {
+                toBackendQueue.enqueue(data);
+            } else if (data.type === "processed_message") {
+                fromBackendQueue.enqueue(data);
+            }
+            
+            updateQueueDisplay();
+        } catch (e) {
+            console.error('Error processing message:', e);
+        }
+    };
+
+    ws.onopen = () => {
+        console.log('WebSocket connection established');
+        updateQueueDisplay();
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+        console.log('WebSocket disconnected - attempting to reconnect...');
+        setTimeout(() => {
+            window.ws = new WebSocket('ws://localhost:8000/ws');
+        }, 1000);
+    };
+
+    // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
     
