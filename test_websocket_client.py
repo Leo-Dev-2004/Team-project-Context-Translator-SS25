@@ -45,12 +45,12 @@ async def test_websocket():
                 continue
                     
                     # Test message roundtrip
-                    test_msg = {
-                        "type": "test_message",
-                        "data": "ping",
-                        "timestamp": datetime.now().timestamp()
-                    }
-                    await websocket.send(json.dumps(test_msg))
+                test_msg = {
+                    "type": "test_message",
+                    "data": "ping",
+                    "timestamp": datetime.now().timestamp()
+                }
+                await websocket.send(json.dumps(test_msg))
             except Exception as e:
                 print(f"Attempt {attempt + 1} failed: {e}")
                 continue
