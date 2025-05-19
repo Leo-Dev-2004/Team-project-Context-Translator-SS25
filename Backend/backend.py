@@ -98,11 +98,23 @@ app.add_middleware(
 async def websocket_endpoint(websocket: WebSocket):
     client = websocket.client
     logging.info(f"WebSocket connection request from {client.host}:{client.port}")
+    
+    # Set fast timeout for initial handshake
+    websocket._timeout = 5.0
+    
     try:
         await websocket.accept()
         if not hasattr(app.state, 'websockets'):
             app.state.websockets = set()
         app.state.websockets.add(websocket)
+        
+        # Send immediate connection confirmation
+        await websocket.send_text(json.dumps({
+            'type': 'connection_ack',
+            'status': 'connected',
+            'timestamp': time.time()
+        }))
+        
         logging.info(f"WebSocket connection established with {client.host}:{client.port}")
         logging.info(f"Current WebSocket connections: {len(app.state.websockets)}")
     except Exception as e:

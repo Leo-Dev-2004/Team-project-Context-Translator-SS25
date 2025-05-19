@@ -147,13 +147,20 @@ class SystemRunner:
         logger.info("Entering main loop...")
         while self.running:
             try:
-                # Check backend health
-                health = requests.get("http://localhost:8000/health", timeout=1)
-                logger.debug(f"Backend health: {health.status_code}")
+                # Check backend health with shorter timeout
+                try:
+                    health = requests.get("http://localhost:8000/health", timeout=0.5)
+                    logger.debug(f"Backend health: {health.status_code}")
+                except requests.exceptions.ReadTimeout:
+                    logger.debug("Backend health check timeout (normal during WebSocket activity)")
                 
-                # Check frontend health
-                frontend = requests.get("http://localhost:9000", timeout=1)
-                logger.debug(f"Frontend health: {frontend.status_code}")
+                # Skip frontend health check when WebSocket is active
+                if not hasattr(app.state, 'websockets') or len(app.state.websockets) == 0:
+                    try:
+                        frontend = requests.get("http://localhost:9000", timeout=0.5)
+                        logger.debug(f"Frontend health: {frontend.status_code}")
+                    except requests.exceptions.ReadTimeout:
+                        logger.debug("Frontend health check timeout")
                 
                 time.sleep(5)
             except requests.exceptions.RequestException as e:
