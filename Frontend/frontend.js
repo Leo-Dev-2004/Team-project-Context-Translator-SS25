@@ -316,21 +316,43 @@ window.wsManager = WebSocketManager;
 let messageCount = 0;
 
 function updateStatus() {
-    document.getElementById('connectionStatus').textContent = 
-        WebSocketManager.isConnected ? 'Connected' : 'Disconnected';
-    document.getElementById('lastUpdate').textContent = 
-        new Date().toLocaleTimeString();
-    document.getElementById('messageCount').textContent = messageCount;
+    try {
+        const connectionStatus = document.getElementById('connectionStatus');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const messageCountEl = document.getElementById('messageCount');
+        
+        if (connectionStatus) {
+            connectionStatus.textContent = 
+                WebSocketManager.isConnected ? 'Connected' : 'Disconnected';
+        }
+        if (lastUpdate) {
+            lastUpdate.textContent = new Date().toLocaleTimeString();
+        }
+        if (messageCountEl) {
+            messageCountEl.textContent = messageCount;
+        }
+    } catch (e) {
+        console.error('Error updating status:', e);
+    }
 }
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Setup button handlers
-    document.getElementById('startSim').addEventListener('click', startSimulation);
-    document.getElementById('stopSim').addEventListener('click', stopSimulation);
+    const startBtn = document.getElementById('startSim');
+    const stopBtn = document.getElementById('stopSim');
     
-    // Update status every second
-    setInterval(updateStatus, 1000);
+    if (startBtn && stopBtn) {
+        startBtn.addEventListener('click', startSimulation);
+        stopBtn.addEventListener('click', stopSimulation);
+        
+        // Initial status update
+        updateStatus();
+        // Update status every second
+        setInterval(updateStatus, 1000);
+    } else {
+        console.error('Could not find simulation buttons');
+    }
     
     // Update display immediately when messages arrive
     // No need for interval since we update on each message
