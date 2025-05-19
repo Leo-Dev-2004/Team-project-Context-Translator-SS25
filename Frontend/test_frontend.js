@@ -37,29 +37,62 @@ function initWebSocket() {
     
     websocket.onopen = () => {
         console.log('WebSocket connection established');
+        // Request initial status
+        websocket.send(JSON.stringify({type: "status_request"}));
     };
 
     websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        lastMessage = data;
-        fromBackendQueue.enqueue(data);
-        updateQueueDisplay();
-        console.log('Received from backend:', data);
+        try {
+            const data = JSON.parse(event.data);
+            console.log('Received from backend:', data);
+            
+            lastMessage = data;
+            fromBackendQueue.enqueue(data);
+            
+            // Update UI immediately
+            updateQueueDisplay();
+            
+            // If this is a simulation update, show more details
+            if (data.type === "simulation_update") {
+                console.log("New simulation entry:", data.data);
+            }
+        } catch (e) {
+            console.error('Error processing message:', e);
+        }
     };
 
     websocket.onerror = (error) => {
         console.error('WebSocket error:', error);
+    };
+
+    websocket.onclose = () => {
+        console.log('WebSocket disconnected - attempting to reconnect...');
+        setTimeout(initWebSocket, 1000);
     };
 }
 
 function updateQueueDisplay() {
     const display = document.getElementById('queueDisplay');
     if (display) {
+        let messagePreview = 'None';
+        if (lastMessage) {
+            if (lastMessage.type === "simulation_update") {
+                messagePreview = `Entry ${lastMessage.data.id}: ${lastMessage.data.data}`;
+            } else {
+                messagePreview = JSON.stringify(lastMessage);
+            }
+        }
+
         display.innerHTML = `
             <h3>Queue Status</h3>
             <p>To Backend: ${toBackendQueue.size()}</p>
             <p>From Backend: ${fromBackendQueue.size()}</p>
-            <p>Last Message: ${lastMessage ? JSON.stringify(lastMessage) : 'None'}</p>
+            <div class="last-message">
+                <h4>Last Message:</h4>
+                <p>${messagePreview}</p>
+                ${lastMessage?.data?.timestamp ? 
+                    `<p>${new Date(lastMessage.data.timestamp * 1000).toLocaleTimeString()}</p>` : ''}
+            </div>
         `;
     }
 }
