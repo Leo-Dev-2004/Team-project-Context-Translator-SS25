@@ -113,6 +113,9 @@ async function stopSimulation() {
     }
 }
 
+// Initialize WebSocket connection
+const ws = new WebSocket('ws://localhost:8000/ws');
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Setup WebSocket handlers
