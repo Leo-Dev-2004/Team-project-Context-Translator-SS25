@@ -33,9 +33,20 @@ async def simulate_entries():
             "id": str(counter),
             "type": "simulated",
             "data": f"Test entry {counter}",
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "status": "pending"
         }
+        # Add to backend queue for processing
         to_backend_queue.enqueue(entry)
+        # Also send directly to frontend for display
+        to_frontend_queue.enqueue({
+            "type": "simulation_update",
+            "data": entry,
+            "queue_sizes": {
+                "to_backend": to_backend_queue.size(),
+                "from_backend": from_backend_queue.size()
+            }
+        })
         await asyncio.sleep(3)
 
 @app.on_event("shutdown")
