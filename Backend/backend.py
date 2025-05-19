@@ -1,4 +1,5 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, BackgroundTasks
+import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from Backend.QueueManager.shared_queue import (
     to_frontend_queue,
@@ -11,6 +12,31 @@ import json
 import logging
 
 app = FastAPI()
+
+# Simulation state
+simulation_running = False
+simulation_task = None
+
+async def simulate_entries():
+    """Background task to simulate queue entries"""
+    global simulation_running
+    simulation_running = True
+    counter = 0
+    while simulation_running:
+        counter += 1
+        entry = {
+            "id": str(counter),
+            "type": "simulated",
+            "data": f"Test entry {counter}",
+            "timestamp": time.time()
+        }
+        to_backend_queue.enqueue(entry)
+        await asyncio.sleep(3)
+
+@app.on_event("shutdown")
+def shutdown_event():
+    global simulation_running
+    simulation_running = False
 
 # Configure CORS
 app.add_middleware(
@@ -49,6 +75,33 @@ async def send_messages(websocket: WebSocket):
                 logging.error(f"Failed to send message: {e}")
                 from_frontend_queue.enqueue(message)  # Requeue if failed
         await asyncio.sleep(0.1)  # Prevent busy waiting
+
+@app.get("/simulation/start")
+async def start_simulation(background_tasks: BackgroundTasks):
+    """Start the queue simulation"""
+    global simulation_task
+    if not simulation_running:
+        simulation_task = background_tasks.add_task(simulate_entries)
+        return {"status": "simulation started"}
+    return {"status": "simulation already running"}
+
+@app.get("/simulation/stop")
+async def stop_simulation():
+    """Stop the queue simulation"""
+    global simulation_running
+    simulation_running = False
+    return {"status": "simulation stopping"}
+
+@app.get("/simulation/status")
+async def simulation_status():
+    """Get simulation status"""
+    return {
+        "running": simulation_running,
+        "to_frontend_queue_size": to_frontend_queue.size(),
+        "from_frontend_queue_size": from_frontend_queue.size(),
+        "to_backend_queue_size": to_backend_queue.size(),
+        "from_backend_queue_size": from_backend_queue.size()
+    }
 
 async def receive_messages(websocket: WebSocket):
     """Receive messages from client and add to from_frontend_queue"""

@@ -52,11 +52,72 @@ async function processOutgoingQueue() {
     }
 }
 
+// Queue display elements
+let queueDisplay = null;
+
 // Start processing queues when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Create queue display
+    queueDisplay = document.createElement('div');
+    queueDisplay.style.position = 'fixed';
+    queueDisplay.style.bottom = '10px';
+    queueDisplay.style.right = '10px';
+    queueDisplay.style.backgroundColor = 'white';
+    queueDisplay.style.padding = '10px';
+    queueDisplay.style.border = '1px solid black';
+    queueDisplay.style.zIndex = '1000';
+    document.body.appendChild(queueDisplay);
+
+    // Add simulation controls
+    const simControls = document.createElement('div');
+    simControls.innerHTML = `
+        <button id="startSim">Start Simulation</button>
+        <button id="stopSim">Stop Simulation</button>
+    `;
+    document.body.appendChild(simControls);
+
+    document.getElementById('startSim').addEventListener('click', startSimulation);
+    document.getElementById('stopSim').addEventListener('click', stopSimulation);
+
     processOutgoingQueue();
     processIncomingQueue();
+    setInterval(updateQueueDisplay, 1000);
 });
+
+function updateQueueDisplay() {
+    if (!queueDisplay) return;
+    
+    queueDisplay.innerHTML = `
+        <h3>Queue Status</h3>
+        <p>To Backend: ${toBackendQueue.size()}</p>
+        <p>From Backend: ${fromBackendQueue.size()}</p>
+        <p>Last Message: ${lastMessage || 'None'}</p>
+    `;
+}
+
+let lastMessage = null;
+
+async function startSimulation() {
+    const response = await fetch('http://localhost:8000/simulation/start');
+    console.log(await response.json());
+}
+
+async function stopSimulation() {
+    const response = await fetch('http://localhost:8000/simulation/stop');
+    console.log(await response.json());
+}
+
+// Modify processIncomingQueue to track last message
+async function processIncomingQueue() {
+    while (true) {
+        const message = await fromBackendQueue.dequeue();
+        if (message) {
+            lastMessage = JSON.stringify(message);
+            console.log('Received from backend:', message);
+            updateQueueDisplay();
+        }
+    }
+}
 
 // Event Handler (Beispiel für einen Start Button)
 startButton.addEventListener('click', () => {
@@ -81,7 +142,9 @@ function initWebSocket() {
   // Event Listener für Nachrichten vom Backend
   websocket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    // Nachricht in FromFrontendQueue legen und verarbeiten
+    lastMessage = event.data;
+    fromBackendQueue.enqueue(data);
+    updateQueueDisplay();
     handleBackendMessage(data);
   };
 
