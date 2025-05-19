@@ -30,19 +30,60 @@
         }
         
         .log-entry {
-            padding: 5px;
-            margin-bottom: 5px;
-            border-radius: 3px;
+            border-left: 4px solid #ddd;
+            padding: 8px;
+            margin: 4px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-radius: 4px;
         }
-        .status-created {
-            background-color: #fff3cd;
+        .log-entry:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .status-processing {
-            background-color: #cce5ff;
+        .message-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
         }
-        .status-processed {
-            background-color: #d4edda;
+        .message-id {
+            font-weight: bold;
+            color: #333;
         }
+        .message-type {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        .message-type.message { background: #e6f7ff; }
+        .message-type.alert { background: #ffebee; }
+        .message-priority {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            background: #f5f5f5;
+        }
+        .priority-1 { background: #e8f5e9 !important; }
+        .priority-2 { background: #c8e6c9 !important; }
+        .priority-3 { background: #a5d6a7 !important; }
+        .priority-4 { background: #81c784 !important; }
+        .message-content {
+            margin: 4px 0;
+        }
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .message-status {
+            font-weight: bold;
+        }
+        .status-pending { color: #ff9800; }
+        .status-urgent { color: #f44336; }
+        .status-processing { color: #2196f3; }
+        .status-processed { color: #4caf50; }
         .log-overflow {
             color: red;
             font-weight: bold;
