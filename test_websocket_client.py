@@ -41,12 +41,21 @@ async def test_websocket():
                 timeout = 5 * (attempt + 1)  # 5s, 10s, 15s
                 print(f"Attempt {attempt+1} with timeout {timeout}s...")
                 
-                async with websockets.connect(
-                    'ws://localhost:8000/ws',
-                    ping_interval=None,
-                    open_timeout=timeout,
-                    close_timeout=timeout
-                ) as websocket:
+                try:
+                    websocket = await websockets.connect(
+                        'ws://localhost:8000/ws', 
+                        ping_interval=None
+                    )
+                    # Verify connection with ping/pong
+                    ping_time = time.time()
+                    await websocket.send(json.dumps({
+                        "type": "ping",
+                        "timestamp": ping_time
+                    }))
+                    pong = await asyncio.wait_for(websocket.recv(), timeout=timeout)
+                    pong_data = json.loads(pong)
+                    if pong_data.get("type") != "pong":
+                        raise ConnectionError("Invalid pong response")
                     connect_time = time.time() - start_time
                     test_results['performance'] = {'connect_time': connect_time}
                     print(f"Connection established in {connect_time:.3f}s")
@@ -172,16 +181,22 @@ async def run_tests_with_server():
                 if http_response.status_code == 200:
                     # Then verify WebSocket connection
                     try:
-                        async with websockets.connect(
-                            'ws://localhost:8000/ws',
-                            timeout=2,
-                            ping_interval=None
-                        ) as ws:
+                        try:
+                            ws = await websockets.connect(
+                                'ws://localhost:8000/ws',
+                                ping_interval=None
+                            )
                             await ws.send(json.dumps({"type": "ping"}))
-                            response = await ws.recv()
+                            response = await asyncio.wait_for(ws.recv(), timeout=2)
                             if json.loads(response).get("type") == "pong":
                                 server_ready = True
+                                await ws.close()
                                 break
+                        except Exception as e:
+                            print(f"WebSocket check failed: {e}")
+                        finally:
+                            if 'ws' in locals():
+                                await ws.close()
                     except Exception as e:
                         print(f"WebSocket check failed: {e}")
             except Exception as e:
