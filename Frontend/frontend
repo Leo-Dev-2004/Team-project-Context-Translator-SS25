@@ -1,16 +1,62 @@
-// Frontend Modul (Javascript)
+class MessageQueue {
+    constructor() {
+        this.queue = [];
+        this.pending = [];
+    }
 
-// Referenzen zu UI-Elementen (Button, Input-Feld, Anzeigebereich etc.)
-const startButton = document.getElementById('startButton');
-const inputArea = document.getElementById('inputArea'); // Beispiel: Für Texteingabe oder Statusanzeige
-const explanationArea = document.getElementById('explanationArea'); // Bereich für Erklärungen
+    enqueue(message) {
+        this.queue.push(message);
+        // Resolve any pending dequeue promises
+        while (this.pending.length > 0 && this.queue.length > 0) {
+            const resolve = this.pending.shift();
+            resolve(this.queue.shift());
+        }
+    }
 
-// WebSocket Instanz
+    async dequeue() {
+        if (this.queue.length > 0) {
+            return this.queue.shift();
+        }
+        // If queue is empty, return a promise that resolves when item is available
+        return new Promise(resolve => this.pending.push(resolve));
+    }
+
+    size() {
+        return this.queue.length;
+    }
+}
+
+// Initialize queues
+const toBackendQueue = new MessageQueue();
+const fromBackendQueue = new MessageQueue();
+
+// WebSocket connection
 let websocket = null;
 
-// Queues für die Kommunikation
-let toBackendQueue = []; // Nachrichten an Backend
-let fromBackendQueue = []; // Nachrichten vom Backend
+// Process outgoing messages
+async function processOutgoingQueue() {
+    while (true) {
+        const message = await toBackendQueue.dequeue();
+        try {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(message));
+            } else {
+                // Requeue if not connected
+                toBackendQueue.enqueue(message);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            toBackendQueue.enqueue(message); // Requeue on failure
+        }
+    }
+}
+
+// Start processing queues when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    processOutgoingQueue();
+    processIncomingQueue();
+});
 
 // Event Handler (Beispiel für einen Start Button)
 startButton.addEventListener('click', () => {

@@ -1,11 +1,41 @@
 import threading
-import uuid # Recommended for unique IDs
+import uuid
 import time
-from typing import Dict
+from typing import Dict, List
+from collections import deque
 
+# Thread-safe queue implementation
+class MessageQueue:
+    def __init__(self):
+        self._queue = deque()
+        self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
 
-queue_lock = threading.Lock()
-detection_queue = [] # Consider using collections.deque for efficiency with pop/append
+    def enqueue(self, message: Dict) -> None:
+        """Add message to queue and notify waiting threads"""
+        with self._condition:
+            self._queue.append(message)
+            self._condition.notify()
+
+    def dequeue(self, timeout: float = None) -> Dict:
+        """Remove and return message from queue, with optional timeout"""
+        with self._condition:
+            if not self._queue:
+                self._condition.wait(timeout=timeout)
+                if not self._queue:  # Still empty after timeout
+                    return None
+            return self._queue.popleft()
+
+    def size(self) -> int:
+        """Get current queue size"""
+        with self._lock:
+            return len(self._queue)
+
+# Initialize all queues
+to_frontend_queue = MessageQueue()
+from_frontend_queue = MessageQueue()
+to_backend_queue = MessageQueue()
+from_backend_queue = MessageQueue()
 
 def add_entry(entry: dict):
     """Adds a new detection object to the central Queue."""
