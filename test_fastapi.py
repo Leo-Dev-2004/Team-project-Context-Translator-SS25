@@ -1,7 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from fastapi.responses import FileResponse
 import uvicorn
+from pathlib import Path
 
 app = FastAPI()
+
+# Serve a blank favicon to prevent 404 errors
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 @app.get("/")
 def read_root():
