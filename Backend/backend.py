@@ -91,23 +91,46 @@ async def websocket_endpoint(websocket: WebSocket):
     
     try:
         await asyncio.gather(sender_task, receiver_task)
+    except asyncio.CancelledError:
+        logging.info("WebSocket tasks cancelled normally")
     except Exception as e:
         logging.error(f"WebSocket error: {e}")
     finally:
-        sender_task.cancel()
-        receiver_task.cancel()
+        if not sender_task.done():
+            sender_task.cancel()
+        if not receiver_task.done():
+            receiver_task.cancel()
+        try:
+            await asyncio.wait_for(websocket.close(), timeout=1.0)
+        except Exception:
+            pass
+        logging.info("WebSocket connection closed")
 
 async def send_messages(websocket: WebSocket):
     """Send messages from to_frontend_queue to client"""
-    while True:
-        message = to_frontend_queue.dequeue(timeout=1.0)
-        if message:
+    try:
+        while True:
             try:
-                await websocket.send_text(json.dumps(message))
+                message = to_frontend_queue.dequeue(timeout=1.0)
+                if message:
+                    try:
+                        await websocket.send_text(json.dumps(message))
+                    except RuntimeError as e:
+                        if "disconnect" in str(e):
+                            logging.info("WebSocket disconnected during send")
+                            break
+                        raise
+                    except Exception as e:
+                        logging.error(f"Failed to send message: {e}")
+                        from_frontend_queue.enqueue(message)  # Requeue if failed
+                await asyncio.sleep(0.1)  # Prevent busy waiting
             except Exception as e:
-                logging.error(f"Failed to send message: {e}")
-                from_frontend_queue.enqueue(message)  # Requeue if failed
-        await asyncio.sleep(0.1)  # Prevent busy waiting
+                logging.error(f"Error in send loop: {e}")
+                break
+    except Exception as e:
+        logging.error(f"WebSocket send task failed: {e}")
+    finally:
+        logging.info("WebSocket send task ending")
 
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
@@ -138,17 +161,30 @@ async def simulation_status():
 
 async def receive_messages(websocket: WebSocket):
     """Receive messages from client and add to from_frontend_queue"""
-    while True:
-        try:
-            data = await websocket.receive_text()
-            print(f"Received message: {data}")  # Debug
-            message = json.loads(data)
-            from_frontend_queue.enqueue(message)
-            
-            # Send response
-            response = {"response": "ack", "original": message}
-            await websocket.send_text(json.dumps(response))
-            print("Sent response")  # Debug
-            
-        except Exception as e:
-            logging.error(f"Failed to process message: {e}")
+    try:
+        while True:
+            try:
+                data = await websocket.receive_text()
+                print(f"Received message: {data}")  # Debug
+                message = json.loads(data)
+                from_frontend_queue.enqueue(message)
+                
+                # Send response
+                response = {"response": "ack", "original": message}
+                await websocket.send_text(json.dumps(response))
+                print("Sent response")  # Debug
+                
+            except json.JSONDecodeError as e:
+                logging.error(f"Invalid JSON received: {e}")
+            except RuntimeError as e:
+                if "disconnect" in str(e):
+                    logging.info("WebSocket disconnected during receive")
+                    break
+                raise
+            except Exception as e:
+                logging.error(f"Failed to process message: {e}")
+                break
+    except Exception as e:
+        logging.error(f"WebSocket receive task failed: {e}")
+    finally:
+        logging.info("WebSocket receive task ending")
