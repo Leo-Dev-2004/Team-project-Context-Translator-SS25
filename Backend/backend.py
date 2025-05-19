@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, BackgroundTasks
 import asyncio
+import random
 from fastapi.middleware.cors import CORSMiddleware
 from Backend.QueueManager.shared_queue import (
     to_frontend_queue,
