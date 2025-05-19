@@ -35,8 +35,7 @@ let websocket = null;
 let lastMessage = null;
 
 
-const MAX_LOG_LINES = 50;
-const MAX_LOG_HEIGHT = 350; // pixels
+const MAX_VISIBLE_ITEMS = 20;
 
 function updateQueueDisplay() {
     // Update queue logs
@@ -53,7 +52,10 @@ function updateQueueLog(logId, queue) {
     const items = queue.queue.slice().reverse();
     const now = Date.now();
     
-    logElement.innerHTML = items.map(item => {
+    // Only show last 20 items to prevent overflow
+    const visibleItems = items.slice(0, 20);
+    
+    logElement.innerHTML = visibleItems.map(item => {
         const timeDiff = (now - (item.timestamp * 1000)) / 1000;
         let statusClass = '';
         let content = '';
@@ -75,12 +77,9 @@ function updateQueueLog(logId, queue) {
     // Auto-scroll to bottom
     logElement.scrollTop = logElement.scrollHeight;
     
-    if (logElement.scrollHeight > MAX_LOG_HEIGHT) {
-        const overflow = document.createElement('div');
-        overflow.className = 'log-overflow';
-        overflow.textContent = 'QUEUE OVERFLOW - STOPPING SIMULATION';
-        logElement.appendChild(overflow);
-        stopSimulation();
+    // Remove overflow check since we're limiting items
+    if (queue.size() > 20) {
+        logElement.innerHTML += `<div class="log-overflow">+${queue.size() - 20} more items</div>`;
     }
 }
 
