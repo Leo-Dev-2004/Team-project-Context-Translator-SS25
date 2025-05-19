@@ -152,15 +152,36 @@ const WebSocketManager = {
         this.isConnected = this.ws.readyState === WebSocket.OPEN;
         
         this.ws.onopen = () => {
+            console.log('WebSocket OPEN event received');
+            this._wsReadyState = WebSocket.OPEN;
             this.isConnected = true;
-            console.log('WebSocket connection established, readyState:', this.ws.readyState);
+            console.log('WebSocket connection established, readyState:', this.getState());
             this.reconnectAttempts = 0;
-            document.dispatchEvent(new Event('websocket-ready'));
             
-            // Start periodic ping
-            this.pingInterval = setInterval(() => {
-                this.send({type: 'ping', timestamp: Date.now()});
-            }, 30000);
+            // Verify connection with immediate ping
+            const pingId = Date.now();
+            this.send({type: 'ping', timestamp: pingId});
+            
+            // Setup ping response handler
+            const pingHandler = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'pong' && msg.timestamp === pingId) {
+                        console.log('WebSocket connection verified with pong');
+                        this.ws.removeEventListener('message', pingHandler);
+                        document.dispatchEvent(new Event('websocket-ready'));
+                        
+                        // Start periodic ping
+                        this.pingInterval = setInterval(() => {
+                            this.send({type: 'ping', timestamp: Date.now()});
+                        }, 30000);
+                    }
+                } catch (e) {
+                    console.error('Ping verification error:', e);
+                }
+            };
+            
+            this.ws.addEventListener('message', pingHandler);
         };
 
         // Add state tracking
