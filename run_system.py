@@ -36,8 +36,33 @@ class SystemRunner:
             access_log=True
         )
         server = uvicorn.Server(config)
-        logger.info("Backend server configured, starting...")
-        server.run()
+        
+        # Run server in a thread so we can check when it's ready
+        def run_server():
+            logger.info("Backend server starting...")
+            server.run()
+            
+        backend_thread = threading.Thread(
+            target=run_server,
+            daemon=True
+        )
+        backend_thread.start()
+        
+        # Wait for server to be ready
+        max_retries = 20
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                health = requests.get("http://localhost:8000/health", timeout=0.5)
+                if health.status_code == 200:
+                    logger.info("Backend server is ready")
+                    return
+            except Exception:
+                logger.debug(f"Waiting for backend to start... ({retry_count+1}/{max_retries})")
+                retry_count += 1
+                time.sleep(0.5)
+                
+        logger.error("Backend server failed to start")
 
     def start_simulation(self):
         """Start the simulation after server is ready"""
@@ -147,20 +172,23 @@ class SystemRunner:
         logger.info("Entering main loop...")
         while self.running:
             try:
-                # Check backend health with shorter timeout
-                try:
-                    health = requests.get("http://localhost:8000/health", timeout=0.5)
-                    logger.debug(f"Backend health: {health.status_code}")
-                except requests.exceptions.ReadTimeout:
-                    logger.debug("Backend health check timeout (normal during WebSocket activity)")
-                
-                # Skip frontend health check when WebSocket is active
+                # Only check backend health if no active WebSockets
                 if not hasattr(app.state, 'websockets') or len(app.state.websockets) == 0:
                     try:
+                        health = requests.get("http://localhost:8000/health", timeout=0.5)
+                        if health.status_code != 200:
+                            logger.warning(f"Backend health check failed: {health.status_code}")
+                    except requests.exceptions.RequestException as e:
+                        logger.debug(f"Backend health check: {str(e)}")
+                
+                # Check frontend less frequently
+                if time.time() % 10 < 0.5:  # ~every 10 seconds
+                    try:
                         frontend = requests.get("http://localhost:9000", timeout=0.5)
-                        logger.debug(f"Frontend health: {frontend.status_code}")
-                    except requests.exceptions.ReadTimeout:
-                        logger.debug("Frontend health check timeout")
+                        if frontend.status_code != 200:
+                            logger.warning(f"Frontend health check failed: {frontend.status_code}")
+                    except requests.exceptions.RequestException as e:
+                        logger.debug(f"Frontend health check: {str(e)}")
                 
                 time.sleep(5)
             except requests.exceptions.RequestException as e:
