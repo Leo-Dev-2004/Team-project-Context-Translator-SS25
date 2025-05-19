@@ -14,5 +14,12 @@ def test_message_queue_basic():
 
 @pytest.mark.asyncio
 async def test_websocket_flow():
-    # This would need async test client setup
-    pass
+    from Backend.backend import app
+    from httpx import AsyncClient
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        async with client.websocket_connect("/ws") as websocket:
+            test_msg = {"test": "data"}
+            await websocket.send_json(test_msg)
+            response = await websocket.receive_json()
+            assert "test" in response

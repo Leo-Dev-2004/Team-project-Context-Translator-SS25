@@ -1,4 +1,4 @@
-import { MessageQueue } from './frontend.js';
+const { MessageQueue } = require('./frontend');
 
 describe('MessageQueue', () => {
   let queue;
