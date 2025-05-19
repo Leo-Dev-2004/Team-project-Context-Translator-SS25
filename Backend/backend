@@ -59,17 +59,7 @@ async def receive_messages(websocket: WebSocket):
             from_frontend_queue.enqueue(message)
         except Exception as e:
             logging.error(f"Failed to process message: {e}")
-from Backend.QueueManager.shared_queue import (
-    to_frontend_queue,
-    from_frontend_queue,
-    to_backend_queue,
-    from_backend_queue
-)
-import asyncio
-import json
-import logging
-
-app = FastAPI()
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from Backend.QueueManager.shared_queue import (
     to_frontend_queue,

@@ -3,8 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="teamprojekt",
     version="0.1",
-    packages=find_packages(where='.', include=['Backend*']),
-    package_dir={'': '.'},
+    packages=find_packages(include=['Backend', 'Backend.*']),
     install_requires=[
         "fastapi==0.95.2",
         "uvicorn==0.22.0",
