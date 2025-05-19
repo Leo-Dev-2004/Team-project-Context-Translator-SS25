@@ -85,6 +85,8 @@ function updateQueueLog(logId, queue) {
 
 async function startSimulation() {
     try {
+        console.log('Starting simulation...');
+        
         // Clear all queues first
         toFrontendQueue.queue = [];
         fromFrontendQueue.queue = [];
@@ -97,8 +99,12 @@ async function startSimulation() {
         const result = await response.json();
         console.log('Simulation started:', result);
         
-        // Request initial status
-        ws.send(JSON.stringify({type: "status_request"}));
+        // Send test message to verify connection
+        ws.send(JSON.stringify({
+            type: "test",
+            message: "Simulation started from frontend",
+            timestamp: Date.now()
+        }));
     } catch (error) {
         console.error('Failed to start simulation:', error);
     }
@@ -122,19 +128,30 @@ document.addEventListener('DOMContentLoaded', () => {
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            console.log('Received from backend:', data);
+            console.log('Received WebSocket message:', data);
             
             lastMessage = data;
             
             // Route message to appropriate queue
             if (data.type === "frontend_message") {
                 toFrontendQueue.enqueue(data);
+                console.log('Added to toFrontendQueue:', data);
             } 
             else if (data.type === "backend_message") {
                 toBackendQueue.enqueue(data);
+                console.log('Added to toBackendQueue:', data);
+            }
+            else if (data.type === "processed_message") {
+                fromBackendQueue.enqueue(data);
+                console.log('Added to fromBackendQueue:', data);
             }
             else if (data.type === "simulation_update") {
+                // This is the main message type from backend
                 fromBackendQueue.enqueue(data);
+                console.log('Added to fromBackendQueue (simulation):', data);
+            }
+            else {
+                console.log('Unknown message type:', data.type);
             }
             
             updateQueueDisplay();
@@ -163,6 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
     
-    // Update display every second
-    setInterval(updateQueueDisplay, 1000);
+    // Update display immediately when messages arrive
+    // No need for interval since we update on each message
 });
