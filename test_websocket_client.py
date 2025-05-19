@@ -37,6 +37,12 @@ async def test_websocket():
                     test_results['performance'] = {'connect_time': connect_time}
                     print(f"Connection established in {connect_time:.3f}s")
                     test_results['connection'] = True
+                    break  # Success - exit attempt loop
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_attempts - 1:  # Last attempt failed
+                    return test_results
+                continue
                     
                     # Test message roundtrip
                     test_msg = {
