@@ -16,17 +16,31 @@ async def test_websocket():
         'message_roundtrip': False,
         'ping_pong': False,
         'error_handling': False,
-        'performance': None
+        'performance': None,
+        'server_status': None
     }
     
     try:
+        # First check if HTTP server is running
+        try:
+            http_response = requests.get('http://localhost:8000/health', timeout=2)
+            test_results['server_status'] = f"HTTP {http_response.status_code}"
+            if http_response.status_code != 200:
+                print(f"HTTP server not healthy: {http_response.status_code}")
+                return test_results
+        except Exception as e:
+            test_results['server_status'] = f"HTTP error: {str(e)}"
+            print(f"HTTP check failed: {e}")
+            return test_results
+
         # Test connection
         start_time = time.time()
-        # Try multiple connection attempts with increasing timeouts
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
                 timeout = 5 * (attempt + 1)  # 5s, 10s, 15s
+                print(f"Attempt {attempt+1} with timeout {timeout}s...")
+                
                 async with websockets.connect(
                     'ws://localhost:8000/ws',
                     ping_interval=None,
@@ -37,12 +51,6 @@ async def test_websocket():
                     test_results['performance'] = {'connect_time': connect_time}
                     print(f"Connection established in {connect_time:.3f}s")
                     test_results['connection'] = True
-                    break  # Success - exit attempt loop
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed: {e}")
-                if attempt == max_attempts - 1:  # Last attempt failed
-                    return test_results
-                continue
             
             # Test message roundtrip
             test_msg = {
@@ -112,7 +120,7 @@ async def run_tests_with_server():
     """Run tests with managed server instance"""
     server = None
     try:
-        # Start backend server with explicit log level
+        # Start backend server with explicit log level and bind to all interfaces
         server = subprocess.Popen(
             ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"],
             stdout=subprocess.PIPE,
@@ -121,6 +129,10 @@ async def run_tests_with_server():
             bufsize=1,
             universal_newlines=True
         )
+        
+        # Verify server process started
+        if server.poll() is not None:
+            raise RuntimeError("Server process failed to start")
     
         # Log server output in real-time
         def log_output(pipe, prefix):
