@@ -14,6 +14,10 @@ import time
 
 app = FastAPI()
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Context Translator API"}
+
 # Simulation state
 simulation_running = False
 simulation_task = None
@@ -38,6 +42,10 @@ async def simulate_entries():
 def shutdown_event():
     global simulation_running
     simulation_running = False
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "version": "0.1"}
 
 # Configure CORS
 app.add_middleware(
