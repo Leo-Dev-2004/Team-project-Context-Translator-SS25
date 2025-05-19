@@ -2,9 +2,10 @@ import sys
 import os
 from pathlib import Path
 
-# Get absolute path to project root
+# Get absolute path to project root (Documents/Coding/Teamprojekt Context Translator)
 project_root = Path(__file__).parent.parent
 project_path = str(project_root)
+print(f"Project path: {project_path}")  # Verify correct path
 
 # Add project root to Python path if not already there
 if project_path not in sys.path:

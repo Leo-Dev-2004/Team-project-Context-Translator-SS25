@@ -3,9 +3,10 @@ import sys
 from pathlib import Path
 from httpx import AsyncClient
 
-# Add project root to Python path
+# Add project root to Python path (Documents/Coding/Teamprojekt Context Translator)
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+print(f"Project path: {sys.path[0]}")  # Verify correct path
 
 try:
     from Backend.backend import app

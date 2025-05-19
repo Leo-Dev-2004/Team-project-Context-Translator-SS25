@@ -1,3 +1,10 @@
+import os
+import sys
+
+# Verify backend module location
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+print(f"Backend module located at: {backend_dir}")
+
 from .backend import app
 from .QueueManager.shared_queue import (
     MessageQueue,
