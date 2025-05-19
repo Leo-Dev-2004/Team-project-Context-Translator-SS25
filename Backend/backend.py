@@ -38,6 +38,16 @@ async def simulate_entries(websocket: WebSocket):
     simulation_running = True
     counter = 0
     print("Simulation started - generating test entries")
+    logging.info("Simulation STARTED - Generating test entries")
+    
+    # Force initial test message
+    test_msg = {
+        "type": "test",
+        "message": "Initial test message from simulation",
+        "timestamp": time.time()
+    }
+    to_frontend_queue.enqueue(test_msg)
+    logging.info(f"Enqueued initial test message: {test_msg}")
     
     while simulation_running:
         counter += 1

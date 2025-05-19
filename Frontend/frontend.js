@@ -36,11 +36,24 @@ let lastMessage = null;
 const MAX_VISIBLE_ITEMS = 20;
 
 function updateQueueDisplay() {
-    // Update queue logs
-    updateQueueLog('toFrontendLog', toFrontendQueue);
-    updateQueueLog('fromFrontendLog', fromFrontendQueue);
-    updateQueueLog('toBackendLog', toBackendQueue);
-    updateQueueLog('fromBackendLog', fromBackendQueue);
+    console.log("Updating queue display...");
+    try {
+        // Update queue logs
+        updateQueueLog('toFrontendLog', toFrontendQueue);
+        updateQueueLog('fromFrontendLog', fromFrontendQueue);
+        updateQueueLog('toBackendLog', toBackendQueue);
+        updateQueueLog('fromBackendLog', fromBackendQueue);
+        
+        // Debug: Log queue sizes
+        console.log("Current queue sizes:", {
+            toFrontend: toFrontendQueue.size(),
+            fromFrontend: fromFrontendQueue.size(), 
+            toBackend: toBackendQueue.size(),
+            fromBackend: fromBackendQueue.size()
+        });
+    } catch (e) {
+        console.error("Error in updateQueueDisplay:", e);
+    }
 }
 
 function updateQueueLog(logId, queue) {
@@ -146,6 +159,15 @@ const handleWebSocketMessage = (event) => {
     try {
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data);
+        
+        // Debug: Log raw message and queues before processing
+        console.log('Raw message:', event.data);
+        console.log('Queues before processing:', {
+            toFrontend: toFrontendQueue.size(),
+            fromFrontend: fromFrontendQueue.size(),
+            toBackend: toBackendQueue.size(),
+            fromBackend: fromBackendQueue.size()
+        });
         
         lastMessage = data;
         
@@ -345,6 +367,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startBtn && stopBtn) {
         startBtn.addEventListener('click', startSimulation);
         stopBtn.addEventListener('click', stopSimulation);
+        
+        const testBtn = document.getElementById('testButton');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
+                const testMsg = {
+                    type: "manual_test",
+                    message: "Manual test message",
+                    timestamp: Date.now()/1000
+                };
+                toFrontendQueue.enqueue(testMsg);
+                updateQueueDisplay();
+                console.log("Manually added test message to queue");
+            });
+        }
         
         // Initial status update
         updateStatus();
