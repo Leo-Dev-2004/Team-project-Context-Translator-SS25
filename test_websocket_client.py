@@ -53,67 +53,64 @@ async def test_websocket():
                     test_results['connection'] = True
             except Exception as e:
                 print(f"Connection attempt {attempt+1} failed: {e}")
-                continue
-            
-                    # Test message roundtrip
-                    test_msg = {
+
+                # Test message roundtrip
+                test_msg = {
                         "type": "test_message",
                         "data": "ping",
                         "timestamp": datetime.now().timestamp()
                     }
-                    print(f"Sending test message: {test_msg}")
-                    await websocket.send(json.dumps(test_msg))
+                await websocket.send(json.dumps(test_msg))
+                continue
             
-                    # Validate response
-                    try:
-                        response = json.loads(await websocket.recv())
-                        print(f"Received response: {response}")
-                        assert response.get('response') == 'ack', "Missing ack response"
-                        assert response.get('original', {}).get('type') == 'test_message', "Invalid message type"
-                        test_results['message_roundtrip'] = True
-                    except Exception as e:
-                        print(f"Message validation failed: {e}")
-                        test_results['message_roundtrip'] = False
+            # Validate response
+            try:
+                response = json.loads(await websocket.recv())
+                assert response.get('response') == 'ack', "Missing ack response"
+                assert response.get('original', {}).get('type') == 'test_message', "Invalid message type"
+                test_results['message_roundtrip'] = True
+            except Exception as e:
+                print(f"Message validation failed: {e}")
+                test_results['message_roundtrip'] = False
             
-                    # Test ping/pong
-                    try:
-                        ping_time = time.time()
-                        await websocket.send(json.dumps({
-                            "type": "ping",
-                            "timestamp": ping_time
-                        }))
-                        pong = json.loads(await websocket.recv())
-                        print(f"Received pong: {pong}")
-                        assert pong['type'] == 'pong', "Invalid pong response"
-                        assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
-                        test_results['ping_pong'] = True
-                    except Exception as e:
-                        print(f"Ping/pong test failed: {e}")
-                        test_results['ping_pong'] = False
+            # Test ping/pong
+            try:
+                ping_time = time.time()
+                await websocket.send(json.dumps({
+                    "type": "ping",
+                    "timestamp": ping_time
+                }))
+                pong = json.loads(await websocket.recv())
+                assert pong['type'] == 'pong', "Invalid pong response"
+                assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
+                test_results['ping_pong'] = True
+            except Exception as e:
+                print(f"Ping/pong test failed: {e}")
+                test_results['ping_pong'] = False
             
-                    # Test error handling
-                    try:
-                        await websocket.send("invalid json")
-                        response = await websocket.recv()
-                        json.loads(response)  # Should fail
-                        print("Warning: Server accepted invalid JSON")
-                    except (json.JSONDecodeError, websockets.exceptions.ConnectionClosed):
-                        test_results['error_handling'] = True
+            # Test error handling
+            try:
+                await websocket.send("invalid json")
+                response = await websocket.recv()
+                json.loads(response)  # Should fail
+                print("Warning: Server accepted invalid JSON")
+            except (json.JSONDecodeError, websockets.exceptions.ConnectionClosed):
+                test_results['error_handling'] = True
             
-                    # Performance test
-                    perf_start = time.time()
-                    for i in range(10):
-                        await websocket.send(json.dumps({
-                            "type": "perf_test",
-                            "count": i,
-                            "timestamp": time.time()
-                        }))
-                        await websocket.recv()
-                    perf_time = time.time() - perf_start
-                    test_results['performance']['message_rate'] = 10/perf_time
-                    print(f"Performance: {10/perf_time:.1f} msg/sec")
-                    
-                    return test_results
+            # Performance test
+            perf_start = time.time()
+            for i in range(10):
+                await websocket.send(json.dumps({
+                    "type": "perf_test",
+                    "count": i,
+                    "timestamp": time.time()
+                }))
+                await websocket.recv()
+            perf_time = time.time() - perf_start
+            test_results['performance']['message_rate'] = 10/perf_time
+            print(f"Performance: {10/perf_time:.1f} msg/sec")
+            
+            return test_results
         
     except Exception as e:
         print(f"Test failed: {str(e)}")
