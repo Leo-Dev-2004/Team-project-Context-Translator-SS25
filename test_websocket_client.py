@@ -51,6 +51,9 @@ async def test_websocket():
                     test_results['performance'] = {'connect_time': connect_time}
                     print(f"Connection established in {connect_time:.3f}s")
                     test_results['connection'] = True
+            except Exception as e:
+                print(f"Connection attempt {attempt+1} failed: {e}")
+                continue
             
             # Test message roundtrip
             test_msg = {
