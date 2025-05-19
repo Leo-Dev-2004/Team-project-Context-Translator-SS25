@@ -90,27 +90,34 @@ function updateQueueLog(logId, queue) {
     const logElement = document.getElementById(logId);
     if (!logElement) return;
 
-    // Get current queue items
-    const items = queue.queue.slice().reverse(); // Show newest first
+    const items = queue.queue.slice().reverse();
+    const now = Date.now();
     
-    // Update log content
-    logElement.textContent = items.map(item => {
-        if (item.type === 'simulation_update') {
-            return `Entry ${item.data.id}: ${item.data.data}`;
-        }
-        return JSON.stringify(item);
-    }).join('\n');
-
-    // Check if log is too big
+    logElement.innerHTML = items.map(item => {
+        const timeDiff = ((now - (item.timestamp * 1000)) / 1000;
+        let statusClass = '';
+        
+        if (item.status === 'created') statusClass = 'status-created';
+        if (item.status === 'processing') statusClass = 'status-processing';
+        if (item.status === 'processed') statusClass = 'status-processed';
+        
+        return `
+            <div class="log-entry ${statusClass}">
+                ${item.data.id}: ${item.data.data}<br>
+                <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>
+            </div>
+        `;
+    }).join('');
+    
+    // Auto-scroll to bottom
+    logElement.scrollTop = logElement.scrollHeight;
+    
     if (logElement.scrollHeight > MAX_LOG_HEIGHT) {
-        logElement.textContent += '\nQUEUE OVERFLOW - STOPPING SIMULATION';
+        const overflow = document.createElement('div');
+        overflow.className = 'log-overflow';
+        overflow.textContent = 'QUEUE OVERFLOW - STOPPING SIMULATION';
+        logElement.appendChild(overflow);
         stopSimulation();
-    }
-    
-    // Limit number of lines shown
-    const lines = logElement.textContent.split('\n');
-    if (lines.length > MAX_LOG_LINES) {
-        logElement.textContent = lines.slice(0, MAX_LOG_LINES).join('\n');
     }
 }
 

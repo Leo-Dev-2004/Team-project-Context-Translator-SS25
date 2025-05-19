@@ -30,7 +30,7 @@ async def root():
 simulation_running = False
 simulation_task = None
 
-async def simulate_entries():
+async def simulate_entries(websocket: WebSocket):
     """Background task to simulate queue entries"""
     global simulation_running
     simulation_running = True
@@ -98,6 +98,7 @@ async def websocket_endpoint(websocket: WebSocket):
     logging.info(f"WebSocket connection established with {client.host}:{client.port}")
     
     # Start background tasks for queue processing
+    processor_task = asyncio.create_task(process_messages())
     sender_task = asyncio.create_task(send_messages(websocket))
     receiver_task = asyncio.create_task(receive_messages(websocket))
     
@@ -117,6 +118,29 @@ async def websocket_endpoint(websocket: WebSocket):
         except Exception:
             pass
         logging.info("WebSocket connection closed")
+
+async def process_messages():
+    """Process messages from backend queue"""
+    while True:
+        try:
+            message = to_backend_queue.dequeue(timeout=1.0)
+            if message:
+                logging.info(f"Processing message: {message}")
+                
+                # Simulate processing
+                await asyncio.sleep(1)
+                
+                # Update status
+                message['status'] = 'processed'
+                message['timestamp'] = time.time()
+                
+                # Send back to frontend
+                from_backend_queue.enqueue(message)
+                logging.info(f"Message processed: {message}")
+                
+        except Exception as e:
+            logging.error(f"Error processing message: {e}")
+            await asyncio.sleep(1)
 
 async def send_messages(websocket: WebSocket):
     """Send messages from to_frontend_queue to client"""
