@@ -60,14 +60,14 @@ function updateQueueLog(logId, queue) {
         let statusClass = '';
         let content = '';
         
-        if (item.status) {
+        if (item.data && item.data.id) {
             if (item.status === 'created') statusClass = 'status-created';
             if (item.status === 'processing') statusClass = 'status-processing';
             if (item.status === 'processed') statusClass = 'status-processed';
             content = `${item.data.id}: ${item.data.data}<br>
-                      <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>`;
+                      <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
         } else {
-            content = `${item.type}: ${JSON.stringify(item.data)}<br>
+            content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
                       <small>${timeDiff.toFixed(1)}s ago</small>`;
         }
         
@@ -85,17 +85,20 @@ function updateQueueLog(logId, queue) {
 
 async function startSimulation() {
     try {
+        // Clear all queues first
+        toFrontendQueue.queue = [];
+        fromFrontendQueue.queue = [];
+        toBackendQueue.queue = [];
+        fromBackendQueue.queue = [];
+        
+        updateQueueDisplay();
+        
         const response = await fetch('http://localhost:8000/simulation/start');
         const result = await response.json();
         console.log('Simulation started:', result);
         
-        // Send initial test message
-        const testMsg = {
-            type: "test_message",
-            data: "Simulation started",
-            timestamp: Date.now()
-        };
-        ws.send(JSON.stringify(testMsg));
+        // Request initial status
+        ws.send(JSON.stringify({type: "status_request"}));
     } catch (error) {
         console.error('Failed to start simulation:', error);
     }
@@ -110,6 +113,10 @@ async function stopSimulation() {
     }
 }
 
+// Initialize WebSocket connection
+const ws = new WebSocket('ws://localhost:8000/ws');
+let lastMessage = null;
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Setup WebSocket handlers
@@ -118,12 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(event.data);
             console.log('Received from backend:', data);
             
-            // Add to appropriate queue based on type
+            lastMessage = data;
+            
+            // Route message to appropriate queue
             if (data.type === "frontend_message") {
                 toFrontendQueue.enqueue(data);
-            } else if (data.type === "backend_message") {
+            } 
+            else if (data.type === "backend_message") {
                 toBackendQueue.enqueue(data);
-            } else if (data.type === "processed_message") {
+            }
+            else if (data.type === "simulation_update") {
                 fromBackendQueue.enqueue(data);
             }
             
