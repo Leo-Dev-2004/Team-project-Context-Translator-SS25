@@ -218,14 +218,25 @@ async def receive_messages(websocket: WebSocket):
         while True:
             try:
                 data = await websocket.receive_text()
-                # Handle ping messages
                 message = json.loads(data)
+                
+                # Handle ping messages immediately
                 if message.get('type') == 'ping':
                     await websocket.send_text(json.dumps({
                         'type': 'pong',
-                        'timestamp': message['timestamp']
+                        'timestamp': message['timestamp'],
+                        'server_time': time.time()
                     }))
                     continue
+                    
+                # Send connection ack on first message
+                if not hasattr(websocket, '_connection_ack_sent'):
+                    await websocket.send_text(json.dumps({
+                        'type': 'connection_ack',
+                        'status': 'connected',
+                        'timestamp': time.time()
+                    }))
+                    websocket._connection_ack_sent = True
                 logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
                 message = json.loads(data)
                 from_frontend_queue.enqueue(message)

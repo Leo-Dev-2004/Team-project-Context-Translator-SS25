@@ -135,22 +135,42 @@ const WebSocketManager = {
     isConnected: false,
 
     connect() {
-        if (this.ws && [WebSocket.OPEN, WebSocket.CONNECTING].includes(this.ws.readyState)) {
-            return;
+        if (this.ws) {
+            // Clean up existing connection
+            this.ws.onopen = null;
+            this.ws.onclose = null;
+            this.ws.onerror = null;
+            if (this.ws.readyState === WebSocket.OPEN) {
+                this.ws.close();
+            }
         }
 
         this.ws = new WebSocket('ws://localhost:8000/ws');
         console.log('WebSocket created, readyState:', this.ws.readyState);
 
+        // Immediately update state
+        this.isConnected = this.ws.readyState === WebSocket.OPEN;
+        
         this.ws.onopen = () => {
+            this.isConnected = true;
             console.log('WebSocket connection established, readyState:', this.ws.readyState);
             this.reconnectAttempts = 0;
-            this.isConnected = true;
             document.dispatchEvent(new Event('websocket-ready'));
             
-            // Send initial ping to verify connection
-            this.send({type: 'ping', timestamp: Date.now()});
+            // Start periodic ping
+            this.pingInterval = setInterval(() => {
+                this.send({type: 'ping', timestamp: Date.now()});
+            }, 30000);
         };
+
+        // Add state tracking
+        Object.defineProperty(this.ws, 'readyState', {
+            get: () => this._wsReadyState,
+            set: (val) => {
+                this._wsReadyState = val;
+                this.isConnected = val === WebSocket.OPEN;
+            }
+        });
 
         this.ws.onclose = (event) => {
             console.log('WebSocket closed:', event);
@@ -179,7 +199,13 @@ const WebSocketManager = {
     },
 
     getState() {
-        return this.ws ? this.ws.readyState : WebSocket.CLOSED;
+        if (!this.ws) return WebSocket.CLOSED;
+        // Force state update by checking underlying socket
+        try {
+            return this.ws.readyState;
+        } catch (e) {
+            return WebSocket.CLOSED;
+        }
     }
 };
 
