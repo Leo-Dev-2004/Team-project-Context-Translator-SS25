@@ -24,9 +24,11 @@ class MessageQueue {
     }
 }
 
-// Initialize queues
+// Initialize all queues
 const toBackendQueue = new MessageQueue();
 const fromBackendQueue = new MessageQueue();
+const toFrontendQueue = new MessageQueue();
+const fromFrontendQueue = new MessageQueue();
 
 // WebSocket connection
 let websocket = null;
@@ -47,15 +49,17 @@ function initWebSocket() {
             console.log('Received from backend:', data);
             
             lastMessage = data;
-            fromBackendQueue.enqueue(data);
             
-            // Update UI immediately
-            updateQueueDisplay();
-            
-            // If this is a simulation update, show more details
+            // Route message to appropriate queue
             if (data.type === "simulation_update") {
+                fromBackendQueue.enqueue(data);
                 console.log("New simulation entry:", data.data);
+            } else if (data.type === "frontend_message") {
+                toFrontendQueue.enqueue(data);
             }
+            
+            // Update all queue displays
+            updateQueueDisplay();
         } catch (e) {
             console.error('Error processing message:', e);
         }
@@ -71,29 +75,42 @@ function initWebSocket() {
     };
 }
 
-function updateQueueDisplay() {
-    const display = document.getElementById('queueDisplay');
-    if (display) {
-        let messagePreview = 'None';
-        if (lastMessage) {
-            if (lastMessage.type === "simulation_update") {
-                messagePreview = `Entry ${lastMessage.data.id}: ${lastMessage.data.data}`;
-            } else {
-                messagePreview = JSON.stringify(lastMessage);
-            }
-        }
+const MAX_LOG_LINES = 50;
+const MAX_LOG_HEIGHT = 350; // pixels
 
-        display.innerHTML = `
-            <h3>Queue Status</h3>
-            <p>To Backend: ${toBackendQueue.size()}</p>
-            <p>From Backend: ${fromBackendQueue.size()}</p>
-            <div class="last-message">
-                <h4>Last Message:</h4>
-                <p>${messagePreview}</p>
-                ${lastMessage?.data?.timestamp ? 
-                    `<p>${new Date(lastMessage.data.timestamp * 1000).toLocaleTimeString()}</p>` : ''}
-            </div>
-        `;
+function updateQueueDisplay() {
+    // Update queue logs
+    updateQueueLog('toFrontendLog', toFrontendQueue);
+    updateQueueLog('fromFrontendLog', fromFrontendQueue);
+    updateQueueLog('toBackendLog', toBackendQueue);
+    updateQueueLog('fromBackendLog', fromBackendQueue);
+}
+
+function updateQueueLog(logId, queue) {
+    const logElement = document.getElementById(logId);
+    if (!logElement) return;
+
+    // Get current queue items
+    const items = queue.queue.slice().reverse(); // Show newest first
+    
+    // Update log content
+    logElement.textContent = items.map(item => {
+        if (item.type === 'simulation_update') {
+            return `Entry ${item.data.id}: ${item.data.data}`;
+        }
+        return JSON.stringify(item);
+    }).join('\n');
+
+    // Check if log is too big
+    if (logElement.scrollHeight > MAX_LOG_HEIGHT) {
+        logElement.textContent += '\nQUEUE OVERFLOW - STOPPING SIMULATION';
+        stopSimulation();
+    }
+    
+    // Limit number of lines shown
+    const lines = logElement.textContent.split('\n');
+    if (lines.length > MAX_LOG_LINES) {
+        logElement.textContent = lines.slice(0, MAX_LOG_LINES).join('\n');
     }
 }
 
