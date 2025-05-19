@@ -10,7 +10,7 @@ async def test_websocket():
         async with websockets.connect(
             'ws://localhost:8000/ws',
             ping_interval=None,
-            timeout=10
+            open_timeout=10
         ) as websocket:
             print("Connection established")
             
@@ -22,7 +22,7 @@ async def test_websocket():
             start_time = time.time()
             while time.time() - start_time < 5:  # Wait max 5 seconds
                 try:
-                    response = await asyncio.wait_for(websocket.recv(), timeout=1)
+                    response = await asyncio.wait_for(websocket.recv(), timeout=1.0)
                     print(f"Received: {response}")
                     return
                 except asyncio.TimeoutError:
