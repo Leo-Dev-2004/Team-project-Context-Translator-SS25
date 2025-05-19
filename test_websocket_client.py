@@ -55,13 +55,13 @@ async def test_websocket():
                 print(f"Connection attempt {attempt+1} failed: {e}")
                 continue
             
-                    # Test message roundtrip
-                    test_msg = {
-                        "type": "test_message",
-                        "data": "ping",
-                        "timestamp": datetime.now().timestamp()
-                    }
-                    await websocket.send(json.dumps(test_msg))
+            # Test message roundtrip
+            test_msg = {
+                "type": "test_message",
+                "data": "ping", 
+                "timestamp": datetime.now().timestamp()
+            }
+            await websocket.send(json.dumps(test_msg))
             
             # Validate response
             try:
