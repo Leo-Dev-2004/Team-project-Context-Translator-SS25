@@ -135,6 +135,10 @@ const WebSocketManager = {
     isConnected: false,
 
     connect() {
+        if (this.ws && [WebSocket.OPEN, WebSocket.CONNECTING].includes(this.ws.readyState)) {
+            return;
+        }
+
         this.ws = new WebSocket('ws://localhost:8000/ws');
         console.log('WebSocket created, readyState:', this.ws.readyState);
 
@@ -143,6 +147,9 @@ const WebSocketManager = {
             this.reconnectAttempts = 0;
             this.isConnected = true;
             document.dispatchEvent(new Event('websocket-ready'));
+            
+            // Send initial ping to verify connection
+            this.send({type: 'ping', timestamp: Date.now()});
         };
 
         this.ws.onclose = (event) => {

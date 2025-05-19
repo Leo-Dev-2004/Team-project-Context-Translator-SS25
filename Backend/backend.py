@@ -21,6 +21,7 @@ logging.basicConfig(
 import time
 
 app = FastAPI()
+app.state.websockets = set()  # Track active WebSocket connections
 
 @app.get("/")
 async def root():
@@ -99,8 +100,11 @@ async def websocket_endpoint(websocket: WebSocket):
     logging.info(f"WebSocket connection request from {client.host}:{client.port}")
     try:
         await websocket.accept()
+        if not hasattr(app.state, 'websockets'):
+            app.state.websockets = set()
+        app.state.websockets.add(websocket)
         logging.info(f"WebSocket connection established with {client.host}:{client.port}")
-        logging.info(f"Current WebSocket connections: {app.state.websockets if hasattr(app.state, 'websockets') else 'None'}")
+        logging.info(f"Current WebSocket connections: {len(app.state.websockets)}")
     except Exception as e:
         logging.error(f"WebSocket accept failed: {e}")
         raise
@@ -214,6 +218,14 @@ async def receive_messages(websocket: WebSocket):
         while True:
             try:
                 data = await websocket.receive_text()
+                # Handle ping messages
+                message = json.loads(data)
+                if message.get('type') == 'ping':
+                    await websocket.send_text(json.dumps({
+                        'type': 'pong',
+                        'timestamp': message['timestamp']
+                    }))
+                    continue
                 logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
                 message = json.loads(data)
                 from_frontend_queue.enqueue(message)
