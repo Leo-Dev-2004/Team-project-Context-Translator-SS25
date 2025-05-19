@@ -10,6 +10,14 @@ from Backend.QueueManager.shared_queue import (
 import asyncio
 import json
 import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('backend.log')
+    ]
+)
 import time
 
 app = FastAPI()
@@ -82,8 +90,10 @@ app.add_middleware(
 # WebSocket endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    print("WebSocket connection accepted")  # Debug
+    client = websocket.client
+    logging.info(f"WebSocket connection request from {client.host}:{client.port}")
     await websocket.accept()
+    logging.info(f"WebSocket connection established with {client.host}:{client.port}")
     
     # Start background tasks for queue processing
     sender_task = asyncio.create_task(send_messages(websocket))
@@ -108,13 +118,16 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def send_messages(websocket: WebSocket):
     """Send messages from to_frontend_queue to client"""
+    client = websocket.client
     try:
         while True:
             try:
                 message = to_frontend_queue.dequeue(timeout=1.0)
                 if message:
                     try:
-                        await websocket.send_text(json.dumps(message))
+                        msg_str = json.dumps(message)
+                        logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
+                        await websocket.send_text(msg_str)
                     except RuntimeError as e:
                         if "disconnect" in str(e):
                             logging.info("WebSocket disconnected during send")
@@ -161,11 +174,12 @@ async def simulation_status():
 
 async def receive_messages(websocket: WebSocket):
     """Receive messages from client and add to from_frontend_queue"""
+    client = websocket.client
     try:
         while True:
             try:
                 data = await websocket.receive_text()
-                print(f"Received message: {data}")  # Debug
+                logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
                 message = json.loads(data)
                 from_frontend_queue.enqueue(message)
                 
