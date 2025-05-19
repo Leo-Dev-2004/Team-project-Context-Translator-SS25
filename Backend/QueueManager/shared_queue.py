@@ -37,6 +37,10 @@ from_frontend_queue = MessageQueue()
 to_backend_queue = MessageQueue()
 from_backend_queue = MessageQueue()
 
+# Legacy queue and lock for backward compatibility
+queue_lock = threading.Lock()
+detection_queue = deque()
+
 def add_entry(entry: dict):
     """Adds a new detection object to the central Queue."""
     with queue_lock:
