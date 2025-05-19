@@ -107,16 +107,12 @@ async function startSimulation() {
         const result = await response.json();
         console.log('Simulation started:', result);
         
-        // Ensure WebSocket is connected before sending
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: "test",
-                message: "Simulation started from frontend",
-                timestamp: Date.now()
-            }));
-        } else {
-            console.warn('WebSocket not ready, cannot send test message');
-        }
+        // Send test message through WebSocket manager
+        WebSocketManager.send({
+            type: "test", 
+            message: "Simulation started from frontend",
+            timestamp: Date.now()
+        });
     } catch (error) {
         console.error('Failed to start simulation:', error);
         alert(`Failed to start simulation: ${error.message}`);
