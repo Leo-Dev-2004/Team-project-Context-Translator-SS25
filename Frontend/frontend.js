@@ -148,6 +148,14 @@ const WebSocketManager = {
         this.ws = new WebSocket('ws://localhost:8000/ws');
         console.log('WebSocket created, readyState:', this.ws.readyState);
 
+        // Clear any existing message handler first
+        if (this.ws.onmessage) {
+            this.ws.onmessage = null;
+        }
+
+        // Set up the new message handler
+        this.ws.onmessage = handleWebSocketMessage;
+
         // Immediately update state
         this.isConnected = this.ws.readyState === WebSocket.OPEN;
         
@@ -242,7 +250,7 @@ window.wsManager = WebSocketManager;
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Setup WebSocket message handler
-    WebSocketManager.ws.onmessage = (event) => {
+    const handleWebSocketMessage = (event) => {
         try {
             const data = JSON.parse(event.data);
             console.log('Received WebSocket message:', data);
@@ -253,10 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.type === "connection_ack") {
                 console.log('WebSocket connection acknowledged by server');
                 WebSocketManager.isConnected = true;
+                document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
                 return;
             }
             else if (data.type === "pong") {
                 console.log('Received pong response from server');
+                document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
                 return;
             }
             
