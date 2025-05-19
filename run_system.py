@@ -8,6 +8,15 @@ from fastapi import FastAPI
 import uvicorn
 from Backend.backend import app
 import requests
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 class SystemRunner:
     def __init__(self):
@@ -18,7 +27,17 @@ class SystemRunner:
 
     def run_backend(self):
         """Run the FastAPI backend server"""
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        logger.info("Starting backend server...")
+        config = uvicorn.Config(
+            app,
+            host="0.0.0.0",
+            port=8000,
+            log_level="debug",
+            access_log=True
+        )
+        server = uvicorn.Server(config)
+        logger.info("Backend server configured, starting...")
+        server.run()
 
     def start_simulation(self):
         """Start the simulation after server is ready"""
@@ -56,17 +75,40 @@ class SystemRunner:
 
     def run_frontend_server(self):
         """Run the frontend HTTP server"""
+        logger.info("Starting frontend HTTP server...")
         frontend = subprocess.Popen(
             ["python", "-m", "http.server", "9000", "--directory", "Frontend"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            text=True
         )
         self.processes.append(frontend)
+        
+        # Log frontend server output in real-time
+        def log_output(pipe, prefix):
+            for line in pipe:
+                logger.debug(f"{prefix}: {line.strip()}")
+                
+        threading.Thread(
+            target=log_output,
+            args=(frontend.stdout, "Frontend stdout"),
+            daemon=True
+        ).start()
+        threading.Thread(
+            target=log_output,
+            args=(frontend.stderr, "Frontend stderr"),
+            daemon=True
+        ).start()
+        
+        logger.info("Frontend server started on port 9000")
 
     def open_browser(self):
         """Open the frontend in browser"""
+        logger.info("Waiting 3 seconds before opening browser...")
         time.sleep(3)
-        webbrowser.open("http://localhost:9000/index.html")
+        url = "http://localhost:9000/index.html"
+        logger.info(f"Opening browser to {url}")
+        webbrowser.open(url)
 
     def shutdown(self, signum, frame):
         """Clean shutdown handler"""
@@ -78,20 +120,48 @@ class SystemRunner:
 
     def run(self):
         """Run all system components"""
+        logger.info("Starting system components...")
+        
         # Start frontend HTTP server
         self.run_frontend_server()
 
         # Start backend in thread
-        backend_thread = threading.Thread(target=self.run_backend, daemon=True)
+        backend_thread = threading.Thread(
+            target=self.run_backend,
+            daemon=True,
+            name="BackendThread"
+        )
         backend_thread.start()
+        logger.info("Backend thread started")
 
         # Open browser
-        browser_thread = threading.Thread(target=self.open_browser, daemon=True)
+        browser_thread = threading.Thread(
+            target=self.open_browser,
+            daemon=True,
+            name="BrowserThread"
+        )
         browser_thread.start()
+        logger.info("Browser thread started")
 
-        # Keep main thread alive
+        # Monitor system status
+        logger.info("Entering main loop...")
         while self.running:
-            time.sleep(1)
+            try:
+                # Check backend health
+                health = requests.get("http://localhost:8000/health", timeout=1)
+                logger.debug(f"Backend health: {health.status_code}")
+                
+                # Check frontend health
+                frontend = requests.get("http://localhost:9000", timeout=1)
+                logger.debug(f"Frontend health: {frontend.status_code}")
+                
+                time.sleep(5)
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Health check failed: {str(e)}")
+                time.sleep(1)
+            except Exception as e:
+                logger.error(f"Unexpected error in main loop: {str(e)}")
+                self.shutdown(None, None)
 
 if __name__ == "__main__":
     runner = SystemRunner()
