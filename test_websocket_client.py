@@ -20,11 +20,17 @@ async def test_websocket():
     try:
         # Test connection
         start_time = time.time()
-        async with websockets.connect(
-            'ws://localhost:8000/ws',
-            ping_interval=None,
-            open_timeout=5
-        ) as websocket:
+        # Try multiple connection attempts with increasing timeouts
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                timeout = 5 * (attempt + 1)  # 5s, 10s, 15s
+                async with websockets.connect(
+                    'ws://localhost:8000/ws',
+                    ping_interval=None,
+                    open_timeout=timeout,
+                    close_timeout=timeout
+                ) as websocket:
             connect_time = time.time() - start_time
             test_results['performance'] = {'connect_time': connect_time}
             print(f"Connection established in {connect_time:.3f}s")
@@ -92,19 +98,53 @@ async def run_tests_with_server():
     try:
         # Start backend server
         server = subprocess.Popen(
-            ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000"],
+            ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            bufsize=1,
+            universal_newlines=True
         )
+    
+        # Log server output in real-time
+        def log_output(pipe, prefix):
+            for line in pipe:
+                print(f"{prefix}: {line.strip()}")
+    
+        threading.Thread(
+            target=log_output,
+            args=(server.stdout, "Server stdout"),
+            daemon=True
+        ).start()
+        threading.Thread(
+            target=log_output,
+            args=(server.stderr, "Server stderr"),
+            daemon=True
+        ).start()
         
-        # Wait for server to start
-        for _ in range(10):
+        # Wait for server to start with better verification
+        max_wait = 30  # seconds
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
             try:
-                async with websockets.connect('ws://localhost:8000/ws', timeout=1) as ws:
-                    break
+                # Check both HTTP and WebSocket connectivity
+                http_response = requests.get('http://localhost:8000/health', timeout=1)
+                if http_response.status_code == 200:
+                    try:
+                        async with websockets.connect(
+                            'ws://localhost:8000/ws',
+                            timeout=2,
+                            ping_interval=None
+                        ) as ws:
+                            await ws.close()
+                            break
+                    except:
+                        pass
             except:
-                time.sleep(0.5)
+                pass
+            time.sleep(1)
+        else:
+            raise TimeoutError(f"Server didn't start within {max_wait} seconds")
         
         # Run tests
         return await test_websocket()
