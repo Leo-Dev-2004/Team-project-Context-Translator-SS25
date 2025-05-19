@@ -249,7 +249,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             lastMessage = data;
             
-            // Route message to appropriate queue
+            // Handle system messages first
+            if (data.type === "connection_ack") {
+                console.log('WebSocket connection acknowledged by server');
+                WebSocketManager.isConnected = true;
+                return;
+            }
+            else if (data.type === "pong") {
+                console.log('Received pong response from server');
+                return;
+            }
+            
+            // Route application messages to appropriate queue
             if (data.type === "frontend_message") {
                 toFrontendQueue.enqueue(data);
                 console.log('Added to toFrontendQueue:', data);
@@ -263,12 +274,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Added to fromBackendQueue:', data);
             }
             else if (data.type === "simulation_update") {
-                // This is the main message type from backend
                 fromBackendQueue.enqueue(data);
                 console.log('Added to fromBackendQueue (simulation):', data);
             }
             else {
-                console.log('Unknown message type:', data.type);
+                console.log('Unhandled message type:', data.type, data);
             }
             
             updateQueueDisplay();
