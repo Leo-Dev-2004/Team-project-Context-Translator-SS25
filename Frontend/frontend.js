@@ -126,6 +126,54 @@ async function stopSimulation() {
     }
 }
 
+// WebSocket message handler
+const handleWebSocketMessage = (event) => {
+    try {
+        const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
+        
+        lastMessage = data;
+        
+        // Handle system messages first
+        if (data.type === "connection_ack") {
+            console.log('WebSocket connection acknowledged by server');
+            WebSocketManager.isConnected = true;
+            document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
+            return;
+        }
+        else if (data.type === "pong") {
+            console.log('Received pong response from server');
+            document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
+            return;
+        }
+        
+        // Route application messages to appropriate queue
+        if (data.type === "frontend_message") {
+            toFrontendQueue.enqueue(data);
+            console.log('Added to toFrontendQueue:', data);
+        } 
+        else if (data.type === "backend_message") {
+            toBackendQueue.enqueue(data);
+            console.log('Added to toBackendQueue:', data);
+        }
+        else if (data.type === "processed_message") {
+            fromBackendQueue.enqueue(data);
+            console.log('Added to fromBackendQueue:', data);
+        }
+        else if (data.type === "simulation_update") {
+            fromBackendQueue.enqueue(data);
+            console.log('Added to fromBackendQueue (simulation):', data);
+        }
+        else {
+            console.log('Unhandled message type:', data.type, data);
+        }
+        
+        updateQueueDisplay();
+    } catch (e) {
+        console.error('Error processing message:', e);
+    }
+};
+
 // WebSocket connection manager
 const WebSocketManager = {
     ws: null,
@@ -249,54 +297,6 @@ window.wsManager = WebSocketManager;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Setup WebSocket message handler
-    const handleWebSocketMessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            console.log('Received WebSocket message:', data);
-            
-            lastMessage = data;
-            
-            // Handle system messages first
-            if (data.type === "connection_ack") {
-                console.log('WebSocket connection acknowledged by server');
-                WebSocketManager.isConnected = true;
-                document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
-                return;
-            }
-            else if (data.type === "pong") {
-                console.log('Received pong response from server');
-                document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
-                return;
-            }
-            
-            // Route application messages to appropriate queue
-            if (data.type === "frontend_message") {
-                toFrontendQueue.enqueue(data);
-                console.log('Added to toFrontendQueue:', data);
-            } 
-            else if (data.type === "backend_message") {
-                toBackendQueue.enqueue(data);
-                console.log('Added to toBackendQueue:', data);
-            }
-            else if (data.type === "processed_message") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue:', data);
-            }
-            else if (data.type === "simulation_update") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue (simulation):', data);
-            }
-            else {
-                console.log('Unhandled message type:', data.type, data);
-            }
-            
-            updateQueueDisplay();
-        } catch (e) {
-            console.error('Error processing message:', e);
-        }
-    };
-
     // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
