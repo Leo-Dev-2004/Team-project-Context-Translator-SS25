@@ -9,7 +9,8 @@ from shared_queue import (
 )
 
 def test_add_and_get_pending():
-    print("Test 1: Add Entry and Get Entry")
+    print("\n=== Starting Test 1 ===")
+    print("Adding test entries...")
     add_entry({
         "term": "STT",
         "confidence": 0.85,
@@ -105,13 +106,22 @@ def test_message_ordering():
     print("Passed ordering test")
 
 def run_all_tests():
-    test_add_and_get_pending()
-    test_update_entry()
-    test_get_entry_history()
-    test_cleanup_queue()
-    test_get_status_summary()
-    test_concurrent_access()
-    test_message_ordering()
+    print("\n==== Starting All Tests ====")
+    tests = [
+        test_add_and_get_pending,
+        test_update_entry,
+        test_get_entry_history,
+        test_cleanup_queue,
+        test_get_status_summary,
+        test_concurrent_access,
+        test_message_ordering
+    ]
+    
+    for i, test in enumerate(tests, 1):
+        print(f"\n=== Running Test {i}/{len(tests)} ===")
+        test()
+    
+    print("\n==== All Tests Completed ====")
 
 if __name__ == "__main__":
     run_all_tests()
