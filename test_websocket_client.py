@@ -1,6 +1,9 @@
 import asyncio
 from httpx import AsyncClient
 from Backend.backend import app
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 async def test_websocket():
     async with AsyncClient(app=app, base_url="http://test") as client:
