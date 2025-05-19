@@ -13,5 +13,9 @@ setup(
         "pytest-asyncio==0.21.1",
         "websockets==11.0.3"
     ],
+    setup_requires=[
+        "wheel",
+        "setuptools"
+    ],
     python_requires=">=3.8",
 )
