@@ -122,8 +122,16 @@ async function stopSimulation() {
 // Initialize WebSocket connection
 const ws = new WebSocket('ws://localhost:8000/ws');
 
+// Connection verification
+ws.onopen = () => {
+    console.log('WebSocket connection established');
+    document.dispatchEvent(new Event('websocket-ready'));
+};
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Wait for WebSocket to be ready
+    document.addEventListener('websocket-ready', () => {
     // Setup WebSocket handlers
     ws.onmessage = (event) => {
         try {
@@ -166,7 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket connection failed:', error);
+        // Attempt reconnection
+        setTimeout(() => {
+            window.ws = new WebSocket('ws://localhost:8000/ws');
+        }, 1000);
     };
 
     ws.onclose = () => {
@@ -175,6 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.ws = new WebSocket('ws://localhost:8000/ws');
         }, 1000);
     };
+
+    });
 
     // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
