@@ -181,11 +181,10 @@ WebSocketManager.connect();
 
 // Expose for debugging
 window.wsManager = WebSocketManager;
-```
 
-Frontend/frontend.js
-```javascript
-<<<<<<< SEARCH
+
+//Frontend/frontend.js
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Setup WebSocket message handler
@@ -223,49 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error processing message:', e);
         }
     };
-
-    // Setup button handlers
-    document.getElementById('startSim').addEventListener('click', startSimulation);
-    document.getElementById('stopSim').addEventListener('click', stopSimulation);
-    
-    // Update display immediately when messages arrive
-    // No need for interval since we update on each message
-});
-        try {
-            const data = JSON.parse(event.data);
-            console.log('Received WebSocket message:', data);
-            
-            lastMessage = data;
-            
-            // Route message to appropriate queue
-            if (data.type === "frontend_message") {
-                toFrontendQueue.enqueue(data);
-                console.log('Added to toFrontendQueue:', data);
-            } 
-            else if (data.type === "backend_message") {
-                toBackendQueue.enqueue(data);
-                console.log('Added to toBackendQueue:', data);
-            }
-            else if (data.type === "processed_message") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue:', data);
-            }
-            else if (data.type === "simulation_update") {
-                // This is the main message type from backend
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue (simulation):', data);
-            }
-            else {
-                console.log('Unknown message type:', data.type);
-            }
-            
-            updateQueueDisplay();
-        } catch (e) {
-            console.error('Error processing message:', e);
-        }
-    };
-
-    });
 
     // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
