@@ -31,10 +31,10 @@ async def test_websocket():
                     open_timeout=timeout,
                     close_timeout=timeout
                 ) as websocket:
-            connect_time = time.time() - start_time
-            test_results['performance'] = {'connect_time': connect_time}
-            print(f"Connection established in {connect_time:.3f}s")
-            test_results['connection'] = True
+                    connect_time = time.time() - start_time
+                    test_results['performance'] = {'connect_time': connect_time}
+                    print(f"Connection established in {connect_time:.3f}s")
+                    test_results['connection'] = True
             
             # Test message roundtrip
             test_msg = {
@@ -83,7 +83,7 @@ async def test_websocket():
             test_results['performance']['message_rate'] = 10/perf_time
             print(f"Performance: {10/perf_time:.1f} msg/sec")
             
-        return test_results
+                    return test_results
         
     except Exception as e:
         print(f"Test failed: {str(e)}")
