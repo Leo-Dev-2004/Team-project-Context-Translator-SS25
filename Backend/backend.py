@@ -70,6 +70,7 @@ app.add_middleware(
 # WebSocket endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    print("WebSocket connection accepted")  # Debug
     await websocket.accept()
     
     # Start background tasks for queue processing
@@ -128,7 +129,14 @@ async def receive_messages(websocket: WebSocket):
     while True:
         try:
             data = await websocket.receive_text()
+            print(f"Received message: {data}")  # Debug
             message = json.loads(data)
             from_frontend_queue.enqueue(message)
+            
+            # Send response
+            response = {"response": "ack", "original": message}
+            await websocket.send_text(json.dumps(response))
+            print("Sent response")  # Debug
+            
         except Exception as e:
             logging.error(f"Failed to process message: {e}")

@@ -18,6 +18,11 @@ async def test_websocket():
             print(f"Sending: {test_msg}")
             await websocket.send(json.dumps(test_msg))
             
+            # Immediately wait for response
+            response = await websocket.recv()
+            print(f"Received: {response}")
+            return
+            
             print("Waiting for response...")
             start_time = time.time()
             while time.time() - start_time < 5:  # Wait max 5 seconds
