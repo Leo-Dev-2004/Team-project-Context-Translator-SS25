@@ -121,71 +121,9 @@
     </div>
     
     <script>
-        // Enhanced WebSocket with exponential backoff reconnection
-        class RobustWebSocket {
-            constructor(url) {
-                this.url = url;
-                this.socket = null;
-                this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
-                this.reconnectDelay = 1000; // Start with 1 second
-                this.maxReconnectDelay = 30000; // Max 30 seconds
-                this.connect();
-            }
-
-            connect() {
-                this.socket = new WebSocket(this.url);
-                
-                this.socket.onopen = () => {
-                    console.log('WebSocket connection established');
-                    this.reconnectAttempts = 0;
-                    this.reconnectDelay = 1000;
-                };
-
-                this.socket.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        console.log('Received from backend:', data);
-                        // Handle message (existing frontend.js logic would go here)
-                    } catch (e) {
-                        console.error('Error processing message:', e);
-                    }
-                };
-
-                this.socket.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                };
-
-                this.socket.onclose = (event) => {
-                    console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
-                    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                        const delay = Math.min(
-                            this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
-                            this.maxReconnectDelay
-                        );
-                        console.log(`Reconnecting in ${delay/1000} seconds...`);
-                        setTimeout(() => this.connect(), delay);
-                        this.reconnectAttempts++;
-                    }
-                };
-            }
-
-            send(data) {
-                if (this.socket.readyState === WebSocket.OPEN) {
-                    this.socket.send(JSON.stringify(data));
-                }
-            }
-        }
-
-        // Initialize WebSocket
-        const ws = new RobustWebSocket('ws://localhost:8000/ws');
-    </script>
-    <script>
-        // Initialize WebSocket connection manager
-        const wsManager = new RobustWebSocket('ws://localhost:8000/ws');
-        
-        // Connect frontend.js functionality
-        window.wsManager = wsManager;
+        // Initialize WebSocket connection
+        const ws = new WebSocket('ws://localhost:8000/ws');
+        window.ws = ws;
     </script>
     <script src="frontend.js"></script>
 </body>

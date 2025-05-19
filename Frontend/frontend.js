@@ -34,46 +34,42 @@ const fromFrontendQueue = new MessageQueue();
 let websocket = null;
 let lastMessage = null;
 
-function initWebSocket() {
-    websocket = new WebSocket('ws://localhost:8000/ws');
-    
-    websocket.onopen = () => {
-        console.log('WebSocket connection established');
-        // Request initial status
-        websocket.send(JSON.stringify({type: "status_request"}));
-    };
-
-    websocket.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            console.log('Received from backend:', data);
-            
-            lastMessage = data;
-            
-            // Route message to appropriate queue
-            if (data.type === "simulation_update") {
-                fromBackendQueue.enqueue(data);
-                console.log("New simulation entry:", data.data);
-            } else if (data.type === "frontend_message") {
-                toFrontendQueue.enqueue(data);
-            }
-            
-            // Update all queue displays
-            updateQueueDisplay();
-        } catch (e) {
-            console.error('Error processing message:', e);
+// WebSocket message handler
+ws.onmessage = (event) => {
+    try {
+        const data = JSON.parse(event.data);
+        console.log('Received from backend:', data);
+        
+        // Add to appropriate queue based on type
+        if (data.type === "frontend_message") {
+            toFrontendQueue.enqueue(data);
+        } else if (data.type === "backend_message") {
+            toBackendQueue.enqueue(data);
+        } else if (data.type === "processed_message") {
+            fromBackendQueue.enqueue(data);
         }
-    };
+        
+        updateQueueDisplay();
+    } catch (e) {
+        console.error('Error processing message:', e);
+    }
+};
 
-    websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
+ws.onopen = () => {
+    console.log('WebSocket connection established');
+    updateQueueDisplay();
+};
 
-    websocket.onclose = () => {
-        console.log('WebSocket disconnected - attempting to reconnect...');
-        setTimeout(initWebSocket, 1000);
-    };
-}
+ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+    console.log('WebSocket disconnected - attempting to reconnect...');
+    setTimeout(() => {
+        window.ws = new WebSocket('ws://localhost:8000/ws');
+    }, 1000);
+};
 
 const MAX_LOG_LINES = 50;
 const MAX_LOG_HEIGHT = 350; // pixels
@@ -94,19 +90,22 @@ function updateQueueLog(logId, queue) {
     const now = Date.now();
     
     logElement.innerHTML = items.map(item => {
-        const timeDiff = ((now - (item.timestamp * 1000)) / 1000;
+        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
         let statusClass = '';
+        let content = '';
         
-        if (item.status === 'created') statusClass = 'status-created';
-        if (item.status === 'processing') statusClass = 'status-processing';
-        if (item.status === 'processed') statusClass = 'status-processed';
+        if (item.status) {
+            if (item.status === 'created') statusClass = 'status-created';
+            if (item.status === 'processing') statusClass = 'status-processing';
+            if (item.status === 'processed') statusClass = 'status-processed';
+            content = `${item.data.id}: ${item.data.data}<br>
+                      <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>`;
+        } else {
+            content = `${item.type}: ${JSON.stringify(item.data)}<br>
+                      <small>${timeDiff.toFixed(1)}s ago</small>`;
+        }
         
-        return `
-            <div class="log-entry ${statusClass}">
-                ${item.data.id}: ${item.data.data}<br>
-                <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>
-            </div>
-        `;
+        return `<div class="log-entry ${statusClass}">${content}</div>`;
     }).join('');
     
     // Auto-scroll to bottom
@@ -124,7 +123,16 @@ function updateQueueLog(logId, queue) {
 async function startSimulation() {
     try {
         const response = await fetch('http://localhost:8000/simulation/start');
-        console.log('Simulation started:', await response.json());
+        const result = await response.json();
+        console.log('Simulation started:', result);
+        
+        // Send initial test message
+        const testMsg = {
+            type: "test_message",
+            data: "Simulation started",
+            timestamp: Date.now()
+        };
+        ws.send(JSON.stringify(testMsg));
     } catch (error) {
         console.error('Failed to start simulation:', error);
     }
