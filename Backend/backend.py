@@ -51,20 +51,23 @@ async def simulate_entries(websocket: WebSocket):
         
         print(f"Generating entry {counter}: {entry}")
         
-        # Add to backend queue for processing
-        to_backend_queue.enqueue(entry)
-        print(f"Added to backend queue (size: {to_backend_queue.size()})")
-        
-        # Also send directly to frontend for display
+        # Send to frontend first
         frontend_msg = {
-            "type": "simulation_update",
+            "type": "frontend_message",
             "data": entry,
-            "queue_sizes": {
-                "to_backend": to_backend_queue.size(),
-                "from_backend": from_backend_queue.size()
-            }
+            "status": "created",
+            "timestamp": time.time()
         }
         to_frontend_queue.enqueue(frontend_msg)
+        
+        # Then send to backend for processing
+        backend_msg = {
+            "type": "backend_message",
+            "data": entry,
+            "status": "processing",
+            "timestamp": time.time()
+        }
+        to_backend_queue.enqueue(backend_msg)
         print(f"Sent to frontend queue (size: {to_frontend_queue.size()})")
         
         await asyncio.sleep(3)
