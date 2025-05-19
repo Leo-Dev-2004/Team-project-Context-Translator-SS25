@@ -55,13 +55,13 @@ async def test_websocket():
                 print(f"Connection attempt {attempt+1} failed: {e}")
                 continue
             
-            # Test message roundtrip
-            test_msg = {
-                "type": "test_message",
-                "data": "ping",
-                "timestamp": datetime.now().timestamp()
-            }
-            await websocket.send(json.dumps(test_msg))
+                    # Test message roundtrip
+                    test_msg = {
+                        "type": "test_message",
+                        "data": "ping",
+                        "timestamp": datetime.now().timestamp()
+                    }
+                    await websocket.send(json.dumps(test_msg))
             
             # Validate response
             try:
@@ -123,6 +123,13 @@ async def run_tests_with_server():
     """Run tests with managed server instance"""
     server = None
     try:
+        # First kill any existing server on port 8000
+        try:
+            subprocess.run(["fuser", "-k", "8000/tcp"], check=True)
+            time.sleep(1)  # Give it time to release the port
+        except:
+            pass  # Ignore if no process was found
+        
         # Start backend server with explicit log level and bind to all interfaces
         server = subprocess.Popen(
             ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"],
