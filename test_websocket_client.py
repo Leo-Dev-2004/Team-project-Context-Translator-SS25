@@ -1,4 +1,6 @@
 import asyncio
+import threading
+import requests
 import websockets
 import json
 import time
@@ -35,14 +37,17 @@ async def test_websocket():
                     test_results['performance'] = {'connect_time': connect_time}
                     print(f"Connection established in {connect_time:.3f}s")
                     test_results['connection'] = True
-            
+                    
                     # Test message roundtrip
                     test_msg = {
-                "type": "test_message",
-                "data": "ping",
-                "timestamp": time.time()
-            }
-            await websocket.send(json.dumps(test_msg))
+                        "type": "test_message",
+                        "data": "ping",
+                        "timestamp": datetime.now().timestamp()
+                    }
+                    await websocket.send(json.dumps(test_msg))
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                continue
             
             # Validate response
             response = json.loads(await websocket.recv())
@@ -83,7 +88,7 @@ async def test_websocket():
             test_results['performance']['message_rate'] = 10/perf_time
             print(f"Performance: {10/perf_time:.1f} msg/sec")
             
-                        return test_results
+            return test_results
         
     except Exception as e:
         print(f"Test failed: {str(e)}")
