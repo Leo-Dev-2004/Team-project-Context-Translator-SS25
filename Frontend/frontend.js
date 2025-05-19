@@ -30,8 +30,6 @@ const fromBackendQueue = new MessageQueue();
 const toFrontendQueue = new MessageQueue();
 const fromFrontendQueue = new MessageQueue();
 
-// WebSocket connection
-let websocket = null;
 let lastMessage = null;
 
 
@@ -199,19 +197,8 @@ Frontend/frontend.js
             console.warn('WebSocket not ready, cannot send test message');
         }
 
-ws.onerror = (error) => {
-    console.error('WebSocket connection error:', error, 'readyState:', ws.readyState);
-};
-
-// Log WebSocket state changes
-ws.addEventListener('open', () => console.log('WebSocket open, readyState:', ws.readyState));
-ws.addEventListener('error', () => console.log('WebSocket error, readyState:', ws.readyState));
-ws.addEventListener('close', () => console.log('WebSocket closed, readyState:', ws.readyState));
-
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait for WebSocket to be ready
-    document.addEventListener('websocket-ready', () => {
     // Setup WebSocket handlers
     WebSocketManager.ws.onmessage = (event) => {
         try {
@@ -246,26 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Error processing message:', e);
         }
-    };
-
-    ws.onopen = () => {
-        console.log('WebSocket connection established');
-        updateQueueDisplay();
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket connection failed:', error);
-        // Attempt reconnection
-        setTimeout(() => {
-            window.ws = new WebSocket('ws://localhost:8000/ws');
-        }, 1000);
-    };
-
-    ws.onclose = () => {
-        console.log('WebSocket disconnected - attempting to reconnect...');
-        setTimeout(() => {
-            window.ws = new WebSocket('ws://localhost:8000/ws');
-        }, 1000);
     };
 
     });
