@@ -2,6 +2,8 @@ import asyncio
 import websockets
 import json
 import time
+import subprocess
+import sys
 
 async def test_websocket():
     print("Starting WebSocket test...")
@@ -10,7 +12,7 @@ async def test_websocket():
         async with websockets.connect(
             'ws://localhost:8000/ws',
             ping_interval=None,
-            open_timeout=10
+            open_timeout=5
         ) as websocket:
             print("Connection established")
             
@@ -18,26 +20,45 @@ async def test_websocket():
             print(f"Sending: {test_msg}")
             await websocket.send(json.dumps(test_msg))
             
-            # Immediately wait for response
             response = await websocket.recv()
             print(f"Received: {response}")
-            return
+            return True
             
-            print("Waiting for response...")
-            start_time = time.time()
-            while time.time() - start_time < 5:  # Wait max 5 seconds
-                try:
-                    response = await asyncio.wait_for(websocket.recv(), timeout=1.0)
-                    print(f"Received: {response}")
-                    return
-                except asyncio.TimeoutError:
-                    print("Waiting...")
-            
-            print("No response received within 5 seconds")
     except Exception as e:
         print(f"WebSocket error: {str(e)}")
+        return False
     finally:
         print("Test completed")
 
+async def run_tests_with_server():
+    # Start backend server
+    server = subprocess.Popen(
+        ["uvicorn", "Backend.backend:app", "--host", "0.0.0.0", "--port", "8000"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    
+    # Wait for server to start
+    time.sleep(2)
+    
+    # Run test
+    success = await test_websocket()
+    
+    # Shutdown server
+    server.terminate()
+    server.wait()
+    
+    return success
+
 if __name__ == "__main__":
-    asyncio.run(test_websocket())
+    # First try direct connection
+    print("Trying direct connection...")
+    result = asyncio.run(test_websocket())
+    
+    # If failed, start server and retry
+    if not result:
+        print("\nStarting backend server and retrying...")
+        success = asyncio.run(run_tests_with_server())
+        sys.exit(0 if success else 1)
+    else:
+        sys.exit(0)
