@@ -85,10 +85,6 @@ class SystemRunner:
         backend_thread = threading.Thread(target=self.run_backend, daemon=True)
         backend_thread.start()
 
-        # Start simulation in thread
-        simulation_thread = threading.Thread(target=self.start_simulation, daemon=True)
-        simulation_thread.start()
-
         # Open browser
         browser_thread = threading.Thread(target=self.open_browser, daemon=True)
         browser_thread.start()

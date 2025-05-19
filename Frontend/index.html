@@ -114,6 +114,13 @@
         // Initialize WebSocket
         const ws = new RobustWebSocket('ws://localhost:8000/ws');
     </script>
+    <script>
+        // Initialize WebSocket connection manager
+        const wsManager = new RobustWebSocket('ws://localhost:8000/ws');
+        
+        // Connect frontend.js functionality
+        window.wsManager = wsManager;
+    </script>
     <script src="frontend.js"></script>
 </body>
 </html>

@@ -39,6 +39,8 @@ async def simulate_entries():
     
     while simulation_running:
         counter += 1
+        await asyncio.sleep(3)  # Move sleep to start of loop to prevent race conditions
+        
         entry = {
             "id": str(counter),
             "type": "simulated",
@@ -148,8 +150,9 @@ async def send_messages(websocket: WebSocket):
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
     """Start the queue simulation"""
-    global simulation_task
+    global simulation_task, simulation_running
     if not simulation_running:
+        simulation_running = True
         simulation_task = background_tasks.add_task(simulate_entries)
         return {"status": "simulation started"}
     return {"status": "simulation already running"}
