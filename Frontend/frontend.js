@@ -132,38 +132,76 @@ async function stopSimulation() {
     }
 }
 
-// Initialize WebSocket connection with retry logic
-let ws = null;
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+// WebSocket connection manager
+const WebSocketManager = {
+    ws: null,
+    reconnectAttempts: 0,
+    MAX_RECONNECT_ATTEMPTS: 5,
+    RECONNECT_DELAY: 1000,
+    isConnected: false,
 
-function connectWebSocket() {
-    ws = new WebSocket('ws://localhost:8000/ws');
-    console.log('WebSocket created, readyState:', ws.readyState);
+    connect() {
+        this.ws = new WebSocket('ws://localhost:8000/ws');
+        console.log('WebSocket created, readyState:', this.ws.readyState);
 
-    ws.onopen = () => {
-        console.log('WebSocket connection established, readyState:', ws.readyState);
-        reconnectAttempts = 0;
-        document.dispatchEvent(new Event('websocket-ready'));
-    };
+        this.ws.onopen = () => {
+            console.log('WebSocket connection established, readyState:', this.ws.readyState);
+            this.reconnectAttempts = 0;
+            this.isConnected = true;
+            document.dispatchEvent(new Event('websocket-ready'));
+        };
 
-    ws.onclose = (event) => {
-        console.log('WebSocket closed:', event);
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            const delay = Math.min(1000 * (reconnectAttempts + 1), 5000);
-            console.log(`Reconnecting in ${delay}ms...`);
-            setTimeout(connectWebSocket, delay);
-            reconnectAttempts++;
+        this.ws.onclose = (event) => {
+            console.log('WebSocket closed:', event);
+            this.isConnected = false;
+            if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+                const delay = Math.min(this.RECONNECT_DELAY * (this.reconnectAttempts + 1), 5000);
+                console.log(`Reconnecting in ${delay}ms...`);
+                setTimeout(() => this.connect(), delay);
+                this.reconnectAttempts++;
+            }
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            this.isConnected = false;
+        };
+    },
+
+    send(message) {
+        if (this.isConnected && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(message));
+            return true;
         }
-    };
+        console.warn('WebSocket not ready, message not sent');
+        return false;
+    },
 
-    ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-}
+    getState() {
+        return this.ws ? this.ws.readyState : WebSocket.CLOSED;
+    }
+};
 
 // Initial connection
-connectWebSocket();
+WebSocketManager.connect();
+
+// Expose for debugging
+window.wsManager = WebSocketManager;
+```
+
+Frontend/frontend.js
+```javascript
+<<<<<<< SEARCH
+        // Ensure WebSocket is connected before sending
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: "test",
+                message: "Simulation started from frontend",
+                timestamp: Date.now()
+            }));
+        } else {
+            console.warn('WebSocket not ready, cannot send test message');
+        }
 
 ws.onerror = (error) => {
     console.error('WebSocket connection error:', error, 'readyState:', ws.readyState);
@@ -179,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wait for WebSocket to be ready
     document.addEventListener('websocket-ready', () => {
     // Setup WebSocket handlers
-    ws.onmessage = (event) => {
+    WebSocketManager.ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
             console.log('Received WebSocket message:', data);
