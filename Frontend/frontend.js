@@ -95,18 +95,31 @@ async function startSimulation() {
         
         updateQueueDisplay();
         
-        const response = await fetch('http://localhost:8000/simulation/start');
+        const response = await fetch('http://localhost:8000/simulation/start', {
+            mode: 'cors',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         console.log('Simulation started:', result);
         
-        // Send test message to verify connection
-        ws.send(JSON.stringify({
-            type: "test",
-            message: "Simulation started from frontend",
-            timestamp: Date.now()
-        }));
+        // Ensure WebSocket is connected before sending
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: "test",
+                message: "Simulation started from frontend",
+                timestamp: Date.now()
+            }));
+        } else {
+            console.warn('WebSocket not ready, cannot send test message');
+        }
     } catch (error) {
         console.error('Failed to start simulation:', error);
+        alert(`Failed to start simulation: ${error.message}`);
     }
 }
 
@@ -119,14 +132,38 @@ async function stopSimulation() {
     }
 }
 
-// Initialize WebSocket connection with debug logging
-const ws = new WebSocket('ws://localhost:8000/ws');
-console.log('WebSocket created, readyState:', ws.readyState);
+// Initialize WebSocket connection with retry logic
+let ws = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
-ws.onopen = () => {
-    console.log('WebSocket connection established, readyState:', ws.readyState);
-    document.dispatchEvent(new Event('websocket-ready'));
-};
+function connectWebSocket() {
+    ws = new WebSocket('ws://localhost:8000/ws');
+    console.log('WebSocket created, readyState:', ws.readyState);
+
+    ws.onopen = () => {
+        console.log('WebSocket connection established, readyState:', ws.readyState);
+        reconnectAttempts = 0;
+        document.dispatchEvent(new Event('websocket-ready'));
+    };
+
+    ws.onclose = (event) => {
+        console.log('WebSocket closed:', event);
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = Math.min(1000 * (reconnectAttempts + 1), 5000);
+            console.log(`Reconnecting in ${delay}ms...`);
+            setTimeout(connectWebSocket, delay);
+            reconnectAttempts++;
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+}
+
+// Initial connection
+connectWebSocket();
 
 ws.onerror = (error) => {
     console.error('WebSocket connection error:', error, 'readyState:', ws.readyState);

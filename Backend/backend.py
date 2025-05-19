@@ -86,11 +86,10 @@ async def health_check():
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_websockets=["*"]  # Explicitly allow WebSockets
 )
 
 # WebSocket endpoint
