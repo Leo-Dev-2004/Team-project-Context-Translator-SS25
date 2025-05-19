@@ -49,10 +49,11 @@ async def simulate_entries(websocket: WebSocket):
         entry = {
             "id": str(counter),
             "type": msg_type,
-            "data": f"{msg_type} entry {counter}",
+            "data": f"{msg_type} entry {counter} - {['low','medium','high','critical'][counter % 4]} priority",
             "timestamp": time.time(),
             "status": status,
-            "priority": counter % 5
+            "priority": counter % 5,
+            "color": f"hsl({counter * 30 % 360}, 70%, 80%)"
         }
         
         print(f"Generating entry {counter}: {entry}")

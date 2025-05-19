@@ -190,7 +190,15 @@ class SystemRunner:
                     except requests.exceptions.RequestException as e:
                         logger.debug(f"Frontend health check: {str(e)}")
                 
-                time.sleep(5)
+                # Periodic status report
+                if time.time() % 5 < 0.1:  # Every ~5 seconds
+                    try:
+                        status = requests.get("http://localhost:8000/simulation/status").json()
+                        logger.info(f"System status: {status}")
+                    except Exception as e:
+                        logger.debug(f"Could not get status: {str(e)}")
+                
+                time.sleep(1)
             except requests.exceptions.RequestException as e:
                 logger.warning(f"Health check failed: {str(e)}")
                 time.sleep(1)
