@@ -4,7 +4,7 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import AsyncQueue
+from ..queues.shared_queue import MessageQueue
 
 logger = logging.getLogger(__name__)
 
