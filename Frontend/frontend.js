@@ -231,6 +231,7 @@ const WebSocketManager = {
                     fromBackendQueue.enqueue(processedMsg);
                     updateQueueDisplay();
                 }, 1000);
+                }
             } else {
                 console.log('Unhandled message type:', data.type, data);
             }

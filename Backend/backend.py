@@ -44,9 +44,6 @@ async def simulate_entries():
         "timestamp": time.time()
     }
     to_backend_queue.enqueue(system_msg)
-    """Background task to simulate queue entries"""
-    global simulation_running
-    simulation_running = True
     counter = 0
     print("Simulation started - generating test entries")
     logging.info("Simulation STARTED - Generating test entries")
