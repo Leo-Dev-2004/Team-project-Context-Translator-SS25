@@ -32,7 +32,18 @@ async def root():
 simulation_running = False
 simulation_task = None
 
-async def simulate_entries(websocket: WebSocket):
+async def simulate_entries():
+    """Background task to simulate queue entries"""
+    global simulation_running
+    simulation_running = True
+    
+    # Initial system message
+    system_msg = {
+        "type": "system",
+        "message": "Simulation started",
+        "timestamp": time.time()
+    }
+    to_backend_queue.enqueue(system_msg)
     """Background task to simulate queue entries"""
     global simulation_running
     simulation_running = True
@@ -195,8 +206,16 @@ async def process_messages():
             if message:
                 logging.info(f"Processing message: {message}")
                 
-                # Different processing based on message type
-                if message.get('type') == 'simulation':
+                # Ensure all messages get routed to frontend
+                if message.get('type') in ('simulation', 'test_message', 'system'):
+                    # Convert to frontend format
+                    frontend_msg = {
+                        'type': 'frontend_update',
+                        'data': message,
+                        'timestamp': time.time()
+                    }
+                    to_frontend_queue.enqueue(frontend_msg)
+                    logging.info(f"Routed to frontend: {frontend_msg}")
                     # Simulate processing with progress updates
                     for progress in range(0, 101, 20):
                         await asyncio.sleep(0.5)

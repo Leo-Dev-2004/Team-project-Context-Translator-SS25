@@ -209,14 +209,17 @@ const WebSocketManager = {
             } else if (data.type === "simulation_update") {
                 fromBackendQueue.enqueue(data);
                 console.log('Added to fromBackendQueue (simulation):', data);
-            } else if (data.type === "test_message") {
-                // Process test message through the full flow
-                const processingMsg = {
-                    ...data,
-                    status: "processing",
-                    timestamp: Date.now() / 1000
-                };
-                fromFrontendQueue.enqueue(processingMsg);
+            } else if (data.type === "frontend_update") {
+                // Handle all frontend-bound updates
+                const msgData = data.data;
+                
+                if (msgData.type === "test_message") {
+                    const processingMsg = {
+                        ...msgData,
+                        status: "processing",
+                        timestamp: Date.now() / 1000
+                    };
+                    fromFrontendQueue.enqueue(processingMsg);
                 
                 // Simulate backend processing
                 setTimeout(() => {
@@ -369,8 +372,16 @@ const WebSocketManager = {
     }
 };
 
+// Refresh queues periodically
+function startQueueRefresh() {
+    setInterval(() => {
+        updateQueueDisplay();
+    }, 500); // Update every 500ms
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    startQueueRefresh();
     console.group('DOMContentLoaded');
     console.log('Initializing frontend...');
     
