@@ -101,6 +101,26 @@ class SystemRunner:
                                 for i, item in enumerate(items[:3]):  # Show first 3 items
                                     print(f"  {i+1}. {item.get('type', '?')} - {item.get('status', '?')}")
                             
+                            # Print detailed queue status
+                            print("\nQueue Status:")
+                            print(f"  to_frontend_queue: {to_frontend_queue.size()}")
+                            print(f"  from_frontend_queue: {from_frontend_queue.size()}")
+                            print(f"  to_backend_queue: {to_backend_queue.size()}")
+                            print(f"  from_backend_queue: {from_backend_queue.size()}")
+                            
+                            # Print first item from each queue
+                            def peek_queue(queue):
+                                try:
+                                    return str(queue.queue[0])[:80] + "..." if queue.size() > 0 else "Empty"
+                                except:
+                                    return "Error peeking"
+                                    
+                            print("\nQueue Contents:")
+                            print(f"  to_frontend_queue: {peek_queue(to_frontend_queue)}")
+                            print(f"  from_frontend_queue: {peek_queue(from_frontend_queue)}")
+                            print(f"  to_backend_queue: {peek_queue(to_backend_queue)}")
+                            print(f"  from_backend_queue: {peek_queue(from_backend_queue)}")
+                            
                             time.sleep(2)
                         break
                     else:

@@ -178,8 +178,9 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.error(f"WebSocket accept failed: {e}")
         raise
     
-    # Start background tasks for queue processing
+    # Start all processing tasks
     processor_task = asyncio.create_task(process_messages())
+    forwarder_task = asyncio.create_task(forward_messages())
     sender_task = asyncio.create_task(send_messages(websocket))
     receiver_task = asyncio.create_task(receive_messages(websocket))
     
@@ -201,15 +202,36 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info("WebSocket connection closed")
 
 async def process_messages():
-    """Process messages from backend queue"""
-    print("\nStarting message processor...")
+    """Process messages through the full pipeline"""
+    print("\nStarting message processor pipeline...")
     while True:
         try:
-            print(f"\n[Processor] Waiting for message (queue size: {to_backend_queue.size()})...")
-            message = to_backend_queue.dequeue(timeout=1.0)
-            if message:
-                print(f"\n[Processor] Dequeued message: {message}")
-                logging.info(f"Processing message: {message}")
+            # Process to_backend_queue -> from_backend_queue
+            print(f"\n[Processor] Checking to_backend_queue (size: {to_backend_queue.size()})...")
+            backend_msg = to_backend_queue.dequeue(timeout=1.0)
+            if backend_msg:
+                print(f"\n[Processor] Processing backend message: {backend_msg}")
+                
+                # Add processing status
+                processing_msg = {
+                    **backend_msg,
+                    "status": "processing",
+                    "timestamp": time.time()
+                }
+                from_backend_queue.enqueue(processing_msg)
+                print(f"Forwarded to from_backend_queue (size: {from_backend_queue.size()})")
+
+                # Simulate processing delay
+                await asyncio.sleep(1)
+
+                # Mark as processed
+                processed_msg = {
+                    **processing_msg,
+                    "status": "processed", 
+                    "timestamp": time.time()
+                }
+                to_frontend_queue.enqueue(processed_msg)
+                print(f"Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
                 
                 # Ensure all messages get routed to frontend
                 if message.get('type') in ('simulation', 'test_message', 'system'):
@@ -253,6 +275,29 @@ async def process_messages():
                 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
+            await asyncio.sleep(1)
+
+async def forward_messages():
+    """Forward messages between queues"""
+    while True:
+        try:
+            # Forward from_frontend_queue -> to_backend_queue
+            if from_frontend_queue.size() > 0:
+                frontend_msg = from_frontend_queue.dequeue()
+                if frontend_msg:
+                    to_backend_queue.enqueue(frontend_msg)
+                    print(f"Forwarded from frontend to backend queue (size: {to_backend_queue.size()})")
+
+            # Forward from_backend_queue -> to_frontend_queue 
+            if from_backend_queue.size() > 0:
+                backend_msg = from_backend_queue.dequeue()
+                if backend_msg:
+                    to_frontend_queue.enqueue(backend_msg)
+                    print(f"Forwarded from backend to frontend queue (size: {to_frontend_queue.size()})")
+
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            print(f"Error in queue forwarding: {e}")
             await asyncio.sleep(1)
 
 async def send_messages(websocket: WebSocket):
