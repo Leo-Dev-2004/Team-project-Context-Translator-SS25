@@ -314,12 +314,12 @@ const WebSocketManager = {
             3: 'CLOSED'
         };
         return states[state] || 'UNKNOWN';
-    }
+    },
 
     getState() {
         if (!this.ws) return WebSocket.CLOSED;
         return this.ws.readyState;
-    },
+    }
 };
 
 // Initialize when page loads
