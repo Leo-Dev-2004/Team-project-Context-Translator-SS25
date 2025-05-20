@@ -12,13 +12,14 @@ class MessageQueue:
     def __init__(self, max_size: int = 100, name: str = "UnnamedQueue"):
         self._queue = deque(maxlen=max_size)
         self._name = name
-        self._not_empty = asyncio.Condition()
-        self._not_full = asyncio.Condition()
+        self._lock = asyncio.Lock()
+        self._not_empty = asyncio.Condition(self._lock)
+        self._not_full = asyncio.Condition(self._lock)
         self._max_size = max_size
 
     async def enqueue(self, message: Dict) -> None:
         """Add message to queue and notify waiting coroutines"""
-        async with self._not_full:
+        async with self._lock:
             while len(self._queue) >= self._max_size:
                 logger.debug(f"Queue '{self._name}' full, waiting to enqueue...")
                 await self._not_full.wait()
@@ -29,7 +30,7 @@ class MessageQueue:
 
     async def dequeue(self) -> Dict:
         """Remove and return message from queue (blocks until available)"""
-        async with self._not_empty:
+        async with self._lock:
             while not self._queue:
                 logger.debug(f"Queue '{self._name}' empty, waiting to dequeue...")
                 await self._not_empty.wait()
@@ -42,16 +43,12 @@ class MessageQueue:
         """Get current queue size"""
         return len(self._queue)
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Clear all items from queue"""
-        self._queue.clear()
-        # Notify all waiting tasks to prevent deadlocks
-        async def _notify_all():
-            async with self._not_empty:
-                self._not_empty.notify_all()
-            async with self._not_full:
-                self._not_full.notify_all()
-        asyncio.create_task(_notify_all())
+        async with self._lock:
+            self._queue.clear()
+            self._not_empty.notify_all()
+            self._not_full.notify_all()
 
 # Initialize all queues with descriptive names and size limits
 to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
