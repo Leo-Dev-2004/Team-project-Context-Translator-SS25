@@ -128,45 +128,6 @@ app.add_middleware(
 
 # Include API endpoints
 app.include_router(endpoints.router)
-        print(f"Enqueued message {counter} to to_backend_queue")
-        print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
-        print(f"Current to_backend_queue size: {to_backend_queue.size()}")
-        
-        # Create entry data structure
-        entry = {
-            "id": f"entry_{counter}",
-            "type": "simulation",
-            "content": f"Simulation entry {counter}",
-            "status": "pending",
-            "timestamp": time.time()
-        }
-        
-        print(f"Generating entry {counter}: {entry}")
-        
-        # Randomize queue destinations
-        if counter % 4 == 0:
-            # Send directly to backend
-            backend_msg = {
-                "type": "backend_message",
-                "data": entry,
-                "status": "processing",
-                "timestamp": time.time()
-            }
-            await to_backend_queue.enqueue(backend_msg)
-        else:
-            # Normal frontend flow
-            frontend_msg = {
-                "type": "frontend_message",
-                "data": entry,
-                "status": "created",
-                "timestamp": time.time()
-            }
-            await to_frontend_queue.enqueue(frontend_msg)
-        
-        # Random delay between 0.5-2 seconds
-        await asyncio.sleep(0.5 + 1.5 * random.random())
-    
-    print("Simulation stopped")
 
 @app.on_event("shutdown")
 def shutdown_event():
