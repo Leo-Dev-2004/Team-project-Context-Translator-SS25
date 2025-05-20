@@ -37,10 +37,14 @@ class SystemRunner:
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
         
-        # Initialize queues FIRST before anything else
-        from Backend.queues.shared_queue import init_queues
-        init_queues()
-        logger.info("Queues initialized")
+        # Queues are now initialized at module level in shared_queue.py
+        from Backend.queues.shared_queue import (
+            to_frontend_queue,
+            from_frontend_queue,
+            to_backend_queue,
+            from_backend_queue
+        )
+        logger.info("Queue references verified")
 
     def run_backend(self):
         """Run the FastAPI backend server"""
