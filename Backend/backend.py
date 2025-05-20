@@ -202,35 +202,64 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info("WebSocket connection closed")
 
 async def process_messages():
-    """Process messages through the full pipeline"""
-    print("\nStarting message processor pipeline...")
+    """Process messages through the full pipeline with verification"""
+    print("\nStarting verified message processor pipeline...")
     while True:
         try:
             # Process to_backend_queue -> from_backend_queue
             print(f"\n[Processor] Checking to_backend_queue (size: {to_backend_queue.size()})...")
+            
+            # Get message with timeout
             backend_msg = to_backend_queue.dequeue(timeout=1.0)
-            if backend_msg:
-                print(f"\n[Processor] Processing backend message: {backend_msg}")
+            if not backend_msg:
+                print("No message in to_backend_queue, waiting...")
+                continue
                 
-                # Mark as processing
-                backend_msg['status'] = 'processing'
-                backend_msg['timestamp'] = time.time()
-                
-                # Forward to from_backend_queue
+            print(f"\n[Processor] Processing message ID: {backend_msg.get('id', 'no-id')}")
+            
+            # Add processing metadata
+            backend_msg.setdefault('processing_path', [])
+            backend_msg['processing_path'].append({
+                'stage': 'processing_start',
+                'queue_size': from_backend_queue.size(),
+                'timestamp': time.time()
+            })
+            
+            # Forward to from_backend_queue with verification
+            prev_size = from_backend_queue.size()
+            from_backend_queue.enqueue(backend_msg)
+            new_size = from_backend_queue.size()
+            
+            if new_size <= prev_size:
+                print(f"⚠️ CRITICAL: Failed to enqueue in from_backend_queue! (before: {prev_size}, after: {new_size})")
+                # Emergency dump the message
+                print(f"Failed message: {json.dumps(backend_msg, indent=2)}")
+                # Try one more time
                 from_backend_queue.enqueue(backend_msg)
-                print(f"→ Forwarded to from_backend_queue (size: {from_backend_queue.size()})")
-                print(f"Forwarded to from_backend_queue (size: {from_backend_queue.size()})")
-
-                # Simulate processing delay
-                await asyncio.sleep(1)
-
-                # Mark as processed
-                processed_msg = {
-                    **backend_msg,
-                    "status": "processed", 
-                    "timestamp": time.time()
-                }
-                to_frontend_queue.enqueue(processed_msg)
+            else:
+                print(f"✅ Successfully enqueued in from_backend_queue (new size: {new_size})")
+            
+            # Simulate processing
+            await asyncio.sleep(1)
+            
+            # Update status and path tracking
+            backend_msg['status'] = 'processed'
+            backend_msg['timestamp'] = time.time()
+            backend_msg['processing_path'].append({
+                'stage': 'processing_complete', 
+                'queue_size': to_frontend_queue.size(),
+                'timestamp': time.time()
+            })
+            
+            # Forward to next queue with verification
+            prev_size = to_frontend_queue.size()
+            to_frontend_queue.enqueue(backend_msg)
+            new_size = to_frontend_queue.size()
+            
+            if new_size <= prev_size:
+                print(f"⚠️ CRITICAL: Failed to enqueue in to_frontend_queue! (before: {prev_size}, after: {new_size})")
+            else:
+                print(f"✅ Successfully forwarded to to_frontend_queue (new size: {new_size})")
                 print(f"Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
                 
                 # Ensure all messages get routed to frontend
@@ -278,17 +307,40 @@ async def process_messages():
             await asyncio.sleep(1)
 
 async def forward_messages():
-    """Forward messages between queues"""
+    """Forward messages between queues with strict verification"""
+    print("\nStarting verified queue forwarder...")
     while True:
         try:
-            # Forward from_backend_queue -> to_frontend_queue (processed messages)
+            # Forward from_backend_queue -> to_frontend_queue
             if from_backend_queue.size() > 0:
-                backend_msg = from_backend_queue.dequeue()
-                if backend_msg:
-                    # Mark as ready for frontend
-                    backend_msg['status'] = 'ready_for_frontend'
-                    to_frontend_queue.enqueue(backend_msg)
-                    print(f"→ Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
+                msg = from_backend_queue.dequeue()
+                if msg:
+                    print(f"\n[Forwarder] Moving message ID: {msg.get('id', 'no-id')}")
+                    print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
+                    
+                    # Track forwarding path
+                    msg.setdefault('forwarding_path', [])
+                    msg['forwarding_path'].append({
+                        'from': 'from_backend_queue',
+                        'to': 'to_frontend_queue',
+                        'timestamp': time.time()
+                    })
+                    
+                    # Verify enqueue operation
+                    prev_size = to_frontend_queue.size()
+                    to_frontend_queue.enqueue(msg)
+                    new_size = to_frontend_queue.size()
+                    
+                    if new_size <= prev_size:
+                        print(f"⚠️ WARNING: to_frontend_queue size didn't increase! (before: {prev_size}, after: {new_size})")
+                        # Emergency handling - try once more
+                        to_frontend_queue.enqueue(msg)
+                        if to_frontend_queue.size() <= new_size:
+                            print("⚠️ CRITICAL: Retry failed! Message lost!")
+                            # At least log the message
+                            print(f"Lost message: {json.dumps(msg, indent=2)}")
+                    else:
+                        print(f"✅ Forwarded successfully (new to_frontend size: {new_size})")
 
             # Forward from_frontend_queue -> to_backend_queue (new messages)
             if from_frontend_queue.size() > 0:

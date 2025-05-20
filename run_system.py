@@ -108,11 +108,32 @@ class SystemRunner:
                                     print(f"  {i+1}. {item.get('type', '?')} - {item.get('status', '?')}")
                             
                             # Print detailed queue status
-                            print("\nQueue Status:")
-                            print(f"  to_frontend_queue: {to_frontend_queue.size()}")
-                            print(f"  from_frontend_queue: {from_frontend_queue.size()}")
-                            print(f"  to_backend_queue: {to_backend_queue.size()}")
-                            print(f"  from_backend_queue: {from_backend_queue.size()}")
+                            print("\n=== QUEUE HEALTH CHECK ===")
+                            # Get detailed status
+                            to_frontend_size = to_frontend_queue.size()
+                            from_frontend_size = from_frontend_queue.size()
+                            to_backend_size = to_backend_queue.size()
+                            from_backend_size = from_backend_queue.size()
+                            
+                            print(f"  to_frontend_queue: {to_frontend_size} items")
+                            print(f"  from_frontend_queue: {from_frontend_size} items") 
+                            print(f"  to_backend_queue: {to_backend_size} items")
+                            print(f"  from_backend_queue: {from_backend_size} items")
+                            
+                            # Check for pipeline blockages
+                            if to_backend_size > 0 and from_backend_size == 0:
+                                print("⚠️ ALERT: Messages stuck in to_backend_queue!")
+                                # Debug the first message
+                                try:
+                                    msg = to_backend_queue.dequeue()
+                                    print(f"Stuck message: {msg.get('id', 'no-id')}")
+                                    # Requeue it
+                                    to_backend_queue.enqueue(msg)
+                                except Exception as e:
+                                    print(f"Couldn't inspect stuck message: {str(e)}")
+                            
+                            if from_backend_size > 0 and to_frontend_size == from_backend_size:
+                                print("⚠️ ALERT: Messages not forwarding from from_backend_queue!")
                             
                             # Print first item from each queue
                             def peek_queue(queue):
