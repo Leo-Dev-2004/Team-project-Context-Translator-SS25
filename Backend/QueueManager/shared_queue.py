@@ -1,41 +1,62 @@
-import threading
+import asyncio
 import uuid
 import time
+import logging
 from typing import Dict, List, Optional
 from collections import deque
 
-# Thread-safe queue implementation
+logger = logging.getLogger(__name__)
+
 class MessageQueue:
-    def __init__(self):
-        self._queue = deque()
-        self._lock = threading.Lock()
-        self._condition = threading.Condition(self._lock)
+    def __init__(self, max_size: int = 100, name: str = "UnnamedQueue"):
+        self._queue = deque(maxlen=max_size)
+        self._name = name
+        self._not_empty = asyncio.Condition()
+        self._not_full = asyncio.Condition()
+        self._max_size = max_size
 
-    def enqueue(self, message: Dict) -> None:
-        """Add message to queue and notify waiting threads"""
-        with self._condition:
+    async def enqueue(self, message: Dict) -> None:
+        """Add message to queue and notify waiting coroutines"""
+        async with self._not_full:
+            while len(self._queue) >= self._max_size:
+                logger.debug(f"Queue '{self._name}' full, waiting to enqueue...")
+                await self._not_full.wait()
+
             self._queue.append(message)
-            self._condition.notify()
+            logger.debug(f"Enqueued to '{self._name}', size: {len(self._queue)}")
+            self._not_empty.notify()
 
-    def dequeue(self, timeout: Optional[float] = None) -> Optional[Dict]:
-        """Remove and return message from queue, with optional timeout"""
-        with self._condition:
-            if not self._queue:
-                self._condition.wait(timeout=timeout)
-                if not self._queue:  # Still empty after timeout
-                    return None
-            return self._queue.popleft()
+    async def dequeue(self) -> Dict:
+        """Remove and return message from queue (blocks until available)"""
+        async with self._not_empty:
+            while not self._queue:
+                logger.debug(f"Queue '{self._name}' empty, waiting to dequeue...")
+                await self._not_empty.wait()
+
+            item = self._queue.popleft()
+            self._not_full.notify()
+            return item
 
     def size(self) -> int:
         """Get current queue size"""
-        with self._lock:
-            return len(self._queue)
+        return len(self._queue)
 
-# Initialize all queues
-to_frontend_queue = MessageQueue()
-from_frontend_queue = MessageQueue()
-to_backend_queue = MessageQueue()
-from_backend_queue = MessageQueue()
+    def clear(self) -> None:
+        """Clear all items from queue"""
+        self._queue.clear()
+        # Notify all waiting tasks to prevent deadlocks
+        async def _notify_all():
+            async with self._not_empty:
+                self._not_empty.notify_all()
+            async with self._not_full:
+                self._not_full.notify_all()
+        asyncio.create_task(_notify_all())
+
+# Initialize all queues with descriptive names and size limits
+to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
+from_frontend_queue = MessageQueue(max_size=100, name="from_frontend")
+to_backend_queue = MessageQueue(max_size=100, name="to_backend")
+from_backend_queue = MessageQueue(max_size=100, name="from_backend")
 
 # Legacy queue and lock for backward compatibility
 queue_lock = threading.Lock()
