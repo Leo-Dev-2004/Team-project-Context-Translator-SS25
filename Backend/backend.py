@@ -108,9 +108,7 @@ async def simulate_entries():
         # This will block if queue is full
         await to_backend_queue.enqueue(sim_msg)
         print(f"Enqueued message {counter} to to_backend_queue")
-        
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
-        to_backend_queue.enqueue(sim_msg)
         print(f"Current to_backend_queue size: {to_backend_queue.size()}")
         
         # Create entry data structure
@@ -295,51 +293,22 @@ async def process_messages():
                 'stage': 'processing_complete',
                 'timestamp': time.time()
             })
-            await from_backend_queue.enqueue(backend_msg)
-            else:
-                print(f"✅ Successfully enqueued in from_backend_queue (new size: {new_size})")
-            
-            # Simulate processing
-            await asyncio.sleep(1)
-            
-            # Update status and path tracking
+            # Process message and send to from_backend_queue
             backend_msg['status'] = 'processed'
-            backend_msg['timestamp'] = time.time()
             backend_msg['processing_path'].append({
-                'stage': 'processing_complete', 
-                'queue_size': to_frontend_queue.size(),
+                'stage': 'processing_complete',
                 'timestamp': time.time()
             })
+            await from_backend_queue.enqueue(backend_msg)
             
-            # Forward processed messages to frontend
+            # Create frontend message
             frontend_msg = {
                 'type': 'frontend_update',
                 'data': backend_msg,
                 'timestamp': time.time()
             }
             await to_frontend_queue.enqueue(frontend_msg)
-                    print(f"to_frontend_queue size: {to_frontend_queue.size()}")
-                    logging.info(f"Routed to frontend: {frontend_msg}")
-                    # Simulate processing with progress updates
-                    for progress in range(0, 101, 20):
-                        await asyncio.sleep(0.5)
-                        update_msg = {
-                            **backend_msg,
-                            "data": {
-                                **backend_msg.get('data', {}),
-                                "status": "processing",
-                                "progress": progress
-                            },
-                            "timestamp": time.time()
-                        }
-                        from_backend_queue.enqueue(update_msg)
-                    
-                    # Final processed message
-                    backend_msg['status'] = 'processed'
-                    backend_msg['timestamp'] = time.time()
-                    backend_msg['data']['progress'] = 100
-                    from_backend_queue.enqueue(backend_msg)
-                    logging.info(f"Simulation message processed: {backend_msg}")
+            logging.info(f"Processed and forwarded message: {backend_msg['data']['id']}")
                 else:
                     # Default processing for other messages
                     await asyncio.sleep(1)
@@ -382,34 +351,12 @@ async def forward_messages():
             else:
                 logging.warning("Attempted to process a None message in forward_messages")
             
-            # Verify enqueue operation
-            prev_size = to_frontend_queue.size()
-            if msg is not None:
-                if msg is not None:
-                    if msg is not None:
-                        if msg is not None:
-                            if msg is not None:
-                                await to_frontend_queue.enqueue(msg)
-                            else:
-                                logging.warning("Attempted to enqueue a None message to to_frontend_queue")
-                        else:
-                            logging.warning("Attempted to enqueue a None message to to_frontend_queue")
-                    else:
-                        logging.warning("Attempted to enqueue a None message to to_frontend_queue")
-                else:
-                    logging.warning("Attempted to enqueue a None message to to_frontend_queue")
-            new_size = to_frontend_queue.size()
-            
-            if new_size <= prev_size:
-                print(f"⚠️ WARNING: to_frontend_queue size didn't increase! (before: {prev_size}, after: {new_size})")
-                # Emergency handling - try once more
-                to_frontend_queue.enqueue(msg)
-                if to_frontend_queue.size() <= new_size:
-                    print("⚠️ CRITICAL: Retry failed! Message lost!")
-                    # At least log the message
-                    print(f"Lost message: {json.dumps(msg, indent=2)}")
-            else:
-                print(f"✅ Forwarded successfully (new to_frontend size: {new_size})")
+            if msg is None:
+                logging.warning("Received None message in forward_messages")
+                continue
+                
+            await to_frontend_queue.enqueue(msg)
+            logging.debug(f"Forwarded message {msg['data']['id']} to frontend")
 
             # Forward messages from frontend to backend
             frontend_msg = await from_frontend_queue.dequeue()
