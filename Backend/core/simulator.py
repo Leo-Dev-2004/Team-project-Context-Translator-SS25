@@ -4,6 +4,7 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
+from ..queues.shared_queue import MessageQueue
 from ..queues.shared_queue import (
     get_to_backend_queue,
     get_to_frontend_queue,
@@ -112,7 +113,7 @@ class SimulationManager:
             if self._to_backend_queue.size() > 5:
                 logger.warning(f"to_backend_queue has {self._to_backend_queue.size()} messages")
                 try:
-                    oldest_msg = to_backend_queue_instance._queue[0]
+                    oldest_msg = self._to_backend_queue._queue[0]
                     age = time.time() - oldest_msg.get('timestamp', time.time())
                     logger.warning(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')}")
                 except Exception as e:
@@ -127,7 +128,7 @@ class SimulationManager:
                 "status": "pending"
             }
         )
-        await to_backend_queue_instance.enqueue(system_msg.to_dict())
+        await self._to_backend_queue.enqueue(system_msg.to_dict())
         
         while self.running:
             self.counter += 1
@@ -145,7 +146,7 @@ class SimulationManager:
                 }
             )
             
-            await to_backend_queue_instance.enqueue(sim_msg.to_dict())
+            await self._to_backend_queue.enqueue(sim_msg.to_dict())
             logger.info(f"Enqueued simulation message {self.counter}")
             
             # Random delay between 0.5-2 seconds
@@ -156,13 +157,13 @@ class SimulationManager:
                 monitor_queues()
                 
                 # Check if messages are being processed
-                if (to_backend_queue_instance.size() > 10 and 
-                    from_backend_queue_instance.size() < 2):
+                if (self._to_backend_queue.size() > 10 and 
+                    self._from_backend_queue.size() < 2):
                     logger.warning("Messages accumulating in to_backend_queue without processing")
                 
                 # Check if messages are reaching frontend
-                if (from_backend_queue_instance.size() > 5 and 
-                    to_frontend_queue_instance.size() < 2):
+                if (self._from_backend_queue.size() > 5 and 
+                    self._to_frontend_queue.size() < 2):
                     logger.warning("Messages not being forwarded to frontend")
         
         logger.info("Simulation stopped")

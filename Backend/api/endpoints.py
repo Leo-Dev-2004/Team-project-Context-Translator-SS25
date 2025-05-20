@@ -6,7 +6,12 @@ from typing import Optional
 from ..core.simulator import SimulationManager
 from ..core.processor import process_messages
 from ..core.forwarder import forward_messages
-from ..queues.shared_queue import get_initialized_queues
+from ..queues.shared_queue import (
+    get_initialized_queues,
+    get_to_backend_queue,
+    get_to_frontend_queue,
+    get_from_backend_queue
+)
 from ..services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
