@@ -210,8 +210,8 @@ const WebSocketManager = {
         }
 
 
-        // WebSocket message handler - moved to top
-        function handleWebSocketMessage(event) {
+        // Message handler callback
+        const handleWebSocketMessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 console.log('Received WebSocket message:', data);
