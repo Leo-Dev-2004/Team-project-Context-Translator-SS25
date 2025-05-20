@@ -1,6 +1,5 @@
 import asyncio
-import threading
-import requests
+import aiohttp
 import websockets
 import json
 import time
@@ -23,9 +22,10 @@ async def test_websocket():
     try:
         # First check if HTTP server is running
         try:
-            http_response = requests.get('http://localhost:8000/health', timeout=2)
-            test_results['server_status'] = f"HTTP {http_response.status_code}"
-            if http_response.status_code != 200:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://localhost:8000/health', timeout=2) as resp:
+                    test_results['server_status'] = f"HTTP {resp.status}"
+                    if resp.status != 200:
                 print(f"HTTP server not healthy: {http_response.status_code}")
                 return test_results
         except Exception as e:
@@ -179,8 +179,9 @@ async def run_tests_with_server():
         while time.time() - start_time < max_wait:
             try:
                 # Check HTTP health endpoint first
-                http_response = requests.get('http://localhost:8000/health', timeout=1)
-                if http_response.status_code == 200:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get('http://localhost:8000/health', timeout=1) as resp:
+                        if resp.status == 200:
                     # Then verify WebSocket connection
                     try:
                         try:
