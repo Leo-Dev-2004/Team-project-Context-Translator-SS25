@@ -1,93 +1,20 @@
-import asyncio
-import webbrowser
 import uvicorn
-import logging
-import requests
-import time
-import sys
-import threading
-import subprocess
-from Backend.backend import app, forward_messages, process_messages
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('system.log')
-    ]
+from Backend.backend import app
+from Backend.queues.shared_queue import (
+    get_to_frontend_queue,
+    get_from_frontend_queue,
+    get_to_backend_queue,
+    get_from_backend_queue
 )
-logger = logging.getLogger(__name__)
 
-
-def start_simulation(self):
-        """Start the simulation after server is ready"""
-        max_retries = 10
-        retry_count = 0
-        
-        while self.running and retry_count < max_retries:
-            try:
-                # First check if backend is responsive
-                print("\nChecking backend health...")
-                health = requests.get("http://localhost:8000/health")
-                if health.status_code == 200:
-                    print("\n=== BACKEND READY ===")
-                    print("Starting simulation...")
-                    # Start simulation
-                    print("Making request to /simulation/start...")
-                    response = requests.get("http://localhost:8000/simulation/start")
-                    if response.status_code == 200:
-                        print("\n=== SIMULATION STARTED ===")
-                        print(f"Response: {response.json()}")
-                        print("Starting queue monitoring...")
-                        # Monitor simulation status
-                        while self.running:
-                            print("\n=== QUEUE STATUS ===")
-                            status = requests.get("http://localhost:8000/simulation/status").json()
-                            print(f"to_frontend_queue: {status['queues']['to_frontend']['size']} items")
-                            print(f"  Oldest: {status['queues']['to_frontend']['oldest']}")
-                            print(f"  Newest: {status['queues']['to_frontend']['newest']}")
-                            print(f"from_frontend_queue: {status['queues']['from_frontend']['size']} items")
-                            print(f"to_backend_queue: {status['queues']['to_backend']['size']} items")
-                            print(f"from_backend_queue: {status['queues']['from_backend']['size']} items")
-                            print(f"\nMessage Rates:")
-                            print(f"  to_frontend: {status['message_rates']['to_frontend']:.2f} msg/sec")
-                            print(f"  from_frontend: {status['message_rates']['from_frontend']:.2f} msg/sec")
-                            print(f"  to_backend: {status['message_rates']['to_backend']:.2f} msg/sec")
-                            print(f"  from_backend: {status['message_rates']['from_backend']:.2f} msg/sec")
-                            
-                            # Debug queue contents
-                            print("\nQueue Contents:")
-                            queues = requests.get("http://localhost:8000/queues/debug").json()
-                            for qname, items in queues.items():
-                                print(f"\n{qname}:")
-                                for i, item in enumerate(items[:3]):  # Show first 3 items
-                                    print(f"  {i+1}. ID: {item.get('data', {}).get('id')}")
-                                    print(f"     Type: {item.get('type')}")
-                                    print(f"     Status: {item.get('data', {}).get('status')}")
-                                    print(f"     Path: {item.get('processing_path', [])}")
-                            
-                            # Get detailed queue contents
-                            print("\nQueue Contents:")
-                            queues = requests.get("http://localhost:8000/queues/debug").json()
-                            for qname, items in queues.items():
-                                print(f"{qname}: {len(items)} items")
-                                for i, item in enumerate(items[:3]):  # Show first 3 items
-                                    print(f"  {i+1}. {item.get('type', '?')} - {item.get('status', '?')}")
-                            
-                            # Print detailed queue status
-                            print("\n=== QUEUE HEALTH CHECK ===")
-                            # Get detailed status
-                            to_frontend_size = to_frontend_queue.size()
-                            from_frontend_size = from_frontend_queue.size()
-                            to_backend_size = to_backend_queue.size()
-                            from_backend_size = from_backend_queue.size()
-                            
-                            print(f"  to_frontend_queue: {to_frontend_size} items")
-                            print(f"  from_frontend_queue: {from_frontend_size} items") 
-                            print(f"  to_backend_queue: {to_backend_size} items")
-                            print(f"  from_backend_queue: {from_backend_size} items")
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host="0.0.0.0", 
+        port=8000,
+        log_level="info",
+        access_log=True
+    )
                             
                             # Enhanced queue health checks
                             def check_queue_health():
