@@ -19,6 +19,12 @@ app = FastAPI()
 sim_manager = SimulationManager()
 ws_manager = WebSocketManager()
 
+@app.on_event("startup")
+async def startup_event():
+    # Start core processing tasks
+    asyncio.create_task(process_messages())
+    asyncio.create_task(forward_messages())
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,

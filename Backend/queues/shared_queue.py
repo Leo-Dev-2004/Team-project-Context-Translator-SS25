@@ -46,9 +46,17 @@ class MessageQueue:
             self._not_empty.notify_all()
             self._not_full.notify_all()
 
-# Initialize all queues with descriptive names and size limits
-to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
-from_frontend_queue = MessageQueue(max_size=100, name="from_frontend")
-to_backend_queue = MessageQueue(max_size=100, name="to_backend")
-from_backend_queue = MessageQueue(max_size=100, name="from_backend")
-dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
+# Global queue instances - initialized once
+to_frontend_queue: MessageQueue = None  
+from_frontend_queue: MessageQueue = None
+to_backend_queue: MessageQueue = None
+from_backend_queue: MessageQueue = None
+dead_letter_queue: MessageQueue = None
+
+def init_queues():
+    global to_frontend_queue, from_frontend_queue, to_backend_queue, from_backend_queue, dead_letter_queue
+    to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
+    from_frontend_queue = MessageQueue(max_size=100, name="from_frontend") 
+    to_backend_queue = MessageQueue(max_size=100, name="to_backend")
+    from_backend_queue = MessageQueue(max_size=100, name="from_backend")
+    dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")

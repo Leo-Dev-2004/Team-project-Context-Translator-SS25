@@ -33,6 +33,10 @@ class SystemRunner:
         self.running = True
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
+        
+        # Initialize queues
+        from Backend.queues.shared_queue import init_queues
+        init_queues()
 
     def run_backend(self):
         """Run the FastAPI backend server"""
@@ -269,6 +273,10 @@ class SystemRunner:
         )
         backend_thread.start()
         logger.info("Backend thread started")
+
+        # Start core processes
+        asyncio.create_task(process_messages())
+        asyncio.create_task(forward_messages())
 
         # Open browser
         browser_thread = threading.Thread(
