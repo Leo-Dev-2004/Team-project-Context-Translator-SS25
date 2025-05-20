@@ -6,10 +6,10 @@ import signal
 import sys
 from fastapi import FastAPI
 import uvicorn
-from Backend.backend import app
+from Backend.api.endpoints import app
 import requests
 import logging
-from Backend.QueueManager.shared_queue import (
+from Backend.queues.shared_queue import (
     to_frontend_queue,
     from_frontend_queue,
     to_backend_queue,
@@ -18,9 +18,12 @@ from Backend.QueueManager.shared_queue import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('system.log')
+    ]
 )
 logger = logging.getLogger(__name__)
 
