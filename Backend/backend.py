@@ -1,35 +1,17 @@
-import websockets
 import logging
-from fastapi import FastAPI, WebSocket, BackgroundTasks
-
-logger = logging.getLogger(__name__)
-from pydantic import BaseModel, ValidationError
-
-class QueueMessage(BaseModel):
-    type: str
-    data: dict
-    timestamp: float
-    status: str = "pending"
-    processing_path: list = []
-    forwarding_path: list = []
-import asyncio
-import random
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from Backend.QueueManager.shared_queue import (
-    MessageQueue,
-    to_frontend_queue,
-    from_frontend_queue,
-    to_backend_queue,
-    from_backend_queue,
-    dead_letter_queue
+import asyncio
+from .queues.shared_queue import (
+    get_initialized_queues,
+    get_to_backend_queue,
+    get_to_frontend_queue,
+    get_from_backend_queue
 )
-
-# Configure queue sizes
-MAX_QUEUE_SIZE = 100  # Prevent memory overflows
-to_frontend_queue = MessageQueue()
-from_frontend_queue = MessageQueue()
-to_backend_queue = MessageQueue()
-from_backend_queue = MessageQueue()
+from .core.simulator import SimulationManager
+from .core.message_processor import MessageProcessor
+from .core.queue_forwarder import QueueForwarder
+from .api import endpoints
 import asyncio
 import json
 import logging
