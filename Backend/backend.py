@@ -234,11 +234,11 @@ async def process_messages():
                 print(f"Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
                 
                 # Ensure all messages get routed to frontend
-                if message.get('type') in ('simulation', 'test_message', 'system'):
+                if backend_msg.get('type') in ('simulation', 'test_message', 'system'):
                     # Convert to frontend format
                     frontend_msg = {
                         'type': 'frontend_update',
-                        'data': message,
+                        'data': backend_msg,
                         'timestamp': time.time()
                     }
                     print(f"\n[Processor] Routing to frontend: {frontend_msg}")
@@ -249,9 +249,9 @@ async def process_messages():
                     for progress in range(0, 101, 20):
                         await asyncio.sleep(0.5)
                         update_msg = {
-                            **message,
+                            **backend_msg,
                             "data": {
-                                **message.get('data', {}),
+                                **backend_msg.get('data', {}),
                                 "status": "processing",
                                 "progress": progress
                             },
@@ -260,18 +260,18 @@ async def process_messages():
                         from_backend_queue.enqueue(update_msg)
                     
                     # Final processed message
-                    message['status'] = 'processed'
-                    message['timestamp'] = time.time()
-                    message['data']['progress'] = 100
-                    from_backend_queue.enqueue(message)
-                    logging.info(f"Simulation message processed: {message}")
+                    backend_msg['status'] = 'processed'
+                    backend_msg['timestamp'] = time.time()
+                    backend_msg['data']['progress'] = 100
+                    from_backend_queue.enqueue(backend_msg)
+                    logging.info(f"Simulation message processed: {backend_msg}")
                 else:
                     # Default processing for other messages
                     await asyncio.sleep(1)
-                    message['status'] = 'processed'
-                    message['timestamp'] = time.time()
-                    from_backend_queue.enqueue(message)
-                    logging.info(f"Message processed: {message}")
+                    backend_msg['status'] = 'processed'
+                    backend_msg['timestamp'] = time.time()
+                    from_backend_queue.enqueue(backend_msg)
+                    logging.info(f"Message processed: {backend_msg}")
                 
         except Exception as e:
             logging.error(f"Error processing message: {e}")

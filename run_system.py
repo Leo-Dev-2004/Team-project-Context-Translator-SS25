@@ -9,6 +9,12 @@ import uvicorn
 from Backend.backend import app
 import requests
 import logging
+from Backend.QueueManager.shared_queue import (
+    to_frontend_queue,
+    from_frontend_queue,
+    to_backend_queue,
+    from_backend_queue
+)
 
 # Configure logging
 logging.basicConfig(
