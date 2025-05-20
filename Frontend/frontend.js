@@ -142,10 +142,13 @@ const WebSocketManager = {
     // Define the WebSocket message handler function *outside* or *inside* connect,
     // but ensure it's a properly declared function that can be assigned.
     // Defining it as a method on WebSocketManager is a clean way to do it.
-    handleIncomingMessage: function(event) { // THIS IS THE KEY CHANGE for the function context
+    handleIncomingMessage: function(event) {
         try {
+            const startTime = performance.now();
             const data = JSON.parse(event.data);
-            console.log('Received WebSocket message:', data);
+            console.log('Raw message data:', event.data);
+            console.log('Parsed message:', data);
+            console.log(`Message processing started at ${startTime.toFixed(2)}ms`);
 
             lastMessage = data; // Update last received message
 
@@ -190,26 +193,39 @@ const WebSocketManager = {
 
 
     connect() {
+        console.group('WebSocketManager.connect()');
+        console.log('Starting WebSocket connection process...');
+        
         if (this.ws) {
+            console.log('Existing WebSocket found, cleaning up...');
             // Clean up existing connection to prevent multiple connections
             this.ws.onopen = null;
             this.ws.onclose = null;
             this.ws.onerror = null;
-            if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+            const oldState = this.ws.readyState;
+            if (oldState === WebSocket.OPEN || oldState === WebSocket.CONNECTING) {
+                console.log(`Closing existing WebSocket (state: ${oldState})...`);
                 this.ws.close();
             }
             if (this.pingInterval) {
+                console.log('Clearing existing ping interval...');
                 clearInterval(this.pingInterval);
                 this.pingInterval = null;
             }
         }
 
+        console.log('Creating new WebSocket instance...');
         this.ws = new WebSocket('ws://localhost:8000/ws');
-        console.log('WebSocket created, readyState:', this.ws.readyState);
+        console.log(`WebSocket created, readyState: ${this.ws.readyState} (${this.getStateName(this.ws.readyState)})`);
 
         // Assign the handler here!
-        this.ws.onmessage = this.handleIncomingMessage; // Assign the method
-        console.log('WebSocket message handler set up');
+        console.log('Setting up message handler...');
+        this.ws.onmessage = (event) => {
+            console.groupCollapsed(`Received WebSocket message (size: ${event.data.length} bytes)`);
+            this.handleIncomingMessage(event);
+            console.groupEnd();
+        };
+        console.log('WebSocket message handler configured');
 
         // Update internal readyState and isConnected property
         this._wsReadyState = this.ws.readyState;
@@ -290,6 +306,16 @@ const WebSocketManager = {
         return false;
     },
 
+    getStateName(state) {
+        const states = {
+            0: 'CONNECTING',
+            1: 'OPEN', 
+            2: 'CLOSING',
+            3: 'CLOSED'
+        };
+        return states[state] || 'UNKNOWN';
+    }
+
     getState() {
         if (!this.ws) return WebSocket.CLOSED;
         return this.ws.readyState;
@@ -298,12 +324,27 @@ const WebSocketManager = {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    console.group('DOMContentLoaded');
+    console.log('Initializing frontend...');
+    
     // Setup button handlers
+    console.log('Setting up button handlers...');
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
+    console.log('Button handlers configured');
 
     // Initialize WebSocket connection
+    console.log('Initializing WebSocket connection...');
     WebSocketManager.connect();
+    
+    // Monitor connection state changes
+    document.addEventListener('websocket-ack', () => {
+        console.log('WebSocket fully initialized and acknowledged by server');
+        document.getElementById('connectionStatus').textContent = 'Connected';
+        document.getElementById('connectionStatus').style.color = 'green';
+    });
+    
+    console.groupEnd();
 
     // The display is updated on each message arrival, no need for a separate interval
 });
