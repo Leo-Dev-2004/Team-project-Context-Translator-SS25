@@ -309,26 +309,34 @@ function handleWebSocketMessage(event) {
                 return;
             }
             
-            // Route application messages to appropriate queue
-            if (data.type === "frontend_message") {
-                if (data && typeof data === 'object' && 'type' in data && 'data' in data && 'timestamp' in data) {
-                    toFrontendQueue.enqueue(data);
-                    console.log('Added to toFrontendQueue:', data);
-                } else {
-                    console.warn('Malformed message received for toFrontendQueue:', data);
-                }
-            } 
-            else if (data.type === "backend_message") {
+            // Route application messages through the processing pipeline
+            if (data.type === "initial_message") {
+                // First stop - incoming message from simulation
                 toBackendQueue.enqueue(data);
                 console.log('Added to toBackendQueue:', data);
-            }
-            else if (data.type === "processed_message") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue:', data);
-            }
-            else if (data.type === "simulation_update") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue (simulation):', data);
+                
+                // Simulate processing delay (1s)
+                setTimeout(() => {
+                    // Second stop - processed by frontend
+                    const processedData = {...data, type: "frontend_processed"};
+                    fromFrontendQueue.enqueue(processedData);
+                    console.log('Added to fromFrontendQueue:', processedData);
+                    
+                    // Third stop - sent to frontend display
+                    setTimeout(() => {
+                        const frontendData = {...processedData, type: "frontend_message"};
+                        toFrontendQueue.enqueue(frontendData);
+                        console.log('Added to toFrontendQueue:', frontendData);
+                        
+                        // Final stop - backend response
+                        setTimeout(() => {
+                            const finalData = {...frontendData, type: "processed_message"};
+                            fromBackendQueue.enqueue(finalData);
+                            console.log('Added to fromBackendQueue:', finalData);
+                            updateQueueDisplay();
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
             }
             else {
                 console.log('Unhandled message type:', data.type, data);
