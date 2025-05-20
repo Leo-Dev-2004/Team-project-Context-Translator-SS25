@@ -309,13 +309,13 @@ async def process_messages():
             }
             await to_frontend_queue.enqueue(frontend_msg)
             logging.info(f"Processed and forwarded message: {backend_msg['data']['id']}")
-                else:
-                    # Default processing for other messages
-                    await asyncio.sleep(1)
-                    backend_msg['status'] = 'processed'
-                    backend_msg['timestamp'] = time.time()
-                    from_backend_queue.enqueue(backend_msg)
-                    logging.info(f"Message processed: {backend_msg}")
+            
+            # Default processing for other messages
+            await asyncio.sleep(1)
+            backend_msg['status'] = 'processed'
+            backend_msg['timestamp'] = time.time()
+            await from_backend_queue.enqueue(backend_msg)
+            logging.info(f"Message processed: {backend_msg}")
                 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
