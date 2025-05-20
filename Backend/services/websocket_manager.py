@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from fastapi import WebSocket
-from ..queues.shared_queue import to_frontend_queue, from_frontend_queue
+from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue
 from ..models.message_types import WebSocketMessage
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class WebSocketManager:
         """Send messages from to_frontend_queue to client"""
         while True:
             try:
-                message = await to_frontend_queue.dequeue()
+                message = await get_to_frontend_queue().dequeue()
                 await websocket.send_text(json.dumps(message))
             except Exception as e:
                 logger.error(f"Send error: {e}")
@@ -54,7 +54,7 @@ class WebSocketManager:
             try:
                 data = await websocket.receive_text()
                 message = WebSocketMessage(**json.loads(data))
-                await from_frontend_queue.enqueue(message.dict())
+                await get_from_frontend_queue().enqueue(message.dict())
             except Exception as e:
                 logger.error(f"Receive error: {e}")
                 break
