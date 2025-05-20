@@ -4,7 +4,7 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import AsyncQueue
+from ..queues.shared_queue import MessageQueue  # Ensure AsyncQueue is defined in shared_queue.py or adjust the import path
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class SystemMessage:
 class SimulationManager:
     def __init__(
         self,
-        to_backend_queue: AsyncQueue,
-        to_frontend_queue: AsyncQueue,
-        from_backend_queue: AsyncQueue
+        to_backend_queue: MessageQueue,
+        to_frontend_queue: MessageQueue,
+        from_backend_queue: MessageQueue
     ):
         self.running = False
         self.counter = 0
