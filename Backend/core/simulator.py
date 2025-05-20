@@ -2,19 +2,26 @@ import asyncio
 import random
 import time
 import logging
-from typing import Dict
+from typing import Dict, Union, Optional
 from fastapi import BackgroundTasks
 from ..queues.shared_queue import to_backend_queue, to_frontend_queue, from_backend_queue
-from ..models.message_types import SystemMessage, SimulationMessage
 
 logger = logging.getLogger(__name__)
+
+class SystemMessage:
+    def __init__(self, type: str, data: Dict[str, Union[str, int, float]]):
+        self.type = type
+        self.data = data
+
+    def to_dict(self):
+        return {"type": self.type, "data": {k: v for k, v in self.data.items() if v is not None}}
 
 class SimulationManager:
     def __init__(self):
         self.running = False
         self.counter = 0
 
-    async def start(self, background_tasks: BackgroundTasks = None):
+    async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
         if self.running:
             return {"status": "already running"}
@@ -35,7 +42,7 @@ class SimulationManager:
             data={
                 "id": "sys_start",
                 "message": "Simulation started via API",
-                "status": "info"
+        await to_frontend_queue.enqueue(system_msg.to_dict())
             }
         )
         await to_frontend_queue.enqueue(system_msg.dict())
