@@ -1,4 +1,13 @@
 from fastapi import FastAPI, WebSocket, BackgroundTasks
+from pydantic import BaseModel, ValidationError
+
+class QueueMessage(BaseModel):
+    type: str
+    data: dict
+    timestamp: float
+    status: str = "pending"
+    processing_path: list = []
+    forwarding_path: list = []
 import asyncio
 import random
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,6 +53,11 @@ async def simulate_entries():
     """Background task to simulate queue entries"""
     global simulation_running
     simulation_running = True
+    logging.info("Simulation task starting")
+    
+    def validate_message(msg: dict) -> bool:
+        required_fields = {'type', 'data', 'timestamp'}
+        return all(field in msg for field in required_fields)
     
     print("\n=== SIMULATION STARTING ===")
     print("Initializing queues...")
@@ -139,6 +153,20 @@ def shutdown_event():
     global simulation_running
     simulation_running = False
 
+@app.get("/metrics")
+async def get_metrics():
+    return {
+        "queue_sizes": {
+            "to_frontend": to_frontend_queue.size(),
+            "from_frontend": from_frontend_queue.size(),
+            "to_backend": to_backend_queue.size(),
+            "from_backend": from_backend_queue.size(),
+            "dead_letter": dead_letter_queue.size()
+        },
+        "websocket_connections": len(app.state.websockets),
+        "timestamp": time.time()
+    }
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "version": "0.1"}
@@ -224,9 +252,16 @@ async def process_messages():
         try:
             # Block until we get a message from to_backend_queue
             print(f"\n[Processor] Waiting for message in to_backend_queue...")
-            backend_msg = await to_backend_queue.dequeue()  # Async wait for message
+            backend_msg = await to_backend_queue.dequeue()
+            
+            try:
+                validated_msg = QueueMessage(**backend_msg)
+                backend_msg = validated_msg.dict()
+            except ValidationError as e:
+                logging.error(f"Invalid message format: {e}", exc_info=True)
+                continue
                 
-            if backend_msg is not None:
+            if backend_msg:
                 print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
             else:
                 print("\n[Processor] Received None as backend_msg")

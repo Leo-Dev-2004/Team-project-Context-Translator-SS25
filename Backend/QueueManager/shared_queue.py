@@ -58,6 +58,7 @@ to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
 from_frontend_queue = MessageQueue(max_size=100, name="from_frontend")
 to_backend_queue = MessageQueue(max_size=100, name="to_backend")
 from_backend_queue = MessageQueue(max_size=100, name="from_backend")
+dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
 
 # Legacy queue and lock for backward compatibility
 queue_lock = threading.Lock()
