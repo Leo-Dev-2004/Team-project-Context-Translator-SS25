@@ -4,7 +4,7 @@ import time
 import logging
 from typing import Dict
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import to_backend_queue, to_frontend_queue
+from ..queues.shared_queue import to_backend_queue, to_frontend_queue, from_backend_queue
 from ..models.message_types import SystemMessage, SimulationMessage
 
 logger = logging.getLogger(__name__)
