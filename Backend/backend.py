@@ -3,11 +3,19 @@ import asyncio
 import random
 from fastapi.middleware.cors import CORSMiddleware
 from Backend.QueueManager.shared_queue import (
+    MessageQueue,
     to_frontend_queue,
     from_frontend_queue,
     to_backend_queue,
     from_backend_queue
 )
+
+# Configure queue sizes
+MAX_QUEUE_SIZE = 100  # Prevent memory overflows
+to_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+from_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+to_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+from_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
 import asyncio
 import json
 import logging
@@ -69,7 +77,7 @@ async def simulate_entries():
             except Exception as e:
                 print(f"Error checking queue: {str(e)}")
         
-        # Create properly structured simulation message
+        # Create simulation message and block until enqueued
         sim_msg = {
             "type": "simulation",
             "data": {
@@ -79,18 +87,12 @@ async def simulate_entries():
                 "progress": 0,
                 "created_at": time.time()
             },
-            "timestamp": time.time(),
-            "processing_path": [{
-                "stage": "created",
-                "timestamp": time.time(),
-                "queue_sizes": {
-                    "to_backend": to_backend_queue.size(),
-                    "from_backend": from_backend_queue.size(),
-                    "to_frontend": to_frontend_queue.size(),
-                    "from_frontend": from_frontend_queue.size()
-                }
-            }]
+            "timestamp": time.time()
         }
+        
+        # This will block if queue is full
+        to_backend_queue.enqueue(sim_msg)
+        print(f"Enqueued message {counter} to to_backend_queue")
         
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
         to_backend_queue.enqueue(sim_msg)
@@ -202,18 +204,13 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info("WebSocket connection closed")
 
 async def process_messages():
-    """Process messages through the full pipeline with verification"""
-    print("\nStarting verified message processor pipeline...")
+    """Process messages through the full pipeline with blocking behavior"""
+    print("\nStarting blocking message processor pipeline...")
     while True:
         try:
-            # Process to_backend_queue -> from_backend_queue
-            print(f"\n[Processor] Checking to_backend_queue (size: {to_backend_queue.size()})...")
-            
-            # Get message with timeout
-            backend_msg = to_backend_queue.dequeue(timeout=1.0)
-            if not backend_msg:
-                print("No message in to_backend_queue, waiting...")
-                continue
+            # Block until we get a message from to_backend_queue
+            print(f"\n[Processor] Waiting for message in to_backend_queue...")
+            backend_msg = to_backend_queue.dequeue()  # Blocks until available
                 
             print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
             print(f"Message content: {json.dumps(backend_msg, indent=2)}")
@@ -308,14 +305,13 @@ async def process_messages():
             await asyncio.sleep(1)
 
 async def forward_messages():
-    """Forward messages between queues with strict verification"""
-    print("\nStarting verified queue forwarder...")
+    """Forward messages between queues with blocking behavior"""
+    print("\nStarting blocking queue forwarder...")
     while True:
         try:
-            # Forward from_backend_queue -> to_frontend_queue
-            if from_backend_queue.size() > 0:
-                msg = from_backend_queue.dequeue()
-                if msg:
+            # Block until we get a message from from_backend_queue
+            print("\n[Forwarder] Waiting for message in from_backend_queue...")
+            msg = from_backend_queue.dequeue()  # Blocks until available
                     print(f"\n[Forwarder] Moving message ID: {msg.get('data', {}).get('id', 'no-id')}")
                     print(f"Message path: {msg.get('processing_path', [])}")
                     print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
@@ -359,13 +355,14 @@ async def forward_messages():
             await asyncio.sleep(1)
 
 async def send_messages(websocket: WebSocket):
-    """Send messages from to_frontend_queue to client"""
+    """Send messages from to_frontend_queue to client with blocking"""
     client = websocket.client
     try:
         while True:
             try:
-                message = to_frontend_queue.dequeue(timeout=1.0)
-                if message:
+                # Block until we get a message to send
+                print("\n[Sender] Waiting for message in to_frontend_queue...")
+                message = to_frontend_queue.dequeue()  # Blocks until available
                     try:
                         # Mark as sent to frontend
                         message['status'] = 'sent_to_frontend'
