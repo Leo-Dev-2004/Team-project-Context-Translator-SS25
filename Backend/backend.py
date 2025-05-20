@@ -599,14 +599,18 @@ async def receive_messages(websocket: WebSocket):
                     }))
                     continue
                     
+                # Track connection ack status in app.state
+                if not hasattr(app.state, 'websocket_ack_status'):
+                    app.state.websocket_ack_status = set()
+                
                 # Send connection ack on first message
-                if not getattr(websocket, '_connection_ack_sent', False):
+                if websocket not in app.state.websocket_ack_status:
                     await websocket.send_text(json.dumps({
                         'type': 'connection_ack',
                         'status': 'connected',
                         'timestamp': time.time()
                     }))
-                    websocket._connection_ack_sent = True
+                    app.state.websocket_ack_status.add(websocket)
                 if client:
                     logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
                 else:
@@ -638,3 +642,6 @@ async def receive_messages(websocket: WebSocket):
         logging.error(f"WebSocket receive task failed: {e}")
     finally:
         logging.info("WebSocket receive task ending")
+        # Clean up ack status
+        if hasattr(app.state, 'websocket_ack_status') and websocket in app.state.websocket_ack_status:
+            app.state.websocket_ack_status.remove(websocket)
