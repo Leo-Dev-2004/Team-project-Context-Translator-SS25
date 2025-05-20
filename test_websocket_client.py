@@ -26,8 +26,8 @@ async def test_websocket():
                 async with session.get('http://localhost:8000/health', timeout=2) as resp:
                     test_results['server_status'] = f"HTTP {resp.status}"
                     if resp.status != 200:
-                print(f"HTTP server not healthy: {http_response.status_code}")
-                return test_results
+                        print(f"HTTP server not healthy: {resp.status}")
+                        return test_results
         except Exception as e:
             test_results['server_status'] = f"HTTP error: {str(e)}"
             print(f"HTTP check failed: {e}")
