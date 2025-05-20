@@ -13,20 +13,8 @@ class MessageQueue:
         self._lock = asyncio.Lock()
         self._not_empty = asyncio.Condition(self._lock)
         self._not_full = asyncio.Condition(self._lock)
-        self._initialized = True
-
-    async def initialize(self):
-        """Initialize async primitives in the current event loop"""
-        if not self._initialized:
-            self._lock = asyncio.Lock()
-            self._not_empty = asyncio.Condition(self._lock)
-            self._not_full = asyncio.Condition(self._lock)
-            self._initialized = True
-            logger.debug(f"Initialized queue '{self._name}' on loop {id(asyncio.get_running_loop())}")
 
     async def enqueue(self, message: Dict) -> None:
-        # Initialization is already handled in the constructor
-            
         async with self._lock:
             while len(self._queue) >= self._max_size:
                 logger.debug(f"Queue '{self._name}' full, waiting to enqueue...")
@@ -37,9 +25,6 @@ class MessageQueue:
             self._not_empty.notify()
 
     async def dequeue(self) -> Dict:
-        if not self._initialized:
-            await self.initialize()
-            
         async with self._lock:
             while not self._queue:
                 logger.debug(f"Queue '{self._name}' empty, waiting to dequeue...")
@@ -53,9 +38,6 @@ class MessageQueue:
         return len(self._queue)
 
     async def clear(self) -> None:
-        if not self._initialized:
-            await self.initialize()
-            
         async with self._lock:
             self._queue.clear()
             self._not_empty.notify_all()
@@ -63,9 +45,6 @@ class MessageQueue:
 
     def get_current_items_for_debug(self, limit: int = 20) -> list:
         """Returns a list of the current items in the queue for debugging, up to a limit."""
-        if not self._initialized:
-            raise RuntimeError("Queue not initialized")
-            
         # Note: This is synchronous and assumes the caller handles thread safety
         return list(self._queue)[:limit]
 

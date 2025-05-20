@@ -44,8 +44,6 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # --- APPLICATION STATE ---
-# Track active WebSocket connections directly on app.state
-app.state.websockets = set()  # type: ignore # type: Set[WebSocket]
 
 
 # --- GLOBAL INSTANCES FOR SERVICES ---
@@ -130,16 +128,6 @@ async def shutdown_event():
         except asyncio.CancelledError:
             logger.info("QueueForwarder task cancelled.")
 
-    # 3. Close active WebSocket connections
-    for ws in list(app.state.websockets): # Iterate over a copy as set might change
-        try:
-            await ws.close(code=1000) # 1000: Normal Closure
-        except RuntimeError as e:
-            logger.warning(f"Error closing WebSocket during shutdown: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error during WebSocket close in shutdown: {e}")
-        app.state.websockets.discard(ws) # Remove from set
-    logger.info("All WebSocket connections attempted to close.")
 
     logger.info("Application shutdown complete.")
 
