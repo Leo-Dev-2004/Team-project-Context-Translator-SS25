@@ -47,6 +47,7 @@
         console.error('Error processing message:', e);
     }
 
+
 class MessageQueue {
     constructor() {
         this.queue = [];
@@ -155,11 +156,17 @@ async function startSimulation() {
         console.log('Simulation started:', result);
         
         // Send test message through WebSocket manager
-        WebSocketManager.send({
-            type: "test", 
-            message: "Simulation started from frontend",
-            timestamp: Date.now()
-        });
+        // Send a test message through the WebSocket to notify the backend that the simulation has started.
+        // This ensures the backend is aware of the simulation state initiated from the frontend.
+        if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
+            WebSocketManager.send({
+            messageContent: "Simulation started from frontend",
+                message: "Simulation started from frontend",
+                timestamp: Date.now()
+            });
+        } else {
+            console.warn('WebSocket is not ready. Message not sent.');
+        }
     } catch (error) {
         console.error('Failed to start simulation:', error);
         alert(`Failed to start simulation: ${error.message}`);
@@ -202,10 +209,65 @@ const WebSocketManager = {
             this.ws.onmessage = null;
         }
 
-        // Set up the new message handler
-        this.ws.onmessage = handleWebSocketMessage;
 
-        // Immediately update state
+        // WebSocket message handler - moved to top
+        function handleWebSocketMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Received WebSocket message:', data);
+                
+                lastMessage = data;
+                
+                // Handle system messages first
+                if (data.type === "connection_ack") {
+                    console.log('WebSocket connection acknowledged by server');
+                    WebSocketManager.isConnected = true;
+                    document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
+                    return;
+                }
+                else if (data.type === "pong") {
+                    console.log('Received pong response from server');
+                    document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
+                    return;
+                }
+                
+                // Route application messages to appropriate queue
+                if (data.type === "frontend_message") {
+                    if (data && typeof data === 'object' && 'type' in data && 'data' in data && 'timestamp' in data) {
+                        toFrontendQueue.enqueue(data);
+                        console.log('Added to toFrontendQueue:', data);
+                    } else {
+                        console.warn('Malformed message received for toFrontendQueue:', data);
+                    }
+                } 
+                else if (data.type === "backend_message") {
+                    toBackendQueue.enqueue(data);
+                    console.log('Added to toBackendQueue:', data);
+                }
+                else if (data.type === "processed_message") {
+                    fromBackendQueue.enqueue(data);
+                    console.log('Added to fromBackendQueue:', data);
+                }
+                else if (data.type === "simulation_update") {
+                    fromBackendQueue.enqueue(data);
+                    console.log('Added to fromBackendQueue (simulation):', data);
+                }
+                else {
+                    console.log('Unhandled message type:', data.type, data);
+                }
+                
+                updateQueueDisplay();
+            } catch (e) {
+                console.error('Error processing message:', e);
+            }
+        }
+
+        // Set up the new message handler
+        this.ws.onmessage = (event) => handleWebSocketMessage(event);
+        console.log('WebSocket message handler set up');
+        // Immediately update state to reflect the current state
+        this._wsReadyState = this.ws.readyState;
+        // Set initial connection state
         this.isConnected = this.ws.readyState === WebSocket.OPEN;
         
         this.ws.onopen = () => {
