@@ -1,4 +1,8 @@
+import websockets
+import logging
 from fastapi import FastAPI, WebSocket, BackgroundTasks
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ValidationError
 
 class QueueMessage(BaseModel):
@@ -242,12 +246,12 @@ async def websocket_endpoint(websocket: WebSocket):
             if hasattr(app.state, 'websocket_ack_status') and websocket in app.state.websocket_ack_status:
                 del app.state.websocket_ack_status[websocket]
                 
-            if not sender_task.done():
-                sender_task.cancel()
-                await sender_task
-            if not receiver_task.done():
-                receiver_task.cancel()
-                await receiver_task
+            if not connection_tasks['sender'].done():
+                connection_tasks['sender'].cancel()
+                await connection_tasks['sender']
+            if not connection_tasks['receiver'].done():
+                connection_tasks['receiver'].cancel()
+                await connection_tasks['receiver']
                 
             if websocket.client_state != 3:  # CLOSED
                 await websocket.close()
@@ -375,7 +379,7 @@ async def send_messages(websocket: WebSocket):
     """Send messages from to_frontend_queue to client"""
     client = websocket.client
     client_info = f"{client.host}:{client.port}" if client else "unknown client"
-    logger.info(f"Starting sender task for {client_info}")
+    logging.info(f"Starting sender task for {client_info}")
     
     try:
         while True:
@@ -406,9 +410,9 @@ async def send_messages(websocket: WebSocket):
                     
                     try:
                         await websocket.send_text(msg_str)
-                        logger.info(f"Sent message {message.get('data', {}).get('id')} to {client_info}")
+                        logging.info(f"Sent message {message.get('data', {}).get('id')} to {client_info}")
                     except websockets.exceptions.ConnectionClosed:
-                        logger.info(f"Connection closed while sending to {client_info}")
+                        logging.info(f"Connection closed while sending to {client_info}")
                         break
                         print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
                 except RuntimeError as e:
@@ -427,18 +431,18 @@ async def send_messages(websocket: WebSocket):
                 logging.error(f"Error in send loop: {e}")
                 break
     except asyncio.CancelledError:
-        logger.info(f"Sender task for {client_info} cancelled normally")
+        logging.info(f"Sender task for {client_info} cancelled normally")
     except Exception as e:
-        logger.error(f"Sender task for {client_info} failed: {e}", exc_info=True)
+        logging.error(f"Sender task for {client_info} failed: {e}", exc_info=True)
     finally:
-        logger.info(f"Sender task for {client_info} ending")
+        logging.info(f"Sender task for {client_info} ending")
         # Ensure any remaining messages are processed
         while to_frontend_queue.size() > 0:
             try:
                 message = await to_frontend_queue.dequeue()
-                logger.info(f"Processing remaining message: {message.get('data', {}).get('id')}")
+                logging.info(f"Processing remaining message: {message.get('data', {}).get('id')}")
             except Exception as e:
-                logger.error(f"Error processing remaining message: {e}")
+                logging.error(f"Error processing remaining message: {e}")
 
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
