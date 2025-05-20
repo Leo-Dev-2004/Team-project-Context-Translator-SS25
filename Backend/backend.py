@@ -234,16 +234,25 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logging.error(f"WebSocket error: {e}")
     finally:
-        if not sender_task.done():
-            sender_task.cancel()
-        if not receiver_task.done():
-            receiver_task.cancel()
         try:
-            if websocket.client_state != 3:  # Only close if not already disconnected
-                await asyncio.wait_for(websocket.close(), timeout=1.0)
+            if websocket in app.state.websockets:
+                app.state.websockets.remove(websocket)
+            if hasattr(app.state, 'websocket_ack_status') and websocket in app.state.websocket_ack_status:
+                del app.state.websocket_ack_status[websocket]
+                
+            if not sender_task.done():
+                sender_task.cancel()
+                await sender_task
+            if not receiver_task.done():
+                receiver_task.cancel()
+                await receiver_task
+                
+            if websocket.client_state != 3:  # CLOSED
+                await websocket.close()
+                
+            logging.info(f"WebSocket connection closed for {websocket.client}")
         except Exception as e:
-            logging.error(f"Error during WebSocket clean up close: {e}")
-        logging.info("WebSocket connection closed")
+            logging.error(f"Error during WebSocket cleanup: {e}", exc_info=True)
 
 async def process_messages():
     """Process messages through the full pipeline with blocking behavior"""
