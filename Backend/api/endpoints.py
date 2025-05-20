@@ -21,17 +21,21 @@ ws_manager = WebSocketManager()
 
 @app.on_event("startup")
 async def startup_event():
-    # Verify queues are initialized
+    # Initialize queues in current event loop
     from ..queues.shared_queue import (
         to_frontend_queue,
         from_frontend_queue,
         to_backend_queue,
         from_backend_queue
     )
-    assert to_frontend_queue is not None, "to_frontend_queue not initialized"
-    assert from_frontend_queue is not None, "from_frontend_queue not initialized"
-    assert to_backend_queue is not None, "to_backend_queue not initialized"
-    assert from_backend_queue is not None, "from_backend_queue not initialized"
+    
+    # Initialize all queues
+    await to_frontend_queue.initialize()
+    await from_frontend_queue.initialize()
+    await to_backend_queue.initialize()
+    await from_backend_queue.initialize()
+    
+    logger.info("Queues initialized in current event loop")
     
     # Start core processing tasks
     asyncio.create_task(process_messages())

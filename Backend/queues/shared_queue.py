@@ -12,10 +12,17 @@ class MessageQueue:
     def __init__(self, max_size: int = 100, name: str = "UnnamedQueue"):
         self._queue = deque(maxlen=max_size)
         self._name = name
+        self._max_size = max_size
+        # Initialize async primitives in async context
+        self._lock = None
+        self._not_empty = None
+        self._not_full = None
+
+    async def initialize(self):
+        """Initialize async primitives in the current event loop"""
         self._lock = asyncio.Lock()
         self._not_empty = asyncio.Condition(self._lock)
         self._not_full = asyncio.Condition(self._lock)
-        self._max_size = max_size
 
     async def enqueue(self, message: Dict) -> None:
         async with self._lock:
@@ -46,13 +53,9 @@ class MessageQueue:
             self._not_empty.notify_all()
             self._not_full.notify_all()
 
-# Global queue instances - initialized once
+# Global queue instances - initialized without async primitives
 to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
 from_frontend_queue = MessageQueue(max_size=100, name="from_frontend") 
 to_backend_queue = MessageQueue(max_size=100, name="to_backend")
 from_backend_queue = MessageQueue(max_size=100, name="from_backend")
 dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
-
-def init_queues():
-    """Deprecated - queues are now initialized at module level"""
-    logger.info("Queues already initialized at module level")
