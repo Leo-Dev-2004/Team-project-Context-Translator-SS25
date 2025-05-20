@@ -364,19 +364,20 @@ async def send_messages(websocket: WebSocket):
                 # Block until we get a message to send
                 print("\n[Sender] Waiting for message in to_frontend_queue...")
                 message = to_frontend_queue.dequeue()  # Blocks until available
-                    try:
-                        # Mark as sent to frontend
-                        message['status'] = 'sent_to_frontend'
-                        message['timestamp'] = time.time()
-                        msg_str = json.dumps(message)
-                        logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
-                        await websocket.send_text(msg_str)
-                        
-                        # Queue for next cycle if needed
-                        if message.get('cycles_completed', 0) < 1:
-                            message['cycles_completed'] = message.get('cycles_completed', 0) + 1
-                            from_frontend_queue.enqueue(message)
-                            print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
+                
+                try:
+                    # Mark as sent to frontend
+                    message['status'] = 'sent_to_frontend'
+                    message['timestamp'] = time.time()
+                    msg_str = json.dumps(message)
+                    logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
+                    await websocket.send_text(msg_str)
+                    
+                    # Queue for next cycle if needed
+                    if message.get('cycles_completed', 0) < 1:
+                        message['cycles_completed'] = message.get('cycles_completed', 0) + 1
+                        from_frontend_queue.enqueue(message)
+                        print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
                     except RuntimeError as e:
                         if "disconnect" in str(e):
                             logging.info("WebSocket disconnected during send")
