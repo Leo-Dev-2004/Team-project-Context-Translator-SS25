@@ -40,14 +40,39 @@ async def simulate_entries(websocket: WebSocket):
     print("Simulation started - generating test entries")
     logging.info("Simulation STARTED - Generating test entries")
     
-    # Force initial test message
-    test_msg = {
-        "type": "test",
-        "message": "Initial test message from simulation",
+    # Initial system message
+    system_msg = {
+        "type": "system",
+        "data": {
+            "id": "sys_init",
+            "message": "Simulation started",
+            "status": "info"
+        },
         "timestamp": time.time()
     }
-    to_frontend_queue.enqueue(test_msg)
-    logging.info(f"Enqueued initial test message: {test_msg}")
+    to_frontend_queue.enqueue(system_msg)
+    logging.info(f"Enqueued system message: {system_msg}")
+
+    # Start generating simulation messages
+    while simulation_running:
+        counter += 1
+        await asyncio.sleep(1)  # Generate messages every second
+        
+        # Create simulation message
+        sim_msg = {
+            "type": "simulation",
+            "data": {
+                "id": f"sim_{counter}",
+                "message": f"Simulation message {counter}",
+                "status": "pending",
+                "progress": counter % 100
+            },
+            "timestamp": time.time()
+        }
+        
+        # Queue to backend for processing
+        to_backend_queue.enqueue(sim_msg)
+        logging.info(f"Enqueued simulation message {counter} to backend")
     
     while simulation_running:
         counter += 1
@@ -170,16 +195,35 @@ async def process_messages():
             if message:
                 logging.info(f"Processing message: {message}")
                 
-                # Simulate processing
-                await asyncio.sleep(1)
-                
-                # Update status
-                message['status'] = 'processed'
-                message['timestamp'] = time.time()
-                
-                # Send back to frontend
-                from_backend_queue.enqueue(message)
-                logging.info(f"Message processed: {message}")
+                # Different processing based on message type
+                if message.get('type') == 'simulation':
+                    # Simulate processing with progress updates
+                    for progress in range(0, 101, 20):
+                        await asyncio.sleep(0.5)
+                        update_msg = {
+                            **message,
+                            "data": {
+                                **message.get('data', {}),
+                                "status": "processing",
+                                "progress": progress
+                            },
+                            "timestamp": time.time()
+                        }
+                        from_backend_queue.enqueue(update_msg)
+                    
+                    # Final processed message
+                    message['status'] = 'processed'
+                    message['timestamp'] = time.time()
+                    message['data']['progress'] = 100
+                    from_backend_queue.enqueue(message)
+                    logging.info(f"Simulation message processed: {message}")
+                else:
+                    # Default processing for other messages
+                    await asyncio.sleep(1)
+                    message['status'] = 'processed'
+                    message['timestamp'] = time.time()
+                    from_backend_queue.enqueue(message)
+                    logging.info(f"Message processed: {message}")
                 
         except Exception as e:
             logging.error(f"Error processing message: {e}")
@@ -221,7 +265,23 @@ async def start_simulation(background_tasks: BackgroundTasks):
     if not simulation_running:
         simulation_running = True
         simulation_task = background_tasks.add_task(simulate_entries)
-        return {"status": "simulation started"}
+        
+        # Send initial system message
+        system_msg = {
+            "type": "system",
+            "data": {
+                "id": "sys_start",
+                "message": "Simulation started via HTTP",
+                "status": "info"
+            },
+            "timestamp": time.time()
+        }
+        to_frontend_queue.enqueue(system_msg)
+        
+        return {
+            "status": "simulation started",
+            "message": "Simulation messages will begin flowing through queues"
+        }
     return {"status": "simulation already running"}
 
 @app.get("/simulation/stop")
