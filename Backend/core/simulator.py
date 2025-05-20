@@ -4,7 +4,7 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import MessageQueue  # Ensure AsyncQueue is defined in shared_queue.py or adjust the import path
+from ..queues.shared_queue import AsyncQueue
 
 logger = logging.getLogger(__name__)
 

@@ -1,21 +1,23 @@
 import asyncio
 import logging
+import time
 from typing import Dict
 from pydantic import ValidationError
 from ..models.message_types import QueueMessage
-from ..queues.shared_queue import (
-    get_to_backend_queue,
-    get_from_backend_queue,
-    get_to_frontend_queue
-)
+from ..queues.shared_queue import AsyncQueue
 
 logger = logging.getLogger(__name__)
 
 class MessageProcessor:
-    def __init__(self):
-        self.to_backend_queue = get_to_backend_queue()
-        self.from_backend_queue = get_from_backend_queue()
-        self.to_frontend_queue = get_to_frontend_queue()
+    def __init__(
+        self,
+        to_backend_queue: AsyncQueue,
+        from_backend_queue: AsyncQueue,
+        to_frontend_queue: AsyncQueue
+    ):
+        self._to_backend_queue = to_backend_queue
+        self._from_backend_queue = from_backend_queue
+        self._to_frontend_queue = to_frontend_queue
 
     async def process(self):
         """Process messages through the full pipeline"""

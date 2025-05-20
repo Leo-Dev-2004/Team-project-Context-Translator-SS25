@@ -1,20 +1,22 @@
 import asyncio
 import logging
-from ..queues.shared_queue import (
-    get_from_backend_queue,
-    get_to_frontend_queue,
-    get_from_frontend_queue,
-    get_to_backend_queue
-)
+import time
+from ..queues.shared_queue import AsyncQueue
 
 logger = logging.getLogger(__name__)
 
 class QueueForwarder:
-    def __init__(self):
-        self.from_backend_queue = get_from_backend_queue()
-        self.to_frontend_queue = get_to_frontend_queue()
-        self.from_frontend_queue = get_from_frontend_queue()
-        self.to_backend_queue = get_to_backend_queue()
+    def __init__(
+        self,
+        from_backend_queue: AsyncQueue,
+        to_frontend_queue: AsyncQueue,
+        from_frontend_queue: AsyncQueue,
+        to_backend_queue: AsyncQueue
+    ):
+        self._from_backend_queue = from_backend_queue
+        self._to_frontend_queue = to_frontend_queue
+        self._from_frontend_queue = from_frontend_queue
+        self._to_backend_queue = to_backend_queue
 
     async def forward(self):
         """Forward messages between queues"""
