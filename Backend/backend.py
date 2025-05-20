@@ -212,13 +212,13 @@ async def process_messages():
             if backend_msg:
                 print(f"\n[Processor] Processing backend message: {backend_msg}")
                 
-                # Add processing status
-                processing_msg = {
-                    **backend_msg,
-                    "status": "processing",
-                    "timestamp": time.time()
-                }
-                from_backend_queue.enqueue(processing_msg)
+                # Mark as processing
+                backend_msg['status'] = 'processing'
+                backend_msg['timestamp'] = time.time()
+                
+                # Forward to from_backend_queue
+                from_backend_queue.enqueue(backend_msg)
+                print(f"→ Forwarded to from_backend_queue (size: {from_backend_queue.size()})")
                 print(f"Forwarded to from_backend_queue (size: {from_backend_queue.size()})")
 
                 # Simulate processing delay
@@ -281,19 +281,23 @@ async def forward_messages():
     """Forward messages between queues"""
     while True:
         try:
-            # Forward from_frontend_queue -> to_backend_queue
-            if from_frontend_queue.size() > 0:
-                frontend_msg = from_frontend_queue.dequeue()
-                if frontend_msg:
-                    to_backend_queue.enqueue(frontend_msg)
-                    print(f"Forwarded from frontend to backend queue (size: {to_backend_queue.size()})")
-
-            # Forward from_backend_queue -> to_frontend_queue 
+            # Forward from_backend_queue -> to_frontend_queue (processed messages)
             if from_backend_queue.size() > 0:
                 backend_msg = from_backend_queue.dequeue()
                 if backend_msg:
+                    # Mark as ready for frontend
+                    backend_msg['status'] = 'ready_for_frontend'
                     to_frontend_queue.enqueue(backend_msg)
-                    print(f"Forwarded from backend to frontend queue (size: {to_frontend_queue.size()})")
+                    print(f"→ Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
+
+            # Forward from_frontend_queue -> to_backend_queue (new messages)
+            if from_frontend_queue.size() > 0:
+                frontend_msg = from_frontend_queue.dequeue()
+                if frontend_msg:
+                    # Mark as new for backend processing
+                    frontend_msg['status'] = 'new_for_backend' 
+                    to_backend_queue.enqueue(frontend_msg)
+                    print(f"→ Forwarded to to_backend_queue (size: {to_backend_queue.size()})")
 
             await asyncio.sleep(0.1)
         except Exception as e:
@@ -309,9 +313,18 @@ async def send_messages(websocket: WebSocket):
                 message = to_frontend_queue.dequeue(timeout=1.0)
                 if message:
                     try:
+                        # Mark as sent to frontend
+                        message['status'] = 'sent_to_frontend'
+                        message['timestamp'] = time.time()
                         msg_str = json.dumps(message)
                         logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
                         await websocket.send_text(msg_str)
+                        
+                        # Queue for next cycle if needed
+                        if message.get('cycles_completed', 0) < 1:
+                            message['cycles_completed'] = message.get('cycles_completed', 0) + 1
+                            from_frontend_queue.enqueue(message)
+                            print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
                     except RuntimeError as e:
                         if "disconnect" in str(e):
                             logging.info("WebSocket disconnected during send")
@@ -423,7 +436,12 @@ async def receive_messages(websocket: WebSocket):
                     websocket._connection_ack_sent = True
                 logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
                 message = json.loads(data)
+                # Mark as received from frontend
+                if not message.get('status'):
+                    message['status'] = 'received_from_frontend'
+                message['timestamp'] = time.time()
                 from_frontend_queue.enqueue(message)
+                print(f"← Received from frontend, queued in from_frontend_queue (size: {from_frontend_queue.size()})")
                 
                 # Send response
                 response = {"response": "ack", "original": message}
