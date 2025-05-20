@@ -55,8 +55,12 @@ dead_letter_queue: MessageQueue = None
 
 def init_queues():
     global to_frontend_queue, from_frontend_queue, to_backend_queue, from_backend_queue, dead_letter_queue
-    to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
-    from_frontend_queue = MessageQueue(max_size=100, name="from_frontend") 
-    to_backend_queue = MessageQueue(max_size=100, name="to_backend")
-    from_backend_queue = MessageQueue(max_size=100, name="from_backend")
-    dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
+    if None in [to_frontend_queue, from_frontend_queue, to_backend_queue, from_backend_queue]:
+        to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
+        from_frontend_queue = MessageQueue(max_size=100, name="from_frontend") 
+        to_backend_queue = MessageQueue(max_size=100, name="to_backend")
+        from_backend_queue = MessageQueue(max_size=100, name="from_backend")
+        dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
+        logger.info("All queues initialized")
+    else:
+        logger.info("Queues already initialized")

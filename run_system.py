@@ -37,9 +37,10 @@ class SystemRunner:
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
         
-        # Initialize queues
+        # Initialize queues FIRST before anything else
         from Backend.queues.shared_queue import init_queues
         init_queues()
+        logger.info("Queues initialized")
 
     def run_backend(self):
         """Run the FastAPI backend server"""
@@ -263,7 +264,19 @@ class SystemRunner:
 
     async def run_async_tasks(self):
         """Run async tasks in event loop"""
-        logger.info("Starting async tasks...")
+        from Backend.queues.shared_queue import (
+            to_frontend_queue,
+            from_frontend_queue,
+            to_backend_queue,
+            from_backend_queue
+        )
+        
+        # Verify queues are initialized
+        if None in [to_frontend_queue, from_frontend_queue, to_backend_queue, from_backend_queue]:
+            logger.error("Queues not properly initialized!")
+            return
+            
+        logger.info("Starting async tasks with initialized queues...")
         await asyncio.gather(
             process_messages(),
             forward_messages()
