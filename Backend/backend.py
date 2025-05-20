@@ -421,7 +421,7 @@ async def send_messages(websocket: WebSocket):
                     await websocket.send_text(msg_str)
                     
                     # Queue for next cycle if needed
-                    if message.get('cycles_completed', 0) < 1:
+                    if message is not None and message.get('cycles_completed', 0) < 1:
                         message['cycles_completed'] = message.get('cycles_completed', 0) + 1
                         from_frontend_queue.enqueue(message)
                         print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
@@ -607,7 +607,10 @@ async def receive_messages(websocket: WebSocket):
                         'timestamp': time.time()
                     }))
                     websocket._connection_ack_sent = True
-                logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
+                if client:
+                    logging.debug(f"Received from {client.host}:{client.port}: {data[:200]}...")
+                else:
+                    logging.debug(f"Received from an unknown client: {data[:200]}...")
                 message = json.loads(data)
                 # Mark as received from frontend
                 if not message.get('status'):
