@@ -1,55 +1,41 @@
-import asyncio
+import threading
 import uuid
 import time
 from typing import Dict, List, Optional
 from collections import deque
 
+# Thread-safe queue implementation
 class MessageQueue:
-    def __init__(self, maxsize: int = 0):
+    def __init__(self):
         self._queue = deque()
-        self._maxsize = maxsize
-        self._not_empty = asyncio.Condition()
-        self._not_full = asyncio.Condition() if maxsize > 0 else None
+        self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
 
-    async def enqueue(self, message: Dict) -> None:
-        """Add message to queue and notify waiting consumers"""
-        if self._not_full:
-            async with self._not_full:
-                while len(self._queue) >= self._maxsize:
-                    await self._not_full.wait()
-                async with self._not_empty:
-                    self._queue.append(message)
-                    self._not_empty.notify()
-        else:
-            async with self._not_empty:
-                self._queue.append(message)
-                self._not_empty.notify()
+    def enqueue(self, message: Dict) -> None:
+        """Add message to queue and notify waiting threads"""
+        with self._condition:
+            self._queue.append(message)
+            self._condition.notify()
 
-    async def dequeue(self) -> Dict:
-        """Remove and return message from queue (async)"""
-        async with self._not_empty:
-            while not self._queue:
-                await self._not_empty.wait()
-            item = self._queue.popleft()
-            if self._not_full:
-                async with self._not_full:
-                    self._not_full.notify()
-            return item
+    def dequeue(self, timeout: Optional[float] = None) -> Optional[Dict]:
+        """Remove and return message from queue, with optional timeout"""
+        with self._condition:
+            if not self._queue:
+                self._condition.wait(timeout=timeout)
+                if not self._queue:  # Still empty after timeout
+                    return None
+            return self._queue.popleft()
 
     def size(self) -> int:
         """Get current queue size"""
-        return len(self._queue)
+        with self._lock:
+            return len(self._queue)
 
-    def clear(self) -> None:
-        """Clear all messages from queue"""
-        self._queue.clear()
-
-# Initialize all queues with size limits
-MAX_QUEUE_SIZE = 100
-to_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE) 
-to_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+# Initialize all queues
+to_frontend_queue = MessageQueue()
+from_frontend_queue = MessageQueue()
+to_backend_queue = MessageQueue()
+from_backend_queue = MessageQueue()
 
 # Legacy queue and lock for backward compatibility
 queue_lock = threading.Lock()
@@ -79,7 +65,7 @@ def get_pending_entries() -> list[dict]:
 
         return list(pending) # Return a copy
 
-def update_entry(entry_id: str, explanation: str = None, status: str = None):
+def update_entry(entry_id: str, explanation: Optional[str] = None, status: Optional[str] = None):
     """Updates the status and explanation for a specific entry by ID."""
     with queue_lock:
         found = False
@@ -99,7 +85,7 @@ def update_entry(entry_id: str, explanation: str = None, status: str = None):
             # Optional: Log a warning if entry_id not found
             pass
 
-def get_entry_history(status_filter: list[str] = None, term_filter: str = None) -> list[dict]:
+def get_entry_history(status_filter: Optional[list[str]] = None, term_filter: Optional[str] = None) -> list[dict]:
     """
     Retrieve historical entries from the queue, potentially filtered by status or term,
     for use in Main Model prompt building or UI display.
@@ -117,18 +103,23 @@ def get_entry_history(status_filter: list[str] = None, term_filter: str = None) 
         return [e.copy() for e in history]
 
 
-def cleanup_queue(limited: int | str = None) -> None:
-    """
-    Function to remove old or irrelevant entries. 
-    """
-    if limited is None:
-        return
-    now = time.time()
-    with queue_lock:
-        # check if the entry is out of date
-        if isinstance(limited, int):
-            detection_queue[:] = [e for e in detection_queue if (now - e.get("timestamp")) < limited]
-        # to be implemented: irrelevant
+from typing import Optional
+
+def cleanup_queue(limited: Optional[int | str] = None) -> None:
+    if detection_queue:
+        """
+        Function to remove old or irrelevant entries. 
+        """
+        if limited is None:
+            return
+        now = time.time()
+        with queue_lock:
+            # check if the entry is out of date
+            if isinstance(limited, int):
+                filtered_entries = [e for e in detection_queue if (now - e.get("timestamp")) < limited]
+                detection_queue.clear()
+                detection_queue.extend(filtered_entries)
+            # to be implemented: irrelevant
 
 def get_status_summary() -> Dict[str, int]:
     """
