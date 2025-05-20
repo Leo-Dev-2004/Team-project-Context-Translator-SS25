@@ -94,10 +94,17 @@ class SystemRunner:
                         while self.running:
                             print("\n=== QUEUE STATUS ===")
                             status = requests.get("http://localhost:8000/simulation/status").json()
-                            print(f"to_frontend_queue: {status['to_frontend_queue_size']}")
-                            print(f"from_frontend_queue: {status['from_frontend_queue_size']}") 
-                            print(f"to_backend_queue: {status['to_backend_queue_size']}")
-                            print(f"from_backend_queue: {status['from_backend_queue_size']}")
+                            print(f"to_frontend_queue: {status['queues']['to_frontend']['size']} items")
+                            print(f"  Oldest: {status['queues']['to_frontend']['oldest']}")
+                            print(f"  Newest: {status['queues']['to_frontend']['newest']}")
+                            print(f"from_frontend_queue: {status['queues']['from_frontend']['size']} items")
+                            print(f"to_backend_queue: {status['queues']['to_backend']['size']} items")
+                            print(f"from_backend_queue: {status['queues']['from_backend']['size']} items")
+                            print(f"\nMessage Rates:")
+                            print(f"  to_frontend: {status['message_rates']['to_frontend']:.2f} msg/sec")
+                            print(f"  from_frontend: {status['message_rates']['from_frontend']:.2f} msg/sec")
+                            print(f"  to_backend: {status['message_rates']['to_backend']:.2f} msg/sec")
+                            print(f"  from_backend: {status['message_rates']['from_backend']:.2f} msg/sec")
                             
                             # Debug queue contents
                             print("\nQueue Contents:")
@@ -131,33 +138,58 @@ class SystemRunner:
                             print(f"  to_backend_queue: {to_backend_size} items")
                             print(f"  from_backend_queue: {from_backend_size} items")
                             
-                            # Check for pipeline blockages
-                            if to_backend_size > 0 and from_backend_size == 0:
-                                print("⚠️ ALERT: Messages stuck in to_backend_queue!")
-                                # Debug the first message
+                            # Enhanced queue health checks
+                            def check_queue_health():
+                                # Check for processing delays
+                                if to_backend_queue.size() > 5 and from_backend_queue.size() == 0:
+                                    print("\n⚠️ CRITICAL: Messages not being processed from to_backend_queue!")
+                                    try:
+                                        msg = to_backend_queue._queue[0]  # Peek without dequeue
+                                        age = time.time() - msg.get('timestamp', time.time())
+                                        print(f"Oldest message age: {age:.2f} seconds")
+                                        print(f"Message ID: {msg.get('data', {}).get('id', 'no-id')}")
+                                    except Exception as e:
+                                        print(f"Error inspecting queue: {str(e)}")
+                                
+                                # Check for forwarding delays
+                                if from_backend_queue.size() > 5 and to_frontend_queue.size() < 2:
+                                    print("\n⚠️ WARNING: Messages not being forwarded to frontend!")
+                                    try:
+                                        msg = from_backend_queue._queue[0]
+                                        age = time.time() - msg.get('timestamp', time.time())
+                                        print(f"Oldest message age: {age:.2f} seconds")
+                                        print(f"Message ID: {msg.get('data', {}).get('id', 'no-id')}")
+                                    except Exception as e:
+                                        print(f"Error inspecting queue: {str(e)}")
+                                
+                                # Check for websocket delivery
+                                if to_frontend_queue.size() > 10 and len(app.state.websockets) > 0:
+                                    print("\n⚠️ WARNING: Messages accumulating in to_frontend_queue despite active WebSocket!")
+                            
+                            check_queue_health()
+                            
+                            # Detailed queue inspection
+                            def inspect_queue(queue, name):
+                                if queue.size() == 0:
+                                    print(f"\n{name}: EMPTY")
+                                    return
+                                
+                                print(f"\n{name}: {queue.size()} items")
+                                print(f"First item:")
                                 try:
-                                    msg = to_backend_queue.dequeue()
-                                    print(f"Stuck message: {msg.get('id', 'no-id')}")
-                                    # Requeue it
-                                    to_backend_queue.enqueue(msg)
+                                    item = queue._queue[0]
+                                    print(f"  ID: {item.get('data', {}).get('id', 'no-id')}")
+                                    print(f"  Type: {item.get('type', 'unknown')}")
+                                    print(f"  Status: {item.get('data', {}).get('status', 'unknown')}")
+                                    print(f"  Timestamp: {item.get('timestamp')}")
+                                    print(f"  Path: {item.get('processing_path', [])}")
                                 except Exception as e:
-                                    print(f"Couldn't inspect stuck message: {str(e)}")
+                                    print(f"  Error inspecting: {str(e)}")
                             
-                            if from_backend_size > 0 and to_frontend_size == from_backend_size:
-                                print("⚠️ ALERT: Messages not forwarding from from_backend_queue!")
-                            
-                            # Print first item from each queue
-                            def peek_queue(queue):
-                                try:
-                                    return str(queue.queue[0])[:80] + "..." if queue.size() > 0 else "Empty"
-                                except:
-                                    return "Error peeking"
-                                    
-                            print("\nQueue Contents:")
-                            print(f"  to_frontend_queue: {peek_queue(to_frontend_queue)}")
-                            print(f"  from_frontend_queue: {peek_queue(from_frontend_queue)}")
-                            print(f"  to_backend_queue: {peek_queue(to_backend_queue)}")
-                            print(f"  from_backend_queue: {peek_queue(from_backend_queue)}")
+                            inspect_queue(to_frontend_queue, "to_frontend_queue")
+                            inspect_queue(from_frontend_queue, "from_frontend_queue") 
+                            inspect_queue(to_backend_queue, "to_backend_queue")
+                            inspect_queue(from_backend_queue, "from_backend_queue")
                             
                             time.sleep(2)
                         break

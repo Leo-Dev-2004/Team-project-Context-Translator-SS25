@@ -66,10 +66,20 @@ async def simulate_entries():
                 "id": f"sim_{counter}",
                 "content": f"Simulation message {counter}",
                 "status": "pending",
-                "progress": 0
+                "progress": 0,
+                "created_at": time.time()
             },
             "timestamp": time.time(),
-            "processing_path": ["created"]
+            "processing_path": [{
+                "stage": "created",
+                "timestamp": time.time(),
+                "queue_sizes": {
+                    "to_backend": to_backend_queue.size(),
+                    "from_backend": from_backend_queue.size(),
+                    "to_frontend": to_frontend_queue.size(),
+                    "from_frontend": from_frontend_queue.size()
+                }
+            }]
         }
         
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
