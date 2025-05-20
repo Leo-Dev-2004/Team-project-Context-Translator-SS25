@@ -105,8 +105,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def get_simulation_manager() -> SimulationManager:
     """Dependency to get initialized SimulationManager"""
-    from ..backend import sim_manager
-    if sim_manager is None:
+    from ..backend import SimulationManager
+    if SimulationManager is None:
         raise RuntimeError("SimulationManager not initialized")
-    return sim_manager
+    return SimulationManager
 

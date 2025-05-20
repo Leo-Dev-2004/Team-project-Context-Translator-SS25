@@ -10,10 +10,10 @@ class MessageQueue:
         self._queue = deque(maxlen=max_size)
         self._name = name
         self._max_size = max_size
-        self._lock = None
-        self._not_empty = None
-        self._not_full = None
-        self._initialized = False
+        self._lock = asyncio.Lock()
+        self._not_empty = asyncio.Condition(self._lock)
+        self._not_full = asyncio.Condition(self._lock)
+        self._initialized = True
 
     async def initialize(self):
         """Initialize async primitives in the current event loop"""
@@ -25,8 +25,7 @@ class MessageQueue:
             logger.debug(f"Initialized queue '{self._name}' on loop {id(asyncio.get_running_loop())}")
 
     async def enqueue(self, message: Dict) -> None:
-        if not self._initialized:
-            await self.initialize()
+        # Initialization is already handled in the constructor
             
         async with self._lock:
             while len(self._queue) >= self._max_size:
