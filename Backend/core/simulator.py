@@ -4,7 +4,11 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import to_backend_queue, to_frontend_queue, from_backend_queue
+from ..queues.shared_queue import (
+    get_to_backend_queue,
+    get_to_frontend_queue, 
+    get_from_backend_queue
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +35,13 @@ class SimulationManager:
         if self.running:
             return {"status": "already running"}
         
-        # Assert that queues are initialized before using them
-        assert to_backend_queue is not None, "to_backend_queue is not initialized"
-        assert to_frontend_queue is not None, "to_frontend_queue is not initialized"
+        # Get initialized queues
+        to_backend = get_to_backend_queue()
+        to_frontend = get_to_frontend_queue()
         
         # Clear queues
-        await to_backend_queue.clear()
-        await to_frontend_queue.clear()
+        await to_backend.clear()
+        await to_frontend.clear()
         
         # Start simulation task
         if background_tasks:

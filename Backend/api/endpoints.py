@@ -1,36 +1,41 @@
-from fastapi import FastAPI, WebSocket, BackgroundTasks
+from fastapi import FastAPI, WebSocket, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import logging
+from typing import Optional
 from ..core.simulator import SimulationManager
 from ..core.processor import process_messages
 from ..core.forwarder import forward_messages
-from ..queues.shared_queue import (
-    to_frontend_queue,
-    from_frontend_queue,
-    to_backend_queue,
-    from_backend_queue
-)
+from ..queues.shared_queue import get_initialized_queues
 from ..services.websocket_manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-sim_manager = SimulationManager()
 ws_manager = WebSocketManager()
+sim_manager: Optional[SimulationManager] = None
+
+async def get_simulation_manager() -> SimulationManager:
+    """Dependency to get initialized SimulationManager"""
+    if sim_manager is None:
+        raise RuntimeError("SimulationManager not initialized")
+    return sim_manager
 
 @app.on_event("startup")
 async def startup_event():
-    from ..queues.shared_queue import initialize_queues
+    global sim_manager
     
-    # Initialize all queues in the current event loop
-    await initialize_queues()
+    # Initialize all queues
+    await get_initialized_queues()
+    
+    # Initialize SimulationManager after queues
+    sim_manager = SimulationManager()
     
     # Start core processing tasks
     asyncio.create_task(process_messages())
     asyncio.create_task(forward_messages())
     
-    logger.info("Application startup complete with queues initialized")
+    logger.info("Application startup complete with queues and SimulationManager initialized")
 
 # Configure CORS
 app.add_middleware(
@@ -54,16 +59,23 @@ async def get_metrics():
     return ws_manager.get_metrics()
 
 @app.get("/simulation/start")
-async def start_simulation(background_tasks: BackgroundTasks):
-    return await sim_manager.start(background_tasks)
+async def start_simulation(
+    background_tasks: BackgroundTasks,
+    manager: SimulationManager = Depends(get_simulation_manager)
+):
+    return await manager.start(background_tasks)
 
 @app.get("/simulation/stop")
-async def stop_simulation():
-    return await sim_manager.stop()
+async def stop_simulation(
+    manager: SimulationManager = Depends(get_simulation_manager)
+):
+    return await manager.stop()
 
 @app.get("/simulation/status")
-async def simulation_status():
-    return await sim_manager.status()
+async def simulation_status(
+    manager: SimulationManager = Depends(get_simulation_manager)
+):
+    return await manager.status()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
