@@ -62,10 +62,6 @@ async def get_initialized_queues() -> Dict[str, MessageQueue]:
         _initialized_queues["to_backend"] = MessageQueue(max_size=100, name="to_backend")
         _initialized_queues["from_backend"] = MessageQueue(max_size=100, name="from_backend")
         _initialized_queues["dead_letter"] = MessageQueue(max_size=100, name="dead_letter")
-
-        # Initialize async primitives
-        for queue in _initialized_queues.values():
-            await queue.initialize()
         
         logger.info(f"All queues initialized on loop {id(asyncio.get_running_loop())}")
     
