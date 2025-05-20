@@ -8,7 +8,6 @@ from ..queues.shared_queue import (
     get_to_backend_queue,
     get_to_frontend_queue,
     get_from_backend_queue,
-    AsyncQueue
 )
 
 logger = logging.getLogger(__name__)
