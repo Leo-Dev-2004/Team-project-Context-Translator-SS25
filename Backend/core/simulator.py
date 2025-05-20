@@ -109,6 +109,7 @@ class SimulationManager:
         
         # Enhanced queue monitoring
         def monitor_queues():
+            assert to_backend_queue is not None, "to_backend_queue is not initialized in monitor_queues"
             if to_backend_queue.size() > 5:
                 logger.warning(f"to_backend_queue has {to_backend_queue.size()} messages")
                 try:
