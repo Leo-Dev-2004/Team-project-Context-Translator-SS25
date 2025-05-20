@@ -305,7 +305,6 @@ function handleWebSocketMessage(event) {
     
     // Update display immediately when messages arrive
     // No need for interval since we update on each message
-});
 
 // Initialize WebSocket connection after page loads
 document.addEventListener('DOMContentLoaded', () => {
