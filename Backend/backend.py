@@ -37,13 +37,18 @@ async def simulate_entries():
     global simulation_running
     simulation_running = True
     
+    print("\n=== SIMULATION STARTING ===")
+    print("Initializing queues...")
+    
     # Initial system message
     system_msg = {
         "type": "system",
         "message": "Simulation started",
         "timestamp": time.time()
     }
+    print(f"\nEnqueuing initial system message: {system_msg}")
     to_backend_queue.enqueue(system_msg)
+    print(f"to_backend_queue size: {to_backend_queue.size()}")
     counter = 0
     print("Simulation started - generating test entries")
     logging.info("Simulation STARTED - Generating test entries")
@@ -197,10 +202,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def process_messages():
     """Process messages from backend queue"""
+    print("\nStarting message processor...")
     while True:
         try:
+            print(f"\n[Processor] Waiting for message (queue size: {to_backend_queue.size()})...")
             message = to_backend_queue.dequeue(timeout=1.0)
             if message:
+                print(f"\n[Processor] Dequeued message: {message}")
                 logging.info(f"Processing message: {message}")
                 
                 # Ensure all messages get routed to frontend
@@ -211,7 +219,9 @@ async def process_messages():
                         'data': message,
                         'timestamp': time.time()
                     }
+                    print(f"\n[Processor] Routing to frontend: {frontend_msg}")
                     to_frontend_queue.enqueue(frontend_msg)
+                    print(f"to_frontend_queue size: {to_frontend_queue.size()}")
                     logging.info(f"Routed to frontend: {frontend_msg}")
                     # Simulate processing with progress updates
                     for progress in range(0, 101, 20):
@@ -316,6 +326,28 @@ async def simulation_status():
         "from_frontend_queue_size": from_frontend_queue.size(),
         "to_backend_queue_size": to_backend_queue.size(),
         "from_backend_queue_size": from_backend_queue.size()
+    }
+
+@app.get("/queues/debug")
+async def debug_queues():
+    """Debug endpoint to show queue contents"""
+    def get_queue_contents(queue):
+        try:
+            # For MessageQueue implementation
+            if hasattr(queue, '_queue'):
+                return list(queue._queue)
+            # For deque implementation
+            elif hasattr(queue, 'copy'):
+                return list(queue.copy())
+            return []
+        except Exception as e:
+            return [f"Error: {str(e)}"]
+    
+    return {
+        "to_frontend_queue": get_queue_contents(to_frontend_queue),
+        "from_frontend_queue": get_queue_contents(from_frontend_queue),
+        "to_backend_queue": get_queue_contents(to_backend_queue),
+        "from_backend_queue": get_queue_contents(from_backend_queue)
     }
 
 async def receive_messages(websocket: WebSocket):

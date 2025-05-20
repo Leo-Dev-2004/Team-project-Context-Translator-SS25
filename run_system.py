@@ -72,17 +72,35 @@ class SystemRunner:
         while self.running and retry_count < max_retries:
             try:
                 # First check if backend is responsive
+                print("\nChecking backend health...")
                 health = requests.get("http://localhost:8000/health")
                 if health.status_code == 200:
-                    print("Backend is ready, starting simulation...")
+                    print("\n=== BACKEND READY ===")
+                    print("Starting simulation...")
                     # Start simulation
+                    print("Making request to /simulation/start...")
                     response = requests.get("http://localhost:8000/simulation/start")
                     if response.status_code == 200:
-                        print(f"Simulation started successfully: {response.json()}")
+                        print("\n=== SIMULATION STARTED ===")
+                        print(f"Response: {response.json()}")
+                        print("Starting queue monitoring...")
                         # Monitor simulation status
                         while self.running:
+                            print("\n=== QUEUE STATUS ===")
                             status = requests.get("http://localhost:8000/simulation/status").json()
-                            print(f"Simulation status: {status}")
+                            print(f"to_frontend_queue: {status['to_frontend_queue_size']}")
+                            print(f"from_frontend_queue: {status['from_frontend_queue_size']}")
+                            print(f"to_backend_queue: {status['to_backend_queue_size']}")
+                            print(f"from_backend_queue: {status['from_backend_queue_size']}")
+                            
+                            # Get detailed queue contents
+                            print("\nQueue Contents:")
+                            queues = requests.get("http://localhost:8000/queues/debug").json()
+                            for qname, items in queues.items():
+                                print(f"{qname}: {len(items)} items")
+                                for i, item in enumerate(items[:3]):  # Show first 3 items
+                                    print(f"  {i+1}. {item.get('type', '?')} - {item.get('status', '?')}")
+                            
                             time.sleep(2)
                         break
                     else:
