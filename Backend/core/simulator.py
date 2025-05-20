@@ -3,6 +3,7 @@ import random
 import time
 import logging
 from typing import Dict
+from fastapi import BackgroundTasks
 from ..queues.shared_queue import to_backend_queue, to_frontend_queue
 from ..models.message_types import SystemMessage, SimulationMessage
 
@@ -12,6 +13,65 @@ class SimulationManager:
     def __init__(self):
         self.running = False
         self.counter = 0
+
+    async def start(self, background_tasks: BackgroundTasks = None):
+        """Start the simulation"""
+        if self.running:
+            return {"status": "already running"}
+        
+        # Clear queues
+        await to_backend_queue.clear()
+        await to_frontend_queue.clear()
+        
+        # Start simulation task
+        if background_tasks:
+            background_tasks.add_task(self.simulate_entries)
+        else:
+            asyncio.create_task(self.simulate_entries())
+            
+        # Send system notification
+        system_msg = SystemMessage(
+            type="system",
+            data={
+                "id": "sys_start",
+                "message": "Simulation started via API",
+                "status": "info"
+            }
+        )
+        await to_frontend_queue.enqueue(system_msg.dict())
+        
+        return {
+            "status": "started",
+            "message": "Simulation messages will begin flowing through queues"
+        }
+
+    async def stop(self):
+        """Stop the simulation"""
+        if not self.running:
+            return {"status": "not running"}
+            
+        self.running = False
+        
+        # Send system notification
+        system_msg = SystemMessage(
+            type="system",
+            data={
+                "id": "sys_stop",
+                "message": "Simulation stopped via API",
+                "status": "info"
+            }
+        )
+        await to_frontend_queue.enqueue(system_msg.dict())
+        
+        return {"status": "stopped"}
+
+    async def status(self):
+        """Get simulation status"""
+        return {
+            "running": self.running,
+            "counter": self.counter,
+            "timestamp": time.time()
+        }
 
     async def simulate_entries(self):
         """Background task to simulate queue entries"""
