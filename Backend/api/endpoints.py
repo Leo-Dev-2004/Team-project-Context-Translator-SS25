@@ -28,8 +28,12 @@ async def startup_event():
     # Initialize all queues
     await get_initialized_queues()
     
-    # Initialize SimulationManager after queues
-    sim_manager = SimulationManager()
+    # Initialize SimulationManager with initialized queues
+    sim_manager = SimulationManager(
+        to_backend_queue=get_to_backend_queue(),
+        to_frontend_queue=get_to_frontend_queue(),
+        from_backend_queue=get_from_backend_queue()
+    )
     
     # Start core processing tasks
     asyncio.create_task(process_messages())

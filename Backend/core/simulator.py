@@ -26,22 +26,26 @@ class SystemMessage:
         }
 
 class SimulationManager:
-    def __init__(self):
+    def __init__(
+        self,
+        to_backend_queue: MessageQueue,
+        to_frontend_queue: MessageQueue,
+        from_backend_queue: MessageQueue
+    ):
         self.running = False
         self.counter = 0
+        self._to_backend_queue = to_backend_queue
+        self._to_frontend_queue = to_frontend_queue
+        self._from_backend_queue = from_backend_queue
 
     async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
         if self.running:
             return {"status": "already running"}
         
-        # Get initialized queues
-        to_backend_queue_instance = get_to_backend_queue()
-        to_frontend_queue_instance = get_to_frontend_queue()
-        
-        # Clear queues
-        await to_backend_queue_instance.clear()
-        await to_frontend_queue_instance.clear()
+        # Clear queues using instance queues
+        await self._to_backend_queue.clear()
+        await self._to_frontend_queue.clear()
         
         # Start simulation task
         if background_tasks:
@@ -58,7 +62,7 @@ class SimulationManager:
                 "status": "info"
             }
         )
-        await to_frontend_queue_instance.enqueue(system_msg.to_dict())
+        await self._to_frontend_queue.enqueue(system_msg.to_dict())
         
         return {
             "status": "started",
@@ -72,10 +76,7 @@ class SimulationManager:
             
         self.running = False
         
-        # Get initialized queue
-        to_frontend_queue_instance = get_to_frontend_queue()
-
-        # Send system notification
+        # Send system notification using instance queue
         system_msg = SystemMessage(
             type="system",
             data={
@@ -84,7 +85,7 @@ class SimulationManager:
                 "status": "info"
             }
         )
-        await to_frontend_queue_instance.enqueue(system_msg.to_dict())
+        await self._to_frontend_queue.enqueue(system_msg.to_dict())
         
         return {"status": "stopped"}
 
@@ -106,15 +107,10 @@ class SimulationManager:
         self.running = True
         logger.info("Simulation task starting")
 
-        # Get initialized queues
-        to_backend_queue_instance = get_to_backend_queue()
-        to_frontend_queue_instance = get_to_frontend_queue()
-        from_backend_queue_instance = get_from_backend_queue()
-        
-        # Enhanced queue monitoring
+        # Enhanced queue monitoring using instance queues
         def monitor_queues():
-            if to_backend_queue_instance.size() > 5:
-                logger.warning(f"to_backend_queue has {to_backend_queue_instance.size()} messages")
+            if self._to_backend_queue.size() > 5:
+                logger.warning(f"to_backend_queue has {self._to_backend_queue.size()} messages")
                 try:
                     oldest_msg = to_backend_queue_instance._queue[0]
                     age = time.time() - oldest_msg.get('timestamp', time.time())
