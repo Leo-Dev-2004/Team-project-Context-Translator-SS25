@@ -226,7 +226,7 @@ async def process_messages():
 
                 # Mark as processed
                 processed_msg = {
-                    **processing_msg,
+                    **backend_msg,
                     "status": "processed", 
                     "timestamp": time.time()
                 }
