@@ -16,7 +16,8 @@ from Backend.QueueManager.shared_queue import (
     to_frontend_queue,
     from_frontend_queue,
     to_backend_queue,
-    from_backend_queue
+    from_backend_queue,
+    dead_letter_queue
 )
 
 # Configure queue sizes
