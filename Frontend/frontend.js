@@ -247,10 +247,8 @@ window.wsManager = WebSocketManager;
 
 //Frontend/frontend.js
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Setup WebSocket message handler
-    const handleWebSocketMessage = (event) => {
+// WebSocket message handler
+function handleWebSocketMessage(event) {
         try {
             const data = JSON.parse(event.data);
             console.log('Received WebSocket message:', data);
@@ -299,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Error processing message:', e);
         }
-    };
+    }
 
     // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
@@ -307,4 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update display immediately when messages arrive
     // No need for interval since we update on each message
+});
+
+// Initialize WebSocket connection after page loads
+document.addEventListener('DOMContentLoaded', () => {
+    WebSocketManager.connect();
 });
