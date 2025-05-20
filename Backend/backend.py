@@ -1,27 +1,25 @@
 import logging
-import random
-import json
 import asyncio
-from fastapi import FastAPI, WebSocket, BackgroundTasks
+from typing import Optional, Dict
+
+from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+
 from .queues.shared_queue import (
+    MessageQueue,
     get_initialized_queues,
     get_to_backend_queue,
-    get_to_frontend_queue,
     get_from_backend_queue,
-    get_from_frontend_queue,
-    get_dead_letter_queue
+    get_to_frontend_queue,
+    get_from_frontend_queue
 )
+
 from .core.simulator import SimulationManager
 from .core.message_processor import MessageProcessor
 from .core.queue_forwarder import QueueForwarder
 from .api import endpoints
-from ..models.message_types import QueueMessage
-from pydantic import ValidationError
-import websockets
-import asyncio
-import json
-import logging
+
+# Application-wide logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -30,77 +28,106 @@ logging.basicConfig(
         logging.FileHandler('backend.log')
     ]
 )
-import time
+logger = logging.getLogger(__name__)
 
+# FastAPI application instance
 app = FastAPI()
-app.state.websockets = set()  # Track active WebSocket connections
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Context Translator API"}
+# Application state for WebSockets
+app.state.websockets = set()
 
-# Simulation state
-simulation_running = False
-simulation_task = None
+# Global instances for services
+sim_manager_instance: Optional[SimulationManager] = None
+message_processor_task: Optional[asyncio.Task] = None
+queue_forwarder_task: Optional[asyncio.Task] = None
 
-async def simulate_entries():
-    """Background task to simulate queue entries"""
-    global simulation_running
-    simulation_running = True
-    logging.info("Simulation task starting")
+@app.on_event("startup")
+async def startup_event():
+    global sim_manager_instance, message_processor_task, queue_forwarder_task
     
-    def validate_message(msg: dict) -> bool:
-        required_fields = {'type', 'data', 'timestamp'}
-        return all(field in msg for field in required_fields)
-    
-    print("\n=== SIMULATION STARTING ===")
-    print("Initializing queues...")
-    
-    # Initial system message with proper structure
-    system_msg = {
-        "type": "system",
-        "data": {
-            "id": "sys_init",
-            "message": "Simulation started",
-            "status": "pending"
-        },
-        "timestamp": time.time()
-    }
-    print(f"\nEnqueuing initial system message: {system_msg}")
-    to_backend_queue = get_to_backend_queue()
-    await to_backend_queue.enqueue(system_msg)
-    print(f"to_backend_queue size: {to_backend_queue.size()}")
-    
-    counter = 0
-    while simulation_running:
-        counter += 1
-        await asyncio.sleep(1)  # Generate messages every second
-        
-        # Monitor queue health
-        if to_backend_queue.size() > 5:
-            print(f"⚠️ WARNING: to_backend_queue has {to_backend_queue.size()} messages")
-            try:
-                oldest_msg = to_backend_queue._queue[0]
-                age = time.time() - oldest_msg.get('timestamp', time.time())
-                print(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')})")
-            except Exception as e:
-                print(f"Error checking queue: {str(e)}")
-        
-        # Create simulation message and block until enqueued
-        sim_msg = {
-            "type": "simulation",
-            "data": {
-                "id": f"sim_{counter}",
-                "content": f"Simulation message {counter}",
-                "status": "pending",
-                "progress": 0,
-                "created_at": time.time()
-            },
-            "timestamp": time.time()
-        }
-        
-        # This will block if queue is full
-        await to_backend_queue.enqueue(sim_msg)
+    logger.info("Application startup event triggered")
+
+    # Initialize all shared queues
+    await get_initialized_queues()
+    logger.info("Shared queues initialized")
+
+    # Get queue instances
+    to_backend_q = get_to_backend_queue()
+    from_backend_q = get_from_backend_queue()
+    to_frontend_q = get_to_frontend_queue()
+    from_frontend_q = get_from_frontend_queue()
+
+    # Initialize SimulationManager
+    sim_manager_instance = SimulationManager(
+        to_backend_queue=to_backend_q,
+        to_frontend_queue=to_frontend_q,
+        from_backend_queue=from_backend_q
+    )
+    logger.info("SimulationManager initialized")
+
+    # Start MessageProcessor
+    message_processor = MessageProcessor()
+    message_processor_task = asyncio.create_task(message_processor.process())
+    logger.info("MessageProcessor task started")
+
+    # Start QueueForwarder
+    queue_forwarder = QueueForwarder()
+    queue_forwarder_task = asyncio.create_task(queue_forwarder.forward())
+    logger.info("QueueForwarder task started")
+
+    logger.info("Application startup complete")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Application shutdown event triggered")
+
+    # Stop SimulationManager if running
+    if sim_manager_instance and sim_manager_instance.running:
+        await sim_manager_instance.stop()
+        logger.info("SimulationManager stopped")
+
+    # Cancel background tasks
+    if message_processor_task and not message_processor_task.done():
+        message_processor_task.cancel()
+        try:
+            await message_processor_task
+        except asyncio.CancelledError:
+            logger.info("MessageProcessor task cancelled")
+
+    if queue_forwarder_task and not queue_forwarder_task.done():
+        queue_forwarder_task.cancel()
+        try:
+            await queue_forwarder_task
+        except asyncio.CancelledError:
+            logger.info("QueueForwarder task cancelled")
+
+    # Close WebSocket connections
+    for ws in list(app.state.websockets):
+        try:
+            await ws.close(code=1000)
+        except Exception as e:
+            logger.warning(f"Error closing WebSocket: {e}")
+        app.state.websockets.discard(ws)
+
+    logger.info("Application shutdown complete")
+
+def get_simulation_manager() -> SimulationManager:
+    if sim_manager_instance is None:
+        logger.error("SimulationManager not initialized")
+        raise RuntimeError("SimulationManager not initialized")
+    return sim_manager_instance
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API endpoints
+app.include_router(endpoints.router)
         print(f"Enqueued message {counter} to to_backend_queue")
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
         print(f"Current to_backend_queue size: {to_backend_queue.size()}")
