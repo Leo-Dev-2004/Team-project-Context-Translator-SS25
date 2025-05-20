@@ -2,7 +2,7 @@ import asyncio
 import random
 import time
 import logging
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
 from ..queues.shared_queue import to_backend_queue, to_frontend_queue, from_backend_queue
 
@@ -13,12 +13,12 @@ class SystemMessage:
         self.type = type
         self.data = data
 
-    def to_dict(self) -> Dict[str, Union[str, Dict[str, Union[str, int, float]]]]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert message to dictionary format for queueing"""
         return {
             "type": self.type,
-            "data": {k: v for k, v in self.data.items() if v is not None},
-            "timestamp": time.time()  # Add timestamp for consistency
+            "data": self.data,
+            "timestamp": time.time()
         }
 
 class SimulationManager:
