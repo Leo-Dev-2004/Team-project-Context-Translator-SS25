@@ -191,21 +191,27 @@ const WebSocketManager = {
     isConnected: false,
 
     connect() {
+        console.log('WebSocketManager.connect() called');
+        
         if (this.ws) {
+            console.log('Existing WebSocket connection found, cleaning up...');
             // Clean up existing connection
             this.ws.onopen = null;
             this.ws.onclose = null;
             this.ws.onerror = null;
             if (this.ws.readyState === WebSocket.OPEN) {
+                console.log('Closing existing WebSocket connection...');
                 this.ws.close();
             }
         }
 
+        console.log('Creating new WebSocket connection...');
         this.ws = new WebSocket('ws://localhost:8000/ws');
         console.log('WebSocket created, readyState:', this.ws.readyState);
 
         // Clear any existing message handler first
         if (this.ws.onmessage) {
+            console.log('Clearing existing message handler...');
             this.ws.onmessage = null;
         }
 
@@ -272,27 +278,36 @@ const WebSocketManager = {
         
         this.ws.onopen = () => {
             console.log('WebSocket OPEN event received');
+            console.log('Setting connection state to OPEN');
             this._wsReadyState = WebSocket.OPEN;
             this.isConnected = true;
             console.log('WebSocket connection established, readyState:', this.getState());
+            console.log('Resetting reconnect attempts counter');
             this.reconnectAttempts = 0;
             
             // Verify connection with immediate ping
             const pingId = Date.now();
+            console.log('Sending initial ping with id:', pingId);
             this.send({type: 'ping', timestamp: pingId});
             
             // Setup ping response handler
             const pingHandler = (event) => {
                 try {
+                    console.log('Received potential ping response:', event.data);
                     const msg = JSON.parse(event.data);
                     if (msg.type === 'pong' && msg.timestamp === pingId) {
-                        console.log('WebSocket connection verified with pong');
+                        console.log('WebSocket connection verified with matching pong response');
+                        console.log('Removing temporary ping handler');
                         this.ws.removeEventListener('message', pingHandler);
+                        console.log('Dispatching websocket-ready event');
                         document.dispatchEvent(new Event('websocket-ready'));
                         
                         // Start periodic ping
+                        console.log('Starting periodic ping every 30 seconds');
                         this.pingInterval = setInterval(() => {
-                            this.send({type: 'ping', timestamp: Date.now()});
+                            const pingTime = Date.now();
+                            console.log('Sending periodic ping with timestamp:', pingTime);
+                            this.send({type: 'ping', timestamp: pingTime});
                         }, 30000);
                     }
                 } catch (e) {
@@ -352,13 +367,24 @@ const WebSocketManager = {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded: Starting frontend initialization');
+    
     // Setup button handlers
+    console.log('Initializing button event listeners...');
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
+    console.log('Button event listeners initialized');
     
     // Initialize WebSocket connection
+    console.log('Initializing WebSocket connection...');
     WebSocketManager.connect();
     
+    // Log when WebSocket connection is ready
+    document.addEventListener('websocket-ready', () => {
+        console.log('WebSocket connection fully established and verified');
+    });
+    
+    console.log('Frontend initialization complete');
     // Update display immediately when messages arrive
     // No need for interval since we update on each message
 });
