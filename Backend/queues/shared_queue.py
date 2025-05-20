@@ -62,30 +62,46 @@ class MessageQueue:
             self._not_empty.notify_all()
             self._not_full.notify_all()
 
-# Global queue instances - will be initialized when first used
-to_frontend_queue: Optional[MessageQueue] = None
-from_frontend_queue: Optional[MessageQueue] = None 
-to_backend_queue: Optional[MessageQueue] = None
-from_backend_queue: Optional[MessageQueue] = None
-dead_letter_queue: Optional[MessageQueue] = None
+# Global dictionary to hold initialized queues
+_initialized_queues: Dict[str, MessageQueue] = {}
 
-async def initialize_queues():
-    """Initialize all queues in the current event loop"""
-    global to_frontend_queue, from_frontend_queue, to_backend_queue, from_backend_queue, dead_letter_queue
+async def get_initialized_queues() -> Dict[str, MessageQueue]:
+    """Initialize and return all queues in current event loop"""
+    global _initialized_queues
     
-    if to_frontend_queue is None:
+    if not _initialized_queues:
         logger.info("Initializing all queues...")
-        to_frontend_queue = MessageQueue(max_size=100, name="to_frontend")
-        from_frontend_queue = MessageQueue(max_size=100, name="from_frontend")
-        to_backend_queue = MessageQueue(max_size=100, name="to_backend")
-        from_backend_queue = MessageQueue(max_size=100, name="from_backend")
-        dead_letter_queue = MessageQueue(max_size=100, name="dead_letter")
-        
+        _initialized_queues["to_frontend"] = MessageQueue(max_size=100, name="to_frontend")
+        _initialized_queues["from_frontend"] = MessageQueue(max_size=100, name="from_frontend")
+        _initialized_queues["to_backend"] = MessageQueue(max_size=100, name="to_backend")
+        _initialized_queues["from_backend"] = MessageQueue(max_size=100, name="from_backend")
+        _initialized_queues["dead_letter"] = MessageQueue(max_size=100, name="dead_letter")
+
         # Initialize async primitives
-        await to_frontend_queue.initialize()
-        await from_frontend_queue.initialize()
-        await to_backend_queue.initialize()
-        await from_backend_queue.initialize()
-        await dead_letter_queue.initialize()
+        for queue in _initialized_queues.values():
+            await queue.initialize()
         
         logger.info(f"All queues initialized on loop {id(asyncio.get_running_loop())}")
+    
+    return _initialized_queues
+
+def get_queue(queue_name: str) -> MessageQueue:
+    """Get specific queue by name"""
+    if queue_name not in _initialized_queues:
+        raise RuntimeError(f"{queue_name} not initialized. Call get_initialized_queues() first")
+    return _initialized_queues[queue_name]
+
+def get_to_frontend_queue() -> MessageQueue:
+    return get_queue("to_frontend")
+
+def get_from_frontend_queue() -> MessageQueue:
+    return get_queue("from_frontend")
+
+def get_to_backend_queue() -> MessageQueue:
+    return get_queue("to_backend")
+
+def get_from_backend_queue() -> MessageQueue:
+    return get_queue("from_backend")
+
+def get_dead_letter_queue() -> MessageQueue:
+    return get_queue("dead_letter")
