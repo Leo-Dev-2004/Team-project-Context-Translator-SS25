@@ -4,12 +4,7 @@ import time
 import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import MessageQueue
-from ..queues.shared_queue import (
-    get_to_backend_queue,
-    get_to_frontend_queue,
-    get_from_backend_queue,
-)
+from ..queues.shared_queue import AsyncQueue
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +24,13 @@ class SystemMessage:
 class SimulationManager:
     def __init__(
         self,
-        to_backend_queue: MessageQueue,
-        to_frontend_queue: MessageQueue,
-        from_backend_queue: MessageQueue
+        to_backend_queue: AsyncQueue,
+        to_frontend_queue: AsyncQueue,
+        from_backend_queue: AsyncQueue
     ):
         self.running = False
         self.counter = 0
+        self.task = None
         self._to_backend_queue = to_backend_queue
         self._to_frontend_queue = to_frontend_queue
         self._from_backend_queue = from_backend_queue
@@ -44,17 +40,15 @@ class SimulationManager:
         if self.running:
             return {"status": "already running"}
         
-        # Clear queues using instance queues
         await self._to_backend_queue.clear()
         await self._to_frontend_queue.clear()
         
-        # Start simulation task
+        self.running = True
         if background_tasks:
-            background_tasks.add_task(self.simulate_entries)
+            self.task = background_tasks.add_task(self._run_simulation)
         else:
-            asyncio.create_task(self.simulate_entries())
+            self.task = asyncio.create_task(self._run_simulation())
             
-        # Send system notification
         system_msg = SystemMessage(
             type="system",
             data={
@@ -76,8 +70,13 @@ class SimulationManager:
             return {"status": "not running"}
             
         self.running = False
+        if self.task and not self.task.done():
+            self.task.cancel()
+            try:
+                await self.task
+            except asyncio.CancelledError:
+                pass
         
-        # Send system notification using instance queue
         system_msg = SystemMessage(
             type="system",
             data={
@@ -95,31 +94,19 @@ class SimulationManager:
         return {
             "running": self.running,
             "counter": self.counter,
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "queues": {
+                "to_frontend": self._to_frontend_queue.size(),
+                "from_frontend": self._from_backend_queue.size(),
+                "to_backend": self._to_backend_queue.size(),
+                "from_backend": self._from_backend_queue.size()
+            }
         }
 
-    def validate_message(self, msg: dict) -> bool:
-        """Validate message structure"""
-        required_fields = {'type', 'data', 'timestamp'}
-        return all(field in msg for field in required_fields)
-
-    async def simulate_entries(self):
-        """Background task to simulate queue entries"""
-        self.running = True
+    async def _run_simulation(self):
+        """Internal simulation task"""
         logger.info("Simulation task starting")
-
-        # Enhanced queue monitoring using instance queues
-        def monitor_queues():
-            if self._to_backend_queue.size() > 5:
-                logger.warning(f"to_backend_queue has {self._to_backend_queue.size()} messages")
-                try:
-                    oldest_msg = self._to_backend_queue._queue[0]
-                    age = time.time() - oldest_msg.get('timestamp', time.time())
-                    logger.warning(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')}")
-                except Exception as e:
-                    logger.error(f"Error checking queue: {str(e)}")
         
-        # Initial system message
         system_msg = SystemMessage(
             type="system",
             data={
@@ -132,9 +119,8 @@ class SimulationManager:
         
         while self.running:
             self.counter += 1
-            await asyncio.sleep(1)  # Generate messages every second
+            await asyncio.sleep(1)
             
-            # Create simulation message
             sim_msg = SystemMessage(
                 type="simulation",
                 data={
@@ -147,23 +133,29 @@ class SimulationManager:
             )
             
             await self._to_backend_queue.enqueue(sim_msg.to_dict())
-            logger.info(f"Enqueued simulation message {self.counter}")
             
-            # Random delay between 0.5-2 seconds
             await asyncio.sleep(0.5 + 1.5 * random.random())
             
-            # Monitor queue health periodically
-            if self.counter % 5 == 0:  # Every 5 messages
-                monitor_queues()
-                
-                # Check if messages are being processed
-                if (self._to_backend_queue.size() > 10 and 
-                    self._from_backend_queue.size() < 2):
-                    logger.warning("Messages accumulating in to_backend_queue without processing")
-                
-                # Check if messages are reaching frontend
-                if (self._from_backend_queue.size() > 5 and 
-                    self._to_frontend_queue.size() < 2):
-                    logger.warning("Messages not being forwarded to frontend")
+            if self.counter % 5 == 0:
+                self._monitor_queues()
         
         logger.info("Simulation stopped")
+
+    def _monitor_queues(self):
+        """Monitor queue health"""
+        if self._to_backend_queue.size() > 5:
+            logger.warning(f"to_backend_queue has {self._to_backend_queue.size()} messages")
+            try:
+                oldest_msg = self._to_backend_queue._queue[0]
+                age = time.time() - oldest_msg.get('timestamp', time.time())
+                logger.warning(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')}")
+            except Exception as e:
+                logger.error(f"Error checking queue: {str(e)}")
+                
+        if (self._to_backend_queue.size() > 10 and 
+            self._from_backend_queue.size() < 2):
+            logger.warning("Messages accumulating in to_backend_queue without processing")
+            
+        if (self._from_backend_queue.size() > 5 and 
+            self._to_frontend_queue.size() < 2):
+            logger.warning("Messages not being forwarded to frontend")
