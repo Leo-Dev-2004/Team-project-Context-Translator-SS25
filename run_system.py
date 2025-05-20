@@ -1,6 +1,13 @@
+import asyncio
+import webbrowser
 import uvicorn
 import logging
-from Backend.backend import app
+import requests
+import time
+import sys
+import threading
+import subprocess
+from Backend.backend import app, forward_messages, process_messages
 
 # Configure logging
 logging.basicConfig(
@@ -14,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-    def start_simulation(self):
+def start_simulation(self):
         """Start the simulation after server is ready"""
         max_retries = 10
         retry_count = 0
@@ -150,7 +157,7 @@ logger = logging.getLogger(__name__)
         if retry_count >= max_retries:
             print("Failed to start simulation after maximum retries")
 
-    def run_frontend_server(self):
+def run_frontend_server(self):
         """Run the frontend HTTP server"""
         logger.info("Starting frontend HTTP server...")
         frontend = subprocess.Popen(
@@ -179,23 +186,23 @@ logger = logging.getLogger(__name__)
         
         logger.info("Frontend server started on port 9000")
 
-    def open_browser(self):
-        """Open the frontend in browser"""
-        logger.info("Waiting 3 seconds before opening browser...")
-        time.sleep(3)
-        url = "http://localhost:9000/index.html"
-        logger.info(f"Opening browser to {url}")
-        webbrowser.open(url)
+        def open_browser(self):
+            """Open the frontend in browser"""
+            logger.info("Waiting 3 seconds before opening browser...")
+            time.sleep(3)
+            url = "http://localhost:9000/index.html"
+            logger.info(f"Opening browser to {url}")
+            webbrowser.open(url)
 
-    def shutdown(self, signum, frame):
-        """Clean shutdown handler"""
-        print("\nShutting down system...")
-        self.running = False
-        for p in self.processes:
-            p.terminate()
-        sys.exit(0)
+        def shutdown(self, signum, frame):
+            """Clean shutdown handler"""
+            print("\nShutting down system...")
+            self.running = False
+            for p in self.processes:
+                p.terminate()
+            sys.exit(0)
 
-    async def run_async_tasks(self):
+async def run_async_tasks(self):
         """Run async tasks in event loop"""
         from Backend.queues.shared_queue import (
             to_frontend_queue,
