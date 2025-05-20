@@ -13,8 +13,13 @@ class SystemMessage:
         self.type = type
         self.data = data
 
-    def to_dict(self):
-        return {"type": self.type, "data": {k: v for k, v in self.data.items() if v is not None}}
+    def to_dict(self) -> Dict[str, Union[str, Dict[str, Union[str, int, float]]]]:
+        """Convert message to dictionary format for queueing"""
+        return {
+            "type": self.type,
+            "data": {k: v for k, v in self.data.items() if v is not None},
+            "timestamp": time.time()  # Add timestamp for consistency
+        }
 
 class SimulationManager:
     def __init__(self):
@@ -42,10 +47,10 @@ class SimulationManager:
             data={
                 "id": "sys_start",
                 "message": "Simulation started via API",
-        await to_frontend_queue.enqueue(system_msg.to_dict())
+                "status": "info"
             }
         )
-        await to_frontend_queue.enqueue(system_msg.dict())
+        await to_frontend_queue.enqueue(system_msg.to_dict())
         
         return {
             "status": "started",
@@ -68,7 +73,7 @@ class SimulationManager:
                 "status": "info"
             }
         )
-        await to_frontend_queue.enqueue(system_msg.dict())
+        await to_frontend_queue.enqueue(system_msg.to_dict())
         
         return {"status": "stopped"}
 
@@ -110,14 +115,14 @@ class SimulationManager:
                 "status": "pending"
             }
         )
-        await to_backend_queue.enqueue(system_msg.dict())
+        await to_backend_queue.enqueue(system_msg.to_dict())
         
         while self.running:
             self.counter += 1
             await asyncio.sleep(1)  # Generate messages every second
             
             # Create simulation message
-            sim_msg = SimulationMessage(
+            sim_msg = SystemMessage(
                 type="simulation",
                 data={
                     "id": f"sim_{self.counter}",
@@ -128,7 +133,7 @@ class SimulationManager:
                 }
             )
             
-            await to_backend_queue.enqueue(sim_msg.dict())
+            await to_backend_queue.enqueue(sim_msg.to_dict())
             logger.info(f"Enqueued simulation message {self.counter}")
             
             # Random delay between 0.5-2 seconds
