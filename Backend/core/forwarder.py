@@ -6,9 +6,17 @@ logger = logging.getLogger(__name__)
 
 async def forward_messages():
     """Forward messages between queues with blocking behavior"""
+    from ..queues.shared_queue import from_backend_queue, to_frontend_queue, from_frontend_queue, to_backend_queue
+    
     logger.info("Starting queue forwarder...")
     while True:
         try:
+            # Ensure queues are initialized
+            if None in [from_backend_queue, to_frontend_queue, from_frontend_queue, to_backend_queue]:
+                logger.error("Queues not initialized!")
+                await asyncio.sleep(1)
+                continue
+                
             # Forward from_backend_queue -> to_frontend_queue
             msg = await from_backend_queue.dequeue()
             if msg:
