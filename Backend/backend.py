@@ -312,33 +312,34 @@ async def forward_messages():
             # Block until we get a message from from_backend_queue
             print("\n[Forwarder] Waiting for message in from_backend_queue...")
             msg = from_backend_queue.dequeue()  # Blocks until available
-                    print(f"\n[Forwarder] Moving message ID: {msg.get('data', {}).get('id', 'no-id')}")
-                    print(f"Message path: {msg.get('processing_path', [])}")
-                    print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
-                    
-                    # Track forwarding path
-                    msg.setdefault('forwarding_path', [])
-                    msg['forwarding_path'].append({
-                        'from': 'from_backend_queue',
-                        'to': 'to_frontend_queue',
-                        'timestamp': time.time()
-                    })
-                    
-                    # Verify enqueue operation
-                    prev_size = to_frontend_queue.size()
-                    to_frontend_queue.enqueue(msg)
-                    new_size = to_frontend_queue.size()
-                    
-                    if new_size <= prev_size:
-                        print(f"⚠️ WARNING: to_frontend_queue size didn't increase! (before: {prev_size}, after: {new_size})")
-                        # Emergency handling - try once more
-                        to_frontend_queue.enqueue(msg)
-                        if to_frontend_queue.size() <= new_size:
-                            print("⚠️ CRITICAL: Retry failed! Message lost!")
-                            # At least log the message
-                            print(f"Lost message: {json.dumps(msg, indent=2)}")
-                    else:
-                        print(f"✅ Forwarded successfully (new to_frontend size: {new_size})")
+            
+            print(f"\n[Forwarder] Moving message ID: {msg.get('data', {}).get('id', 'no-id')}")
+            print(f"Message path: {msg.get('processing_path', [])}")
+            print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
+            
+            # Track forwarding path
+            msg.setdefault('forwarding_path', [])
+            msg['forwarding_path'].append({
+                'from': 'from_backend_queue',
+                'to': 'to_frontend_queue',
+                'timestamp': time.time()
+            })
+            
+            # Verify enqueue operation
+            prev_size = to_frontend_queue.size()
+            to_frontend_queue.enqueue(msg)
+            new_size = to_frontend_queue.size()
+            
+            if new_size <= prev_size:
+                print(f"⚠️ WARNING: to_frontend_queue size didn't increase! (before: {prev_size}, after: {new_size})")
+                # Emergency handling - try once more
+                to_frontend_queue.enqueue(msg)
+                if to_frontend_queue.size() <= new_size:
+                    print("⚠️ CRITICAL: Retry failed! Message lost!")
+                    # At least log the message
+                    print(f"Lost message: {json.dumps(msg, indent=2)}")
+            else:
+                print(f"✅ Forwarded successfully (new to_frontend size: {new_size})")
 
             # Forward from_frontend_queue -> to_backend_queue (new messages)
             if from_frontend_queue.size() > 0:
