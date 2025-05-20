@@ -64,6 +64,9 @@ class SimulationManager:
             
         self.running = False
         
+        # Assert that queues are initialized before using them
+        assert to_frontend_queue is not None, "to_frontend_queue is not initialized"
+
         # Send system notification
         system_msg = SystemMessage(
             type="system",
