@@ -40,15 +40,41 @@ async def simulate_entries():
     print("\n=== SIMULATION STARTING ===")
     print("Initializing queues...")
     
-    # Initial system message
+    # Initial system message with proper structure
     system_msg = {
         "type": "system",
-        "message": "Simulation started",
+        "data": {
+            "id": "sys_init",
+            "message": "Simulation started",
+            "status": "pending"
+        },
         "timestamp": time.time()
     }
     print(f"\nEnqueuing initial system message: {system_msg}")
     to_backend_queue.enqueue(system_msg)
     print(f"to_backend_queue size: {to_backend_queue.size()}")
+    
+    counter = 0
+    while simulation_running:
+        counter += 1
+        await asyncio.sleep(1)  # Generate messages every second
+        
+        # Create properly structured simulation message
+        sim_msg = {
+            "type": "simulation",
+            "data": {
+                "id": f"sim_{counter}",
+                "content": f"Simulation message {counter}",
+                "status": "pending",
+                "progress": 0
+            },
+            "timestamp": time.time(),
+            "processing_path": ["created"]
+        }
+        
+        print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
+        to_backend_queue.enqueue(sim_msg)
+        print(f"Current to_backend_queue size: {to_backend_queue.size()}")
     counter = 0
     print("Simulation started - generating test entries")
     logging.info("Simulation STARTED - Generating test entries")

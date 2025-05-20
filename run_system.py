@@ -95,9 +95,20 @@ class SystemRunner:
                             print("\n=== QUEUE STATUS ===")
                             status = requests.get("http://localhost:8000/simulation/status").json()
                             print(f"to_frontend_queue: {status['to_frontend_queue_size']}")
-                            print(f"from_frontend_queue: {status['from_frontend_queue_size']}")
+                            print(f"from_frontend_queue: {status['from_frontend_queue_size']}") 
                             print(f"to_backend_queue: {status['to_backend_queue_size']}")
                             print(f"from_backend_queue: {status['from_backend_queue_size']}")
+                            
+                            # Debug queue contents
+                            print("\nQueue Contents:")
+                            queues = requests.get("http://localhost:8000/queues/debug").json()
+                            for qname, items in queues.items():
+                                print(f"\n{qname}:")
+                                for i, item in enumerate(items[:3]):  # Show first 3 items
+                                    print(f"  {i+1}. ID: {item.get('data', {}).get('id')}")
+                                    print(f"     Type: {item.get('type')}")
+                                    print(f"     Status: {item.get('data', {}).get('status')}")
+                                    print(f"     Path: {item.get('processing_path', [])}")
                             
                             # Get detailed queue contents
                             print("\nQueue Contents:")
