@@ -74,7 +74,7 @@ async def simulate_entries():
         "timestamp": time.time()
     }
     print(f"\nEnqueuing initial system message: {system_msg}")
-    to_backend_queue.enqueue(system_msg)
+    await to_backend_queue.enqueue(system_msg)
     print(f"to_backend_queue size: {to_backend_queue.size()}")
     
     counter = 0
@@ -106,7 +106,7 @@ async def simulate_entries():
         }
         
         # This will block if queue is full
-        to_backend_queue.enqueue(sim_msg)
+        await to_backend_queue.enqueue(sim_msg)
         print(f"Enqueued message {counter} to to_backend_queue")
         
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
@@ -133,7 +133,7 @@ async def simulate_entries():
                 "status": "processing",
                 "timestamp": time.time()
             }
-            to_backend_queue.enqueue(backend_msg)
+            await to_backend_queue.enqueue(backend_msg)
         else:
             # Normal frontend flow
             frontend_msg = {
@@ -142,7 +142,7 @@ async def simulate_entries():
                 "status": "created",
                 "timestamp": time.time()
             }
-            to_frontend_queue.enqueue(frontend_msg)
+            await to_frontend_queue.enqueue(frontend_msg)
         
         # Random delay between 0.5-2 seconds
         await asyncio.sleep(0.5 + 1.5 * random.random())
@@ -431,7 +431,7 @@ async def forward_messages():
 
             # Forward from_frontend_queue -> to_backend_queue (new messages)
             if from_frontend_queue.size() > 0:
-                frontend_msg = from_frontend_queue.dequeue()
+                frontend_msg = await from_frontend_queue.dequeue()
                 if frontend_msg:
                     # Mark as new for backend processing
                     frontend_msg['status'] = 'new_for_backend' 
@@ -516,7 +516,7 @@ async def start_simulation(background_tasks: BackgroundTasks):
             },
             "timestamp": time.time()
         }
-        to_frontend_queue.enqueue(system_msg)
+        await to_frontend_queue.enqueue(system_msg)
         
         return {
             "status": "simulation started",
@@ -668,7 +668,7 @@ async def receive_messages(websocket: WebSocket):
                 if not message.get('status'):
                     message['status'] = 'received_from_frontend'
                 message['timestamp'] = time.time()
-                from_frontend_queue.enqueue(message)
+                await from_frontend_queue.enqueue(message)
                 print(f"← Received from frontend, queued in from_frontend_queue (size: {from_frontend_queue.size()})")
                 
                 # Send response
