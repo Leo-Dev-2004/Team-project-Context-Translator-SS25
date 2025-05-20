@@ -59,6 +59,16 @@ async def simulate_entries():
         counter += 1
         await asyncio.sleep(1)  # Generate messages every second
         
+        # Monitor queue health
+        if to_backend_queue.size() > 5:
+            print(f"⚠️ WARNING: to_backend_queue has {to_backend_queue.size()} messages")
+            try:
+                oldest_msg = to_backend_queue._queue[0]
+                age = time.time() - oldest_msg.get('timestamp', time.time())
+                print(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')})")
+            except Exception as e:
+                print(f"Error checking queue: {str(e)}")
+        
         # Create properly structured simulation message
         sim_msg = {
             "type": "simulation",
@@ -85,61 +95,6 @@ async def simulate_entries():
         print(f"\nGenerated simulation message {counter}: {sim_msg['data']['id']}")
         to_backend_queue.enqueue(sim_msg)
         print(f"Current to_backend_queue size: {to_backend_queue.size()}")
-    counter = 0
-    print("Simulation started - generating test entries")
-    logging.info("Simulation STARTED - Generating test entries")
-    
-    # Initial system message
-    system_msg = {
-        "type": "system",
-        "data": {
-            "id": "sys_init",
-            "message": "Simulation started",
-            "status": "info"
-        },
-        "timestamp": time.time()
-    }
-    to_frontend_queue.enqueue(system_msg)
-    logging.info(f"Enqueued system message: {system_msg}")
-
-    # Start generating simulation messages
-    while simulation_running:
-        counter += 1
-        await asyncio.sleep(1)  # Generate messages every second
-        
-        # Create simulation message
-        sim_msg = {
-            "type": "simulation",
-            "data": {
-                "id": f"sim_{counter}",
-                "message": f"Simulation message {counter}",
-                "status": "pending",
-                "progress": counter % 100
-            },
-            "timestamp": time.time()
-        }
-        
-        # Queue to backend for processing
-        to_backend_queue.enqueue(sim_msg)
-        logging.info(f"Enqueued simulation message {counter} to backend")
-    
-    while simulation_running:
-        counter += 1
-        await asyncio.sleep(1)  # Faster generation
-        
-        # Generate different types of messages
-        msg_type = "message" if counter % 2 else "alert"
-        status = "pending" if counter % 3 else "urgent"
-        
-        entry = {
-            "id": str(counter),
-            "type": msg_type,
-            "data": f"{msg_type} entry {counter} - {['low','medium','high','critical'][counter % 4]} priority",
-            "timestamp": time.time(),
-            "status": status,
-            "priority": counter % 5,
-            "color": f"hsl({counter * 30 % 360}, 70%, 80%)"
-        }
         
         print(f"Generating entry {counter}: {entry}")
         
@@ -251,7 +206,8 @@ async def process_messages():
                 print("No message in to_backend_queue, waiting...")
                 continue
                 
-            print(f"\n[Processor] Processing message ID: {backend_msg.get('id', 'no-id')}")
+            print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
+            print(f"Message content: {json.dumps(backend_msg, indent=2)}")
             
             # Add processing metadata
             backend_msg.setdefault('processing_path', [])
@@ -351,7 +307,8 @@ async def forward_messages():
             if from_backend_queue.size() > 0:
                 msg = from_backend_queue.dequeue()
                 if msg:
-                    print(f"\n[Forwarder] Moving message ID: {msg.get('id', 'no-id')}")
+                    print(f"\n[Forwarder] Moving message ID: {msg.get('data', {}).get('id', 'no-id')}")
+                    print(f"Message path: {msg.get('processing_path', [])}")
                     print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
                     
                     # Track forwarding path
@@ -432,6 +389,11 @@ async def send_messages(websocket: WebSocket):
 
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
+    # Clear any existing messages first
+    to_backend_queue._queue.clear()
+    from_backend_queue._queue.clear()
+    to_frontend_queue._queue.clear()
+    from_frontend_queue._queue.clear()
     """Start the queue simulation"""
     global simulation_task, simulation_running
     if not simulation_running:
