@@ -455,35 +455,100 @@ async def stop_simulation():
 
 @app.get("/simulation/status")
 async def simulation_status():
-    """Get simulation status"""
+    """Get detailed simulation status"""
+    def get_queue_stats(queue):
+        if queue.size() == 0:
+            return {
+                "size": 0,
+                "oldest": None,
+                "newest": None
+            }
+        return {
+            "size": queue.size(),
+            "oldest": queue._queue[0]['timestamp'] if queue.size() > 0 else None,
+            "newest": queue._queue[-1]['timestamp'] if queue.size() > 0 else None
+        }
+    
+    def calculate_rate(queue):
+        if queue.size() < 2:
+            return 0
+        time_span = queue._queue[-1]['timestamp'] - queue._queue[0]['timestamp']
+        return queue.size() / time_span if time_span > 0 else 0
+    
     return {
         "running": simulation_running,
-        "to_frontend_queue_size": to_frontend_queue.size(),
-        "from_frontend_queue_size": from_frontend_queue.size(),
-        "to_backend_queue_size": to_backend_queue.size(),
-        "from_backend_queue_size": from_backend_queue.size()
+        "queues": {
+            "to_frontend": get_queue_stats(to_frontend_queue),
+            "from_frontend": get_queue_stats(from_frontend_queue),
+            "to_backend": get_queue_stats(to_backend_queue),
+            "from_backend": get_queue_stats(from_backend_queue)
+        },
+        "message_rates": {
+            "to_frontend": calculate_rate(to_frontend_queue),
+            "from_frontend": calculate_rate(from_frontend_queue),
+            "to_backend": calculate_rate(to_backend_queue),
+            "from_backend": calculate_rate(from_backend_queue)
+        },
+        "websockets": len(app.state.websockets) if hasattr(app.state, 'websockets') else 0,
+        "timestamp": time.time()
     }
 
 @app.get("/queues/debug")
 async def debug_queues():
-    """Debug endpoint to show queue contents"""
-    def get_queue_contents(queue):
+    """Debug endpoint to show detailed queue contents"""
+    def get_queue_details(queue):
         try:
-            # For MessageQueue implementation
-            if hasattr(queue, '_queue'):
-                return list(queue._queue)
-            # For deque implementation
-            elif hasattr(queue, 'copy'):
-                return list(queue.copy())
-            return []
+            items = []
+            # Get queue items
+            if hasattr(queue, '_queue'):  # MessageQueue
+                queue_items = list(queue._queue)
+            elif hasattr(queue, 'copy'):  # deque
+                queue_items = list(queue.copy())
+            else:
+                return [{"error": "Unknown queue type"}]
+            
+            # Extract key details from each item
+            for item in queue_items[:20]:  # Limit to first 20 items
+                details = {
+                    "type": item.get('type', 'unknown'),
+                    "timestamp": item.get('timestamp'),
+                    "processing_path": item.get('processing_path', []),
+                    "forwarding_path": item.get('forwarding_path', []),
+                    "size_bytes": len(str(item))
+                }
+                
+                # Add data-specific fields
+                if 'data' in item:
+                    data = item['data']
+                    details.update({
+                        "id": data.get('id'),
+                        "status": data.get('status'),
+                        "progress": data.get('progress'),
+                        "message": data.get('message') or data.get('content')
+                    })
+                
+                items.append(details)
+            return items
         except Exception as e:
-            return [f"Error: {str(e)}"]
+            return [{"error": str(e)}]
     
     return {
-        "to_frontend_queue": get_queue_contents(to_frontend_queue),
-        "from_frontend_queue": get_queue_contents(from_frontend_queue),
-        "to_backend_queue": get_queue_contents(to_backend_queue),
-        "from_backend_queue": get_queue_contents(from_backend_queue)
+        "to_frontend_queue": {
+            "size": to_frontend_queue.size(),
+            "items": get_queue_details(to_frontend_queue)
+        },
+        "from_frontend_queue": {
+            "size": from_frontend_queue.size(),
+            "items": get_queue_details(from_frontend_queue)
+        },
+        "to_backend_queue": {
+            "size": to_backend_queue.size(),
+            "items": get_queue_details(to_backend_queue)
+        },
+        "from_backend_queue": {
+            "size": from_backend_queue.size(),
+            "items": get_queue_details(from_backend_queue)
+        }
     }
 
 async def receive_messages(websocket: WebSocket):
