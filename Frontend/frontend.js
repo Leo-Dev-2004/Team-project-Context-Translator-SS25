@@ -46,7 +46,6 @@
     } catch (e) {
         console.error('Error processing message:', e);
     }
-}
 
 class MessageQueue {
     constructor() {
