@@ -12,10 +12,10 @@ from Backend.QueueManager.shared_queue import (
 
 # Configure queue sizes
 MAX_QUEUE_SIZE = 100  # Prevent memory overflows
-to_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-to_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+to_frontend_queue = MessageQueue()
+from_frontend_queue = MessageQueue()
+to_backend_queue = MessageQueue()
+from_backend_queue = MessageQueue()
 import asyncio
 import json
 import logging
@@ -331,6 +331,10 @@ async def forward_messages():
             print("\n[Forwarder] Waiting for message in from_backend_queue...")
             msg = from_backend_queue.dequeue()  # Blocks until available
             
+            if msg is None:
+                print("⚠️ WARNING: Received None message in forward_messages")
+                continue
+                
             print(f"\n[Forwarder] Moving message ID: {msg.get('data', {}).get('id', 'no-id')}")
             print(f"Message path: {msg.get('processing_path', [])}")
             print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
@@ -412,7 +416,8 @@ async def send_messages(websocket: WebSocket):
                     else:
                         logging.warning("Attempted to process a None message in receive_messages")
                     msg_str = json.dumps(message)
-                    logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
+                    client_info = f"{client.host}:{client.port}" if client else "unknown client"
+                    logging.debug(f"Sending to {client_info}: {msg_str[:200]}...")
                     await websocket.send_text(msg_str)
                     
                     # Queue for next cycle if needed
@@ -595,7 +600,7 @@ async def receive_messages(websocket: WebSocket):
                     continue
                     
                 # Send connection ack on first message
-                if not hasattr(websocket, '_connection_ack_sent'):
+                if not getattr(websocket, '_connection_ack_sent', False):
                     await websocket.send_text(json.dumps({
                         'type': 'connection_ack',
                         'status': 'connected',
