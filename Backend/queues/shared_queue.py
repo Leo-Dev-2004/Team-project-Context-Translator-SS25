@@ -61,6 +61,14 @@ class MessageQueue:
             self._not_empty.notify_all()
             self._not_full.notify_all()
 
+    def get_current_items_for_debug(self, limit: int = 20) -> list:
+        """Returns a list of the current items in the queue for debugging, up to a limit."""
+        if not self._initialized:
+            raise RuntimeError("Queue not initialized")
+            
+        # Note: This is synchronous and assumes the caller handles thread safety
+        return list(self._queue)[:limit]
+
 # Global dictionary to hold initialized queues
 _initialized_queues: Dict[str, MessageQueue] = {}
 

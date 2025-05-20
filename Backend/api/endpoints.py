@@ -1,10 +1,10 @@
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends
 import asyncio
 import logging
-import time
 import json
 from typing import Optional
 from ..core.simulator import SimulationManager
+from ..backend import get_simulation_manager
 from ..queues.shared_queue import (
     get_to_backend_queue,
     get_to_frontend_queue,
@@ -52,50 +52,45 @@ async def simulation_status(
 @router.get("/queues/debug")
 async def debug_queues():
     """Debug endpoint to show detailed queue contents"""
-    def get_queue_details(queue):
-        try:
-            items = []
-            queue_items = list(queue._queue)
-            
-            for item in queue_items[:20]:
-                details = {
-                    "type": item.get('type', 'unknown'),
-                    "timestamp": item.get('timestamp'),
-                    "processing_path": item.get('processing_path', []),
-                    "forwarding_path": item.get('forwarding_path', []),
-                    "size_bytes": len(str(item))
-                }
-                
-                if 'data' in item:
-                    data = item['data']
-                    details.update({
-                        "id": data.get('id'),
-                        "status": data.get('status'),
-                        "progress": data.get('progress'),
-                        "message": data.get('message') or data.get('content')
-                    })
-                
-                items.append(details)
-            return items
-        except Exception as e:
-            return [{"error": str(e)}]
-    
+    def format_queue_item_details(item: dict) -> dict:
+        """Helper to format individual queue item details for consistent output."""
+        details = {
+            "type": item.get('type', 'unknown'),
+            "timestamp": item.get('timestamp'),
+            "processing_path": item.get('processing_path', []),
+            "forwarding_path": item.get('forwarding_path', []),
+            "size_bytes": len(json.dumps(item))
+        }
+        if 'data' in item:
+            data = item['data']
+            details.update({
+                "id": data.get('id'),
+                "status": data.get('status'),
+                "progress": data.get('progress'),
+                "message": data.get('message') or data.get('content')
+            })
+        return details
+
     return {
         "to_frontend_queue": {
             "size": get_to_frontend_queue().size(),
-            "items": get_queue_details(get_to_frontend_queue())
+            "items": [format_queue_item_details(item) for item in 
+                     get_to_frontend_queue().get_current_items_for_debug()]
         },
         "from_frontend_queue": {
             "size": get_from_frontend_queue().size(),
-            "items": get_queue_details(get_from_frontend_queue())
+            "items": [format_queue_item_details(item) for item in 
+                     get_from_frontend_queue().get_current_items_for_debug()]
         },
         "to_backend_queue": {
             "size": get_to_backend_queue().size(),
-            "items": get_queue_details(get_to_backend_queue())
+            "items": [format_queue_item_details(item) for item in 
+                     get_to_backend_queue().get_current_items_for_debug()]
         },
         "from_backend_queue": {
             "size": get_from_backend_queue().size(),
-            "items": get_queue_details(get_from_backend_queue())
+            "items": [format_queue_item_details(item) for item in 
+                     get_from_backend_queue().get_current_items_for_debug()]
         }
     }
 
@@ -103,10 +98,4 @@ async def debug_queues():
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.handle_connection(websocket)
 
-async def get_simulation_manager() -> SimulationManager:
-    """Dependency to get initialized SimulationManager"""
-    from ..backend import SimulationManager
-    if SimulationManager is None:
-        raise RuntimeError("SimulationManager not initialized")
-    return SimulationManager
 
