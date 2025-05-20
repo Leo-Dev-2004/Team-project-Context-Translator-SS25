@@ -220,14 +220,17 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.error(f"WebSocket accept failed: {e}")
         raise
     
-    # Start all processing tasks
-    processor_task = asyncio.create_task(process_messages())
-    forwarder_task = asyncio.create_task(forward_messages())
-    sender_task = asyncio.create_task(send_messages(websocket))
-    receiver_task = asyncio.create_task(receive_messages(websocket))
+    # Store active tasks for this connection
+    connection_tasks = {
+        'sender': asyncio.create_task(send_messages(websocket)),
+        'receiver': asyncio.create_task(receive_messages(websocket))
+    }
     
     try:
-        await asyncio.gather(sender_task, receiver_task)
+        done, pending = await asyncio.wait(
+            [connection_tasks['sender'], connection_tasks['receiver']],
+            return_when=asyncio.FIRST_COMPLETED
+        )
     except asyncio.CancelledError:
         logging.info("WebSocket tasks cancelled normally")
     except Exception as e:
@@ -369,14 +372,22 @@ async def forward_messages():
             await asyncio.sleep(1)
 
 async def send_messages(websocket: WebSocket):
-    """Send messages from to_frontend_queue to client with blocking"""
+    """Send messages from to_frontend_queue to client"""
     client = websocket.client
+    client_info = f"{client.host}:{client.port}" if client else "unknown client"
+    logger.info(f"Starting sender task for {client_info}")
+    
     try:
         while True:
             try:
-                # Block until we get a message to send
-                print("\n[Sender] Waiting for message in to_frontend_queue...")
-                message = await to_frontend_queue.dequeue()  # Async wait for message
+                # Get message with timeout to prevent hanging
+                try:
+                    message = await asyncio.wait_for(
+                        to_frontend_queue.dequeue(),
+                        timeout=1.0
+                    )
+                except asyncio.TimeoutError:
+                    continue
                 
                 try:
                     # Mark as sent to frontend
@@ -388,15 +399,17 @@ async def send_messages(websocket: WebSocket):
                         message['timestamp'] = time.time()
                     else:
                         logging.warning("Attempted to process a None message in receive_messages")
+                    # Prepare and send message
+                    message['status'] = 'sent_to_frontend'
+                    message['timestamp'] = time.time()
                     msg_str = json.dumps(message)
-                    client_info = f"{client.host}:{client.port}" if client else "unknown client"
-                    logging.debug(f"Sending to {client_info}: {msg_str[:200]}...")
-                    await websocket.send_text(msg_str)
                     
-                    # Queue for next cycle if needed
-                    if message is not None and message.get('cycles_completed', 0) < 1:
-                        message['cycles_completed'] = message.get('cycles_completed', 0) + 1
-                        from_frontend_queue.enqueue(message)
+                    try:
+                        await websocket.send_text(msg_str)
+                        logger.info(f"Sent message {message.get('data', {}).get('id')} to {client_info}")
+                    except websockets.exceptions.ConnectionClosed:
+                        logger.info(f"Connection closed while sending to {client_info}")
+                        break
                         print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
                 except RuntimeError as e:
                         if "disconnect" in str(e):
@@ -413,10 +426,19 @@ async def send_messages(websocket: WebSocket):
             except Exception as e:
                 logging.error(f"Error in send loop: {e}")
                 break
+    except asyncio.CancelledError:
+        logger.info(f"Sender task for {client_info} cancelled normally")
     except Exception as e:
-        logging.error(f"WebSocket send task failed: {e}")
+        logger.error(f"Sender task for {client_info} failed: {e}", exc_info=True)
     finally:
-        logging.info("WebSocket send task ending")
+        logger.info(f"Sender task for {client_info} ending")
+        # Ensure any remaining messages are processed
+        while to_frontend_queue.size() > 0:
+            try:
+                message = await to_frontend_queue.dequeue()
+                logger.info(f"Processing remaining message: {message.get('data', {}).get('id')}")
+            except Exception as e:
+                logger.error(f"Error processing remaining message: {e}")
 
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
