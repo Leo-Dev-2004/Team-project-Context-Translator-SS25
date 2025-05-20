@@ -238,16 +238,7 @@ const WebSocketManager = {
     }
 };
 
-// Initial connection
-WebSocketManager.connect();
-
-// Expose for debugging
-window.wsManager = WebSocketManager;
-
-
-//Frontend/frontend.js
-
-// WebSocket message handler
+// WebSocket message handler - moved to top
 function handleWebSocketMessage(event) {
         try {
             const data = JSON.parse(event.data);
@@ -299,14 +290,14 @@ function handleWebSocketMessage(event) {
         }
     }
 
+// Initialize WebSocket connection after page loads
+document.addEventListener('DOMContentLoaded', () => {
+    WebSocketManager.connect();
+    
     // Setup button handlers
     document.getElementById('startSim').addEventListener('click', startSimulation);
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
     
     // Update display immediately when messages arrive
     // No need for interval since we update on each message
-
-// Initialize WebSocket connection after page loads
-document.addEventListener('DOMContentLoaded', () => {
-    WebSocketManager.connect();
 });
