@@ -261,6 +261,14 @@ class SystemRunner:
             p.terminate()
         sys.exit(0)
 
+    async def run_async_tasks(self):
+        """Run async tasks in event loop"""
+        logger.info("Starting async tasks...")
+        await asyncio.gather(
+            process_messages(),
+            forward_messages()
+        )
+
     def run(self):
         """Run all system components"""
         logger.info("Starting system components...")
@@ -277,9 +285,13 @@ class SystemRunner:
         backend_thread.start()
         logger.info("Backend thread started")
 
-        # Start core processes
-        asyncio.create_task(process_messages())
-        asyncio.create_task(forward_messages())
+        # Start async tasks in new event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(self.run_async_tasks())
+        finally:
+            loop.close()
 
         # Open browser
         browser_thread = threading.Thread(
@@ -330,4 +342,7 @@ class SystemRunner:
 
 if __name__ == "__main__":
     runner = SystemRunner()
-    runner.run()
+    try:
+        runner.run()
+    except KeyboardInterrupt:
+        logger.info("Shutting down system...")
