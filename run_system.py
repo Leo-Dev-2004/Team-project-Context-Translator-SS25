@@ -1,23 +1,6 @@
-import asyncio
-import subprocess
-import threading
-import time
-import webbrowser
-import signal
-import sys
-from fastapi import FastAPI
 import uvicorn
-from Backend.api.endpoints import app
-import requests
 import logging
-from Backend.queues.shared_queue import (
-    to_frontend_queue,
-    from_frontend_queue,
-    to_backend_queue,
-    from_backend_queue
-)
-from Backend.core.processor import process_messages
-from Backend.core.forwarder import forward_messages
+from Backend.backend import app
 
 # Configure logging
 logging.basicConfig(
@@ -30,60 +13,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class SystemRunner:
-    def __init__(self):
-        self.processes = []
-        self.running = True
-        signal.signal(signal.SIGINT, self.shutdown)
-        signal.signal(signal.SIGTERM, self.shutdown)
-        
-        # Queues are now initialized at module level in shared_queue.py
-        from Backend.queues.shared_queue import (
-            to_frontend_queue,
-            from_frontend_queue,
-            to_backend_queue,
-            from_backend_queue
-        )
-        logger.info("Queue references verified")
-
-    def run_backend(self):
-        """Run the FastAPI backend server"""
-        logger.info("Starting backend server...")
-        config = uvicorn.Config(
-            app,
-            host="0.0.0.0",
-            port=8000,
-            log_level="debug",
-            access_log=True
-        )
-        server = uvicorn.Server(config)
-        
-        # Run server in a thread so we can check when it's ready
-        def run_server():
-            logger.info("Backend server starting...")
-            server.run()
-            
-        backend_thread = threading.Thread(
-            target=run_server,
-            daemon=True
-        )
-        backend_thread.start()
-        
-        # Wait for server to be ready
-        max_retries = 20
-        retry_count = 0
-        while retry_count < max_retries:
-            try:
-                health = requests.get("http://localhost:8000/health", timeout=0.5)
-                if health.status_code == 200:
-                    logger.info("Backend server is ready")
-                    return
-            except Exception:
-                logger.debug(f"Waiting for backend to start... ({retry_count+1}/{max_retries})")
-                retry_count += 1
-                time.sleep(0.5)
-                
-        logger.error("Backend server failed to start")
 
     def start_simulation(self):
         """Start the simulation after server is ready"""
@@ -286,80 +215,12 @@ class SystemRunner:
             forward_messages()
         )
 
-    def run(self):
-        """Run all system components"""
-        logger.info("Starting system components...")
-        
-        # Start frontend HTTP server
-        self.run_frontend_server()
-
-        # Start backend in thread
-        backend_thread = threading.Thread(
-            target=self.run_backend,
-            daemon=True,
-            name="BackendThread"
-        )
-        backend_thread.start()
-        logger.info("Backend thread started")
-
-        # Start async tasks in new event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(self.run_async_tasks())
-        finally:
-            loop.close()
-
-        # Open browser
-        browser_thread = threading.Thread(
-            target=self.open_browser,
-            daemon=True,
-            name="BrowserThread"
-        )
-        browser_thread.start()
-        logger.info("Browser thread started")
-
-        # Monitor system status
-        logger.info("Entering main loop...")
-        while self.running:
-            try:
-                # Only check backend health if no active WebSockets
-                if not hasattr(app.state, 'websockets') or len(app.state.websockets) == 0:
-                    try:
-                        health = requests.get("http://localhost:8000/health", timeout=0.5)
-                        if health.status_code != 200:
-                            logger.warning(f"Backend health check failed: {health.status_code}")
-                    except requests.exceptions.RequestException as e:
-                        logger.debug(f"Backend health check: {str(e)}")
-                
-                # Check frontend less frequently
-                if time.time() % 10 < 0.5:  # ~every 10 seconds
-                    try:
-                        frontend = requests.get("http://localhost:9000", timeout=0.5)
-                        if frontend.status_code != 200:
-                            logger.warning(f"Frontend health check failed: {frontend.status_code}")
-                    except requests.exceptions.RequestException as e:
-                        logger.debug(f"Frontend health check: {str(e)}")
-                
-                # Periodic status report
-                if time.time() % 5 < 0.1:  # Every ~5 seconds
-                    try:
-                        status = requests.get("http://localhost:8000/simulation/status").json()
-                        logger.info(f"System status: {status}")
-                    except Exception as e:
-                        logger.debug(f"Could not get status: {str(e)}")
-                
-                time.sleep(1)
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Health check failed: {str(e)}")
-                time.sleep(1)
-            except Exception as e:
-                logger.error(f"Unexpected error in main loop: {str(e)}")
-                self.shutdown(None, None)
-
 if __name__ == "__main__":
-    runner = SystemRunner()
-    try:
-        runner.run()
-    except KeyboardInterrupt:
-        logger.info("Shutting down system...")
+    logger.info("Starting system...")
+    uvicorn.run(
+        app,
+        host="0.0.0.0", 
+        port=8000,
+        log_level="info",
+        access_log=True
+    )
