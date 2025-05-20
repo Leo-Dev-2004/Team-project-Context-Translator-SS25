@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import threading
 import time
@@ -15,6 +16,8 @@ from Backend.queues.shared_queue import (
     to_backend_queue,
     from_backend_queue
 )
+from Backend.core.processor import process_messages
+from Backend.core.forwarder import forward_messages
 
 # Configure logging
 logging.basicConfig(
