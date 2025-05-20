@@ -12,10 +12,10 @@ from Backend.QueueManager.shared_queue import (
 
 # Configure queue sizes
 MAX_QUEUE_SIZE = 100  # Prevent memory overflows
-to_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-to_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
-from_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+to_frontend_queue = MessageQueue(size=MAX_QUEUE_SIZE) # Replace with the correct parameter name
+from_frontend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
+to_backend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
+from_backend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
 import asyncio
 import json
 import logging
@@ -156,10 +156,18 @@ app.add_middleware(
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     client = websocket.client
-    logging.info(f"WebSocket connection request from {client.host}:{client.port}")
+    if client:
+        logging.info(f"WebSocket connection request from {client.host}:{client.port}")
+    else:
+        logging.info("WebSocket connection request from an unknown client")
     
     # Set fast timeout for initial handshake
-    websocket._timeout = 5.0
+    # Set a timeout for the WebSocket handshake
+    try:
+        await asyncio.wait_for(websocket.accept(), timeout=5.0)
+    except asyncio.TimeoutError:
+        logging.error("WebSocket handshake timed out")
+        return
     
     try:
         await websocket.accept()
@@ -174,7 +182,10 @@ async def websocket_endpoint(websocket: WebSocket):
             'timestamp': time.time()
         }))
         
-        logging.info(f"WebSocket connection established with {client.host}:{client.port}")
+        if client:
+            logging.info(f"WebSocket connection established with {client.host}:{client.port}")
+        else:
+            logging.info("WebSocket connection established with an unknown client")
         logging.info(f"Current WebSocket connections: {len(app.state.websockets)}")
     except Exception as e:
         logging.error(f"WebSocket accept failed: {e}")
@@ -212,11 +223,18 @@ async def process_messages():
             print(f"\n[Processor] Waiting for message in to_backend_queue...")
             backend_msg = to_backend_queue.dequeue()  # Blocks until available
                 
-            print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
+            if backend_msg is not None:
+                print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
+            else:
+                print("\n[Processor] Received None as backend_msg")
             print(f"Message content: {json.dumps(backend_msg, indent=2)}")
             
             # Add processing metadata
-            backend_msg.setdefault('processing_path', [])
+            if backend_msg is not None:
+                backend_msg.setdefault('processing_path', [])
+            else:
+                logging.error("backend_msg is None, skipping processing.")
+                continue
             backend_msg['processing_path'].append({
                 'stage': 'processing_start',
                 'queue_size': from_backend_queue.size(),
@@ -318,16 +336,34 @@ async def forward_messages():
             print(f"Queue sizes - from_backend: {from_backend_queue.size()}, to_frontend: {to_frontend_queue.size()}")
             
             # Track forwarding path
-            msg.setdefault('forwarding_path', [])
-            msg['forwarding_path'].append({
-                'from': 'from_backend_queue',
-                'to': 'to_frontend_queue',
-                'timestamp': time.time()
-            })
+            if msg is not None:
+                msg.setdefault('forwarding_path', [])
+            if msg is not None:
+                msg.setdefault('forwarding_path', [])
+                msg['forwarding_path'].append({
+                    'from': 'from_backend_queue',
+                    'to': 'to_frontend_queue',
+                    'timestamp': time.time()
+                })
+            else:
+                logging.warning("Attempted to process a None message in forward_messages")
             
             # Verify enqueue operation
             prev_size = to_frontend_queue.size()
-            to_frontend_queue.enqueue(msg)
+            if msg is not None:
+                if msg is not None:
+                    if msg is not None:
+                        if msg is not None:
+                            if msg is not None:
+                                to_frontend_queue.enqueue(msg)
+                            else:
+                                logging.warning("Attempted to enqueue a None message to to_frontend_queue")
+                        else:
+                            logging.warning("Attempted to enqueue a None message to to_frontend_queue")
+                    else:
+                        logging.warning("Attempted to enqueue a None message to to_frontend_queue")
+                else:
+                    logging.warning("Attempted to enqueue a None message to to_frontend_queue")
             new_size = to_frontend_queue.size()
             
             if new_size <= prev_size:
@@ -367,8 +403,14 @@ async def send_messages(websocket: WebSocket):
                 
                 try:
                     # Mark as sent to frontend
-                    message['status'] = 'sent_to_frontend'
-                    message['timestamp'] = time.time()
+                    if message is not None:
+                        message['status'] = 'sent_to_frontend'
+                    else:
+                        logging.warning("Attempted to process a None message in send_messages")
+                    if message is not None:
+                        message['timestamp'] = time.time()
+                    else:
+                        logging.warning("Attempted to process a None message in receive_messages")
                     msg_str = json.dumps(message)
                     logging.debug(f"Sending to {client.host}:{client.port}: {msg_str[:200]}...")
                     await websocket.send_text(msg_str)
@@ -378,14 +420,17 @@ async def send_messages(websocket: WebSocket):
                         message['cycles_completed'] = message.get('cycles_completed', 0) + 1
                         from_frontend_queue.enqueue(message)
                         print(f"→ Queued for next cycle in from_frontend_queue (size: {from_frontend_queue.size()})")
-                    except RuntimeError as e:
+                except RuntimeError as e:
                         if "disconnect" in str(e):
                             logging.info("WebSocket disconnected during send")
                             break
                         raise
-                    except Exception as e:
+                except Exception as e:
                         logging.error(f"Failed to send message: {e}")
-                        from_frontend_queue.enqueue(message)  # Requeue if failed
+                        if message is not None:
+                            from_frontend_queue.enqueue(message)  # Requeue if failed
+                        else:
+                            logging.warning("Attempted to enqueue a None message to from_frontend_queue")
                 await asyncio.sleep(0.1)  # Prevent busy waiting
             except Exception as e:
                 logging.error(f"Error in send loop: {e}")
