@@ -1,17 +1,24 @@
 import logging
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import random
+import json
 import asyncio
+from fastapi import FastAPI, WebSocket, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from .queues.shared_queue import (
     get_initialized_queues,
     get_to_backend_queue,
     get_to_frontend_queue,
-    get_from_backend_queue
+    get_from_backend_queue,
+    get_from_frontend_queue,
+    get_dead_letter_queue
 )
 from .core.simulator import SimulationManager
 from .core.message_processor import MessageProcessor
 from .core.queue_forwarder import QueueForwarder
 from .api import endpoints
+from ..models.message_types import QueueMessage
+from pydantic import ValidationError
+import websockets
 import asyncio
 import json
 import logging
@@ -60,6 +67,7 @@ async def simulate_entries():
         "timestamp": time.time()
     }
     print(f"\nEnqueuing initial system message: {system_msg}")
+    to_backend_queue = get_to_backend_queue()
     await to_backend_queue.enqueue(system_msg)
     print(f"to_backend_queue size: {to_backend_queue.size()}")
     
@@ -142,11 +150,11 @@ def shutdown_event():
 async def get_metrics():
     return {
         "queue_sizes": {
-            "to_frontend": to_frontend_queue.size(),
-            "from_frontend": from_frontend_queue.size(),
-            "to_backend": to_backend_queue.size(),
-            "from_backend": from_backend_queue.size(),
-            "dead_letter": dead_letter_queue.size()
+            "to_frontend": get_to_frontend_queue().size(),
+            "from_frontend": get_from_frontend_queue().size(),
+            "to_backend": get_to_backend_queue().size(),
+            "from_backend": get_from_backend_queue().size(),
+            "dead_letter": get_dead_letter_queue().size()
         },
         "websocket_connections": len(app.state.websockets),
         "timestamp": time.time()
@@ -167,7 +175,7 @@ app.add_middleware(
 
 # WebSocket endpoint
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: websockets.WebSocket):
     client = websocket.client
     if client:
         logging.info(f"WebSocket connection request from {client.host}:{client.port}")
@@ -249,6 +257,7 @@ async def process_messages():
         try:
             # Block until we get a message from to_backend_queue
             print(f"\n[Processor] Waiting for message in to_backend_queue...")
+            to_backend_queue = get_to_backend_queue()
             backend_msg = await to_backend_queue.dequeue()
             
             try:
@@ -429,10 +438,14 @@ async def send_messages(websocket: WebSocket):
 @app.get("/simulation/start")
 async def start_simulation(background_tasks: BackgroundTasks):
     # Clear any existing messages first
-    to_backend_queue._queue.clear()
-    from_backend_queue._queue.clear()
-    to_frontend_queue._queue.clear()
-    from_frontend_queue._queue.clear()
+    to_backend_queue = get_to_backend_queue()
+    from_backend_queue = get_from_backend_queue()
+    to_frontend_queue = get_to_frontend_queue()
+    from_frontend_queue = get_from_frontend_queue()
+    await to_backend_queue.clear()
+    await from_backend_queue.clear()
+    await to_frontend_queue.clear()
+    await from_frontend_queue.clear()
     """Start the queue simulation"""
     global simulation_task, simulation_running
     if not simulation_running:
