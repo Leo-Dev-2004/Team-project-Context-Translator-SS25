@@ -6,8 +6,9 @@ from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
 from ..queues.shared_queue import (
     get_to_backend_queue,
-    get_to_frontend_queue, 
-    get_from_backend_queue
+    get_to_frontend_queue,
+    get_from_backend_queue,
+    AsyncQueue
 )
 
 logger = logging.getLogger(__name__)
@@ -36,12 +37,12 @@ class SimulationManager:
             return {"status": "already running"}
         
         # Get initialized queues
-        to_backend = get_to_backend_queue()
-        to_frontend = get_to_frontend_queue()
+        to_backend_queue_instance = get_to_backend_queue()
+        to_frontend_queue_instance = get_to_frontend_queue()
         
         # Clear queues
-        await to_backend.clear()
-        await to_frontend.clear()
+        await to_backend_queue_instance.clear()
+        await to_frontend_queue_instance.clear()
         
         # Start simulation task
         if background_tasks:
@@ -58,7 +59,7 @@ class SimulationManager:
                 "status": "info"
             }
         )
-        await to_frontend_queue.enqueue(system_msg.to_dict())
+        await to_frontend_queue_instance.enqueue(system_msg.to_dict())
         
         return {
             "status": "started",
@@ -72,8 +73,8 @@ class SimulationManager:
             
         self.running = False
         
-        # Assert that queues are initialized before using them
-        assert to_frontend_queue is not None, "to_frontend_queue is not initialized"
+        # Get initialized queue
+        to_frontend_queue_instance = get_to_frontend_queue()
 
         # Send system notification
         system_msg = SystemMessage(
@@ -84,7 +85,7 @@ class SimulationManager:
                 "status": "info"
             }
         )
-        await to_frontend_queue.enqueue(system_msg.to_dict())
+        await to_frontend_queue_instance.enqueue(system_msg.to_dict())
         
         return {"status": "stopped"}
 
@@ -106,18 +107,17 @@ class SimulationManager:
         self.running = True
         logger.info("Simulation task starting")
 
-        # Assert that queues are initialized before using them
-        assert to_backend_queue is not None, "to_backend_queue is not initialized in simulate_entries"
-        assert to_frontend_queue is not None, "to_frontend_queue is not initialized in simulate_entries"
-        assert from_backend_queue is not None, "from_backend_queue is not initialized in simulate_entries"
+        # Get initialized queues
+        to_backend_queue_instance = get_to_backend_queue()
+        to_frontend_queue_instance = get_to_frontend_queue()
+        from_backend_queue_instance = get_from_backend_queue()
         
         # Enhanced queue monitoring
         def monitor_queues():
-            assert to_backend_queue is not None, "to_backend_queue is not initialized in monitor_queues"
-            if to_backend_queue.size() > 5:
-                logger.warning(f"to_backend_queue has {to_backend_queue.size()} messages")
+            if to_backend_queue_instance.size() > 5:
+                logger.warning(f"to_backend_queue has {to_backend_queue_instance.size()} messages")
                 try:
-                    oldest_msg = to_backend_queue._queue[0]
+                    oldest_msg = to_backend_queue_instance._queue[0]
                     age = time.time() - oldest_msg.get('timestamp', time.time())
                     logger.warning(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')}")
                 except Exception as e:
@@ -132,7 +132,7 @@ class SimulationManager:
                 "status": "pending"
             }
         )
-        await to_backend_queue.enqueue(system_msg.to_dict())
+        await to_backend_queue_instance.enqueue(system_msg.to_dict())
         
         while self.running:
             self.counter += 1
@@ -150,7 +150,7 @@ class SimulationManager:
                 }
             )
             
-            await to_backend_queue.enqueue(sim_msg.to_dict())
+            await to_backend_queue_instance.enqueue(sim_msg.to_dict())
             logger.info(f"Enqueued simulation message {self.counter}")
             
             # Random delay between 0.5-2 seconds
@@ -161,13 +161,13 @@ class SimulationManager:
                 monitor_queues()
                 
                 # Check if messages are being processed
-                if (to_backend_queue.size() > 10 and 
-                    from_backend_queue.size() < 2):
+                if (to_backend_queue_instance.size() > 10 and 
+                    from_backend_queue_instance.size() < 2):
                     logger.warning("Messages accumulating in to_backend_queue without processing")
                 
                 # Check if messages are reaching frontend
-                if (from_backend_queue.size() > 5 and 
-                    to_frontend_queue.size() < 2):
+                if (from_backend_queue_instance.size() > 5 and 
+                    to_frontend_queue_instance.size() < 2):
                     logger.warning("Messages not being forwarded to frontend")
         
         logger.info("Simulation stopped")
