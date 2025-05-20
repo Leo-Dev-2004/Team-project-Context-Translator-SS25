@@ -12,10 +12,10 @@ from Backend.QueueManager.shared_queue import (
 
 # Configure queue sizes
 MAX_QUEUE_SIZE = 100  # Prevent memory overflows
-to_frontend_queue = MessageQueue(size=MAX_QUEUE_SIZE) # Replace with the correct parameter name
-from_frontend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
-to_backend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
-from_backend_queue = MessageQueue(size=MAX_QUEUE_SIZE)  # Replace with the correct parameter name
+to_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+from_frontend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+to_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
+from_backend_queue = MessageQueue(maxsize=MAX_QUEUE_SIZE)
 import asyncio
 import json
 import logging
