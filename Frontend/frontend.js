@@ -64,8 +64,13 @@ function updateQueueLog(logId, queue) {
             content = `${item.data.id}: ${item.data.data}<br>
                       <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
         } else {
-            content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
-                      <small>${timeDiff.toFixed(1)}s ago</small>`;
+            if (item.type === "test_message") {
+                content = `TEST: ${item.data.content}<br>
+                          <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>`;
+            } else {
+                content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
+                          <small>${timeDiff.toFixed(1)}s ago</small>`;
+            }
         }
 
         return `<div class="log-entry ${statusClass}">${content}</div>`;
@@ -117,6 +122,29 @@ async function startSimulation() {
     } catch (error) {
         console.error('Failed to start simulation:', error);
         alert(`Failed to start simulation: ${error.message}`);
+    }
+}
+
+function sendTestMessage() {
+    if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
+        const testMsg = {
+            type: "test_message",
+            data: {
+                id: "test_" + Date.now(),
+                content: "This is a test message",
+                status: "pending"
+            },
+            timestamp: Date.now() / 1000
+        };
+        
+        // Add to both WebSocket and directly to queue for testing
+        WebSocketManager.send(testMsg);
+        toBackendQueue.enqueue(testMsg);
+        console.log('Test message sent:', testMsg);
+        updateQueueDisplay();
+    } else {
+        console.warn('Cannot send test message - WebSocket not connected');
+        alert('WebSocket not connected. Please wait for connection.');
     }
 }
 
@@ -181,6 +209,25 @@ const WebSocketManager = {
             } else if (data.type === "simulation_update") {
                 fromBackendQueue.enqueue(data);
                 console.log('Added to fromBackendQueue (simulation):', data);
+            } else if (data.type === "test_message") {
+                // Process test message through the full flow
+                const processingMsg = {
+                    ...data,
+                    status: "processing",
+                    timestamp: Date.now() / 1000
+                };
+                fromFrontendQueue.enqueue(processingMsg);
+                
+                // Simulate backend processing
+                setTimeout(() => {
+                    const processedMsg = {
+                        ...processingMsg,
+                        status: "processed",
+                        timestamp: Date.now() / 1000
+                    };
+                    fromBackendQueue.enqueue(processedMsg);
+                    updateQueueDisplay();
+                }, 1000);
             } else {
                 console.log('Unhandled message type:', data.type, data);
             }
