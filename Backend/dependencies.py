@@ -1,6 +1,6 @@
 from typing import Optional
-from ..core.simulator import SimulationManager
-from ..backend import sim_manager_instance as global_sim_manager_instance
+from backend import SimulationManager
+from backend import sim_manager_instance as global_sim_manager_instance
 
 def get_simulation_manager() -> SimulationManager:
     if global_sim_manager_instance is None:
