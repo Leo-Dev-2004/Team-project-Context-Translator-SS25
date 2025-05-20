@@ -4,7 +4,7 @@ import logging
 import json
 from typing import Optional
 from ..core.simulator import SimulationManager
-from ..backend import get_simulation_manager
+from ..dependencies import get_simulation_manager
 from ..queues.shared_queue import (
     get_to_backend_queue,
     get_to_frontend_queue,

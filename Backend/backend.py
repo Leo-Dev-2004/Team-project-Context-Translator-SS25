@@ -133,13 +133,7 @@ async def shutdown_event():
 
 
 # --- DEPENDENCY INJECTION FUNCTIONS ---
-# This function provides the initialized SimulationManager instance to FastAPI endpoints
-def get_simulation_manager() -> SimulationManager:
-    if sim_manager_instance is None:
-        logger.error("SimulationManager was not initialized during startup!")
-        # This error should ideally not happen if startup completes successfully
-        raise RuntimeError("SimulationManager not initialized. Server startup likely failed or is incomplete.")
-    return sim_manager_instance
+from .dependencies import get_simulation_manager
 
 
 # --- FASTAPI MIDDLEWARE ---
