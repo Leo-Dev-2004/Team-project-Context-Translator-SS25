@@ -288,65 +288,6 @@ const WebSocketManager = {
     }
 };
 
-// WebSocket message handler - moved to top
-function handleWebSocketMessage(event) {
-        try {
-            const data = JSON.parse(event.data);
-            console.log('Received WebSocket message:', data);
-            
-            lastMessage = data;
-            
-            // Handle system messages first
-            if (data.type === "connection_ack") {
-                console.log('WebSocket connection acknowledged by server');
-                WebSocketManager.isConnected = true;
-                document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
-                return;
-            }
-            else if (data.type === "pong") {
-                console.log('Received pong response from server');
-                document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
-                return;
-            }
-            
-            // Route application messages through the processing pipeline
-            if (data.type === "initial_message") {
-                // First stop - incoming message from simulation
-                toBackendQueue.enqueue(data);
-                console.log('Added to toBackendQueue:', data);
-                
-                // Simulate processing delay (1s)
-                setTimeout(() => {
-                    // Second stop - processed by frontend
-                    const processedData = {...data, type: "frontend_processed"};
-                    fromFrontendQueue.enqueue(processedData);
-                    console.log('Added to fromFrontendQueue:', processedData);
-                    
-                    // Third stop - sent to frontend display
-                    setTimeout(() => {
-                        const frontendData = {...processedData, type: "frontend_message"};
-                        toFrontendQueue.enqueue(frontendData);
-                        console.log('Added to toFrontendQueue:', frontendData);
-                        
-                        // Final stop - backend response
-                        setTimeout(() => {
-                            const finalData = {...frontendData, type: "processed_message"};
-                            fromBackendQueue.enqueue(finalData);
-                            console.log('Added to fromBackendQueue:', finalData);
-                            updateQueueDisplay();
-                        }, 1000);
-                    }, 1000);
-                }, 1000);
-            }
-            else {
-                console.log('Unhandled message type:', data.type, data);
-            }
-            
-            updateQueueDisplay();
-        } catch (e) {
-            console.error('Error processing message:', e);
-        }
-    }
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
