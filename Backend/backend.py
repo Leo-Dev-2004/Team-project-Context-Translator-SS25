@@ -96,6 +96,15 @@ async def simulate_entries():
         to_backend_queue.enqueue(sim_msg)
         print(f"Current to_backend_queue size: {to_backend_queue.size()}")
         
+        # Create entry data structure
+        entry = {
+            "id": f"entry_{counter}",
+            "type": "simulation",
+            "content": f"Simulation entry {counter}",
+            "status": "pending",
+            "timestamp": time.time()
+        }
+        
         print(f"Generating entry {counter}: {entry}")
         
         # Randomize queue destinations
