@@ -224,7 +224,7 @@ async def process_messages():
         try:
             # Block until we get a message from to_backend_queue
             print(f"\n[Processor] Waiting for message in to_backend_queue...")
-            backend_msg = to_backend_queue.dequeue()  # Blocks until available
+            backend_msg = await to_backend_queue.dequeue()  # Async wait for message
                 
             if backend_msg is not None:
                 print(f"\n[Processor] Processing message ID: {backend_msg.get('data', {}).get('id', 'no-id')}")
@@ -246,7 +246,7 @@ async def process_messages():
             
             # Forward to from_backend_queue with verification
             prev_size = from_backend_queue.size()
-            from_backend_queue.enqueue(backend_msg)
+            await from_backend_queue.enqueue(backend_msg)
             new_size = from_backend_queue.size()
             
             if new_size <= prev_size:
@@ -272,7 +272,7 @@ async def process_messages():
             
             # Forward to next queue with verification
             prev_size = to_frontend_queue.size()
-            to_frontend_queue.enqueue(backend_msg)
+            await to_frontend_queue.enqueue(backend_msg)
             new_size = to_frontend_queue.size()
             
             if new_size <= prev_size:
@@ -332,7 +332,7 @@ async def forward_messages():
         try:
             # Block until we get a message from from_backend_queue
             print("\n[Forwarder] Waiting for message in from_backend_queue...")
-            msg = from_backend_queue.dequeue()  # Blocks until available
+            msg = await from_backend_queue.dequeue()  # Async wait for message
             
             if msg is None:
                 print("⚠️ WARNING: Received None message in forward_messages")
@@ -362,7 +362,7 @@ async def forward_messages():
                     if msg is not None:
                         if msg is not None:
                             if msg is not None:
-                                to_frontend_queue.enqueue(msg)
+                                await to_frontend_queue.enqueue(msg)
                             else:
                                 logging.warning("Attempted to enqueue a None message to to_frontend_queue")
                         else:
@@ -406,7 +406,7 @@ async def send_messages(websocket: WebSocket):
             try:
                 # Block until we get a message to send
                 print("\n[Sender] Waiting for message in to_frontend_queue...")
-                message = to_frontend_queue.dequeue()  # Blocks until available
+                message = await to_frontend_queue.dequeue()  # Async wait for message
                 
                 try:
                     # Mark as sent to frontend
