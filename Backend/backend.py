@@ -1,9 +1,12 @@
 import logging
 import asyncio
+import json
+import time
 from typing import Optional, Dict
 
-from fastapi import FastAPI, Depends, WebSocket
+from fastapi import FastAPI, Depends, WebSocket, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+import websockets
 
 from .queues.shared_queue import (
     MessageQueue,
@@ -11,8 +14,11 @@ from .queues.shared_queue import (
     get_to_backend_queue,
     get_from_backend_queue,
     get_to_frontend_queue,
-    get_from_frontend_queue
+    get_from_frontend_queue,
+    get_dead_letter_queue
 )
+from ..models.message_types import QueueMessage
+from pydantic import ValidationError
 
 from .core.simulator import SimulationManager
 from .core.message_processor import MessageProcessor
@@ -134,36 +140,11 @@ def shutdown_event():
     global simulation_running
     simulation_running = False
 
-@app.get("/metrics")
-async def get_metrics():
-    return {
-        "queue_sizes": {
-            "to_frontend": get_to_frontend_queue().size(),
-            "from_frontend": get_from_frontend_queue().size(),
-            "to_backend": get_to_backend_queue().size(),
-            "from_backend": get_from_backend_queue().size(),
-            "dead_letter": get_dead_letter_queue().size()
-        },
-        "websocket_connections": len(app.state.websockets),
-        "timestamp": time.time()
-    }
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "version": "0.1"}
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # WebSocket endpoint
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: websockets.WebSocket):
+async def websocket_endpoint(websocket: WebSocket):
     client = websocket.client
     if client:
         logging.info(f"WebSocket connection request from {client.host}:{client.port}")
@@ -238,14 +219,14 @@ async def websocket_endpoint(websocket: websockets.WebSocket):
         except Exception as e:
             logging.error(f"Error during WebSocket cleanup: {e}", exc_info=True)
 
-async def process_messages():
-    """Process messages through the full pipeline with blocking behavior"""
     print("\nStarting blocking message processor pipeline...")
     while True:
         try:
             # Block until we get a message from to_backend_queue
             print(f"\n[Processor] Waiting for message in to_backend_queue...")
             to_backend_queue = get_to_backend_queue()
+            from_backend_queue = get_from_backend_queue()
+            to_frontend_queue = get_to_frontend_queue()
             backend_msg = await to_backend_queue.dequeue()
             
             try:
@@ -563,8 +544,6 @@ async def debug_queues():
         }
     }
 
-async def receive_messages(websocket: WebSocket):
-    """Receive messages from client and add to from_frontend_queue"""
     client = websocket.client
     try:
         while True:
