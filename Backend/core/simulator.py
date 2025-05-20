@@ -24,9 +24,9 @@ class SystemMessage:
 class SimulationManager:
     def __init__(
         self,
-        to_backend_queue: MessageQueue,
-        to_frontend_queue: MessageQueue,
-        from_backend_queue: MessageQueue
+        to_backend_queue: AsyncQueue,
+        to_frontend_queue: AsyncQueue,
+        from_backend_queue: AsyncQueue
     ):
         self.running = False
         self.counter = 0
