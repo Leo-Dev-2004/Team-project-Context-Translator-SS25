@@ -289,17 +289,13 @@ async def process_messages():
                 'timestamp': time.time()
             })
             
-            # Forward to from_backend_queue with verification
-            prev_size = from_backend_queue.size()
+            # Process message and send to from_backend_queue
+            backend_msg['status'] = 'processed'
+            backend_msg['processing_path'].append({
+                'stage': 'processing_complete',
+                'timestamp': time.time()
+            })
             await from_backend_queue.enqueue(backend_msg)
-            new_size = from_backend_queue.size()
-            
-            if new_size <= prev_size:
-                print(f"⚠️ CRITICAL: Failed to enqueue in from_backend_queue! (before: {prev_size}, after: {new_size})")
-                # Emergency dump the message
-                print(f"Failed message: {json.dumps(backend_msg, indent=2)}")
-                # Try one more time
-                from_backend_queue.enqueue(backend_msg)
             else:
                 print(f"✅ Successfully enqueued in from_backend_queue (new size: {new_size})")
             
@@ -315,27 +311,13 @@ async def process_messages():
                 'timestamp': time.time()
             })
             
-            # Forward to next queue with verification
-            prev_size = to_frontend_queue.size()
-            await to_frontend_queue.enqueue(backend_msg)
-            new_size = to_frontend_queue.size()
-            
-            if new_size <= prev_size:
-                print(f"⚠️ CRITICAL: Failed to enqueue in to_frontend_queue! (before: {prev_size}, after: {new_size})")
-            else:
-                print(f"✅ Successfully forwarded to to_frontend_queue (new size: {new_size})")
-                print(f"Forwarded to to_frontend_queue (size: {to_frontend_queue.size()})")
-                
-                # Ensure all messages get routed to frontend
-                if backend_msg.get('type') in ('simulation', 'test_message', 'system'):
-                    # Convert to frontend format
-                    frontend_msg = {
-                        'type': 'frontend_update',
-                        'data': backend_msg,
-                        'timestamp': time.time()
-                    }
-                    print(f"\n[Processor] Routing to frontend: {frontend_msg}")
-                    to_frontend_queue.enqueue(frontend_msg)
+            # Forward processed messages to frontend
+            frontend_msg = {
+                'type': 'frontend_update',
+                'data': backend_msg,
+                'timestamp': time.time()
+            }
+            await to_frontend_queue.enqueue(frontend_msg)
                     print(f"to_frontend_queue size: {to_frontend_queue.size()}")
                     logging.info(f"Routed to frontend: {frontend_msg}")
                     # Simulate processing with progress updates
@@ -429,14 +411,10 @@ async def forward_messages():
             else:
                 print(f"✅ Forwarded successfully (new to_frontend size: {new_size})")
 
-            # Forward from_frontend_queue -> to_backend_queue (new messages)
-            if from_frontend_queue.size() > 0:
-                frontend_msg = await from_frontend_queue.dequeue()
-                if frontend_msg:
-                    # Mark as new for backend processing
-                    frontend_msg['status'] = 'new_for_backend' 
-                    to_backend_queue.enqueue(frontend_msg)
-                    print(f"→ Forwarded to to_backend_queue (size: {to_backend_queue.size()})")
+            # Forward messages from frontend to backend
+            frontend_msg = await from_frontend_queue.dequeue()
+            frontend_msg['status'] = 'new_for_backend'
+            await to_backend_queue.enqueue(frontend_msg)
 
             await asyncio.sleep(0.1)
         except Exception as e:
