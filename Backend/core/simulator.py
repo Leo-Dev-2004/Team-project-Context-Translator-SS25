@@ -31,6 +31,10 @@ class SimulationManager:
         if self.running:
             return {"status": "already running"}
         
+        # Assert that queues are initialized before using them
+        assert to_backend_queue is not None, "to_backend_queue is not initialized"
+        assert to_frontend_queue is not None, "to_frontend_queue is not initialized"
+        
         # Clear queues
         await to_backend_queue.clear()
         await to_frontend_queue.clear()
@@ -97,6 +101,11 @@ class SimulationManager:
         """Background task to simulate queue entries"""
         self.running = True
         logger.info("Simulation task starting")
+
+        # Assert that queues are initialized before using them
+        assert to_backend_queue is not None, "to_backend_queue is not initialized in simulate_entries"
+        assert to_frontend_queue is not None, "to_frontend_queue is not initialized in simulate_entries"
+        assert from_backend_queue is not None, "from_backend_queue is not initialized in simulate_entries"
         
         # Enhanced queue monitoring
         def monitor_queues():
