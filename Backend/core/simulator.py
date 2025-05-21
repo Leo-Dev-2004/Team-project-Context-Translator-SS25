@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
 from ..queues.shared_queue import MessageQueue
+from ..models.message_types import QueueMessage
 
 logger = logging.getLogger(__name__)
 
