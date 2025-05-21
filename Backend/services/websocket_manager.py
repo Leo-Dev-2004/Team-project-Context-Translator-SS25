@@ -79,30 +79,53 @@ class WebSocketManager:
         while True:
             try:
                 data = await websocket.receive_text()
+                logger.debug(f"Received raw WebSocket data: {data}")
+                
                 try:
-                    # Basic validation before parsing
-                    if not data.strip():
-                        await self._send_error(websocket, "Empty message received")
+                    # Step 1: Basic JSON validation
+                    try:
+                        message_dict = json.loads(data)
+                    except json.JSONDecodeError as e:
+                        await self._send_error(websocket, f"Invalid JSON: {str(e)}")
                         continue
-                        
-                    message_dict = json.loads(data)
+
+                    # Step 2: Required field validation
                     if not isinstance(message_dict, dict):
                         await self._send_error(websocket, "Message must be a JSON object")
                         continue
                         
-                    if 'type' not in message_dict:
-                        await self._send_error(websocket, "Message type is required")
+                    required_fields = ['type', 'data']
+                    missing_fields = [field for field in required_fields if field not in message_dict]
+                    if missing_fields:
+                        await self._send_error(websocket, f"Missing required fields: {', '.join(missing_fields)}")
                         continue
 
-                    # Full validation with Pydantic model
-                    message = WebSocketMessage.parse_raw(data)
-                    
-                    await get_from_frontend_queue().enqueue({
+                    # Step 3: Type-specific validation
+                    if message_dict['type'] == 'test_message':
+                        if not isinstance(message_dict.get('data', {}).get('id'), str):
+                            await self._send_error(websocket, "Test messages require string 'id' in data")
+                            continue
+
+                    # Step 4: Full Pydantic validation
+                    try:
+                        message = WebSocketMessage.parse_raw(data)
+                    except ValidationError as e:
+                        error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
+                        await self._send_error(websocket, f"Validation failed: {error_details}")
+                        continue
+
+                    # Step 5: Enqueue validated message
+                    queue_msg = {
                         'type': message.type,
                         'data': message.data,
                         'timestamp': message.timestamp,
-                        'client_id': str(websocket.client)
-                    })
+                        'client_id': str(websocket.client),
+                        'processing_path': message_dict.get('processing_path', []),
+                        'forwarding_path': message_dict.get('forwarding_path', [])
+                    }
+                    
+                    logger.info(f"Enqueuing valid message of type '{message.type}'")
+                    await get_from_frontend_queue().enqueue(queue_msg)
                 except json.JSONDecodeError:
                     await self._send_error(websocket, "Invalid JSON format")
                 except ValidationError as e:
