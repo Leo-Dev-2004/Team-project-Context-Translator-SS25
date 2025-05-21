@@ -31,14 +31,31 @@ class SystemRunner:
         self.running = True
 
     def check_ports_available(self):
-        """Check if required ports are available"""
+        """Check if required ports are available, kill processes if on Linux"""
         import socket
+        import platform
+        import subprocess
+        
         for port in [self.backend_port, self.frontend_port]:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 sock.bind(("localhost", port))
                 sock.close()
             except socket.error:
+                if platform.system() == "Linux":
+                    try:
+                        # Find and kill process using the port
+                        result = subprocess.run(
+                            ["fuser", f"{port}/tcp", "-k"],
+                            capture_output=True,
+                            text=True
+                        )
+                        if result.returncode == 0:
+                            logger.warning(f"Killed process using port {port}")
+                            time.sleep(1)  # Wait for port to be released
+                            continue
+                    except Exception as e:
+                        logger.error(f"Failed to kill process on port {port}: {e}")
                 logger.error(f"Port {port} is already in use!")
                 return False
         return True
