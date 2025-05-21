@@ -74,7 +74,8 @@ function updateQueueLog(logId, queue) {
             }
             else if (messageType === 'status_update') {
                 statusClass = 'status-update';
-                content = `UPDATE: ${item.data?.message || JSON.stringify(item.data)}`;
+                content = item.data?.displayContent || 
+                         `UPDATE: ${item.data?.message || JSON.stringify(item.data)}`;
             }
             else {
                 statusClass = 'status-unknown';
@@ -221,10 +222,19 @@ const WebSocketManager = {
             switch(data.type) {
                 case "system":
                 case "simulation":
-                case "status_update":
                 case "sys_init":
                 case "sim_":
                     console.log('Backend message - adding to fromBackendQueue');
+                    targetQueue = fromBackendQueue;
+                    break;
+                    
+                case "status_update":
+                    console.log('Status update received - adding to fromBackendQueue');
+                    // Enhance status update data for display
+                    data.data = {
+                        ...data.data,
+                        displayContent: `Status: ${data.data.status || 'unknown'}, Progress: ${data.data.progress || 0}%`
+                    };
                     targetQueue = fromBackendQueue;
                     break;
                     
