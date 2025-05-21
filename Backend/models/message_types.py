@@ -37,12 +37,35 @@ class BackendProcessedMessage(BaseMessage):
     progress: Optional[int] = None
 
 class WebSocketMessage(BaseModel):
-    type: str = Field(..., description="Message type is required")
-    data: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: float = Field(default_factory=time.time)
-    client_id: Optional[str] = None
+    type: str = Field(
+        ...,
+        description="Message type is required (e.g. 'command', 'data', 'status')",
+        example="command"
+    )
+    data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Message payload data",
+        example={"command": "start_simulation"}
+    )
+    timestamp: float = Field(
+        default_factory=time.time,
+        description="Unix timestamp of message creation"
+    )
+    client_id: Optional[str] = Field(
+        None,
+        description="Optional client identifier",
+        example="client_123"
+    )
     
     class Config:
         json_encoders = {
             datetime: lambda v: v.timestamp()
+        }
+        schema_extra = {
+            "example": {
+                "type": "command",
+                "data": {"command": "start_simulation"},
+                "timestamp": 1716316800.0,
+                "client_id": "client_123"
+            }
         }

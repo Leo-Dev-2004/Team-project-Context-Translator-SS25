@@ -57,20 +57,34 @@ class WebSocketManager:
             try:
                 data = await websocket.receive_text()
                 try:
-                    message = WebSocketMessage.parse_raw(data)
-                    if not message.type:
-                        await self._send_error(websocket, "Message type is required")
+                    # Basic validation before parsing
+                    if not data.strip():
+                        await self._send_error(websocket, "Empty message received")
                         continue
                         
+                    message_dict = json.loads(data)
+                    if not isinstance(message_dict, dict):
+                        await self._send_error(websocket, "Message must be a JSON object")
+                        continue
+                        
+                    if 'type' not in message_dict:
+                        await self._send_error(websocket, "Message type is required")
+                        continue
+
+                    # Full validation with Pydantic model
+                    message = WebSocketMessage.parse_raw(data)
+                    
                     await get_from_frontend_queue().enqueue({
                         'type': message.type,
                         'data': message.data,
                         'timestamp': message.timestamp,
                         'client_id': str(websocket.client)
                     })
+                except json.JSONDecodeError:
+                    await self._send_error(websocket, "Invalid JSON format")
                 except ValidationError as e:
                     logger.error(f"Invalid WebSocket message: {e}")
-                    await self._send_error(websocket, f"Invalid message format: {str(e)}")
+                    await self._send_error(websocket, f"Invalid message: {e.errors()[0]['msg']}")
             except Exception as e:
                 logger.error(f"Receive error: {e}")
                 break
@@ -94,6 +108,18 @@ class WebSocketManager:
         except:
             pass
         logger.info(f"Connection closed for {client_info}")
+
+    async def _send_error(self, websocket: WebSocket, error_msg: str):
+        """Send error response to client"""
+        try:
+            error_msg = WebSocketMessage(
+                type="error",
+                data={"message": error_msg},
+                timestamp=time.time()
+            )
+            await websocket.send_text(error_msg.json())
+        except Exception as e:
+            logger.error(f"Failed to send error message: {e}")
 
     def get_metrics(self):
         """Get WebSocket metrics"""
