@@ -63,3 +63,51 @@ class MessageProcessor:
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
                 await asyncio.sleep(1)
+    async def process(self):
+        """Process messages through the full pipeline"""
+        logger.info("Starting message processor")
+        while True:
+            try:
+                # Dequeue and validate message
+                raw_msg = await self._to_backend_queue.dequeue()
+                try:
+                    msg = QueueMessage(**raw_msg)
+                except ValidationError as e:
+                    logger.error(f"Invalid message format: {e}")
+                    continue
+
+                # Track processing path
+                if not msg.processing_path:
+                    msg.processing_path = []
+                msg.processing_path.append({
+                    'stage': 'processor',
+                    'timestamp': time.time(),
+                    'status': 'processing'
+                })
+
+                # Process message content
+                if msg.type == 'simulation':
+                    msg.data['status'] = 'processed'
+                    msg.data['progress'] = 100
+                elif msg.type == 'system':
+                    msg.data['status'] = 'completed'
+
+                # Forward to next queue
+                await self._from_backend_queue.enqueue(msg.dict())
+
+                # Create frontend notification
+                if msg.type in ['simulation', 'system']:
+                    frontend_msg = QueueMessage(
+                        type='status_update',
+                        data={
+                            'original_id': msg.data.get('id'),
+                            'status': msg.data['status'],
+                            'progress': msg.data.get('progress', 0)
+                        },
+                        timestamp=time.time()
+                    )
+                    await self._to_frontend_queue.enqueue(frontend_msg.dict())
+
+            except Exception as e:
+                logger.error(f"Processing error: {e}")
+                await asyncio.sleep(1)  # Prevent tight error loop

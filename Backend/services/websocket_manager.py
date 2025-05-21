@@ -90,4 +90,44 @@ class WebSocketManager:
     async def shutdown(self):
         """Clean shutdown of all connections"""
         for websocket in list(self.connections):
-            await self._cleanup_connection(websocket, "shutdown")
+            await self._cleanup_connection(websocket, "shutdown")    async def handle_message(self, websocket: WebSocket, raw_data: str):
+        """Handle incoming WebSocket message"""
+        try:
+            # Validate message structure
+            try:
+                msg = WebSocketMessage.parse_raw(raw_data)
+                msg.client_id = msg.client_id or str(websocket.client)
+            except ValidationError as e:
+                logger.error(f"Invalid WS message: {e}")
+                await self._send_error(websocket, "Invalid message format")
+                return
+
+            # Process based on message type
+            if msg.type == 'command':
+                await self._handle_command(msg)
+            elif msg.type == 'data':
+                await self._handle_data(msg)
+            else:
+                await self._send_error(websocket, f"Unknown message type: {msg.type}")
+
+        except Exception as e:
+            logger.error(f"Message handling error: {e}")
+            await self._send_error(websocket, "Processing error")
+
+    async def _handle_command(self, msg: WebSocketMessage):
+        """Handle command messages"""
+        command = msg.data.get('command')
+        if command == 'start_simulation':
+            await get_simulation_manager().start()
+        elif command == 'stop_simulation':
+            await get_simulation_manager().stop()
+        # ... other commands ...
+
+    async def _handle_data(self, msg: WebSocketMessage):
+        """Handle data messages"""
+        await get_from_frontend_queue().enqueue({
+            'type': msg.type,
+            'data': msg.data,
+            'timestamp': msg.timestamp,
+            'client_id': msg.client_id
+        })
