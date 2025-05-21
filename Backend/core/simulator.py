@@ -49,15 +49,16 @@ class SimulationManager:
         else:
             self.task = asyncio.create_task(self._run_simulation())
             
-        system_msg = SystemMessage(
-            type="system",
-            data={
+        system_msg = {
+            "type": "system",
+            "data": {
                 "id": "sys_start",
                 "message": "Simulation started via API",
                 "status": "info"
-            }
-        )
-        await self._to_frontend_queue.enqueue(system_msg.to_dict())
+            },
+            "timestamp": time.time()
+        }
+        await self._to_frontend_queue.enqueue(system_msg)
         
         return {
             "status": "started",
@@ -77,15 +78,16 @@ class SimulationManager:
             except asyncio.CancelledError:
                 pass
         
-        system_msg = SystemMessage(
-            type="system",
-            data={
+        system_msg = {
+            "type": "system",
+            "data": {
                 "id": "sys_stop",
                 "message": "Simulation stopped via API",
                 "status": "info"
-            }
-        )
-        await self._to_frontend_queue.enqueue(system_msg.to_dict())
+            },
+            "timestamp": time.time()
+        }
+        await self._to_frontend_queue.enqueue(system_msg)
         
         return {"status": "stopped"}
 
@@ -107,32 +109,33 @@ class SimulationManager:
         """Internal simulation task"""
         logger.info("Simulation task starting")
         
-        system_msg = SystemMessage(
-            type="system",
-            data={
+        system_msg = {
+            "type": "system",
+            "data": {
                 "id": "sys_init",
                 "message": "Simulation started",
                 "status": "pending"
-            }
-        )
-        await self._to_backend_queue.enqueue(system_msg.to_dict())
+            },
+            "timestamp": time.time()
+        }
+        await self._to_backend_queue.enqueue(system_msg)
         
         while self.running:
             self.counter += 1
             await asyncio.sleep(1)
             
-            sim_msg = SystemMessage(
-                type="simulation",
-                data={
+            sim_msg = {
+                "type": "simulation",
+                "data": {
                     "id": f"sim_{self.counter}",
                     "content": f"Simulation message {self.counter}",
                     "status": "pending",
                     "progress": 0,
                     "created_at": time.time()
-                }
-            )
-            
-            await self._to_backend_queue.enqueue(sim_msg.to_dict())
+                },
+                "timestamp": time.time()
+            }
+            await self._to_backend_queue.enqueue(sim_msg)
             
             await asyncio.sleep(0.5 + 1.5 * random.random())
             
