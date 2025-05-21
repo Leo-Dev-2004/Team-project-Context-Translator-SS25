@@ -132,15 +132,16 @@ function sendTestMessage() {
             data: {
                 id: "test_" + Date.now(),
                 content: "This is a test message",
-                status: "pending"
+                status: "pending",
+                progress: 0
             },
-            timestamp: Date.now() / 1000
+            timestamp: Date.now() / 1000,
+            processing_path: [],
+            forwarding_path: []
         };
         
-        // Add to both WebSocket and directly to queue for testing
-        WebSocketManager.send(testMsg);
-        toBackendQueue.enqueue(testMsg);
-        console.log('Test message sent:', testMsg);
+        console.log('Sending test message:', testMsg);
+        WebSocketManager.send(JSON.stringify(testMsg));
         updateQueueDisplay();
     } else {
         console.warn('Cannot send test message - WebSocket not connected');
