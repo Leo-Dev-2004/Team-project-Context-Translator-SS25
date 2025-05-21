@@ -60,9 +60,15 @@ function updateQueueLog(logId, queue) {
         // --- MODIFIED LOGIC FOR DISPLAYING MESSAGES ---
         // Ensure 'item.data' is checked and 'item.type' is correctly used
         if (item.type === 'status_update') {
-            statusClass = `status-${item.data.status || 'unknown'}`; // Use status from data
+            statusClass = `status-${item.data.status || 'unknown'}`;
             content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>: 
                        ${item.data.status?.toUpperCase() || 'UNKNOWN'} (${item.data.progress}%)<br>
+                       <small>${timeDiff.toFixed(1)}s ago</small>`;
+        } else if (item.type === 'error') {
+            statusClass = 'status-error';
+            content = `<span class="message-id">ERROR</span>: 
+                       ${item.data.message || 'Unknown error'}<br>
+                       ${item.data.details ? `<small>${item.data.details}</small><br>` : ''}
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
         } else if (item.data && item.data.id) { // This seems to be for backend processed messages
             if (item.status === 'created') statusClass = 'status-created';
@@ -113,19 +119,9 @@ async function startSimulation() {
         const result = await response.json();
         console.log('Simulation started:', result);
 
-        // Send a test message through the WebSocket to notify the backend that the simulation has started.
-        // It's generally better for the backend to confirm simulation start via WS message
-        // rather than the frontend sending another message here.
+        // Wait for backend confirmation via WebSocket instead of sending another message
         if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
-            // This message's 'type' field will be missing, causing the 'Unhandled message type' if it comes back
-            // Consider adding a 'type' field here if this message is meant for backend processing.
-            // For now, removing it as it doesn't seem critical and may confuse logging.
-            // WebSocketManager.send({
-            //     messageContent: "Simulation started from frontend",
-            //     message: "Simulation started from frontend",
-            //     timestamp: Date.now()
-            // });
-            console.log("Consider if frontend needs to send a WS message after HTTP GET /simulation/start. Backend confirmation is usually better.");
+            console.log("Waiting for backend confirmation via WebSocket...");
         } else {
             console.warn('WebSocket is not ready. Message not sent.');
         }
