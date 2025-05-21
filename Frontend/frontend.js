@@ -44,65 +44,48 @@ function updateQueueDisplay() {
 
 function updateQueueLog(logId, queue) {
     const logElement = document.getElementById(logId);
-    if (!logElement) {
-        console.error('Queue log element not found:', logId);
-        return;
-    }
+    if (!logElement) return;
 
-    try {
-        const items = queue.queue.slice().reverse();
-        const now = Date.now();
+    const items = queue.queue.slice().reverse();
+    const now = Date.now();
 
-        logElement.innerHTML = items.slice(0, MAX_VISIBLE_ITEMS).map(item => {
-            const timeDiff = (now - (item.timestamp * 1000)) / 1000;
-            let statusClass = '';
-            let content = '';
-            let messageType = item.type || 'unknown';
+    // Only show last 20 items to prevent overflow
+    const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
 
-            // Handle different message types
-            if (messageType === 'test_message') {
-                statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-pending';
-                content = `TEST: ${item.data?.content || 'No content'}`;
-            } 
-            else if (messageType === 'system' || messageType === 'sys_init') {
-                statusClass = 'status-system';
-                content = `SYSTEM: ${item.data?.message || item.data?.content || 'No message'}`;
-            }
-            else if (messageType.startsWith('sim_') || messageType === 'simulation') {
-                statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-processing';
-                content = `SIM ${item.data?.id || ''}: ${item.data?.content || 'No content'}`;
-            }
-            else if (messageType === 'status_update') {
-                statusClass = 'status-update';
-                content = item.data?.displayContent || 
-                         `Status: ${item.data?.status || 'unknown'}, Progress: ${item.data?.progress || 0}%`;
-            }
-            else {
-                statusClass = 'status-unknown';
-                content = `${messageType}: ${JSON.stringify(item.data || item)}`;
-            }
+    logElement.innerHTML = visibleItems.map(item => {
+        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
+        let statusClass = '';
+        let content = '';
 
-            // Add common footer
-            const status = item.data?.status?.toUpperCase() || 
-                         (messageType === 'sys_init' ? 'INIT' : '') || 
-                         (messageType.startsWith('sim_') ? 'PROCESSING' : '');
-            
-            return `
-                <div class="log-entry ${statusClass}">
-                    ${content}
-                    <small>${status} ${timeDiff.toFixed(1)}s ago</small>
-                </div>
-            `;
-        }).join('');
-
-        if (queue.size() > MAX_VISIBLE_ITEMS) {
-            logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
+        // --- MODIFIED LOGIC FOR DISPLAYING MESSAGES ---
+        // Ensure 'item.data' is checked and 'item.type' is correctly used
+        if (item.type === 'status_update') {
+            statusClass = `status-${item.data.status || 'unknown'}`; // Use status from data
+            content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>: 
+                       ${item.data.status?.toUpperCase() || 'UNKNOWN'} (${item.data.progress}%)<br>
+                       <small>${timeDiff.toFixed(1)}s ago</small>`;
+        } else if (item.data && item.data.id) { // This seems to be for backend processed messages
+            if (item.status === 'created') statusClass = 'status-created';
+            if (item.status === 'processing') statusClass = 'status-processing';
+            if (item.status === 'processed') statusClass = 'status-processed';
+            content = `<span class="message-id">${item.data.id}</span>: ${item.data.data || JSON.stringify(item.data)}<br>
+                      <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
+        } else { // Generic message handling (e.g., from frontend side before backend processing)
+            // Use item.type and item.data for display
+            content = `<span class="message-type">${item.type || 'message'}</span>: 
+                       ${JSON.stringify(item.data || item)}<br>
+                       <small>${timeDiff.toFixed(1)}s ago</small>`;
         }
 
-        logElement.scrollTop = logElement.scrollHeight;
-    } catch (e) {
-        console.error('Error updating queue log:', e);
-        logElement.innerHTML = `<div class="log-error">Error displaying messages</div>`;
+        return `<div class="log-entry ${statusClass}">${content}</div>`;
+    }).join('');
+
+    // Auto-scroll to bottom
+    logElement.scrollTop = logElement.scrollHeight;
+
+    // Add overflow indicator if there are more items
+    if (queue.size() > MAX_VISIBLE_ITEMS) {
+        logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
     }
 }
 
@@ -110,7 +93,7 @@ async function startSimulation() {
     try {
         console.log('Starting simulation...');
 
-        // Clear all queues first
+        // Clear all queues first (good practice for new sim run)
         toFrontendQueue.queue = [];
         fromFrontendQueue.queue = [];
         toBackendQueue.queue = [];
@@ -131,42 +114,24 @@ async function startSimulation() {
         console.log('Simulation started:', result);
 
         // Send a test message through the WebSocket to notify the backend that the simulation has started.
+        // It's generally better for the backend to confirm simulation start via WS message
+        // rather than the frontend sending another message here.
         if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
-            WebSocketManager.send({
-                messageContent: "Simulation started from frontend",
-                message: "Simulation started from frontend",
-                timestamp: Date.now()
-            });
+            // This message's 'type' field will be missing, causing the 'Unhandled message type' if it comes back
+            // Consider adding a 'type' field here if this message is meant for backend processing.
+            // For now, removing it as it doesn't seem critical and may confuse logging.
+            // WebSocketManager.send({
+            //     messageContent: "Simulation started from frontend",
+            //     message: "Simulation started from frontend",
+            //     timestamp: Date.now()
+            // });
+            console.log("Consider if frontend needs to send a WS message after HTTP GET /simulation/start. Backend confirmation is usually better.");
         } else {
             console.warn('WebSocket is not ready. Message not sent.');
         }
     } catch (error) {
         console.error('Failed to start simulation:', error);
         alert(`Failed to start simulation: ${error.message}`);
-    }
-}
-
-function sendTestMessage() {
-    if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
-        const testMsg = {
-            type: "test_message",
-            data: {
-                id: "test_" + Date.now(),
-                content: "This is a test message",
-                status: "pending",
-                progress: 0
-            },
-            timestamp: Date.now() / 1000,
-            processing_path: [],
-            forwarding_path: []
-        };
-        
-        console.log('Sending test message:', testMsg);
-        WebSocketManager.send(JSON.stringify(testMsg));
-        updateQueueDisplay();
-    } else {
-        console.warn('Cannot send test message - WebSocket not connected');
-        alert('WebSocket not connected. Please wait for connection.');
     }
 }
 
@@ -189,95 +154,67 @@ const WebSocketManager = {
     pingInterval: null,
     _wsReadyState: WebSocket.CLOSED, // Internal state tracking
 
-    // Define the WebSocket message handler function *outside* or *inside* connect,
-    // but ensure it's a properly declared function that can be assigned.
-    // Defining it as a method on WebSocketManager is a clean way to do it.
     handleIncomingMessage: function(event) {
         try {
+            const startTime = performance.now();
             const data = JSON.parse(event.data);
-            console.group('Received WebSocket message');
-            console.log('Raw message:', event.data);
-            console.log('Parsed data:', data);
-            
-            lastMessage = data;
+            console.log('Raw message data:', event.data);
+            console.log('Parsed message:', data);
+            console.log(`Message processing started at ${startTime.toFixed(2)}ms`);
 
-            // Handle connection messages
+            lastMessage = data; // Update last received message
+
+            // Handle system messages first
             if (data.type === "connection_ack") {
-                console.log('Connection acknowledged');
+                console.log('WebSocket connection acknowledged by server');
                 WebSocketManager.isConnected = true;
                 document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
-                console.groupEnd();
                 return;
-            }
-
-            if (data.type === "pong") {
-                console.log('Pong received');
+            } else if (data.type === "pong") {
+                console.log('Received pong response from server');
                 document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
-                console.groupEnd();
                 return;
             }
-
-            // First handle status_update directly
-            if (data.type === 'status_update') {
-                console.log('DIRECT HANDLING: Status update received');
-                const enhancedData = {
-                    ...data,
-                    data: {
-                        ...data.data,
-                        displayContent: `Status: ${data.data.status || 'unknown'}, Progress: ${data.data.progress || 0}%`
-                    }
-                };
-                fromBackendQueue.enqueue(enhancedData);
-                updateQueueDisplay();
-                return;
+            
+            // --- ADDED THIS NEW CONDITION ---
+            else if (data.type === "status_update") {
+                console.log('Handling status_update message:', data);
+                // Based on your previous logs, this message is coming from the backend to the frontend.
+                // So, it should be enqueued into a 'fromBackendQueue' or 'toFrontendQueue' for display.
+                // I'm assuming 'toFrontendQueue' for now as it's a message *to* the frontend's display.
+                toFrontendQueue.enqueue(data);
+                console.log('Added to toFrontendQueue (status_update):', data);
             }
+            // --- END NEW CONDITION ---
 
-            // Then handle other message types
-            let targetQueue = null;
-            switch(data.type) {
-                case "system":
-                case "simulation":
-                case "sys_init":
-                case "sim_":
-                    console.log('Backend message - adding to fromBackendQueue');
-                    targetQueue = fromBackendQueue;
-                    break;
-                    
-                case "test_message":
-                    console.log('Test message - adding to fromFrontendQueue');
-                    targetQueue = fromFrontendQueue;
-                    break;
-                    
-                case "error":
-                    console.error('Server error:', data.data?.message);
-                    targetQueue = fromBackendQueue; // Show errors in backend queue
-                    break;
-                    
-                default:
-                    if (data.type && data.type.startsWith('sim_')) {
-                        console.log('Simulation message - adding to fromBackendQueue');
-                        targetQueue = fromBackendQueue;
-                    } else {
-                        console.warn('Unhandled message type:', data.type);
-                        // Default to backend queue for unknown types
-                        targetQueue = fromBackendQueue;
-                    }
-                    break;
+            // Route application messages to appropriate queue
+            else if (data.type === "frontend_message") { // Message from frontend, but probably processed and sent back to frontend
+                if (data && typeof data === 'object' && 'type' in data && 'data' in data && 'timestamp' in data) {
+                    toFrontendQueue.enqueue(data);
+                    console.log('Added to toFrontendQueue:', data);
+                } else {
+                    console.warn('Malformed message received for toFrontendQueue:', data);
+                }
+            } else if (data.type === "backend_message") { // Messages originating from backend for frontend display
+                toBackendQueue.enqueue(data); // This queue name sounds like it's data *to* the backend. Reconfirm if this is meant to be displayed from backend.
+                console.log('Added to toBackendQueue:', data);
+            } else if (data.type === "processed_message") { // Messages processed by backend and sent back to frontend
+                fromBackendQueue.enqueue(data);
+                console.log('Added to fromBackendQueue:', data);
+            } else if (data.type === "simulation_update") { // Simulation-specific updates from backend
+                fromBackendQueue.enqueue(data);
+                console.log('Added to fromBackendQueue (simulation):', data);
             }
-
-            if (targetQueue) {
-                // Ensure message has required fields
-                const processedMsg = {
-                    type: data.type,
-                    data: data.data || {},
-                    timestamp: data.timestamp || Date.now()/1000
-                };
-                targetQueue.enqueue(processedMsg);
-                console.log('Added to queue:', processedMsg);
+            // Add a case for "sys_init" if it's explicitly sent via WS for display
+            // else if (data.type === "sys_init") {
+            //     toFrontendQueue.enqueue(data); // Or toBackendQueue, depending on its meaning
+            //     console.log('Added to toFrontendQueue (sys_init):', data);
+            // }
+            else {
+                console.log('Unhandled message type:', data.type, data);
             }
 
             updateQueueDisplay();
-            console.groupEnd();
         } catch (e) {
             console.error('Error processing message:', e);
         }
@@ -287,10 +224,9 @@ const WebSocketManager = {
     connect() {
         console.group('WebSocketManager.connect()');
         console.log('Starting WebSocket connection process...');
-        
+
         if (this.ws) {
             console.log('Existing WebSocket found, cleaning up...');
-            // Clean up existing connection to prevent multiple connections
             this.ws.onopen = null;
             this.ws.onclose = null;
             this.ws.onerror = null;
@@ -310,7 +246,6 @@ const WebSocketManager = {
         this.ws = new WebSocket('ws://localhost:8000/ws');
         console.log(`WebSocket created, readyState: ${this.ws.readyState} (${this.getStateName(this.ws.readyState)})`);
 
-        // Assign the handler here!
         console.log('Setting up message handler...');
         this.ws.onmessage = (event) => {
             console.groupCollapsed(`Received WebSocket message (size: ${event.data.length} bytes)`);
@@ -319,7 +254,6 @@ const WebSocketManager = {
         };
         console.log('WebSocket message handler configured');
 
-        // Update internal readyState and isConnected property
         this._wsReadyState = this.ws.readyState;
         this.isConnected = this.ws.readyState === WebSocket.OPEN;
 
@@ -330,26 +264,23 @@ const WebSocketManager = {
             console.log('WebSocket connection established, readyState:', this.getState());
             this.reconnectAttempts = 0;
 
-            // Verify connection with immediate ping
             const pingId = Date.now();
             this.send({ type: 'ping', timestamp: pingId });
 
-            // Setup a one-time ping response handler to confirm connection
             const pingVerificationHandler = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
                     if (msg.type === 'pong' && msg.timestamp === pingId) {
                         console.log('WebSocket connection verified with pong');
-                        this.ws.removeEventListener('message', pingVerificationHandler); // Remove this specific handler
+                        this.ws.removeEventListener('message', pingVerificationHandler);
                         document.dispatchEvent(new CustomEvent('websocket-ready'));
 
-                        // Start periodic ping only after initial verification
                         if (this.pingInterval) {
                             clearInterval(this.pingInterval);
                         }
                         this.pingInterval = setInterval(() => {
                             this.send({ type: 'ping', timestamp: Date.now() });
-                        }, 30000); // Ping every 30 seconds
+                        }, 30000);
                     }
                 } catch (e) {
                     console.error('Ping verification error:', e);
@@ -367,7 +298,7 @@ const WebSocketManager = {
                 this.pingInterval = null;
             }
 
-            if (event.code !== 1000 && this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) { // Code 1000 means normal closure
+            if (event.code !== 1000 && this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
                 const delay = Math.min(this.RECONNECT_DELAY * (this.reconnectAttempts + 1), 5000);
                 console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.MAX_RECONNECT_ATTEMPTS})...`);
                 setTimeout(() => this.connect(), delay);
@@ -385,7 +316,6 @@ const WebSocketManager = {
                 clearInterval(this.pingInterval);
                 this.pingInterval = null;
             }
-            // Error typically leads to a close event, so reconnect logic is primarily in onclose
         };
     },
 
@@ -401,7 +331,7 @@ const WebSocketManager = {
     getStateName(state) {
         const states = {
             0: 'CONNECTING',
-            1: 'OPEN', 
+            1: 'OPEN',
             2: 'CLOSING',
             3: 'CLOSED'
         };
@@ -414,19 +344,11 @@ const WebSocketManager = {
     }
 };
 
-// Refresh queues periodically
-function startQueueRefresh() {
-    setInterval(() => {
-        updateQueueDisplay();
-    }, 500); // Update every 500ms
-}
-
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    startQueueRefresh();
     console.group('DOMContentLoaded');
     console.log('Initializing frontend...');
-    
+
     // Setup button handlers
     console.log('Setting up button handlers...');
     document.getElementById('startSim').addEventListener('click', startSimulation);
@@ -436,14 +358,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize WebSocket connection
     console.log('Initializing WebSocket connection...');
     WebSocketManager.connect();
-    
+
     // Monitor connection state changes
     document.addEventListener('websocket-ack', () => {
         console.log('WebSocket fully initialized and acknowledged by server');
         document.getElementById('connectionStatus').textContent = 'Connected';
         document.getElementById('connectionStatus').style.color = 'green';
     });
-    
+
     console.groupEnd();
 
     // The display is updated on each message arrival, no need for a separate interval
