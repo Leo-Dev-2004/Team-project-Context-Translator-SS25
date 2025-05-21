@@ -26,19 +26,32 @@ class QueueForwarder:
                 # Forward from backend to frontend
                 backend_msg = await self._from_backend_queue.dequeue()
                 if backend_msg and isinstance(backend_msg, dict):
-                    if not isinstance(backend_msg.get('data'), dict):
-                        backend_msg['data'] = {}
-                    
-                    backend_msg.setdefault('forwarding_path', [])
-                    backend_msg['forwarding_path'].append({
-                        'from': 'from_backend_queue',
-                        'to': 'to_frontend_queue',
-                        'timestamp': time.time()
-                    })
-                    
-                    msg_id = backend_msg.get('data', {}).get('id', 'unknown_id')
-                    await self._to_frontend_queue.enqueue(backend_msg)
-                    logger.debug(f"Forwarded backend message {msg_id} to frontend")
+                    try:
+                        if not isinstance(backend_msg.get('data'), dict):
+                            backend_msg['data'] = {}
+                        
+                        backend_msg.setdefault('forwarding_path', [])
+                        backend_msg['forwarding_path'].append({
+                            'from': 'from_backend_queue',
+                            'to': 'to_frontend_queue',
+                            'timestamp': time.time()
+                        })
+                        
+                        msg_id = backend_msg.get('data', {}).get('id', 'unknown_id')
+                        logger.debug(f"Forwarding message {msg_id} to frontend")
+                        
+                        # Ensure message has required fields for frontend
+                        frontend_msg = {
+                            'type': backend_msg.get('type', 'unknown'),
+                            'data': backend_msg.get('data', {}),
+                            'timestamp': time.time()
+                        }
+                        
+                        await self._to_frontend_queue.enqueue(frontend_msg)
+                        logger.info(f"Successfully forwarded message {msg_id} to frontend")
+                        
+                    except Exception as e:
+                        logger.error(f"Error forwarding message: {e}")
 
                 # Forward from frontend to backend
                 frontend_msg = await self._from_frontend_queue.dequeue()

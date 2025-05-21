@@ -46,7 +46,30 @@ class WebSocketManager:
         while True:
             try:
                 message = await get_to_frontend_queue().dequeue()
-                await websocket.send_text(json.dumps(message))
+                if not message:
+                    continue
+                    
+                # Validate message format
+                if not isinstance(message, dict):
+                    logger.error(f"Invalid message format: {type(message)}")
+                    continue
+                    
+                if 'type' not in message:
+                    message['type'] = 'unknown'
+                    
+                if 'data' not in message:
+                    message['data'] = {}
+                    
+                # Create WebSocketMessage
+                ws_msg = WebSocketMessage(
+                    type=message['type'],
+                    data=message.get('data', {}),
+                    timestamp=message.get('timestamp', time.time())
+                )
+                
+                await websocket.send_text(ws_msg.json())
+                logger.debug(f"Sent WebSocket message: {message['type']}")
+                
             except Exception as e:
                 logger.error(f"Send error: {e}")
                 break

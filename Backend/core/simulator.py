@@ -110,20 +110,26 @@ class SimulationManager:
         """Internal simulation task"""
         logger.info("Simulation task starting")
         
-        system_msg = QueueMessage(
-            type="system",
-            data={
-                "id": "sys_init",
-                "message": "Simulation started",
-                "status": "pending",
-                "progress": 0,
-                "created_at": time.time()
-            },
-            timestamp=time.time(),
-            processing_path=[],
-            forwarding_path=[]
-        ).dict()
-        await self._to_backend_queue.enqueue(system_msg)
+        try:
+            system_msg = QueueMessage(
+                type="system",
+                data={
+                    "id": "sys_init",
+                    "message": "Simulation started",
+                    "status": "pending",
+                    "progress": 0,
+                    "created_at": time.time()
+                },
+                timestamp=time.time(),
+                processing_path=[],
+                forwarding_path=[]
+            ).dict()
+            logger.debug(f"Created system message: {system_msg}")
+            await self._to_backend_queue.enqueue(system_msg)
+            logger.info("System message enqueued to backend queue")
+        except Exception as e:
+            logger.error(f"Failed to enqueue system message: {e}")
+            raise
         
         while self.running:
             self.counter += 1
