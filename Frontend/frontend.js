@@ -44,44 +44,53 @@ function updateQueueDisplay() {
 
 function updateQueueLog(logId, queue) {
     const logElement = document.getElementById(logId);
-    if (!logElement) return;
+    if (!logElement) {
+        console.error('Queue log element not found:', logId);
+        return;
+    }
 
-    const items = queue.queue.slice().reverse();
-    const now = Date.now();
+    try {
+        const items = queue.queue.slice().reverse();
+        const now = Date.now();
 
-    // Only show last 20 items to prevent overflow
-    const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
+        logElement.innerHTML = items.slice(0, MAX_VISIBLE_ITEMS).map(item => {
+            const timeDiff = (now - (item.timestamp * 1000)) / 1000;
+            let statusClass = '';
+            let content = '';
 
-    logElement.innerHTML = visibleItems.map(item => {
-        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
-        let statusClass = '';
-        let content = '';
-
-        if (item.data && item.data.id) {
-            if (item.status === 'created') statusClass = 'status-created';
-            if (item.status === 'processing') statusClass = 'status-processing';
-            if (item.status === 'processed') statusClass = 'status-processed';
-            content = `${item.data.id}: ${item.data.data}<br>
-                      <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
-        } else {
-            if (item.type === "test_message") {
-                content = `TEST: ${item.data.content}<br>
-                          <small>${item.status.toUpperCase()} ${timeDiff.toFixed(1)}s ago</small>`;
-            } else {
+            // Handle different message types
+            if (item.type === 'test_message') {
+                statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-pending';
+                content = `TEST: ${item.data?.content || 'No content'}<br>
+                          <small>${item.data?.status?.toUpperCase() || 'PENDING'} ${timeDiff.toFixed(1)}s ago</small>`;
+            } 
+            else if (item.type === 'system') {
+                statusClass = 'status-system';
+                content = `SYSTEM: ${item.data?.message || 'No message'}<br>
+                          <small>${timeDiff.toFixed(1)}s ago</small>`;
+            }
+            else if (item.type === 'simulation') {
+                statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-processing';
+                content = `SIM: ${item.data?.content || 'No content'}<br>
+                          <small>${item.data?.status?.toUpperCase() || 'PROCESSING'} ${timeDiff.toFixed(1)}s ago</small>`;
+            }
+            else {
+                statusClass = 'status-unknown';
                 content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
                           <small>${timeDiff.toFixed(1)}s ago</small>`;
             }
+
+            return `<div class="log-entry ${statusClass}">${content}</div>`;
+        }).join('');
+
+        if (queue.size() > MAX_VISIBLE_ITEMS) {
+            logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
         }
 
-        return `<div class="log-entry ${statusClass}">${content}</div>`;
-    }).join('');
-
-    // Auto-scroll to bottom
-    logElement.scrollTop = logElement.scrollHeight;
-
-    // Add overflow indicator if there are more items
-    if (queue.size() > MAX_VISIBLE_ITEMS) {
-        logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
+    } catch (e) {
+        console.error('Error updating queue log:', e);
+        logElement.innerHTML = `<div class="log-error">Error displaying messages</div>`;
     }
 }
 
@@ -173,71 +182,53 @@ const WebSocketManager = {
     // Defining it as a method on WebSocketManager is a clean way to do it.
     handleIncomingMessage: function(event) {
         try {
-            const startTime = performance.now();
             const data = JSON.parse(event.data);
-            console.log('Raw message data:', event.data);
-            console.log('Parsed message:', data);
-            console.log(`Message processing started at ${startTime.toFixed(2)}ms`);
+            console.groupCollapsed('Received WebSocket message:', data.type);
+            console.log('Full message:', data);
+            
+            lastMessage = data;
 
-            lastMessage = data; // Update last received message
-
-            // Handle system messages first
+            // Handle connection messages
             if (data.type === "connection_ack") {
-                console.log('WebSocket connection acknowledged by server');
+                console.log('Connection acknowledged');
                 WebSocketManager.isConnected = true;
                 document.dispatchEvent(new CustomEvent('websocket-ack', { detail: data }));
-                return; // Now valid because it's inside the handleIncomingMessage function
-            } else if (data.type === "pong") {
-                console.log('Received pong response from server');
-                document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
-                return; // Valid here too
+                console.groupEnd();
+                return;
             }
 
-            // Route application messages to appropriate queue
-            if (data.type === "frontend_message") {
-                if (data && typeof data === 'object' && 'type' in data && 'data' in data && 'timestamp' in data) {
-                    toFrontendQueue.enqueue(data);
-                    console.log('Added to toFrontendQueue:', data);
-                } else {
-                    console.warn('Malformed message received for toFrontendQueue:', data);
-                }
-            } else if (data.type === "backend_message") {
-                toBackendQueue.enqueue(data);
-                console.log('Added to toBackendQueue:', data);
-            } else if (data.type === "processed_message") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue:', data);
-            } else if (data.type === "simulation_update") {
-                fromBackendQueue.enqueue(data);
-                console.log('Added to fromBackendQueue (simulation):', data);
-            } else if (data.type === "frontend_update") {
-                // Handle all frontend-bound updates
-                const msgData = data.data;
-                
-                if (msgData.type === "test_message") {
-                    const processingMsg = {
-                        ...msgData,
-                        status: "processing",
-                        timestamp: Date.now() / 1000
-                    };
-                    fromFrontendQueue.enqueue(processingMsg);
-                
-                // Simulate backend processing
-                setTimeout(() => {
-                    const processedMsg = {
-                        ...processingMsg,
-                        status: "processed",
-                        timestamp: Date.now() / 1000
-                    };
-                    fromBackendQueue.enqueue(processedMsg);
-                    updateQueueDisplay();
-                }, 1000);
-                }
-            } else {
-                console.log('Unhandled message type:', data.type, data);
+            if (data.type === "pong") {
+                console.log('Pong received');
+                document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
+                console.groupEnd();
+                return;
+            }
+
+            // Route messages to appropriate queues
+            switch(data.type) {
+                case "system":
+                case "simulation":
+                case "status_update":
+                    console.log('Adding to fromBackendQueue');
+                    fromBackendQueue.enqueue(data);
+                    break;
+                    
+                case "test_message":
+                    console.log('Adding test message to fromFrontendQueue');
+                    fromFrontendQueue.enqueue(data);
+                    break;
+                    
+                case "error":
+                    console.error('Server error:', data.data?.message);
+                    break;
+                    
+                default:
+                    console.warn('Unhandled message type:', data.type);
+                    break;
             }
 
             updateQueueDisplay();
+            console.groupEnd();
         } catch (e) {
             console.error('Error processing message:', e);
         }
