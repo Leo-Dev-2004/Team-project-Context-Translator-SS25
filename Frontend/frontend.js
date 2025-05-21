@@ -57,30 +57,41 @@ function updateQueueLog(logId, queue) {
             const timeDiff = (now - (item.timestamp * 1000)) / 1000;
             let statusClass = '';
             let content = '';
+            let messageType = item.type || 'unknown';
 
             // Handle different message types
-            if (item.type === 'test_message') {
+            if (messageType === 'test_message') {
                 statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-pending';
-                content = `TEST: ${item.data?.content || 'No content'}<br>
-                          <small>${item.data?.status?.toUpperCase() || 'PENDING'} ${timeDiff.toFixed(1)}s ago</small>`;
+                content = `TEST: ${item.data?.content || 'No content'}`;
             } 
-            else if (item.type === 'system') {
+            else if (messageType === 'system' || messageType === 'sys_init') {
                 statusClass = 'status-system';
-                content = `SYSTEM: ${item.data?.message || 'No message'}<br>
-                          <small>${timeDiff.toFixed(1)}s ago</small>`;
+                content = `SYSTEM: ${item.data?.message || item.data?.content || 'No message'}`;
             }
-            else if (item.type === 'simulation') {
+            else if (messageType.startsWith('sim_') || messageType === 'simulation') {
                 statusClass = item.data?.status === 'processed' ? 'status-processed' : 'status-processing';
-                content = `SIM: ${item.data?.content || 'No content'}<br>
-                          <small>${item.data?.status?.toUpperCase() || 'PROCESSING'} ${timeDiff.toFixed(1)}s ago</small>`;
+                content = `SIM ${item.data?.id || ''}: ${item.data?.content || 'No content'}`;
+            }
+            else if (messageType === 'status_update') {
+                statusClass = 'status-update';
+                content = `UPDATE: ${item.data?.message || JSON.stringify(item.data)}`;
             }
             else {
                 statusClass = 'status-unknown';
-                content = `${item.type || 'message'}: ${JSON.stringify(item.data || item)}<br>
-                          <small>${timeDiff.toFixed(1)}s ago</small>`;
+                content = `${messageType}: ${JSON.stringify(item.data || item)}`;
             }
 
-            return `<div class="log-entry ${statusClass}">${content}</div>`;
+            // Add common footer
+            const status = item.data?.status?.toUpperCase() || 
+                         (messageType === 'sys_init' ? 'INIT' : '') || 
+                         (messageType.startsWith('sim_') ? 'PROCESSING' : '');
+            
+            return `
+                <div class="log-entry ${statusClass}">
+                    ${content}
+                    <small>${status} ${timeDiff.toFixed(1)}s ago</small>
+                </div>
+            `;
         }).join('');
 
         if (queue.size() > MAX_VISIBLE_ITEMS) {
@@ -183,8 +194,9 @@ const WebSocketManager = {
     handleIncomingMessage: function(event) {
         try {
             const data = JSON.parse(event.data);
-            console.groupCollapsed('Received WebSocket message:', data.type);
-            console.log('Full message:', data);
+            console.group('Received WebSocket message');
+            console.log('Raw message:', event.data);
+            console.log('Parsed data:', data);
             
             lastMessage = data;
 
@@ -205,26 +217,48 @@ const WebSocketManager = {
             }
 
             // Route messages to appropriate queues
+            let targetQueue = null;
             switch(data.type) {
                 case "system":
                 case "simulation":
                 case "status_update":
-                    console.log('Adding to fromBackendQueue');
-                    fromBackendQueue.enqueue(data);
+                case "sys_init":
+                case "sim_":
+                    console.log('Backend message - adding to fromBackendQueue');
+                    targetQueue = fromBackendQueue;
                     break;
                     
                 case "test_message":
-                    console.log('Adding test message to fromFrontendQueue');
-                    fromFrontendQueue.enqueue(data);
+                    console.log('Test message - adding to fromFrontendQueue');
+                    targetQueue = fromFrontendQueue;
                     break;
                     
                 case "error":
                     console.error('Server error:', data.data?.message);
+                    targetQueue = fromBackendQueue; // Show errors in backend queue
                     break;
                     
                 default:
-                    console.warn('Unhandled message type:', data.type);
+                    if (data.type && data.type.startsWith('sim_')) {
+                        console.log('Simulation message - adding to fromBackendQueue');
+                        targetQueue = fromBackendQueue;
+                    } else {
+                        console.warn('Unhandled message type:', data.type);
+                        // Default to backend queue for unknown types
+                        targetQueue = fromBackendQueue;
+                    }
                     break;
+            }
+
+            if (targetQueue) {
+                // Ensure message has required fields
+                const processedMsg = {
+                    type: data.type,
+                    data: data.data || {},
+                    timestamp: data.timestamp || Date.now()/1000
+                };
+                targetQueue.enqueue(processedMsg);
+                console.log('Added to queue:', processedMsg);
             }
 
             updateQueueDisplay();
