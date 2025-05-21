@@ -114,9 +114,13 @@ class SimulationManager:
             "data": {
                 "id": "sys_init",
                 "message": "Simulation started",
-                "status": "pending"
+                "status": "pending",
+                "progress": 0,
+                "created_at": time.time()
             },
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "processing_path": [],
+            "forwarding_path": []
         }
         await self._to_backend_queue.enqueue(system_msg)
         
@@ -133,7 +137,9 @@ class SimulationManager:
                     "progress": 0,
                     "created_at": time.time()
                 },
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                "processing_path": [],
+                "forwarding_path": []
             }
             await self._to_backend_queue.enqueue(sim_msg)
             

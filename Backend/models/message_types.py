@@ -3,12 +3,17 @@ from typing import Optional, List, Dict
 import time
 
 class QueueMessage(BaseModel):
+    """Model for messages passing through internal queues"""
     type: str
-    data: dict
+    data: Dict[str, Any]
     timestamp: float = time.time()
-    status: str = "pending"
-    processing_path: List[Dict] = []
-    forwarding_path: List[Dict] = []
+    processing_path: List[Dict[str, Any]] = []
+    forwarding_path: List[Dict[str, Any]] = []
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.timestamp()
+        }
 
 class BaseMessage(BaseModel):
     type: str
