@@ -36,5 +36,13 @@ class BackendProcessedMessage(BaseMessage):
     data: Dict[str, str]
     progress: Optional[int] = None
 
-class WebSocketMessage(BaseMessage):
+class WebSocketMessage(BaseModel):
+    type: str = Field(..., description="Message type is required")
+    data: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: float = Field(default_factory=time.time)
     client_id: Optional[str] = None
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.timestamp()
+        }

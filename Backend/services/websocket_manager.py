@@ -56,8 +56,21 @@ class WebSocketManager:
         while True:
             try:
                 data = await websocket.receive_text()
-                message = WebSocketMessage(**json.loads(data))
-                await get_from_frontend_queue().enqueue(message.dict())
+                try:
+                    message = WebSocketMessage.parse_raw(data)
+                    if not message.type:
+                        await self._send_error(websocket, "Message type is required")
+                        continue
+                        
+                    await get_from_frontend_queue().enqueue({
+                        'type': message.type,
+                        'data': message.data,
+                        'timestamp': message.timestamp,
+                        'client_id': str(websocket.client)
+                    })
+                except ValidationError as e:
+                    logger.error(f"Invalid WebSocket message: {e}")
+                    await self._send_error(websocket, f"Invalid message format: {str(e)}")
             except Exception as e:
                 logger.error(f"Receive error: {e}")
                 break
