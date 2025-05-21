@@ -90,7 +90,9 @@ class WebSocketManager:
     async def shutdown(self):
         """Clean shutdown of all connections"""
         for websocket in list(self.connections):
-            await self._cleanup_connection(websocket, "shutdown")    async def handle_message(self, websocket: WebSocket, raw_data: str):
+            await self._cleanup_connection(websocket, "shutdown")
+
+    async def handle_message(self, websocket: WebSocket, raw_data: str):
         """Handle incoming WebSocket message"""
         try:
             # Validate message structure
