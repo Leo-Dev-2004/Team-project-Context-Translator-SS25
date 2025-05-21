@@ -75,7 +75,7 @@ function updateQueueLog(logId, queue) {
             else if (messageType === 'status_update') {
                 statusClass = 'status-update';
                 content = item.data?.displayContent || 
-                         `UPDATE: ${item.data?.message || JSON.stringify(item.data)}`;
+                         `Status: ${item.data?.status || 'unknown'}, Progress: ${item.data?.progress || 0}%`;
             }
             else {
                 statusClass = 'status-unknown';
@@ -217,7 +217,22 @@ const WebSocketManager = {
                 return;
             }
 
-            // Route messages to appropriate queues
+            // First handle status_update directly
+            if (data.type === 'status_update') {
+                console.log('DIRECT HANDLING: Status update received');
+                const enhancedData = {
+                    ...data,
+                    data: {
+                        ...data.data,
+                        displayContent: `Status: ${data.data.status || 'unknown'}, Progress: ${data.data.progress || 0}%`
+                    }
+                };
+                fromBackendQueue.enqueue(enhancedData);
+                updateQueueDisplay();
+                return;
+            }
+
+            // Then handle other message types
             let targetQueue = null;
             switch(data.type) {
                 case "system":
@@ -225,16 +240,6 @@ const WebSocketManager = {
                 case "sys_init":
                 case "sim_":
                     console.log('Backend message - adding to fromBackendQueue');
-                    targetQueue = fromBackendQueue;
-                    break;
-                    
-                case "status_update":
-                    console.log('Status update received - adding to fromBackendQueue');
-                    // Enhance status update data for display
-                    data.data = {
-                        ...data.data,
-                        displayContent: `Status: ${data.data.status || 'unknown'}, Progress: ${data.data.progress || 0}%`
-                    };
                     targetQueue = fromBackendQueue;
                     break;
                     
