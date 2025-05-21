@@ -3,8 +3,10 @@ import json
 import logging
 import time
 from fastapi import WebSocket
+from pydantic import ValidationError
 from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue
 from ..models.message_types import WebSocketMessage
+from ..dependencies import get_simulation_manager
 
 logger = logging.getLogger(__name__)
 
