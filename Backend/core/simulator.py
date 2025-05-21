@@ -109,38 +109,38 @@ class SimulationManager:
         """Internal simulation task"""
         logger.info("Simulation task starting")
         
-        system_msg = {
-            "type": "system",
-            "data": {
+        system_msg = QueueMessage(
+            type="system",
+            data={
                 "id": "sys_init",
                 "message": "Simulation started",
                 "status": "pending",
                 "progress": 0,
                 "created_at": time.time()
             },
-            "timestamp": time.time(),
-            "processing_path": [],
-            "forwarding_path": []
-        }
+            timestamp=time.time(),
+            processing_path=[],
+            forwarding_path=[]
+        ).dict()
         await self._to_backend_queue.enqueue(system_msg)
         
         while self.running:
             self.counter += 1
             await asyncio.sleep(1)
             
-            sim_msg = {
-                "type": "simulation",
-                "data": {
+            sim_msg = QueueMessage(
+                type="simulation",
+                data={
                     "id": f"sim_{self.counter}",
                     "content": f"Simulation message {self.counter}",
                     "status": "pending",
                     "progress": 0,
                     "created_at": time.time()
                 },
-                "timestamp": time.time(),
-                "processing_path": [],
-                "forwarding_path": []
-            }
+                timestamp=time.time(),
+                processing_path=[],
+                forwarding_path=[]
+            ).dict()
             await self._to_backend_queue.enqueue(sim_msg)
             
             await asyncio.sleep(0.5 + 1.5 * random.random())

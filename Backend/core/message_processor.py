@@ -24,11 +24,17 @@ class MessageProcessor:
         logger.info("Starting message processor")
         while True:
             try:
-                backend_msg = await self._to_backend_queue.dequeue()
+                raw_msg = await self._to_backend_queue.dequeue()
                 
                 try:
-                    validated_msg = QueueMessage(**backend_msg)
-                    backend_msg = validated_msg.dict()
+                    # Ensure message has required fields
+                    if not isinstance(raw_msg, dict):
+                        raise ValidationError("Message must be a dictionary")
+                    if 'data' not in raw_msg:
+                        raw_msg['data'] = {}
+                    
+                    msg = QueueMessage(**raw_msg)
+                    backend_msg = msg.dict()
                 except ValidationError as e:
                     logger.error(f"Invalid message format: {e}")
                     continue

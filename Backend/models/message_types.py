@@ -6,10 +6,10 @@ import time
 class QueueMessage(BaseModel):
     """Model for messages passing through internal queues"""
     type: str
-    data: Dict[str, Any]
-    timestamp: float = time.time()
-    processing_path: List[Dict[str, Any]] = []
-    forwarding_path: List[Dict[str, Any]] = []
+    data: Dict[str, Any] = {}  # Default empty dict to ensure field exists
+    timestamp: float = Field(default_factory=time.time)
+    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
+    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
     
     class Config:
         json_encoders = {
