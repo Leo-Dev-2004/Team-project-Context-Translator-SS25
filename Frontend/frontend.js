@@ -286,6 +286,8 @@ const WebSocketManager = {
                     }
                 });
                 console.log('Added to fromBackendQueue');
+                debugger; // <--- Debugger after enqueue
+                console.log("DEBUG: fromBackendQueue size after WebSocket receipt:", fromBackendQueue.size(), "Content:", fromBackendQueue.queue);
                 console.groupEnd();
             }
 
@@ -548,6 +550,7 @@ async function processBackendMessages() {
     console.log("DEBUG: processBackendMessages loop started - PID:", performance.now());
     while (true) {
         try {
+            debugger; // <--- Debugger before dequeue
             console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue...");
             console.log("DEBUG: Current fromBackendQueue state:", {
                 size: fromBackendQueue.size(),
