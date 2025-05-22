@@ -318,32 +318,46 @@ const WebSocketManager = {
             console.log('WebSocket OPEN event received');
             this._wsReadyState = WebSocket.OPEN;
             this.isConnected = true;
-            console.log('WebSocket connection established, readyState:', this.getState());
             this.reconnectAttempts = 0;
-
-            const pingId = Date.now();
-            this.send({ type: 'ping', timestamp: pingId });
-
-            const pingVerificationHandler = (event) => {
+            
+            // Clear any previous ping interval immediately on open
+            if (this.pingInterval) {
+                clearInterval(this.pingInterval);
+                this.pingInterval = null;
+            }
+        
+            // Instead of immediate ping, set up a listener for the backend's ACK
+            const ackListener = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if (msg.type === 'pong' && msg.timestamp === pingId) {
-                        console.log('WebSocket connection verified with pong');
-                        this.ws.removeEventListener('message', pingVerificationHandler);
-                        document.dispatchEvent(new CustomEvent('websocket-ready'));
-
-                        if (this.pingInterval) {
-                            clearInterval(this.pingInterval);
-                        }
+                    if (msg.type === 'connection_ack') {
+                        console.log('Backend acknowledged connection.');
+                        this.isConnected = true; // Redundant, but ensures consistency
+                        this.ws.removeEventListener('message', ackListener); // Remove listener after ACK
+        
+                        // Now that we have ACKED, start the regular ping interval
+                        console.log('Starting regular ping interval...');
                         this.pingInterval = setInterval(() => {
-                            this.send({ type: 'ping', timestamp: Date.now() });
-                        }, 30000);
+                            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                                this.send({ type: 'ping', timestamp: Date.now() });
+                            } else {
+                                // Connection is no longer open, clear interval and trigger reconnect if needed
+                                clearInterval(this.pingInterval);
+                                this.pingInterval = null;
+                                console.warn('Ping interval cleared: WebSocket not open.');
+                                // Consider triggering a reconnect here if not already handled by onclose
+                            }
+                        }, 30000); // Send ping every 30 seconds
+        
+                        document.dispatchEvent(new CustomEvent('websocket-ready')); // Signal frontend is ready
                     }
                 } catch (e) {
-                    console.error('Ping verification error:', e);
+                    console.error('Error processing ACK message:', e);
                 }
             };
-            this.ws.addEventListener('message', pingVerificationHandler);
+            this.ws.addEventListener('message', ackListener);
+        
+            console.log('Waiting for backend connection acknowledgment...');
         };
 
         this.ws.onclose = (event) => {
