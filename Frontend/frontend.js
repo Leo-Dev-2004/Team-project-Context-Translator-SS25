@@ -11,12 +11,12 @@ class MessageQueue {
         if (!message.timestamp) {
             message.timestamp = Date.now() / 1000;
         }
-        
+
         this.queue.push(message);
-        
+
         // Notify all listeners
         this._listeners.forEach(cb => cb(this.queue));
-        
+
         // Resolve pending dequeues
         while (this.pending.length > 0 && this.queue.length > 0) {
             const resolve = this.pending.shift();
@@ -111,12 +111,12 @@ function updateQueueLog(logId, queue) {
 
         if (item.type === 'status_update') {
             statusClass = `status-${item.data.status || 'unknown'}`;
-            content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>: 
+            content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>:
                        ${item.data.status?.toUpperCase() || 'UNKNOWN'} (${item.data.progress}%)<br>
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
         } else if (item.type === 'error') {
             statusClass = 'status-error';
-            content = `<span class="message-id">ERROR</span>: 
+            content = `<span class="message-id">ERROR</span>:
                        ${item.data.message || 'Unknown error'}<br>
                        ${item.data.details ? `<small>${item.data.details}</small><br>` : ''}
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
@@ -128,7 +128,7 @@ function updateQueueLog(logId, queue) {
             content = `<span class="message-id">${item.data.id}</span>: ${item.data.data || JSON.stringify(item.data)}<br>
                       <small>${(itemStatus?.toUpperCase() || '')} ${timeDiff.toFixed(1)}s ago</small>`;
         } else {
-            content = `<span class="message-type">${item.type || 'message'}</span>: 
+            content = `<span class="message-type">${item.type || 'message'}</span>:
                        ${JSON.stringify(item.data || item)}<br>
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
         }
@@ -232,7 +232,7 @@ const WebSocketManager = {
                 });
             }
             // Handle backend-originated messages
-            else if (data.type === "status_update" || 
+            else if (data.type === "status_update" ||
                     data.type === "sys_init" ||
                     data.type === "simulation_update") {
                 console.groupCollapsed(`Handling backend message [${data.type}]`);
@@ -267,11 +267,6 @@ const WebSocketManager = {
                 fromBackendQueue.enqueue(data);
                 console.log('Added to fromBackendQueue (simulation):', data);
             }
-            // Add a case for "sys_init" if it's explicitly sent via WS for display
-            // else if (data.type === "sys_init") {
-            //     toFrontendQueue.enqueue(data); // Or toBackendQueue, depending on its meaning
-            //     console.log('Added to toFrontendQueue (sys_init):', data);
-            // }
             else {
                 console.log('Unhandled message type:', data.type, data);
             }
@@ -324,13 +319,13 @@ const WebSocketManager = {
             this._wsReadyState = WebSocket.OPEN;
             this.isConnected = true;
             this.reconnectAttempts = 0;
-            
+
             // Clear any previous ping interval immediately on open
             if (this.pingInterval) {
                 clearInterval(this.pingInterval);
                 this.pingInterval = null;
             }
-        
+
             // Instead of immediate ping, set up a listener for the backend's ACK
             const ackListener = (event) => {
                 try {
@@ -339,12 +334,12 @@ const WebSocketManager = {
                         console.log('Backend acknowledged connection.');
                         this.isConnected = true; // Redundant, but ensures consistency
                         this.ws.removeEventListener('message', ackListener); // Remove listener after ACK
-        
+
                         // Now that we have ACKED, start the regular ping interval
                         console.log('Starting regular ping interval...');
                         this.pingInterval = setInterval(() => {
                             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                                this.send({ type: 'ping', data: {}, timestamp: Date.now() });
+                                this.send({ type: 'ping', data: {}, timestamp: Date.now() }); // <-- Added data: {}
                             } else {
                                 // Connection is no longer open, clear interval and trigger reconnect if needed
                                 clearInterval(this.pingInterval);
@@ -353,7 +348,7 @@ const WebSocketManager = {
                                 // Consider triggering a reconnect here if not already handled by onclose
                             }
                         }, 30000); // Send ping every 30 seconds
-        
+
                         document.dispatchEvent(new CustomEvent('websocket-ready')); // Signal frontend is ready
                     }
                 } catch (e) {
@@ -361,7 +356,7 @@ const WebSocketManager = {
                 }
             };
             this.ws.addEventListener('message', ackListener);
-        
+
             console.log('Waiting for backend connection acknowledgment...');
         };
 
@@ -431,6 +426,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
     console.log('Button handlers configured');
 
+    // Setup queue listeners
+    setupQueueListeners(); // Moved before WebSocketManager.connect() for logical flow
+
     // Initialize WebSocket connection
     console.log('Initializing WebSocket connection...');
     WebSocketManager.connect();
@@ -470,34 +468,6 @@ function setupQueueListeners() {
     });
 }
 
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    console.group('DOMContentLoaded');
-    console.log('Initializing frontend...');
-
-    // Setup button handlers
-    console.log('Setting up button handlers...');
-    document.getElementById('startSim').addEventListener('click', startSimulation);
-    document.getElementById('stopSim').addEventListener('click', stopSimulation);
-    console.log('Button handlers configured');
-
-    // Setup queue listeners
-    setupQueueListeners();
-
-    // Initialize WebSocket connection
-    console.log('Initializing WebSocket connection...');
-    WebSocketManager.connect();
-
-    // Monitor connection state changes
-    document.addEventListener('websocket-ack', () => {
-        console.log('WebSocket fully initialized and acknowledged by server');
-        document.getElementById('connectionStatus').textContent = 'Connected';
-        document.getElementById('connectionStatus').style.color = 'green';
-    });
-
-    console.groupEnd();
-});
 // Frontend message processor
 async function processBackendMessages() {
     while (true) {
@@ -509,10 +479,10 @@ async function processBackendMessages() {
             // Calculate processing time
             const processingStart = Date.now();
             const queueTime = processingStart - (message._debug?.received || processingStart);
-            
+
             // Handle different message types
             let processedMessage = {...message};
-            
+
             if (message.type === 'status_update') {
                 processedMessage = {
                     ...message,
@@ -524,7 +494,7 @@ async function processBackendMessages() {
                     }
                 };
                 toFrontendQueue.enqueue(processedMessage);
-            } 
+            }
             else if (message.type === 'sys_init') {
                 console.log('System initialization received');
                 // Additional initialization logic here
