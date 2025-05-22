@@ -478,28 +478,53 @@ function updateQueueCounters() {
 
 // Initialize queue listeners
 function setupQueueListeners() {
-    // Only listen to queues that actually need display updates
-    toFrontendQueue.addListener(() => {
-        console.log('DEBUG: toFrontendQueue changed, triggering display update');
-        updateQueueDisplay();
-    });
+    console.group('DEBUG: Setting up queue listeners');
     
-    // Optional: Add debug listeners for other queues
-    [fromFrontendQueue, toBackendQueue, fromBackendQueue].forEach(queue => {
+    const queueNames = {
+        toFrontendQueue: 'toFrontend',
+        fromFrontendQueue: 'fromFrontend', 
+        toBackendQueue: 'toBackend',
+        fromBackendQueue: 'fromBackend'
+    };
+
+    Object.entries({toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue}).forEach(([varName, queue]) => {
+        const queueName = queueNames[varName];
+        console.log(`DEBUG: Adding listener for ${queueName}Queue`);
+        
         queue.addListener(() => {
-            console.log(`DEBUG: ${queue === fromFrontendQueue ? 'fromFrontend' : 
-                        queue === toBackendQueue ? 'toBackend' : 'fromBackend'}Queue changed`);
+            console.groupCollapsed(`DEBUG: ${queueName}Queue changed`);
+            console.log('Queue state:', {
+                size: queue.size(),
+                items: queue.queue.map(i => i.type)
+            });
+            
+            if (queueName === 'toFrontend') {
+                console.log('DEBUG: Triggering display update');
+                updateQueueDisplay();
+            }
+            
+            console.groupEnd();
         });
     });
+    
+    console.groupEnd();
 }
 
 async function processBackendMessages() {
-    console.log("DEBUG: processBackendMessages loop started.");
+    console.log("DEBUG: processBackendMessages loop started - PID:", performance.now());
     while (true) {
         try {
             console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue...");
+            console.log("DEBUG: Current fromBackendQueue state:", {
+                size: fromBackendQueue.size(),
+                items: fromBackendQueue.queue.map(i => i.type)
+            });
             const message = await fromBackendQueue.dequeue();
-            console.log("DEBUG: processBackendMessages: Dequeued message:", message.type, message);
+            console.log("DEBUG: processBackendMessages: Dequeued message:", {
+                type: message.type,
+                timestamp: message.timestamp,
+                _debug: message._debug
+            });
             console.groupCollapsed(`Processing backend message [${message.type}]`);
             console.log('Full message details:', JSON.stringify(message, null, 2));
              console.log('Raw message:', message);
@@ -529,7 +554,9 @@ async function processBackendMessages() {
                 toFrontendQueue.enqueue(processedMessage);
             }
             else if (message.type === 'simulation_update') {
-                console.log('DEBUG: Processing simulation_update message');
+                console.group('DEBUG: Processing simulation_update');
+                console.log('DEBUG: Original message:', JSON.stringify(message, null, 2));
+                
                 processedMessage = {
                     ...message,
                     _debug: {
@@ -537,19 +564,30 @@ async function processBackendMessages() {
                         processed: true,
                         processingTime: Date.now() - processingStart,
                         queueTime: queueTime,
-                        processedAt: new Date().toISOString()
+                        processedAt: new Date().toISOString(),
+                        processingStage: 'frontend-processor'
                     }
                 };
-                console.log('DEBUG: Enqueuing processed message to toFrontendQueue:', processedMessage);
+                
+                console.log('DEBUG: Processed message:', JSON.stringify(processedMessage, null, 2));
+                
+                console.log('DEBUG: Enqueuing to toFrontendQueue...');
                 toFrontendQueue.enqueue(processedMessage);
-                console.log("DEBUG: toFrontendQueue state after enqueue:", {
+                
+                console.log("DEBUG: toFrontendQueue state:", {
                     size: toFrontendQueue.size(),
-                    items: toFrontendQueue.queue.map(item => ({
-                        type: item.type,
-                        timestamp: item.timestamp,
-                        _debug: item._debug
+                    items: toFrontendQueue.queue.map(i => ({
+                        type: i.type,
+                        timestamp: i.timestamp,
+                        _debug: i._debug?.processingStage
                     }))
                 });
+                
+                // Debug breakpoint - only for simulation_update messages
+                if (message.data?.debugBreak) {
+                    debugger;
+                }
+                console.groupEnd();
             }
 
             updateQueueDisplay();
