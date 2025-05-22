@@ -19,23 +19,22 @@ class WebSocketManager:
         """Handle new WebSocket connection"""
         client = websocket.client
         client_info = f"{client.host}:{client.port}" if client else "unknown"
-        
+
         try:
-            await websocket.accept()
             self.connections.add(websocket)
-            
-            # Send connection ack
+
+            # Send connection acknowledgment
             await self._send_ack(websocket)
-            
+
             # Start sender/receiver tasks
             sender = asyncio.create_task(self._sender(websocket))
             receiver = asyncio.create_task(self._receiver(websocket))
-            
+
             await asyncio.wait(
                 [sender, receiver],
                 return_when=asyncio.FIRST_COMPLETED
             )
-            
+
         except Exception as e:
             logger.error(f"Connection error for {client_info}: {e}")
         finally:
@@ -64,6 +63,7 @@ class WebSocketManager:
                 ws_msg = WebSocketMessage(
                     type=message['type'],
                     data=message.get('data', {}),
+                    client_id=message.get('client_id', str(websocket.client)),
                     timestamp=message.get('timestamp', time.time())
                 )
                 
@@ -136,7 +136,7 @@ class WebSocketManager:
                 break
 
     async def _send_ack(self, websocket: WebSocket):
-        """Send connection acknowledgement"""
+        """Send connection acknowledgment"""
         ack = {
             "type": "connection_ack",
             "status": "connected",
@@ -151,19 +151,19 @@ class WebSocketManager:
         self.ack_status.pop(websocket, None)
         try:
             await websocket.close()
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Error closing WebSocket for {client_info}: {e}")
         logger.info(f"Connection closed for {client_info}")
 
     async def _send_error(self, websocket: WebSocket, error_msg: str):
         """Send error response to client"""
         try:
-            error_msg = WebSocketMessage(
-                type="error",
-                data={"message": error_msg},
-                timestamp=time.time()
-            )
-            await websocket.send_text(error_msg.json())
+            error_response = {
+                "type": "error",
+                "message": error_msg,
+                "timestamp": time.time()
+            }
+            await websocket.send_text(json.dumps(error_response))
         except Exception as e:
             logger.error(f"Failed to send error message: {e}")
 
@@ -171,7 +171,7 @@ class WebSocketManager:
         """Get WebSocket metrics"""
         return {
             "connections": len(self.connections),
-            "ack_status": len(self.ack_status)
+            "acknowledged_connections": len(self.ack_status)
         }
 
     async def shutdown(self):
