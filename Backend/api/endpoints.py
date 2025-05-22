@@ -100,40 +100,71 @@ async def debug_queues():
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    # Accept connection exactly once
+    await websocket.accept()
+    logger.info(f"WebSocket connection established from {websocket.client}")
+
     try:
-        await websocket.accept()
-        logger.info(f"WebSocket connection established from {websocket.client}")
-
-        # Add connection to active set via WebSocketManager
+        # Register connection with WebSocketManager
         await ws_manager.handle_connection(websocket)
-
-        # Enhanced heartbeat with state tracking
-        last_active = time.time()
+        
+        # Track connection state
         connection_active = True
-        while True:
+        last_active = time.time()
+
+        while connection_active:
             try:
+                # Receive message with timeout
                 data = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=30.0  # 30 second timeout for heartbeat
+                    timeout=30.0
                 )
-
-                # Process message
+                
+                # Update last active time
+                last_active = time.time()
+                
+                # Process message through manager
                 await ws_manager.handle_message(websocket, data)
 
-                # Send periodic ping
-                await websocket.send_json({"type": "ping", "timestamp": time.time()})
+                # Send heartbeat ping
+                try:
+                    await websocket.send_json({
+                        "type": "ping", 
+                        "timestamp": time.time()
+                    })
+                except RuntimeError as e:
+                    logger.warning(f"Failed to send ping: {e}")
+                    connection_active = False
+                    break
 
             except asyncio.TimeoutError:
-                # Send ping to check connection
-                await websocket.send_json({"type": "ping", "timestamp": time.time()})
-                continue
+                # Check if connection is still alive
+                try:
+                    await websocket.send_json({
+                        "type": "ping",
+                        "timestamp": time.time()
+                    })
+                except RuntimeError as e:
+                    logger.info("Connection timed out")
+                    connection_active = False
+                    break
 
             except Exception as e:
-                logger.error(f"WebSocket error: {str(e)}")
+                logger.error(f"WebSocket error: {e}")
+                connection_active = False
                 break
 
     except Exception as e:
-        logger.error(f"WebSocket connection failed: {str(e)}")
+        logger.error(f"WebSocket setup failed: {e}")
     finally:
-        await ws_manager._cleanup_connection(websocket, str(websocket.client))
-        logger.info("WebSocket connection closed cleanly")
+        try:
+            # Clean up connection
+            await ws_manager._cleanup_connection(websocket, str(websocket.client))
+            
+            # Ensure WebSocket is closed
+            if websocket.client_state != WebSocketState.DISCONNECTED:
+                await websocket.close(code=1000)
+                
+            logger.info(f"WebSocket connection closed for {websocket.client}")
+        except Exception as e:
+            logger.error(f"Error during WebSocket cleanup: {e}")
