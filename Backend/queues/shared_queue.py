@@ -14,13 +14,37 @@ class MessageQueue:
         self._not_empty = asyncio.Condition(self._lock)
         self._not_full = asyncio.Condition(self._lock)
 
+    def _validate_message(self, message: Dict) -> bool:
+        """Validate message structure and content"""
+        if not isinstance(message, dict):
+            return False
+        if not message.get('type'):
+            return False
+        if not message.get('data'):
+            return False
+        if not isinstance(message['data'], dict):
+            return False
+        return True
+
     async def enqueue(self, message: Dict) -> None:
+        if not self._validate_message(message):
+            raise ValueError(f"Invalid message format for queue {self._name}")
+
         async with self._lock:
             while len(self._queue) >= self._max_size:
                 logger.debug(f"Queue '{self._name}' full, waiting to enqueue...")
                 await self._not_full.wait()
 
-            self._queue.append(message)
+            # Add metadata for tracing
+            enriched_msg = {
+                **message,
+                '_trace': {
+                    'timestamp': time.time(),
+                    'queue': self._name,
+                    'source': message.get('_trace', {}).get('source', 'unknown')
+                }
+            }
+            self._queue.append(enriched_msg)
             logger.debug(f"Enqueued to '{self._name}', size: {len(self._queue)}")
             self._not_empty.notify()
 

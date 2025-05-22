@@ -99,4 +99,35 @@ async def debug_queues():
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await ws_manager.handle_connection(websocket)
+    try:
+        await websocket.accept()
+        logger.info(f"WebSocket connection established from {websocket.client}")
+        
+        # Add heartbeat mechanism
+        while True:
+            try:
+                data = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=30.0  # 30 second timeout for heartbeat
+                )
+                
+                # Process message
+                await ws_manager.handle_message(websocket, data)
+                
+                # Send periodic ping
+                await websocket.send_json({"type": "ping", "timestamp": time.time()})
+                
+            except asyncio.TimeoutError:
+                # Send ping to check connection
+                await websocket.send_json({"type": "ping", "timestamp": time.time()})
+                continue
+                
+            except Exception as e:
+                logger.error(f"WebSocket error: {str(e)}")
+                break
+                
+    except Exception as e:
+        logger.error(f"WebSocket connection failed: {str(e)}")
+    finally:
+        await websocket.close(code=1000)
+        logger.info("WebSocket connection closed cleanly")

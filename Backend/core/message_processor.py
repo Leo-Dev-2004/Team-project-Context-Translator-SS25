@@ -36,6 +36,10 @@ class MessageProcessor:
         """Hauptverarbeitungsschleife mit robustem Error-Handling"""
         self._running = True
         logger.info("Starting MessageProcessor")
+        
+        # Setup structured logging
+        msg_counter = 0
+        last_log_time = time.time()
 
         while self._running:
             try:

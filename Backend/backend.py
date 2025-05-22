@@ -108,12 +108,26 @@ async def shutdown_event():
         logger.warning(f"SimulationManager not available for graceful shutdown: {e}")
 
     # 2. Cancel background tasks gracefully
-    if message_processor_task and not message_processor_task.done():
-        message_processor_task.cancel()
+    if message_processor_task:
+        logger.info("Stopping MessageProcessor...")
         try:
-            await message_processor_task
-        except asyncio.CancelledError:
-            logger.info("MessageProcessor task cancelled.")
+            # Give processor time to finish current message
+            await asyncio.wait_for(message_processor.stop(), timeout=5.0)
+            
+            if not message_processor_task.done():
+                message_processor_task.cancel()
+                try:
+                    await asyncio.wait_for(message_processor_task, timeout=2.0)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    logger.warning("MessageProcessor didn't stop cleanly")
+                    
+            # Drain remaining messages
+            remaining = message_processor._input_queue.size()
+            if remaining > 0:
+                logger.info(f"Draining {remaining} messages from input queue")
+                
+        except Exception as e:
+            logger.error(f"Error stopping MessageProcessor: {str(e)}")
     
     if queue_forwarder_task and not queue_forwarder_task.done():
         queue_forwarder_task.cancel()
