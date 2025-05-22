@@ -7,7 +7,7 @@ from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import the shared queue functions
-from .queues.shared_queue import (
+from Backend.queues.shared_queue import (
     get_initialized_queues,
     get_to_backend_queue,
     get_from_backend_queue,
@@ -27,7 +27,7 @@ from .api import endpoints
 
 # Import the functions to set and get the SimulationManager instance from dependencies.py
 from .dependencies import set_simulation_manager_instance, get_simulation_manager
-from Backend.core import message_processor # NEW IMPORT
+from Backend.core import message_processor
 
 # --- APPLICATION-WIDE LOGGING CONFIGURATION ---
 logging.basicConfig(

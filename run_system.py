@@ -74,12 +74,12 @@ class SystemRunner:
             [
                 sys.executable, 
                 "-m", "uvicorn", 
-                "backend:app",  # Changed from Backend.backend to backend
+                "Backend.backend:app",
                 "--host", "0.0.0.0",
                 "--port", str(self.backend_port),
                 "--reload"
             ],
-            cwd=str(BACKEND_DIR),  # Changed to Backend directory itself
+            cwd=str(BACKEND_DIR.parent),  # Set to project root directory
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
