@@ -424,6 +424,17 @@ function updateQueueCounters() {
     document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
     document.getElementById('toBackendCount').textContent = toBackendQueue.size();
     document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+
+    // Add debug information
+    if (console.debug) {
+        console.debug('Queue Stats:', {
+            toFrontend: toFrontendQueue.size(),
+            fromFrontend: fromFrontendQueue.size(),
+            toBackend: toBackendQueue.size(),
+            fromBackend: fromBackendQueue.size(),
+            lastMessage: lastMessage ? lastMessage.type : 'none'
+        });
+    }
 }
 
 // Initialize queue listeners
