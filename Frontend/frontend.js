@@ -472,15 +472,15 @@ function setupQueueListeners() {
     });
 }
 
-// Frontend message processor
 async function processBackendMessages() {
-    console.log("processBackendMessages: Started loop.");
+    console.log("DEBUG: processBackendMessages loop started."); // Added for debugging
     while (true) {
         try {
-            console.log("processBackendMessages: Waiting for message...");
+            console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue..."); // Added for debugging
             const message = await fromBackendQueue.dequeue();
+            console.log("DEBUG: processBackendMessages: Dequeued message:", message.type, message); // Added for debugging, shows the actual message
             console.groupCollapsed(`Processing backend message [${message.type}]`);
-            console.log('Raw message:', message);
+             console.log('Raw message:', message);
 
             // Calculate processing time
             const processingStart = Date.now();
@@ -525,6 +525,7 @@ async function processBackendMessages() {
             console.groupEnd();
         } catch (error) {
             console.error('Error processing message:', error);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Prevent tight loop on errors
         }
     }
 }
