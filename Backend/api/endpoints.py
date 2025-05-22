@@ -104,8 +104,8 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.accept()
         logger.info(f"WebSocket connection established from {websocket.client}")
 
-        # Add connection to active set
-        app.state.websockets.add(websocket)
+        # Add connection to active set via WebSocketManager
+        await ws_manager.handle_connection(websocket)
 
         # Enhanced heartbeat with state tracking
         last_active = time.time()
@@ -135,5 +135,5 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket connection failed: {str(e)}")
     finally:
-        await websocket.close(code=1000)
+        await ws_manager._cleanup_connection(websocket, str(websocket.client))
         logger.info("WebSocket connection closed cleanly")
