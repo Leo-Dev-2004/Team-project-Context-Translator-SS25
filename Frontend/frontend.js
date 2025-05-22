@@ -226,16 +226,23 @@ const WebSocketManager = {
                 return;
             }
             
-            // --- ADDED THIS NEW CONDITION ---
-            else if (data.type === "status_update") {
-                console.log('Handling status_update message:', data);
-                // Based on your previous logs, this message is coming from the backend to the frontend.
-                // So, it should be enqueued into a 'fromBackendQueue' or 'toFrontendQueue' for display.
-                // I'm assuming 'toFrontendQueue' for now as it's a message *to* the frontend's display.
-                toFrontendQueue.enqueue(data);
-                console.log('Added to toFrontendQueue (status_update):', data);
+            // Handle backend-originated messages
+            else if (data.type === "status_update" || 
+                    data.type === "sys_init" ||
+                    data.type === "simulation_update") {
+                console.groupCollapsed(`Handling backend message [${data.type}]`);
+                console.log('Raw message:', data);
+                // Messages FROM backend go to fromBackendQueue
+                fromBackendQueue.enqueue({
+                    ...data,
+                    _debug: {
+                        received: Date.now(),
+                        queue: 'fromBackend'
+                    }
+                });
+                console.log('Added to fromBackendQueue');
+                console.groupEnd();
             }
-            // --- END NEW CONDITION ---
 
             // Route application messages to appropriate queue
             else if (data.type === "frontend_message") { // Message from frontend, but probably processed and sent back to frontend
