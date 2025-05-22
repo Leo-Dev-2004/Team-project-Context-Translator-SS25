@@ -57,18 +57,18 @@ async def startup_event():
     logger.info("Application startup event triggered.")
 
     # 1. Initialize all shared queues
-    await get_initialized_queues()
+    queues = await get_initialized_queues()
     logger.info("Shared queues initialized.")
 
-    # 2. Retrieve the initialized queue instances
-    to_backend_q = get_to_backend_queue()
-    from_backend_q = get_from_backend_queue()
-    to_frontend_q = get_to_frontend_queue()
-    from_frontend_q = get_from_frontend_queue()
+    # 2. Get queue instances
+    to_backend_q = queues["to_backend"]
+    from_backend_q = queues["from_backend"] 
+    to_frontend_q = queues["to_frontend"]
+    from_frontend_q = queues["from_frontend"]
     logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
 
     # 3. Initialize the SimulationManager
-    current_sim_manager = SimulationManager( # Use a local variable here
+    current_sim_manager = SimulationManager(
         to_backend_queue=to_backend_q,
         to_frontend_queue=to_frontend_q,
         from_backend_queue=from_backend_q
@@ -80,20 +80,13 @@ async def startup_event():
     # 4. Initialize and start long-running background processors
     global message_processor_task, queue_forwarder_task
 
-    message_processor = MessageProcessor(
-        to_backend_queue=to_backend_q,
-        from_backend_queue=from_backend_q,
-        to_frontend_queue=to_frontend_q
-    )
+    message_processor = MessageProcessor()
+    await message_processor.initialize()
     message_processor_task = asyncio.create_task(message_processor.process())
     logger.info("MessageProcessor task started.")
 
-    queue_forwarder = QueueForwarder(
-        from_backend_queue=from_backend_q,
-        to_frontend_queue=to_frontend_q,
-        from_frontend_queue=from_frontend_q,
-        to_backend_queue=to_backend_q
-    )
+    queue_forwarder = QueueForwarder()
+    await queue_forwarder.initialize()
     queue_forwarder_task = asyncio.create_task(queue_forwarder.forward())
     logger.info("QueueForwarder task started.")
     

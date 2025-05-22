@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from Backend.api.endpoints import app
+from Backend.backend import app
 import logging
 
 logging.basicConfig(
