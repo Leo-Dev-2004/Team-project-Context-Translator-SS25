@@ -103,7 +103,12 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.accept()
         logger.info(f"WebSocket connection established from {websocket.client}")
         
-        # Add heartbeat mechanism
+        # Add connection to active set
+        app.state.websockets.add(websocket)
+        
+        # Enhanced heartbeat with state tracking
+        last_active = time.time()
+        connection_active = True
         while True:
             try:
                 data = await asyncio.wait_for(

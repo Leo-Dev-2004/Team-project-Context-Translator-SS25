@@ -30,18 +30,27 @@ class MessageQueue:
         if not self._validate_message(message):
             raise ValueError(f"Invalid message format for queue {self._name}")
 
+        # Generate message ID if missing
+        if 'id' not in message:
+            message['id'] = str(uuid.uuid4())
+            
+        # Add timestamp if missing
+        if 'timestamp' not in message:
+            message['timestamp'] = time.time()
+
         async with self._lock:
             while len(self._queue) >= self._max_size:
                 logger.debug(f"Queue '{self._name}' full, waiting to enqueue...")
                 await self._not_full.wait()
 
-            # Add metadata for tracing
+            # Add enhanced tracing metadata
             enriched_msg = {
                 **message,
                 '_trace': {
-                    'timestamp': time.time(),
                     'queue': self._name,
-                    'source': message.get('_trace', {}).get('source', 'unknown')
+                    'enqueue_time': time.time(),
+                    'source': message.get('source', 'unknown'),
+                    'original_timestamp': message.get('timestamp')
                 }
             }
             self._queue.append(enriched_msg)
