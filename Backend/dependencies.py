@@ -1,6 +1,6 @@
 # Backend/dependencies.py
 from typing import Optional
-from .core.simulator import SimulationManager # Correct relative import for SimulationManager
+from Backend.core.simulator import SimulationManager # Absolute import for SimulationManager
 
 # This global variable will hold the SimulationManager instance
 _global_sim_manager_instance: Optional[SimulationManager] = None
