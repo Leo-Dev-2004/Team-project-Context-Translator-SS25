@@ -417,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     console.groupEnd();
+});
 
 function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
@@ -431,6 +432,7 @@ function setupQueueListeners() {
         queue.addListener(() => updateQueueDisplay());
     });
 }
+
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {

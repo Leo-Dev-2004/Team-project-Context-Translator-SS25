@@ -19,7 +19,7 @@ class MessageProcessor:
         self._from_backend_queue = from_backend_queue
         self._to_frontend_queue = to_frontend_queue
 
-    async def process(self):
+    async def process_pipeline(self):
         """Process messages through the full pipeline"""
         logger.info("Starting message processor")
         while True:

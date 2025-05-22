@@ -1,14 +1,13 @@
+# Backend/backend.py
 import logging
 import asyncio
 from typing import Optional, Dict, Set
 
-from fastapi import FastAPI, Depends, WebSocket # Keep WebSocket if managing app.state.websockets
+from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-# --- IMPORTS FROM OTHER MODULES ---
-# Import the shared queue functions and AsyncQueue class
+# Import the shared queue functions
 from .queues.shared_queue import (
-    MessageQueue, # Assuming MessageQueue was renamed to AsyncQueue
     get_initialized_queues,
     get_to_backend_queue,
     get_from_backend_queue,
@@ -16,26 +15,26 @@ from .queues.shared_queue import (
     get_from_frontend_queue
 )
 
-# Import the SimulationManager (from core/simulator.py)
+# Import the SimulationManager class (for type hinting and instantiation)
 from .core.simulator import SimulationManager
 
-# Import the MessageProcessor (from core/message_processor.py)
+# Import MessageProcessor and QueueForwarder
 from .core.message_processor import MessageProcessor
-
-# Import the QueueForwarder (from core/queue_forwarder.py)
 from .core.queue_forwarder import QueueForwarder
 
-# Import the API router (from api/endpoints.py)
+# Import the API router
 from .api import endpoints
 
+# Import the functions to set and get the SimulationManager instance from dependencies.py
+from .dependencies import set_simulation_manager_instance, get_simulation_manager # NEW IMPORT
+
 # --- APPLICATION-WIDE LOGGING CONFIGURATION ---
-# This can remain here as it configures the central application's logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('backend.log') # Ensure this path is writable
+        logging.FileHandler('backend.log')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -44,11 +43,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # --- APPLICATION STATE ---
+app.state.websockets = set()  # type: ignore # type: Set[WebSocket]
 
-
-# --- GLOBAL INSTANCES FOR SERVICES ---
-# These will be initialized during the startup event and managed by the app
-sim_manager_instance: Optional[SimulationManager] = None
+# --- GLOBAL INSTANCES for Background Tasks ---
+# These will be set during the startup event
 message_processor_task: Optional[asyncio.Task] = None
 queue_forwarder_task: Optional[asyncio.Task] = None
 
@@ -62,44 +60,43 @@ async def startup_event():
     await get_initialized_queues()
     logger.info("Shared queues initialized.")
 
-    # 2. Retrieve the initialized queue instances (using getters)
+    # 2. Retrieve the initialized queue instances
     to_backend_q = get_to_backend_queue()
     from_backend_q = get_from_backend_queue()
     to_frontend_q = get_to_frontend_queue()
     from_frontend_q = get_from_frontend_queue()
     logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
 
-    # 3. Initialize the SimulationManager, passing it the queues
-    global sim_manager_instance
-    sim_manager_instance = SimulationManager(
+    # 3. Initialize the SimulationManager
+    current_sim_manager = SimulationManager( # Use a local variable here
         to_backend_queue=to_backend_q,
         to_frontend_queue=to_frontend_q,
         from_backend_queue=from_backend_q
     )
-    logger.info("SimulationManager initialized.")
+    # Store the initialized manager instance in the dependencies module
+    set_simulation_manager_instance(current_sim_manager) # NEW CALL
+    logger.info("SimulationManager initialized and stored in dependencies.")
 
     # 4. Initialize and start long-running background processors
     global message_processor_task, queue_forwarder_task
 
-    # Instantiate MessageProcessor and start its main processing loop
     message_processor = MessageProcessor(
         to_backend_queue=to_backend_q,
         from_backend_queue=from_backend_q,
-        to_frontend_queue=to_frontend_q # Assuming it needs to forward
+        to_frontend_queue=to_frontend_q
     )
     message_processor_task = asyncio.create_task(message_processor.process())
     logger.info("MessageProcessor task started.")
 
-    # Instantiate QueueForwarder and start its main forwarding loop
     queue_forwarder = QueueForwarder(
         from_backend_queue=from_backend_q,
         to_frontend_queue=to_frontend_q,
-        from_frontend_queue=from_frontend_q, # For client input
-        to_backend_queue=to_backend_q # For client input to backend
+        from_frontend_queue=from_frontend_q,
+        to_backend_queue=to_backend_q
     )
     queue_forwarder_task = asyncio.create_task(queue_forwarder.forward())
     logger.info("QueueForwarder task started.")
-
+    
     logger.info("Application startup complete. All core services initialized.")
 
 
@@ -107,46 +104,53 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Application shutdown event triggered.")
-
-    # 1. Stop the simulation if it's running
-    if sim_manager_instance is not None and sim_manager_instance.running:
-        await sim_manager_instance.stop()
-        logger.info("SimulationManager stopped.")
+    
+    # 1. Stop the simulation if it's running (retrieve from dependencies)
+    try:
+        shutdown_sim_manager = get_simulation_manager() # Use the getter from dependencies
+        if shutdown_sim_manager.running:
+            await shutdown_sim_manager.stop()
+            logger.info("SimulationManager stopped.")
+    except RuntimeError as e:
+        logger.warning(f"SimulationManager not available for graceful shutdown: {e}")
 
     # 2. Cancel background tasks gracefully
     if message_processor_task and not message_processor_task.done():
         message_processor_task.cancel()
         try:
-            await message_processor_task # Await task to complete cancellation
+            await message_processor_task
         except asyncio.CancelledError:
             logger.info("MessageProcessor task cancelled.")
     
     if queue_forwarder_task and not queue_forwarder_task.done():
         queue_forwarder_task.cancel()
         try:
-            await queue_forwarder_task # Await task to complete cancellation
+            await queue_forwarder_task
         except asyncio.CancelledError:
             logger.info("QueueForwarder task cancelled.")
 
-
+    # 3. Close active WebSocket connections
+    for ws in list(app.state.websockets):
+        try:
+            await ws.close(code=1000)
+        except RuntimeError as e:
+            logger.warning(f"Error closing WebSocket during shutdown: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error during WebSocket close in shutdown: {e}")
+        app.state.websockets.discard(ws)
+    logger.info("All WebSocket connections attempted to close.")
+    
     logger.info("Application shutdown complete.")
 
 
-# --- DEPENDENCY INJECTION FUNCTIONS ---
-from .dependencies import get_simulation_manager
-
-
 # --- FASTAPI MIDDLEWARE ---
-# CORS configuration for your application
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"], # Your frontend URL
+    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"],
     allow_credentials=True,
-    allow_methods=["*"], # Allow all HTTP methods
-    allow_headers=["*"], # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-
 # --- INCLUDE API ROUTERS ---
-# This line integrates all the routes defined in your endpoints.py file
 app.include_router(endpoints.router)

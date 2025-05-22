@@ -1,10 +1,12 @@
+# Backend/api/endpoints.py
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends
 import asyncio
 import logging
+import time
 import json
 from typing import Optional
+
 from ..core.simulator import SimulationManager
-from ..dependencies import get_simulation_manager
 from ..queues.shared_queue import (
     get_to_backend_queue,
     get_to_frontend_queue,
@@ -14,9 +16,12 @@ from ..queues.shared_queue import (
 )
 from ..services.websocket_manager import WebSocketManager
 
+# IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
+from ..dependencies import get_simulation_manager # NEW IMPORT
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
-ws_manager = WebSocketManager()
+ws_manager = WebSocketManager() # Consider if this should also be managed as a dependency
 
 @router.get("/")
 async def root():
@@ -33,25 +38,27 @@ async def get_metrics():
 @router.get("/simulation/start")
 async def start_simulation(
     background_tasks: BackgroundTasks,
-    manager: SimulationManager = Depends(get_simulation_manager)
+    manager: SimulationManager = Depends(get_simulation_manager) # Use the imported dependency
 ):
     return await manager.start(background_tasks)
 
 @router.get("/simulation/stop")
 async def stop_simulation(
-    manager: SimulationManager = Depends(get_simulation_manager)
+    manager: SimulationManager = Depends(get_simulation_manager) # Use the imported dependency
 ):
     return await manager.stop()
 
 @router.get("/simulation/status")
 async def simulation_status(
-    manager: SimulationManager = Depends(get_simulation_manager)
+    manager: SimulationManager = Depends(get_simulation_manager) # Use the imported dependency
 ):
     return await manager.status()
 
 @router.get("/queues/debug")
 async def debug_queues():
     """Debug endpoint to show detailed queue contents"""
+    # Assuming get_current_items_for_debug exists in AsyncQueue in shared_queue.py
+    # If not, you need to add it or revert to inline function (less clean)
     def format_queue_item_details(item: dict) -> dict:
         """Helper to format individual queue item details for consistent output."""
         details = {
@@ -70,32 +77,26 @@ async def debug_queues():
                 "message": data.get('message') or data.get('content')
             })
         return details
-
+    
     return {
         "to_frontend_queue": {
             "size": get_to_frontend_queue().size(),
-            "items": [format_queue_item_details(item) for item in 
-                     get_to_frontend_queue().get_current_items_for_debug()]
+            "items": [format_queue_item_details(item) for item in get_to_frontend_queue().get_current_items_for_debug()]
         },
         "from_frontend_queue": {
             "size": get_from_frontend_queue().size(),
-            "items": [format_queue_item_details(item) for item in 
-                     get_from_frontend_queue().get_current_items_for_debug()]
+            "items": [format_queue_item_details(item) for item in get_from_frontend_queue().get_current_items_for_debug()]
         },
         "to_backend_queue": {
             "size": get_to_backend_queue().size(),
-            "items": [format_queue_item_details(item) for item in 
-                     get_to_backend_queue().get_current_items_for_debug()]
+            "items": [format_queue_item_details(item) for item in get_to_backend_queue().get_current_items_for_debug()]
         },
         "from_backend_queue": {
             "size": get_from_backend_queue().size(),
-            "items": [format_queue_item_details(item) for item in 
-                     get_from_backend_queue().get_current_items_for_debug()]
+            "items": [format_queue_item_details(item) for item in get_from_backend_queue().get_current_items_for_debug()]
         }
     }
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.handle_connection(websocket)
-
-
