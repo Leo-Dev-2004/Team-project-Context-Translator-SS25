@@ -7,6 +7,7 @@ import webbrowser
 import time
 import requests
 import os
+import psutil
 from pathlib import Path
 
 # Configure logging
@@ -32,10 +33,11 @@ class SystemRunner:
         self.running = True
 
     def check_ports_available(self):
-        """Check if required ports are available, kill processes if on Linux"""
+        """Check if required ports are available and kill processes using them"""
         import socket
         import platform
         import subprocess
+        import psutil
         
         for port in [self.backend_port, self.frontend_port]:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -43,22 +45,28 @@ class SystemRunner:
                 sock.bind(("localhost", port))
                 sock.close()
             except socket.error:
-                if platform.system() == "Linux":
-                    try:
-                        # Find and kill process using the port
-                        result = subprocess.run(
-                            ["fuser", f"{port}/tcp", "-k"],
-                            capture_output=True,
-                            text=True
-                        )
-                        if result.returncode == 0:
-                            logger.warning(f"Killed process using port {port}")
-                            time.sleep(1)  # Wait for port to be released
+                logger.warning(f"Port {port} is in use, attempting to kill process...")
+                try:
+                    # Cross-platform way to find and kill process
+                    for proc in psutil.process_iter(['pid', 'name', 'connections']):
+                        try:
+                            for conn in proc.connections():
+                                if conn.laddr.port == port:
+                                    logger.warning(f"Killing process {proc.pid} ({proc.name()}) using port {port}")
+                                    proc.kill()
+                                    time.sleep(1)  # Wait for port to be released
+                                    break
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
                             continue
-                    except Exception as e:
-                        logger.error(f"Failed to kill process on port {port}: {e}")
-                logger.error(f"Port {port} is already in use!")
-                return False
+                    
+                    # Verify port is now free
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.bind(("localhost", port))
+                    sock.close()
+                    logger.info(f"Port {port} is now available")
+                except Exception as e:
+                    logger.error(f"Failed to free port {port}: {e}")
+                    return False
         return True
 
     def run_backend_server(self):
