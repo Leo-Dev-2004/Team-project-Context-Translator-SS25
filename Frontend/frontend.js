@@ -103,16 +103,12 @@ function updateQueueLog(logId, queue) {
     // Limit display while keeping actual queue intact
     visibleItems = visibleItems.slice(0, MAX_VISIBLE_ITEMS);
 
-    // Use document fragment for better performance
-    const fragment = document.createDocumentFragment();
-    
-    visibleItems.forEach(item => {
+    // CORRECTED: Use map to create an array of HTML strings, then join them
+    const htmlContent = visibleItems.map(item => {
         const timeDiff = (now - (item.timestamp * 1000)) / 1000;
         let statusClass = '';
         let content = '';
 
-        // --- MODIFIED LOGIC FOR DISPLAYING MESSAGES ---
-        // Ensure 'item.data' is checked and 'item.type' is correctly used
         if (item.type === 'status_update') {
             statusClass = `status-${item.data.status || 'unknown'}`;
             content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>: 
@@ -124,14 +120,14 @@ function updateQueueLog(logId, queue) {
                        ${item.data.message || 'Unknown error'}<br>
                        ${item.data.details ? `<small>${item.data.details}</small><br>` : ''}
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
-        } else if (item.data && item.data.id) { // This seems to be for backend processed messages
-            if (item.status === 'created') statusClass = 'status-created';
-            if (item.status === 'processing') statusClass = 'status-processing';
-            if (item.status === 'processed') statusClass = 'status-processed';
+        } else if (item.data && item.data.id) {
+            const itemStatus = item.status || item.data?.status;
+            if (itemStatus === 'created') statusClass = 'status-created';
+            else if (itemStatus === 'processing') statusClass = 'status-processing';
+            else if (itemStatus === 'processed') statusClass = 'status-processed';
             content = `<span class="message-id">${item.data.id}</span>: ${item.data.data || JSON.stringify(item.data)}<br>
-                      <small>${item.status?.toUpperCase() || ''} ${timeDiff.toFixed(1)}s ago</small>`;
-        } else { // Generic message handling (e.g., from frontend side before backend processing)
-            // Use item.type and item.data for display
+                      <small>${(itemStatus?.toUpperCase() || '')} ${timeDiff.toFixed(1)}s ago</small>`;
+        } else {
             content = `<span class="message-type">${item.type || 'message'}</span>: 
                        ${JSON.stringify(item.data || item)}<br>
                        <small>${timeDiff.toFixed(1)}s ago</small>`;
@@ -140,10 +136,9 @@ function updateQueueLog(logId, queue) {
         return `<div class="log-entry ${statusClass}">${content}</div>`;
     }).join('');
 
-    // Auto-scroll to bottom
+    logElement.innerHTML = htmlContent;
     logElement.scrollTop = logElement.scrollHeight;
 
-    // Add overflow indicator if there are more items
     if (queue.size() > MAX_VISIBLE_ITEMS) {
         logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
     }
@@ -225,7 +220,17 @@ const WebSocketManager = {
                 document.dispatchEvent(new CustomEvent('websocket-pong', { detail: data }));
                 return;
             }
-            
+            // Handle error messages explicitly
+            else if (data.type === "error") {
+                console.error(`Backend Error: ${data.message}`, data.details || '');
+                fromBackendQueue.enqueue({
+                    ...data,
+                    _debug: {
+                        received: Date.now(),
+                        queue: 'fromBackend'
+                    }
+                });
+            }
             // Handle backend-originated messages
             else if (data.type === "status_update" || 
                     data.type === "sys_init" ||
