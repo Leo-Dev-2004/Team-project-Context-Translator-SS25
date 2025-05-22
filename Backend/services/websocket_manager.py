@@ -3,6 +3,7 @@ import json
 import logging
 import time
 from fastapi import WebSocket
+from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
 from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue
 from ..models.message_types import WebSocketMessage
