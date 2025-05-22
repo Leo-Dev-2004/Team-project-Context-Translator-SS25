@@ -67,20 +67,19 @@ class SystemRunner:
             sys.exit(1)
 
         logger.info("Starting backend server...")
-        # Set PYTHONPATH to include project root
+        # Use clean environment without PYTHONPATH override
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(BACKEND_DIR.parent)
 
         backend = subprocess.Popen(
             [
                 sys.executable, 
                 "-m", "uvicorn", 
-                "Backend.backend:app",
+                "backend:app",  # Changed from Backend.backend to backend
                 "--host", "0.0.0.0",
                 "--port", str(self.backend_port),
                 "--reload"
             ],
-            cwd=str(BACKEND_DIR.parent),
+            cwd=str(BACKEND_DIR),  # Changed to Backend directory itself
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

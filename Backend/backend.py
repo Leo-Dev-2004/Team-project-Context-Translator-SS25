@@ -7,7 +7,7 @@ from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import the shared queue functions
-from Backend.queues.shared_queue import (
+from .queues.shared_queue import (
     get_initialized_queues,
     get_to_backend_queue,
     get_from_backend_queue,
