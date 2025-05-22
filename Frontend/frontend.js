@@ -158,6 +158,32 @@ function updateQueueLog(logId, queue) {
     console.groupEnd();
 }
 
+// --- Add this function back in your frontend.js file ---
+function sendTestMessage() {
+    console.log("Attempting to send test message...");
+    const testMessage = {
+        type: "test_message", // Use a distinct type for test messages
+        data: {
+            content: "This is a test message from the frontend.",
+            timestamp: Date.now() // Use ms for consistency with other timestamps
+        },
+        _debug: {
+            sent: Date.now(),
+            queue: 'fromFrontend' // Or 'toFrontend' if you want it to appear there directly
+        }
+    };
+
+    // Decide which queue this test message should appear in for debugging
+    // For now, let's target fromFrontendQueue, as it's typically for messages *originating* from the frontend
+    fromFrontendQueue.enqueue(testMessage); // This is where the message enters a queue
+    console.log("DEBUG: Test message enqueued to fromFrontendQueue. Current size:", fromFrontendQueue.size(), "Content:", fromFrontendQueue.queue);
+    debugger; // <--- Debugger after enqueue
+
+    // Trigger display update after enqueuing
+    updateQueueDisplay();
+    console.log("DEBUG: updateQueueDisplay triggered for test message.");
+}
+
 async function startSimulation() {
     try {
         console.log('Starting simulation...');
