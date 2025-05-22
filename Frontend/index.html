@@ -21,12 +21,49 @@
             background-color: #f8f9fa;
             padding: 15px;
             border: 2px solid #0d6efd;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            min-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 250px;
             height: 100%;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .queue-box:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .queue-box::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to top, rgba(248,249,250,1), rgba(248,249,250,0));
+            pointer-events: none;
+        }
+
+        .queue-box h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 0 10px 0;
+            padding-bottom: 8px;
+            color: #0d6efd;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .queue-count {
+            background: #0d6efd;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
         }
         
         .log-entry {
@@ -108,13 +145,39 @@
         .queue-log {
             flex-grow: 1;
             overflow-y: auto;
-            font-family: monospace;
-            white-space: pre;
+            font-family: 'Courier New', monospace;
             background-color: white;
-            padding: 5px;
-            border: 1px solid #ddd;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
             margin-top: 10px;
-            max-height: 100%;
+            max-height: calc(100% - 40px);
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            scrollbar-width: thin;
+            scrollbar-color: #0d6efd #f0f0f0;
+        }
+
+        .queue-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .queue-log::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .queue-log::-webkit-scrollbar-thumb {
+            background-color: #0d6efd;
+            border-radius: 4px;
+        }
+
+        @keyframes highlightNew {
+            0% { background-color: rgba(13, 110, 253, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        .new-entry {
+            animation: highlightNew 1.5s ease-out;
         }
         .queue-box h3 {
             color: #0d6efd;
@@ -163,22 +226,32 @@
     </div>
     <div id="queuesContainer" style="display: flex; gap: 20px; margin-top: 20px;">
         <div class="queue-box">
-            <h3>To Frontend Queue</h3>
+            <h3>To Frontend Queue <span id="toFrontendCount" class="queue-count">0</span></h3>
             <div id="toFrontendLog" class="queue-log"></div>
         </div>
         <div class="queue-box">
-            <h3>From Frontend Queue</h3>
+            <h3>From Frontend Queue <span id="fromFrontendCount" class="queue-count">0</span></h3>
             <div id="fromFrontendLog" class="queue-log"></div>
         </div>
         <div class="queue-box">
-            <h3>To Backend Queue</h3>
+            <h3>To Backend Queue <span id="toBackendCount" class="queue-count">0</span></h3>
             <div id="toBackendLog" class="queue-log"></div>
         </div>
         <div class="queue-box">
-            <h3>From Backend Queue</h3>
+            <h3>From Backend Queue <span id="fromBackendCount" class="queue-count">0</span></h3>
             <div id="fromBackendLog" class="queue-log"></div>
         </div>
     </div>
+
+    <script>
+        // Add this to your frontend.js later
+        function updateQueueCounters() {
+            document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
+            document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
+            document.getElementById('toBackendCount').textContent = toBackendQueue.size();
+            document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+        }
+    </script>
     
     <script src="frontend.js"></script>
 </body>
