@@ -277,9 +277,7 @@ const WebSocketManager = {
                 console.log('Unhandled message type:', data.type, data);
             }
 
-            updateQueueDisplay();
-            console.log("DEBUG: After updateQueueDisplay - toFrontendQueue content:", 
-                JSON.stringify(toFrontendQueue.queue, null, 2));
+            console.log("DEBUG: Message processing complete in handleIncomingMessage");
         } catch (e) {
             console.error('Error processing message:', e);
         }
@@ -448,8 +446,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('connectionStatus').style.color = 'green';
 
         // Start processing backend messages now that connection is ready
-        console.log("Starting backend message processor...");
-        processBackendMessages();
+        if (!window._backendProcessorStarted) {
+            console.log("DEBUG: Starting backend message processor for the first time...");
+            window._backendProcessorStarted = true;
+            processBackendMessages();
+        } else {
+            console.log("DEBUG: Backend message processor already running");
+        }
     });
 
     console.groupEnd();
@@ -475,8 +478,18 @@ function updateQueueCounters() {
 
 // Initialize queue listeners
 function setupQueueListeners() {
-    [toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue].forEach(queue => {
-        queue.addListener(() => updateQueueDisplay());
+    // Only listen to queues that actually need display updates
+    toFrontendQueue.addListener(() => {
+        console.log('DEBUG: toFrontendQueue changed, triggering display update');
+        updateQueueDisplay();
+    });
+    
+    // Optional: Add debug listeners for other queues
+    [fromFrontendQueue, toBackendQueue, fromBackendQueue].forEach(queue => {
+        queue.addListener(() => {
+            console.log(`DEBUG: ${queue === fromFrontendQueue ? 'fromFrontend' : 
+                        queue === toBackendQueue ? 'toBackend' : 'fromBackend'}Queue changed`);
+        });
     });
 }
 
@@ -516,20 +529,27 @@ async function processBackendMessages() {
                 toFrontendQueue.enqueue(processedMessage);
             }
             else if (message.type === 'simulation_update') {
-                console.log('Simulation update received and enqueued for display');
+                console.log('DEBUG: Processing simulation_update message');
                 processedMessage = {
                     ...message,
                     _debug: {
                         ...message._debug,
                         processed: true,
                         processingTime: Date.now() - processingStart,
-                        queueTime: queueTime
+                        queueTime: queueTime,
+                        processedAt: new Date().toISOString()
                     }
                 };
+                console.log('DEBUG: Enqueuing processed message to toFrontendQueue:', processedMessage);
                 toFrontendQueue.enqueue(processedMessage);
-                console.log("DEBUG: Simulation update enqueued to toFrontendQueue. Current size:", 
-                    toFrontendQueue.size(), "Content:", JSON.stringify(toFrontendQueue.queue, null, 2));
-                debugger; // Pause here for inspection
+                console.log("DEBUG: toFrontendQueue state after enqueue:", {
+                    size: toFrontendQueue.size(),
+                    items: toFrontendQueue.queue.map(item => ({
+                        type: item.type,
+                        timestamp: item.timestamp,
+                        _debug: item._debug
+                    }))
+                });
             }
 
             updateQueueDisplay();
