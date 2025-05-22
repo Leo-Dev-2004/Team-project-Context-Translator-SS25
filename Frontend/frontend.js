@@ -3,10 +3,21 @@ class MessageQueue {
     constructor() {
         this.queue = [];
         this.pending = [];
+        this._listeners = new Set();
     }
 
     enqueue(message) {
+        // Add timestamp if not present
+        if (!message.timestamp) {
+            message.timestamp = Date.now() / 1000;
+        }
+        
         this.queue.push(message);
+        
+        // Notify all listeners
+        this._listeners.forEach(cb => cb(this.queue));
+        
+        // Resolve pending dequeues
         while (this.pending.length > 0 && this.queue.length > 0) {
             const resolve = this.pending.shift();
             resolve(this.queue.shift());
@@ -23,6 +34,19 @@ class MessageQueue {
     size() {
         return this.queue.length;
     }
+
+    addListener(callback) {
+        this._listeners.add(callback);
+    }
+
+    removeListener(callback) {
+        this._listeners.delete(callback);
+    }
+
+    clear() {
+        this.queue = [];
+        this._listeners.forEach(cb => cb(this.queue));
+    }
 }
 
 const toBackendQueue = new MessageQueue();
@@ -34,25 +58,55 @@ let lastMessage = null;
 
 const MAX_VISIBLE_ITEMS = 20;
 
+let lastUpdateTime = 0;
+const UPDATE_THROTTLE_MS = 100;
+
 function updateQueueDisplay() {
-    // Update queue logs
-    updateQueueLog('toFrontendLog', toFrontendQueue);
-    updateQueueLog('fromFrontendLog', fromFrontendQueue);
-    updateQueueLog('toBackendLog', toBackendQueue);
-    updateQueueLog('fromBackendLog', fromBackendQueue);
+    const now = performance.now();
+    if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
+        requestAnimationFrame(updateQueueDisplay);
+        return;
+    }
+    lastUpdateTime = now;
+
+    // Batch updates using microtask queue
+    Promise.resolve().then(() => {
+        updateQueueLog('toFrontendLog', toFrontendQueue);
+        updateQueueLog('fromFrontendLog', fromFrontendQueue);
+        updateQueueLog('toBackendLog', toBackendQueue);
+        updateQueueLog('fromBackendLog', fromBackendQueue);
+        updateQueueCounters();
+    });
 }
 
 function updateQueueLog(logId, queue) {
     const logElement = document.getElementById(logId);
     if (!logElement) return;
 
-    const items = queue.queue.slice().reverse();
+    // Create a stable copy of queue items
+    const items = [...queue.queue].reverse();
     const now = Date.now();
 
-    // Only show last 20 items to prevent overflow
-    const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
+    // Apply smart filtering based on queue type
+    let visibleItems = items;
+    if (logId === 'toFrontendLog') {
+        // Prioritize error and status messages
+        visibleItems = items.sort((a, b) => {
+            if (a.type === 'error') return -1;
+            if (b.type === 'error') return 1;
+            if (a.type === 'status_update') return -1;
+            if (b.type === 'status_update') return 1;
+            return 0;
+        });
+    }
 
-    logElement.innerHTML = visibleItems.map(item => {
+    // Limit display while keeping actual queue intact
+    visibleItems = visibleItems.slice(0, MAX_VISIBLE_ITEMS);
+
+    // Use document fragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    visibleItems.forEach(item => {
         const timeDiff = (now - (item.timestamp * 1000)) / 1000;
         let statusClass = '';
         let content = '';
@@ -364,5 +418,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.groupEnd();
 
-    // The display is updated on each message arrival, no need for a separate interval
+function updateQueueCounters() {
+    document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
+    document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
+    document.getElementById('toBackendCount').textContent = toBackendQueue.size();
+    document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+}
+
+// Initialize queue listeners
+function setupQueueListeners() {
+    [toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue].forEach(queue => {
+        queue.addListener(() => updateQueueDisplay());
+    });
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    console.group('DOMContentLoaded');
+    console.log('Initializing frontend...');
+
+    // Setup button handlers
+    console.log('Setting up button handlers...');
+    document.getElementById('startSim').addEventListener('click', startSimulation);
+    document.getElementById('stopSim').addEventListener('click', stopSimulation);
+    console.log('Button handlers configured');
+
+    // Setup queue listeners
+    setupQueueListeners();
+
+    // Initialize WebSocket connection
+    console.log('Initializing WebSocket connection...');
+    WebSocketManager.connect();
+
+    // Monitor connection state changes
+    document.addEventListener('websocket-ack', () => {
+        console.log('WebSocket fully initialized and acknowledged by server');
+        document.getElementById('connectionStatus').textContent = 'Connected';
+        document.getElementById('connectionStatus').style.color = 'green';
+    });
+
+    console.groupEnd();
 });
