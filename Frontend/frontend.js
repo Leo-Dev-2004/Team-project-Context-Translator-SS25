@@ -472,3 +472,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.groupEnd();
 });
+// Frontend message processor
+async function processBackendMessages() {
+    while (true) {
+        try {
+            const message = await fromBackendQueue.dequeue();
+            console.groupCollapsed(`Processing backend message [${message.type}]`);
+            console.log('Raw message:', message);
+
+            // Calculate processing time
+            const processingStart = Date.now();
+            const queueTime = processingStart - (message._debug?.received || processingStart);
+            
+            // Handle different message types
+            let processedMessage = {...message};
+            
+            if (message.type === 'status_update') {
+                processedMessage = {
+                    ...message,
+                    _debug: {
+                        ...message._debug,
+                        processed: true,
+                        processingTime: Date.now() - processingStart,
+                        queueTime: queueTime
+                    }
+                };
+                toFrontendQueue.enqueue(processedMessage);
+            } 
+            else if (message.type === 'sys_init') {
+                console.log('System initialization received');
+                // Additional initialization logic here
+            }
+            else if (message.type === 'simulation_update') {
+                console.log('Simulation update received');
+                // Handle simulation updates
+            }
+
+            updateQueueDisplay();
+            console.log('Message processed in', Date.now() - processingStart, 'ms');
+            console.groupEnd();
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
+    }
+}
