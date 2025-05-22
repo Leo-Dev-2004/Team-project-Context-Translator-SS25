@@ -26,7 +26,8 @@ from .core.queue_forwarder import QueueForwarder
 from .api import endpoints
 
 # Import the functions to set and get the SimulationManager instance from dependencies.py
-from .dependencies import set_simulation_manager_instance, get_simulation_manager # NEW IMPORT
+from .dependencies import set_simulation_manager_instance, get_simulation_manager
+from Backend.core import message_processor # NEW IMPORT
 
 # --- APPLICATION-WIDE LOGGING CONFIGURATION ---
 logging.basicConfig(

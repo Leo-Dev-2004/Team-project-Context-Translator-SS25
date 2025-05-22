@@ -15,7 +15,7 @@ class MessageProcessor:
         self._running = False
         self._input_queue = None
         self._output_queue = None
-        self._frontend_queue = None
+        self._fronRtend_queue = None
 
     async def initialize(self):
         """Sichere Initialisierung mit Queue-Validierung"""
