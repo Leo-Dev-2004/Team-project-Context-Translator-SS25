@@ -48,10 +48,12 @@ class SystemRunner:
                 logger.warning(f"Port {port} is in use, attempting to kill process...")
                 try:
                     # Cross-platform way to find and kill process
-                    for proc in psutil.process_iter(['pid', 'name', 'connections']):
+                    for proc in psutil.process_iter(['pid', 'name']):
                         try:
-                            for conn in proc.connections():
-                                if conn.laddr.port == port:
+                            # Get connections if available (may not work on all platforms)
+                            conns = proc.connections() if hasattr(proc, 'connections') else []
+                            for conn in conns:
+                                if hasattr(conn, 'laddr') and conn.laddr and conn.laddr.port == port:
                                     logger.warning(f"Killing process {proc.pid} ({proc.name()}) using port {port}")
                                     proc.kill()
                                     time.sleep(1)  # Wait for port to be released
