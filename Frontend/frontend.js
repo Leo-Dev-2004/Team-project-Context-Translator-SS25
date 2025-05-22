@@ -278,6 +278,8 @@ const WebSocketManager = {
             }
 
             updateQueueDisplay();
+            console.log("DEBUG: After updateQueueDisplay - toFrontendQueue content:", 
+                JSON.stringify(toFrontendQueue.queue, null, 2));
         } catch (e) {
             console.error('Error processing message:', e);
         }
@@ -479,13 +481,14 @@ function setupQueueListeners() {
 }
 
 async function processBackendMessages() {
-    console.log("DEBUG: processBackendMessages loop started."); // Added for debugging
+    console.log("DEBUG: processBackendMessages loop started.");
     while (true) {
         try {
-            console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue..."); // Added for debugging
+            console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue...");
             const message = await fromBackendQueue.dequeue();
-            console.log("DEBUG: processBackendMessages: Dequeued message:", message.type, message); // Added for debugging, shows the actual message
+            console.log("DEBUG: processBackendMessages: Dequeued message:", message.type, message);
             console.groupCollapsed(`Processing backend message [${message.type}]`);
+            console.log('Full message details:', JSON.stringify(message, null, 2));
              console.log('Raw message:', message);
 
             // Calculate processing time
@@ -524,8 +527,9 @@ async function processBackendMessages() {
                     }
                 };
                 toFrontendQueue.enqueue(processedMessage);
-                console.log("DEBUG: Message enqueued to toFrontendQueue. Current size:", 
-                    toFrontendQueue.size(), "Content:", toFrontendQueue.queue);
+                console.log("DEBUG: Simulation update enqueued to toFrontendQueue. Current size:", 
+                    toFrontendQueue.size(), "Content:", JSON.stringify(toFrontendQueue.queue, null, 2));
+                debugger; // Pause here for inspection
             }
 
             updateQueueDisplay();
