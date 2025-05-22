@@ -149,11 +149,21 @@ class WebSocketManager:
         """Clean up connection resources"""
         self.connections.discard(websocket)
         self.ack_status.pop(websocket, None)
-        try:
-            await websocket.close()
-        except Exception as e:
-            logger.error(f"Error closing WebSocket for {client_info}: {e}")
-        logger.info(f"Connection closed for {client_info}")
+        
+        # Check WebSocket state before attempting to close
+        if websocket.client_state != WebSocketState.DISCONNECTED:
+            try:
+                await websocket.close(code=1000)  # 1000 = normal closure
+                logger.info(f"Closed WebSocket connection for {client_info}")
+            except RuntimeError as e:
+                # Already closing/closed
+                logger.debug(f"WebSocket already closing for {client_info}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error closing WebSocket for {client_info}: {e}")
+        else:
+            logger.debug(f"WebSocket for {client_info} was already disconnected")
+
+        logger.info(f"Connection cleanup completed for {client_info}")
 
     async def _send_error(self, websocket: WebSocket, error_msg: str):
         """Send error response to client"""
