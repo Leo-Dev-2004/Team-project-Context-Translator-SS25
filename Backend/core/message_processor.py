@@ -37,6 +37,26 @@ class MessageProcessor:
         self._running = True
         logger.info("Starting MessageProcessor")
         
+        # Message statistics
+        processed_count = 0
+        last_log_time = time.time()
+        
+        while self._running:
+            try:
+                # Get message with timeout
+                message = await self._safe_dequeue(self._input_queue)
+                if message is None:
+                    await asyncio.sleep(0.1)
+                    continue
+                    
+                # Log message receipt
+                logger.debug(f"Processing message {message['id']} from {message.get('_trace', {}).get('source')}")
+                
+                # Process message
+                start_time = time.time()
+                processed_msg = await self._process_message(message)
+                processing_time = time.time() - start_time
+        
         # Setup structured logging
         msg_counter = 0
         last_log_time = time.time()
