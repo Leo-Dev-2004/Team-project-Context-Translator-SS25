@@ -15,6 +15,7 @@ from ..queues.shared_queue import (
     get_dead_letter_queue
 )
 from ..services.websocket_manager import WebSocketManager
+from ..main import app  # Import the FastAPI app instance
 
 # IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
 from ..dependencies import get_simulation_manager # NEW IMPORT
@@ -102,10 +103,10 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
         logger.info(f"WebSocket connection established from {websocket.client}")
-        
+
         # Add connection to active set
         app.state.websockets.add(websocket)
-        
+
         # Enhanced heartbeat with state tracking
         last_active = time.time()
         connection_active = True
@@ -115,22 +116,22 @@ async def websocket_endpoint(websocket: WebSocket):
                     websocket.receive_text(),
                     timeout=30.0  # 30 second timeout for heartbeat
                 )
-                
+
                 # Process message
                 await ws_manager.handle_message(websocket, data)
-                
+
                 # Send periodic ping
                 await websocket.send_json({"type": "ping", "timestamp": time.time()})
-                
+
             except asyncio.TimeoutError:
                 # Send ping to check connection
                 await websocket.send_json({"type": "ping", "timestamp": time.time()})
                 continue
-                
+
             except Exception as e:
                 logger.error(f"WebSocket error: {str(e)}")
                 break
-                
+
     except Exception as e:
         logger.error(f"WebSocket connection failed: {str(e)}")
     finally:
