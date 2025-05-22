@@ -70,6 +70,11 @@ class SystemRunner:
         # Use clean environment without PYTHONPATH override
         env = os.environ.copy()
 
+        # Add debug logs to verify working directory and environment variables
+        logger.info(f"Current working directory: {os.getcwd()}")
+        env["PYTHONPATH"] = str(BACKEND_DIR.parent)
+        logger.info(f"PYTHONPATH set to: {env['PYTHONPATH']}")
+
         backend = subprocess.Popen(
             [
                 sys.executable, 
