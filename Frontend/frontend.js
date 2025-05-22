@@ -109,7 +109,9 @@ function updateQueueLog(logId, queue) {
     visibleItems = visibleItems.slice(0, MAX_VISIBLE_ITEMS);
 
     // CORRECTED: Use map to create an array of HTML strings, then join them
-    const htmlContent = visibleItems.map(item => {
+    console.log("Generating HTML for", visibleItems.length, "visible items");
+    const htmlContent = visibleItems.map((item, index) => {
+        console.log(`Processing item ${index}:`, item.type);
         const timeDiff = (now - (item.timestamp * 1000)) / 1000;
         let statusClass = '';
         let content = '';
@@ -142,12 +144,18 @@ function updateQueueLog(logId, queue) {
     }).join('');
 
     console.log(`DEBUG: Generated HTML for ${logId}:`, htmlContent);
+    console.log("Final HTML content:", htmlContent);
     logElement.innerHTML = htmlContent;
     logElement.scrollTop = logElement.scrollHeight;
 
     if (queue.size() > MAX_VISIBLE_ITEMS) {
-        logElement.innerHTML += `<div class="log-overflow">+${queue.size() - MAX_VISIBLE_ITEMS} more items</div>`;
+        const overflowText = `+${queue.size() - MAX_VISIBLE_ITEMS} more items`;
+        console.log("Adding overflow indicator:", overflowText);
+        logElement.innerHTML += `<div class="log-overflow">${overflowText}</div>`;
     }
+    
+    console.log("Log updated successfully");
+    console.groupEnd();
 }
 
 async function startSimulation() {
