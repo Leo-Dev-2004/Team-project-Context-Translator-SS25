@@ -62,6 +62,7 @@ let lastUpdateTime = 0;
 const UPDATE_THROTTLE_MS = 100;
 
 function updateQueueDisplay() {
+    console.log("DEBUG: updateQueueDisplay called.");
     const now = performance.now();
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
         requestAnimationFrame(updateQueueDisplay);
@@ -80,8 +81,12 @@ function updateQueueDisplay() {
 }
 
 function updateQueueLog(logId, queue) {
+    console.log(`DEBUG: updateQueueLog called for ${logId}. Queue size: ${queue.size()}`);
     const logElement = document.getElementById(logId);
-    if (!logElement) return;
+    if (!logElement) {
+        console.warn(`DEBUG: Log element not found for ID: ${logId}`);
+        return;
+    }
 
     // Create a stable copy of queue items
     const items = [...queue.queue].reverse();
@@ -136,6 +141,7 @@ function updateQueueLog(logId, queue) {
         return `<div class="log-entry ${statusClass}">${content}</div>`;
     }).join('');
 
+    console.log(`DEBUG: Generated HTML for ${logId}:`, htmlContent);
     logElement.innerHTML = htmlContent;
     logElement.scrollTop = logElement.scrollHeight;
 
@@ -518,6 +524,8 @@ async function processBackendMessages() {
                     }
                 };
                 toFrontendQueue.enqueue(processedMessage);
+                console.log("DEBUG: Message enqueued to toFrontendQueue. Current size:", 
+                    toFrontendQueue.size(), "Content:", toFrontendQueue.queue);
             }
 
             updateQueueDisplay();
