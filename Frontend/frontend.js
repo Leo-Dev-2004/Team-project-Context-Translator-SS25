@@ -474,7 +474,10 @@ function setupQueueListeners() {
 
 // Frontend message processor
 async function processBackendMessages() {
+    console.log("processBackendMessages: Started loop.");
     while (true) {
+        try {
+            console.log("processBackendMessages: Waiting for message...");
         try {
             const message = await fromBackendQueue.dequeue();
             console.groupCollapsed(`Processing backend message [${message.type}]`);
@@ -502,10 +505,20 @@ async function processBackendMessages() {
             else if (message.type === 'sys_init') {
                 console.log('System initialization received');
                 // Additional initialization logic here
+                toFrontendQueue.enqueue(processedMessage);
             }
             else if (message.type === 'simulation_update') {
-                console.log('Simulation update received');
-                // Handle simulation updates
+                console.log('Simulation update received and enqueued for display');
+                processedMessage = {
+                    ...message,
+                    _debug: {
+                        ...message._debug,
+                        processed: true,
+                        processingTime: Date.now() - processingStart,
+                        queueTime: queueTime
+                    }
+                };
+                toFrontendQueue.enqueue(processedMessage);
             }
 
             updateQueueDisplay();
