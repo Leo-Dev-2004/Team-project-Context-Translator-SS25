@@ -6,6 +6,7 @@ import subprocess
 import webbrowser
 import time
 import requests
+import os
 from pathlib import Path
 
 # Configure logging
@@ -66,6 +67,10 @@ class SystemRunner:
             sys.exit(1)
 
         logger.info("Starting backend server...")
+        # Set PYTHONPATH to include project root
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(BACKEND_DIR.parent)
+
         backend = subprocess.Popen(
             [
                 sys.executable, 
@@ -75,7 +80,8 @@ class SystemRunner:
                 "--port", str(self.backend_port),
                 "--reload"
             ],
-            cwd=BACKEND_DIR.parent,
+            cwd=str(BACKEND_DIR.parent),
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
