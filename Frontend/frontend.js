@@ -478,7 +478,6 @@ async function processBackendMessages() {
     while (true) {
         try {
             console.log("processBackendMessages: Waiting for message...");
-        try {
             const message = await fromBackendQueue.dequeue();
             console.groupCollapsed(`Processing backend message [${message.type}]`);
             console.log('Raw message:', message);
