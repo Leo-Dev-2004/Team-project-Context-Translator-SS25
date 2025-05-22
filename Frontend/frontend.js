@@ -344,7 +344,7 @@ const WebSocketManager = {
                         console.log('Starting regular ping interval...');
                         this.pingInterval = setInterval(() => {
                             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                                this.send({ type: 'ping', timestamp: Date.now() });
+                                this.send({ type: 'ping', data: {}, timestamp: Date.now() });
                             } else {
                                 // Connection is no longer open, clear interval and trigger reconnect if needed
                                 clearInterval(this.pingInterval);
