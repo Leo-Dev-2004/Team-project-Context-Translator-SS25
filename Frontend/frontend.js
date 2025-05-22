@@ -438,6 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('WebSocket fully initialized and acknowledged by server');
         document.getElementById('connectionStatus').textContent = 'Connected';
         document.getElementById('connectionStatus').style.color = 'green';
+
+        // Start processing backend messages now that connection is ready
+        console.log("Starting backend message processor...");
+        processBackendMessages();
     });
 
     console.groupEnd();
