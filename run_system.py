@@ -75,12 +75,12 @@ class SystemRunner:
             [
                 sys.executable, 
                 "-m", "uvicorn", 
-                "backend:app",
+                "Backend.backend:app",
                 "--host", "0.0.0.0",
                 "--port", str(self.backend_port),
                 "--reload"
             ],
-            cwd=str(BACKEND_DIR),
+            cwd=str(BACKEND_DIR.parent),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
