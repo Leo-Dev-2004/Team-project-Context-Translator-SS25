@@ -51,6 +51,10 @@ app.state.websockets = set()  # type: ignore # type: Set[WebSocket]
 message_processor_task: Optional[asyncio.Task] = None
 queue_forwarder_task: Optional[asyncio.Task] = None
 
+# Global variables for background task instances
+message_processor_instance: Optional[MessageProcessor] = None # NEW GLOBAL VARIABLE
+queue_forwarder_instance: Optional[QueueForwarder] = None     # NEW GLOBAL VARIABLE
+
 
 # --- FASTAPI APPLICATION STARTUP EVENT ---
 @app.on_event("startup")
@@ -80,15 +84,16 @@ async def startup_event():
 
     # 4. Initialize and start long-running background processors
     global message_processor_task, queue_forwarder_task
+    global message_processor_instance, queue_forwarder_instance # ADDED THESE INSTANCE GLOBALS
 
-    message_processor = MessageProcessor()
-    await message_processor.initialize()
-    message_processor_task = asyncio.create_task(message_processor.process())
+    message_processor_instance = MessageProcessor() # Assign to the global instance variable
+    await message_processor_instance.initialize()
+    message_processor_task = asyncio.create_task(message_processor_instance.process())
     logger.info("MessageProcessor task started.")
 
-    queue_forwarder = QueueForwarder()
-    await queue_forwarder.initialize()
-    queue_forwarder_task = asyncio.create_task(queue_forwarder.forward())
+    queue_forwarder_instance = QueueForwarder() # Assign to the global instance variable
+    await queue_forwarder_instance.initialize()
+    queue_forwarder_task = asyncio.create_task(queue_forwarder_instance.forward())
     logger.info("QueueForwarder task started.")
     
     logger.info("Application startup complete. All core services initialized.")
@@ -109,33 +114,38 @@ async def shutdown_event():
         logger.warning(f"SimulationManager not available for graceful shutdown: {e}")
 
     # 2. Cancel background tasks gracefully
-    if message_processor_task:
+    global message_processor_instance, queue_forwarder_instance # Access global instance
+
+    if message_processor_task and message_processor_instance: # Check both task and instance exist
         logger.info("Stopping MessageProcessor...")
         try:
-            # Give processor time to finish current message
-            await asyncio.wait_for(message_processor.stop(), timeout=5.0)
-            
+            # Call the stop method on the GLOBAL INSTANCE
+            await message_processor_instance.stop() # FIX for line 116
+
             if not message_processor_task.done():
                 message_processor_task.cancel()
                 try:
                     await asyncio.wait_for(message_processor_task, timeout=2.0)
                 except (asyncio.CancelledError, asyncio.TimeoutError):
                     logger.warning("MessageProcessor didn't stop cleanly")
-                    
-            # Drain remaining messages
-            remaining = message_processor._input_queue.size()
-            if remaining > 0:
-                logger.info(f"Draining {remaining} messages from input queue")
-                
+
+                # Call get_input_queue_size on the GLOBAL INSTANCE
+                remaining = message_processor_instance.get_input_queue_size() # FIX for line 126
+                if remaining > 0:
+                    logger.info(f"Draining {remaining} messages from input queue")
         except Exception as e:
             logger.error(f"Error stopping MessageProcessor: {str(e)}")
-    
-    if queue_forwarder_task and not queue_forwarder_task.done():
+    else:
+        logger.warning("MessageProcessor instance or task not available for graceful shutdown.")
+
+    if queue_forwarder_task and queue_forwarder_instance and not queue_forwarder_task.done():
         queue_forwarder_task.cancel()
         try:
             await queue_forwarder_task
         except asyncio.CancelledError:
             logger.info("QueueForwarder task cancelled.")
+    else:
+        logger.warning("QueueForwarder instance or task not available for graceful shutdown.")
 
     # 3. Close active WebSocket connections
     for ws in list(app.state.websockets):
