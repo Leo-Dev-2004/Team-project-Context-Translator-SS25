@@ -16,17 +16,17 @@ from Backend.queues.shared_queue import (
 )
 
 # Import the SimulationManager class (for type hinting and instantiation)
-from .core.simulator import SimulationManager
+from Backend.core.simulator import SimulationManager
 
 # Import MessageProcessor and QueueForwarder
-from .core.message_processor import MessageProcessor
-from .core.queue_forwarder import QueueForwarder
+from Backend.core.message_processor import MessageProcessor
+from Backend.core.queue_forwarder import QueueForwarder
 
 # Import the API router
-from .api import endpoints
+from Backend.api import endpoints
 
 # Import the functions to set and get the SimulationManager instance from dependencies.py
-from .dependencies import set_simulation_manager_instance, get_simulation_manager
+from Backend.dependencies import set_simulation_manager_instance, get_simulation_manager
 from Backend.core import message_processor
 
 # --- APPLICATION-WIDE LOGGING CONFIGURATION ---
