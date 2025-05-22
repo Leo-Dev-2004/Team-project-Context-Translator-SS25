@@ -15,7 +15,7 @@ from ..queues.shared_queue import (
     get_dead_letter_queue
 )
 from ..services.websocket_manager import WebSocketManager
-from ..main import app  # Import the FastAPI app instance
+# App-Import entfernen, da wir nur den Router benötigen
 
 # IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
 from ..dependencies import get_simulation_manager # NEW IMPORT

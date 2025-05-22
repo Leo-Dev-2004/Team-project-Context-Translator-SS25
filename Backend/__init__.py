@@ -1,4 +1,3 @@
 """Backend package initialization"""
-from .backend import app
-
-__all__ = ['app']
+# Leer lassen oder nur Metadaten definieren
+__all__ = []

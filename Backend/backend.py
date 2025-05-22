@@ -171,4 +171,5 @@ app.add_middleware(
 )
 
 # --- INCLUDE API ROUTERS ---
+from .api import endpoints  # Import nach der App-Erstellung
 app.include_router(endpoints.router)
