@@ -35,41 +35,50 @@ class SystemRunner:
     def check_ports_available(self):
         """Check if required ports are available and kill processes using them"""
         import socket
-        import platform
-        import subprocess
         import psutil
         
-        for port in [self.backend_port, self.frontend_port]:
+        ports_to_check = {
+            self.backend_port: "Backend",
+            self.frontend_port: "Frontend"
+        }
+        
+        all_ports_available = True
+        
+        for port, service_name in ports_to_check.items():
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 sock.bind(("localhost", port))
                 sock.close()
+                logger.debug(f"Port {port} ({service_name}) is available")
             except socket.error:
-                logger.warning(f"Port {port} is in use, attempting to kill process...")
+                logger.warning(f"Port {port} ({service_name}) is in use, attempting to kill process...")
+                
                 try:
-                    # Cross-platform way to find and kill process
-                    for proc in psutil.process_iter(['pid', 'name']):
-                        try:
-                            # Get connections if available (may not work on all platforms)
-                            conns = proc.connections() if hasattr(proc, 'connections') else []
-                            for conn in conns:
-                                if hasattr(conn, 'laddr') and conn.laddr and conn.laddr.port == port:
-                                    logger.warning(f"Killing process {proc.pid} ({proc.name()}) using port {port}")
-                                    proc.kill()
-                                    time.sleep(1)  # Wait for port to be released
-                                    break
-                        except (psutil.NoSuchProcess, psutil.AccessDenied):
-                            continue
+                    # Find process using the port (works on Linux/Unix/Windows)
+                    for conn in psutil.net_connections():
+                        if conn.status == 'LISTEN' and conn.laddr.port == port:
+                            try:
+                                proc = psutil.Process(conn.pid)
+                                logger.warning(f"Killing process {proc.pid} ({proc.name()}) using port {port}")
+                                proc.terminate()
+                                proc.wait(timeout=3)
+                                time.sleep(1)  # Wait for port to be released
+                            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired) as e:
+                                logger.warning(f"Error terminating process: {e}")
+                                continue
                     
                     # Verify port is now free
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     sock.bind(("localhost", port))
                     sock.close()
                     logger.info(f"Port {port} is now available")
                 except Exception as e:
                     logger.error(f"Failed to free port {port}: {e}")
-                    return False
-        return True
+                    all_ports_available = False
+                    continue
+        
+        return all_ports_available
 
     def run_backend_server(self):
         """Run FastAPI backend with Uvicorn"""
