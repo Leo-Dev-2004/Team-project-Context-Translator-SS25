@@ -48,6 +48,8 @@ class MessageProcessor:
                 if message is None:
                     await asyncio.sleep(0.1)
                     continue
+
+                
                     
                 # Log message receipt
                 logger.debug(f"Processing message {message['id']} from {message.get('_trace', {}).get('source')}")
@@ -56,6 +58,8 @@ class MessageProcessor:
                 start_time = time.time()
                 processed_msg = await self._process_message(message)
                 processing_time = time.time() - start_time
+            except Exception as e:
+                logger.error(f"Error during message processing: {str(e)}")
         
         # Setup structured logging
         msg_counter = 0
@@ -123,3 +127,11 @@ class MessageProcessor:
         """Geordnetes Herunterfahren"""
         self._running = False
         logger.debug("MessageProcessor shutdown initiated")
+
+    def get_input_queue_size(self):
+        """Return the size of the input queue."""
+        try:
+            return self._input_queue.size() if self._input_queue else 0
+        except Exception as e:
+            logger.warning(f"Failed to get input queue size: {str(e)}")
+            return 0

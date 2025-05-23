@@ -6,6 +6,8 @@ import time
 import json
 from typing import Optional
 
+from fastapi.websockets import WebSocketState
+
 from ..core.simulator import SimulationManager
 from ..queues.shared_queue import (
     get_to_backend_queue,

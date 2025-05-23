@@ -1,5 +1,6 @@
 import asyncio
-import aiohttp
+import threading
+import requests
 import websockets
 import json
 import time
@@ -22,12 +23,11 @@ async def test_websocket():
     try:
         # First check if HTTP server is running
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get('http://localhost:8000/health', timeout=2) as resp:
-                    test_results['server_status'] = f"HTTP {resp.status}"
-                    if resp.status != 200:
-                        print(f"HTTP server not healthy: {resp.status}")
-                        return test_results
+            http_response = requests.get('http://localhost:8000/health', timeout=2)
+            test_results['server_status'] = f"HTTP {http_response.status_code}"
+            if http_response.status_code != 200:
+                print(f"HTTP server not healthy: {http_response.status_code}")
+                return test_results
         except Exception as e:
             test_results['server_status'] = f"HTTP error: {str(e)}"
             print(f"HTTP check failed: {e}")
@@ -36,6 +36,7 @@ async def test_websocket():
         # Test connection
         start_time = time.time()
         max_attempts = 3
+        websocket = None  # Ensure websocket is defined
         for attempt in range(max_attempts):
             try:
                 timeout = 5 * (attempt + 1)  # 5s, 10s, 15s
@@ -62,9 +63,14 @@ async def test_websocket():
                     test_results['connection'] = True
                 except Exception as e:
                     print(f"Error during WebSocket connection: {e}")
+                    if websocket:
+                        await websocket.close()
+                    websocket = None
             except Exception as e:
                 print(f"Connection attempt {attempt+1} failed: {e}")
+                continue
 
+            if websocket:  # Ensure websocket is connected before using it
                 # Test message roundtrip
                 test_msg = {
                         "type": "test_message",
@@ -72,11 +78,13 @@ async def test_websocket():
                         "timestamp": datetime.now().timestamp()
                     }
                 await websocket.send(json.dumps(test_msg))
-                continue
             
             # Validate response
             try:
-                response = json.loads(await websocket.recv())
+                if websocket:
+                    response = json.loads(await websocket.recv())
+                else:
+                    raise RuntimeError("WebSocket is not connected")
                 assert response.get('response') == 'ack', "Missing ack response"
                 assert response.get('original', {}).get('type') == 'test_message', "Invalid message type"
                 test_results['message_roundtrip'] = True
@@ -84,42 +92,43 @@ async def test_websocket():
                 print(f"Message validation failed: {e}")
                 test_results['message_roundtrip'] = False
             
-            # Test ping/pong
-            try:
-                ping_time = time.time()
-                await websocket.send(json.dumps({
-                    "type": "ping",
-                    "timestamp": ping_time
-                }))
-                pong = json.loads(await websocket.recv())
-                assert pong['type'] == 'pong', "Invalid pong response"
-                assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
-                test_results['ping_pong'] = True
-            except Exception as e:
-                print(f"Ping/pong test failed: {e}")
-                test_results['ping_pong'] = False
-            
-            # Test error handling
-            try:
-                await websocket.send("invalid json")
-                response = await websocket.recv()
-                json.loads(response)  # Should fail
-                print("Warning: Server accepted invalid JSON")
-            except (json.JSONDecodeError, websockets.exceptions.ConnectionClosed):
-                test_results['error_handling'] = True
-            
-            # Performance test
-            perf_start = time.time()
-            for i in range(10):
-                await websocket.send(json.dumps({
-                    "type": "perf_test",
-                    "count": i,
-                    "timestamp": time.time()
-                }))
-                await websocket.recv()
-            perf_time = time.time() - perf_start
-            test_results['performance']['message_rate'] = 10/perf_time
-            print(f"Performance: {10/perf_time:.1f} msg/sec")
+                if websocket:
+                    # Test ping/pong
+                    try:
+                        ping_time = time.time()
+                        await websocket.send(json.dumps({
+                            "type": "ping",
+                            "timestamp": ping_time
+                        }))
+                        pong = json.loads(await websocket.recv())                    
+                        assert pong['type'] == 'pong', "Invalid pong response"
+                        assert abs(pong['timestamp'] - ping_time) < 0.1, "Pong delay too high"
+                        test_results['ping_pong'] = True
+                    except Exception as e:
+                        print(f"Ping/pong test failed: {e}")
+                        test_results['ping_pong'] = False
+                    
+                    # Test error handling
+                    try:
+                        await websocket.send("invalid json")
+                        response = await websocket.recv()
+                        json.loads(response)  # Should fail
+                        print("Warning: Server accepted invalid JSON")
+                    except (json.JSONDecodeError, websockets.exceptions.ConnectionClosed):
+                        test_results['error_handling'] = True
+                    
+                    # Performance test
+                    perf_start = time.time()
+                    for i in range(10):
+                        await websocket.send(json.dumps({
+                            "type": "perf_test",
+                            "count": i,
+                            "timestamp": time.time()
+                        }))
+                        await websocket.recv()
+                    perf_time = time.time() - perf_start
+                    test_results['performance']['message_rate'] = 10/perf_time
+                    print(f"Performance: {10/perf_time:.1f} msg/sec")
             
             return test_results
         
@@ -179,11 +188,11 @@ async def run_tests_with_server():
         while time.time() - start_time < max_wait:
             try:
                 # Check HTTP health endpoint first
-                async with aiohttp.ClientSession() as session:
-                    async with session.get('http://localhost:8000/health', timeout=1) as resp:
-                        if resp.status == 200:
+                http_response = requests.get('http://localhost:8000/health', timeout=1)
+                if http_response.status_code == 200:
                     # Then verify WebSocket connection
                     try:
+                        ws = None  # Ensure ws is initialized
                         try:
                             ws = await websockets.connect(
                                 'ws://localhost:8000/ws',
@@ -193,12 +202,13 @@ async def run_tests_with_server():
                             response = await asyncio.wait_for(ws.recv(), timeout=2)
                             if json.loads(response).get("type") == "pong":
                                 server_ready = True
-                                await ws.close()
+                                if ws:
+                                    await ws.close()
                                 break
                         except Exception as e:
                             print(f"WebSocket check failed: {e}")
                         finally:
-                            if 'ws' in locals():
+                            if ws:
                                 await ws.close()
                     except Exception as e:
                         print(f"WebSocket check failed: {e}")
@@ -221,12 +231,12 @@ async def run_tests_with_server():
 if __name__ == "__main__":
     # First try direct connection
     print("Trying direct connection...")
-    results = asyncio.run(test_websocket())
+    results = asyncio.run(test_websocket()) or {}
     
     # If failed, start server and retry
     if not all(results.values()):
         print("\nStarting backend server and retrying...")
-        results = asyncio.run(run_tests_with_server())
+        results = asyncio.run(run_tests_with_server()) or {}
     
     # Exit with status code
     sys.exit(0 if all(results.values()) else 1)
