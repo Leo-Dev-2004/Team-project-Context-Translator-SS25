@@ -6,11 +6,23 @@ import { toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue } 
 
 // This function handles the async processing of backend messages
 async function processBackendMessages() {
-    console.log("DEBUG: processBackendMessages loop started - PID:", performance.now());
+    console.group('processBackendMessages');
+    console.log("Starting backend message processing loop");
+    console.log("Initial queue state:", {
+        size: fromBackendQueue.size(),
+        items: fromBackendQueue.queue.map(i => i.type)
+    });
+    console.groupEnd();
+
     while (true) {
         try {
-            // debugger; // <--- Debugger before dequeue (keep for now)
-            console.log("DEBUG: processBackendMessages: Waiting for message from fromBackendQueue...");
+            console.groupCollapsed(`processBackendMessages iteration`);
+            debugger; // Pause vor dequeue
+            console.log("Waiting for message from fromBackendQueue...");
+            console.log("Current queue state:", {
+                size: fromBackendQueue.size(),
+                items: fromBackendQueue.queue.map(i => i.type)
+            });
             console.log("DEBUG: Current fromBackendQueue state:", {
                 size: fromBackendQueue.size(),
                 items: fromBackendQueue.queue.map(i => i.type)
@@ -174,18 +186,28 @@ export function initializeEventListeners() {
     // No need to connect WebSocketManager here, it's done in app.js and triggers processBackendMessages
     // via 'websocket-ack' event.
 
-    document.addEventListener('websocket-ack', () => {
-        console.log('WebSocket fully initialized and acknowledged by server');
-        document.getElementById('connectionStatus').textContent = 'Connected';
-        document.getElementById('connectionStatus').style.color = 'green';
+    document.addEventListener('websocket-ack', (e) => {
+        console.group('websocket-ack Event');
+        console.log('WebSocket connection acknowledged by server');
+        console.log('Event details:', e);
+        
+        const statusElement = document.getElementById('connectionStatus');
+        statusElement.textContent = 'Connected';
+        statusElement.style.color = 'green';
+        statusElement.style.fontWeight = 'bold';
 
         if (!window._backendProcessorStarted) {
-            console.log("DEBUG: Starting backend message processor for the first time...");
+            console.log("Starting backend message processor...");
             window._backendProcessorStarted = true;
-            processBackendMessages(); // Start the message processing loop
+            console.log("Calling processBackendMessages()");
+            debugger; // Pause vor Prozessstart
+            processBackendMessages().catch(e => {
+                console.error("Error in processBackendMessages:", e);
+            });
         } else {
-            console.log("DEBUG: Backend message processor already running");
+            console.warn("Backend message processor already running!");
         }
+        console.groupEnd();
     });
 
     console.groupEnd();

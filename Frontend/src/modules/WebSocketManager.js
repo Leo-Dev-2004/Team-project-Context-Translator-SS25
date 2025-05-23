@@ -48,7 +48,8 @@ const WebSocketManager = {
                        data.type === "simulation_update") {
                 console.groupCollapsed(`Handling backend message [${data.type}]`);
                 console.log('Raw message:', data);
-                fromBackendQueue.enqueue({
+                debugger; // Pause vor enqueue
+                const queuedMessage = {
                     ...data,
                     _debug: {
                         received: Date.now(),
