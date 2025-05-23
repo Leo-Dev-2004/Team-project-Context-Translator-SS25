@@ -55,7 +55,8 @@ const WebSocketManager = {
                         received: Date.now(),
                         queue: 'fromBackend'
                     }
-                });
+                };
+                fromBackendQueue.enqueue(queuedMessage);
                 console.log('Added to fromBackendQueue');
                 // debugger; // Keep this debugger for now for simulation_update flow
                 console.log("DEBUG: fromBackendQueue size after WebSocket receipt:", fromBackendQueue.size(), "Content:", fromBackendQueue.queue);
