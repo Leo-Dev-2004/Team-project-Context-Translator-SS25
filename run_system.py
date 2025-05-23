@@ -111,8 +111,10 @@ class SystemRunner:
                 sys.executable, 
                 "-m", "http.server", 
                 str(self.frontend_port),
-                "--directory", str(FRONTEND_DIR)
+                "--directory", str(FRONTEND_DIR),
+                "--bind", "0.0.0.0"
             ],
+            cwd=str(FRONTEND_DIR),  # Wichtig: Arbeitsverzeichnis setzen
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
