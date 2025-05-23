@@ -92,6 +92,14 @@ const WebSocketManager = {
     connect() {
         console.group('WebSocketManager.connect()');
         console.log('Starting WebSocket connection process...');
+        
+        // Update UI status immediately
+        const statusElement = document.getElementById('connectionStatus');
+        if (statusElement) {
+            statusElement.textContent = 'Connecting...';
+            statusElement.style.color = 'orange';
+            statusElement.style.fontWeight = 'bold';
+        }
 
         if (this.ws) {
             console.log('Existing WebSocket found, cleaning up...');
@@ -186,9 +194,21 @@ const WebSocketManager = {
         };
 
         this.ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.group('WebSocket ERROR Event');
+            console.error('WebSocket connection error:', error);
+            console.log('ReadyState:', this.getStateName(this.ws.readyState));
+            console.groupEnd();
+            
             this._wsReadyState = WebSocket.CLOSED;
             this.isConnected = false;
+            
+            // Update UI status
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.textContent = 'Connection Error';
+                statusElement.style.color = 'red';
+            }
+
             if (this.pingInterval) {
                 clearInterval(this.pingInterval);
                 this.pingInterval = null;
