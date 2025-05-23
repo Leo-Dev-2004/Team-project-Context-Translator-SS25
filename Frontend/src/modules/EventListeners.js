@@ -94,6 +94,7 @@ async function processBackendMessages() {
 
 // Function to send a test message (for debugging display)
 function sendTestMessage() {
+    console.log("TRACE: sendTestMessage called!");
     console.log("Attempting to send test message...");
     const testMessage = {
         type: "test_message",
@@ -160,8 +161,11 @@ export function initializeEventListeners() {
     console.log('Initializing frontend...');
 
     document.getElementById('startSim').addEventListener('click', startSimulation);
+    console.log('Event listener added for #startSim');
     document.getElementById('stopSim').addEventListener('click', stopSimulation);
-    document.getElementById('testButton').addEventListener('click', sendTestMessage); // Attach test button handler
+    console.log('Event listener added for #stopSim');
+    document.getElementById('testButton').addEventListener('click', sendTestMessage);
+    console.log('Event listener added for #testButton');
     console.log('Button handlers configured');
 
     setupQueueListeners();

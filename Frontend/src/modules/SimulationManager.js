@@ -4,6 +4,7 @@ import { updateQueueDisplay } from './QueueDisplay.js'; // To clear/update displ
 import { WebSocketManager } from './WebSocketManager.js'; // To check connection state
 
 async function startSimulation() {
+    console.log('TRACE: startSimulation called!');
     try {
         console.log('Starting simulation...');
 
@@ -43,6 +44,7 @@ async function startSimulation() {
 }
 
 async function stopSimulation() {
+    console.log('TRACE: stopSimulation called!');
     try {
         const response = await fetch('http://localhost:8000/simulation/stop');
         const result = await response.json();
