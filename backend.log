@@ -843,3 +843,73 @@
 2025-05-22 20:20:05,120 - INFO - Application startup complete. All core services initialized.
 2025-05-22 20:20:05,121 - INFO - Starting MessageProcessor
 2025-05-22 20:20:05,121 - INFO - Starting QueueForwarder
+2025-05-23 11:14:53,838 - INFO - Application startup event triggered.
+2025-05-23 11:14:53,838 - INFO - Initializing all queues...
+2025-05-23 11:14:53,838 - INFO - All queues initialized on loop 598440064
+2025-05-23 11:14:53,838 - INFO - Shared queues initialized.
+2025-05-23 11:14:53,838 - INFO - Retrieved queue instances. Event loop ID: 598440064
+2025-05-23 11:14:53,838 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 11:14:53,839 - INFO - MessageProcessor queues verified
+2025-05-23 11:14:53,839 - INFO - MessageProcessor task started.
+2025-05-23 11:14:53,839 - INFO - QueueForwarder queues verified
+2025-05-23 11:14:53,839 - INFO - QueueForwarder task started.
+2025-05-23 11:14:53,839 - INFO - Application startup complete. All core services initialized.
+2025-05-23 11:14:53,839 - INFO - Starting MessageProcessor
+2025-05-23 11:14:53,839 - INFO - Starting QueueForwarder
+2025-05-23 11:15:40,116 - INFO - Application shutdown event triggered.
+2025-05-23 11:15:40,116 - INFO - Stopping MessageProcessor...
+2025-05-23 11:15:40,117 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 11:15:40,117 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 11:15:40,117 - INFO - All WebSocket connections attempted to close.
+2025-05-23 11:15:40,117 - INFO - Application shutdown complete.
+2025-05-23 11:17:43,523 - INFO - Application startup event triggered.
+2025-05-23 11:17:43,523 - INFO - Initializing all queues...
+2025-05-23 11:17:43,524 - INFO - All queues initialized on loop 400427136
+2025-05-23 11:17:43,524 - INFO - Shared queues initialized.
+2025-05-23 11:17:43,524 - INFO - Retrieved queue instances. Event loop ID: 400427136
+2025-05-23 11:17:43,524 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 11:17:43,524 - INFO - MessageProcessor queues verified
+2025-05-23 11:17:43,524 - INFO - MessageProcessor task started.
+2025-05-23 11:17:43,524 - INFO - QueueForwarder queues verified
+2025-05-23 11:17:43,524 - INFO - QueueForwarder task started.
+2025-05-23 11:17:43,524 - INFO - Application startup complete. All core services initialized.
+2025-05-23 11:17:43,524 - INFO - Starting MessageProcessor
+2025-05-23 11:17:43,525 - INFO - Starting QueueForwarder
+2025-05-23 13:36:57,488 - INFO - Application startup event triggered.
+2025-05-23 13:36:57,488 - INFO - Initializing all queues...
+2025-05-23 13:36:57,488 - INFO - All queues initialized on loop 1058880656
+2025-05-23 13:36:57,488 - INFO - Shared queues initialized.
+2025-05-23 13:36:57,488 - INFO - Retrieved queue instances. Event loop ID: 1058880656
+2025-05-23 13:36:57,488 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 13:36:57,488 - INFO - MessageProcessor queues verified
+2025-05-23 13:36:57,488 - INFO - MessageProcessor task started.
+2025-05-23 13:36:57,488 - INFO - QueueForwarder queues verified
+2025-05-23 13:36:57,488 - INFO - QueueForwarder task started.
+2025-05-23 13:36:57,488 - INFO - Application startup complete. All core services initialized.
+2025-05-23 13:36:57,488 - INFO - Starting MessageProcessor
+2025-05-23 13:36:57,489 - INFO - Starting QueueForwarder
+2025-05-23 13:42:48,299 - INFO - Application shutdown event triggered.
+2025-05-23 13:42:48,299 - INFO - Stopping MessageProcessor...
+2025-05-23 13:42:48,299 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 13:42:48,299 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 13:42:48,299 - INFO - All WebSocket connections attempted to close.
+2025-05-23 13:42:48,300 - INFO - Application shutdown complete.
+2025-05-23 13:42:55,521 - INFO - Application startup event triggered.
+2025-05-23 13:42:55,521 - INFO - Initializing all queues...
+2025-05-23 13:42:55,522 - INFO - All queues initialized on loop 666324112
+2025-05-23 13:42:55,522 - INFO - Shared queues initialized.
+2025-05-23 13:42:55,522 - INFO - Retrieved queue instances. Event loop ID: 666324112
+2025-05-23 13:42:55,522 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 13:42:55,522 - INFO - MessageProcessor queues verified
+2025-05-23 13:42:55,522 - INFO - MessageProcessor task started.
+2025-05-23 13:42:55,522 - INFO - QueueForwarder queues verified
+2025-05-23 13:42:55,522 - INFO - QueueForwarder task started.
+2025-05-23 13:42:55,522 - INFO - Application startup complete. All core services initialized.
+2025-05-23 13:42:55,522 - INFO - Starting MessageProcessor
+2025-05-23 13:42:55,522 - INFO - Starting QueueForwarder
+2025-05-23 13:43:33,819 - INFO - Application shutdown event triggered.
+2025-05-23 13:43:33,819 - INFO - Stopping MessageProcessor...
+2025-05-23 13:43:33,820 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 13:43:33,820 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 13:43:33,820 - INFO - All WebSocket connections attempted to close.
+2025-05-23 13:43:33,820 - INFO - Application shutdown complete.

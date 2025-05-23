@@ -1,0 +1,111 @@
+2025-05-23 13:36:56,924 - INFO - Starting backend server...
+2025-05-23 13:36:56,925 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend
+2025-05-23 13:36:56,925 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/..
+2025-05-23 13:36:56,926 - INFO - Starting frontend server...
+2025-05-23 13:36:56,926 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/index.html')]
+2025-05-23 13:36:56,926 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src/app.js')]
+2025-05-23 13:36:57,149 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-23 13:36:57,149 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-23 13:36:57,149 - INFO - Backend stderr: INFO:     Started reloader process [48217] using WatchFiles
+2025-05-23 13:36:57,488 - INFO - Backend stderr: INFO:     Started server process [48224]
+2025-05-23 13:36:57,488 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Application startup event triggered.
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Initializing all queues...
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - All queues initialized on loop 1058880656
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Shared queues initialized.
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Retrieved queue instances. Event loop ID: 1058880656
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - MessageProcessor queues verified
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - MessageProcessor task started.
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - QueueForwarder queues verified
+2025-05-23 13:36:57,488 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - QueueForwarder task started.
+2025-05-23 13:36:57,489 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Application startup complete. All core services initialized.
+2025-05-23 13:36:57,489 - INFO - Backend stderr: 2025-05-23 13:36:57,488 - INFO - Starting MessageProcessor
+2025-05-23 13:36:57,489 - INFO - Backend stderr: 2025-05-23 13:36:57,489 - INFO - Starting QueueForwarder
+2025-05-23 13:36:57,489 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-23 13:36:58,927 - INFO - Opening browser to http://localhost:9000
+2025-05-23 13:36:59,203 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET / HTTP/1.1" 200 -
+2025-05-23 13:36:59,214 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/app.js HTTP/1.1" 200 -
+2025-05-23 13:36:59,220 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-23 13:36:59,220 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/modules/MessageQueue.js HTTP/1.1" 200 -
+2025-05-23 13:36:59,221 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/modules/QueueDisplay.js HTTP/1.1" 200 -
+2025-05-23 13:36:59,221 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-23 13:36:59,221 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 13:36:59] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-23 13:42:48,152 - INFO - Shutting down servers...
+2025-05-23 13:42:48,152 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-23 13:42:48,152 - INFO - Frontend stdout: 
+2025-05-23 13:42:48,152 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-23 13:42:48,198 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-23 13:42:48,299 - INFO - Backend stderr: INFO:     Finished server process [48224]
+2025-05-23 13:42:48,299 - INFO - Backend stderr: 2025-05-23 13:42:48,299 - INFO - Application shutdown event triggered.
+2025-05-23 13:42:48,299 - INFO - Backend stderr: 2025-05-23 13:42:48,299 - INFO - Stopping MessageProcessor...
+2025-05-23 13:42:48,299 - INFO - Backend stderr: 2025-05-23 13:42:48,299 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 13:42:48,299 - INFO - Backend stderr: 2025-05-23 13:42:48,299 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 13:42:48,300 - INFO - Backend stderr: 2025-05-23 13:42:48,299 - INFO - All WebSocket connections attempted to close.
+2025-05-23 13:42:48,300 - INFO - Backend stderr: 2025-05-23 13:42:48,300 - INFO - Application shutdown complete.
+2025-05-23 13:42:48,301 - INFO - Backend stderr: ERROR:    Traceback (most recent call last):
+2025-05-23 13:42:48,301 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 686, in lifespan
+2025-05-23 13:42:48,301 - INFO - Backend stderr: await receive()
+2025-05-23 13:42:48,301 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/lifespan/on.py", line 139, in receive
+2025-05-23 13:42:48,301 - INFO - Backend stderr: return await self.receive_queue.get()
+2025-05-23 13:42:48,301 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-23 13:42:48,301 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/queues.py", line 158, in get
+2025-05-23 13:42:48,301 - INFO - Backend stderr: await getter
+2025-05-23 13:42:48,302 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-23 13:42:48,302 - INFO - Backend stderr: 
+2025-05-23 13:42:48,334 - INFO - Backend stderr: INFO:     Stopping reloader process [48217]
+2025-05-23 13:42:54,954 - INFO - Starting backend server...
+2025-05-23 13:42:54,954 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend
+2025-05-23 13:42:54,954 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/..
+2025-05-23 13:42:54,955 - INFO - Starting frontend server...
+2025-05-23 13:42:54,955 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/index.html')]
+2025-05-23 13:42:54,955 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/../Frontend/src/app.js')]
+2025-05-23 13:42:55,180 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-23 13:42:55,180 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-23 13:42:55,180 - INFO - Backend stderr: INFO:     Started reloader process [49839] using WatchFiles
+2025-05-23 13:42:55,521 - INFO - Backend stderr: INFO:     Started server process [49846]
+2025-05-23 13:42:55,521 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-23 13:42:55,521 - INFO - Backend stderr: 2025-05-23 13:42:55,521 - INFO - Application startup event triggered.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,521 - INFO - Initializing all queues...
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - All queues initialized on loop 666324112
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - Shared queues initialized.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - Retrieved queue instances. Event loop ID: 666324112
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - MessageProcessor queues verified
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - MessageProcessor task started.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - QueueForwarder queues verified
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - QueueForwarder task started.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - Application startup complete. All core services initialized.
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - Starting MessageProcessor
+2025-05-23 13:42:55,522 - INFO - Backend stderr: 2025-05-23 13:42:55,522 - INFO - Starting QueueForwarder
+2025-05-23 13:42:55,522 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-23 13:42:56,956 - INFO - Opening browser to http://localhost:9000
+2025-05-23 13:43:33,643 - INFO - Shutting down servers...
+2025-05-23 13:43:33,644 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-23 13:43:33,644 - INFO - Frontend stdout: 
+2025-05-23 13:43:33,644 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-23 13:43:33,718 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-23 13:43:33,819 - INFO - Backend stderr: INFO:     Finished server process [49846]
+2025-05-23 13:43:33,819 - INFO - Backend stderr: 2025-05-23 13:43:33,819 - INFO - Application shutdown event triggered.
+2025-05-23 13:43:33,820 - INFO - Backend stderr: 2025-05-23 13:43:33,819 - INFO - Stopping MessageProcessor...
+2025-05-23 13:43:33,820 - INFO - Backend stderr: 2025-05-23 13:43:33,820 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 13:43:33,820 - INFO - Backend stderr: 2025-05-23 13:43:33,820 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 13:43:33,820 - INFO - Backend stderr: 2025-05-23 13:43:33,820 - INFO - All WebSocket connections attempted to close.
+2025-05-23 13:43:33,820 - INFO - Backend stderr: 2025-05-23 13:43:33,820 - INFO - Application shutdown complete.
+2025-05-23 13:43:33,821 - INFO - Backend stderr: ERROR:    Traceback (most recent call last):
+2025-05-23 13:43:33,821 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 686, in lifespan
+2025-05-23 13:43:33,821 - INFO - Backend stderr: await receive()
+2025-05-23 13:43:33,821 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/lifespan/on.py", line 139, in receive
+2025-05-23 13:43:33,821 - INFO - Backend stderr: return await self.receive_queue.get()
+2025-05-23 13:43:33,821 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-23 13:43:33,821 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/queues.py", line 158, in get
+2025-05-23 13:43:33,822 - INFO - Backend stderr: await getter
+2025-05-23 13:43:33,822 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-23 13:43:33,822 - INFO - Backend stderr: 
+2025-05-23 13:43:33,856 - INFO - Backend stderr: INFO:     Stopping reloader process [49839]
+2025-05-23 13:43:35,077 - WARNING - Port 9000 is in use, attempting to kill process...
+2025-05-23 13:43:35,269 - ERROR - Failed to free port 9000: [Errno 98] Address already in use
+2025-05-23 13:43:39,925 - WARNING - Port 9000 is in use, attempting to kill process...
+2025-05-23 13:43:40,116 - ERROR - Failed to free port 9000: [Errno 98] Address already in use
+2025-05-23 13:43:42,457 - WARNING - Port 9000 is in use, attempting to kill process...
+2025-05-23 13:43:42,647 - ERROR - Failed to free port 9000: [Errno 98] Address already in use

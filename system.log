@@ -5508,3 +5508,79 @@
 2025-05-22 20:20:05,121 - INFO - Backend stderr: 2025-05-22 20:20:05,121 - INFO - Starting QueueForwarder
 2025-05-22 20:20:05,121 - INFO - Backend stderr: INFO:     Application startup complete.
 2025-05-23 11:03:29,459 - INFO - Shutting down servers...
+2025-05-23 11:14:52,693 - INFO - Starting backend server...
+2025-05-23 11:14:52,693 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-23 11:14:52,694 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-23 11:14:52,695 - INFO - Starting frontend server...
+2025-05-23 11:14:53,152 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-23 11:14:53,153 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-23 11:14:53,153 - INFO - Backend stderr: INFO:     Started reloader process [45638] using WatchFiles
+2025-05-23 11:14:53,838 - INFO - Backend stderr: INFO:     Started server process [45645]
+2025-05-23 11:14:53,838 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-23 11:14:53,838 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - Application startup event triggered.
+2025-05-23 11:14:53,838 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - Initializing all queues...
+2025-05-23 11:14:53,838 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - All queues initialized on loop 598440064
+2025-05-23 11:14:53,838 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - Shared queues initialized.
+2025-05-23 11:14:53,838 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - Retrieved queue instances. Event loop ID: 598440064
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,838 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - MessageProcessor queues verified
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - MessageProcessor task started.
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - QueueForwarder queues verified
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - QueueForwarder task started.
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - Application startup complete. All core services initialized.
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - Starting MessageProcessor
+2025-05-23 11:14:53,839 - INFO - Backend stderr: 2025-05-23 11:14:53,839 - INFO - Starting QueueForwarder
+2025-05-23 11:14:53,839 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-23 11:14:54,697 - INFO - Opening browser to http://localhost:9000
+2025-05-23 11:14:55,187 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 11:14:55] "GET / HTTP/1.1" 304 -
+2025-05-23 11:14:55,208 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 11:14:55] code 404, message File not found
+2025-05-23 11:14:55,208 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 11:14:55] "GET /src/app.js HTTP/1.1" 404 -
+2025-05-23 11:15:39,916 - INFO - Shutting down servers...
+2025-05-23 11:15:39,917 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-23 11:15:39,917 - INFO - Frontend stdout: 
+2025-05-23 11:15:39,918 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-23 11:15:40,015 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-23 11:15:40,115 - INFO - Backend stderr: INFO:     Finished server process [45645]
+2025-05-23 11:15:40,116 - INFO - Backend stderr: 2025-05-23 11:15:40,116 - INFO - Application shutdown event triggered.
+2025-05-23 11:15:40,116 - INFO - Backend stderr: 2025-05-23 11:15:40,116 - INFO - Stopping MessageProcessor...
+2025-05-23 11:15:40,117 - INFO - Backend stderr: 2025-05-23 11:15:40,117 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-23 11:15:40,117 - INFO - Backend stderr: 2025-05-23 11:15:40,117 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-23 11:15:40,117 - INFO - Backend stderr: 2025-05-23 11:15:40,117 - INFO - All WebSocket connections attempted to close.
+2025-05-23 11:15:40,117 - INFO - Backend stderr: 2025-05-23 11:15:40,117 - INFO - Application shutdown complete.
+2025-05-23 11:15:40,119 - INFO - Backend stderr: ERROR:    Traceback (most recent call last):
+2025-05-23 11:15:40,119 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 686, in lifespan
+2025-05-23 11:15:40,119 - INFO - Backend stderr: await receive()
+2025-05-23 11:15:40,120 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/lifespan/on.py", line 139, in receive
+2025-05-23 11:15:40,120 - INFO - Backend stderr: return await self.receive_queue.get()
+2025-05-23 11:15:40,120 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-23 11:15:40,120 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/queues.py", line 158, in get
+2025-05-23 11:15:40,120 - INFO - Backend stderr: await getter
+2025-05-23 11:15:40,120 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-23 11:15:40,120 - INFO - Backend stderr: 
+2025-05-23 11:15:40,211 - INFO - Backend stderr: INFO:     Stopping reloader process [45638]
+2025-05-23 11:17:42,373 - INFO - Starting backend server...
+2025-05-23 11:17:42,373 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-23 11:17:42,373 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-23 11:17:42,375 - INFO - Starting frontend server...
+2025-05-23 11:17:42,841 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-23 11:17:42,842 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-23 11:17:42,842 - INFO - Backend stderr: INFO:     Started reloader process [46184] using WatchFiles
+2025-05-23 11:17:43,523 - INFO - Backend stderr: INFO:     Started server process [46191]
+2025-05-23 11:17:43,523 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-23 11:17:43,523 - INFO - Backend stderr: 2025-05-23 11:17:43,523 - INFO - Application startup event triggered.
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,523 - INFO - Initializing all queues...
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - All queues initialized on loop 400427136
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - Shared queues initialized.
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - Retrieved queue instances. Event loop ID: 400427136
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - MessageProcessor queues verified
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - MessageProcessor task started.
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - QueueForwarder queues verified
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - QueueForwarder task started.
+2025-05-23 11:17:43,524 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - Application startup complete. All core services initialized.
+2025-05-23 11:17:43,525 - INFO - Backend stderr: 2025-05-23 11:17:43,524 - INFO - Starting MessageProcessor
+2025-05-23 11:17:43,525 - INFO - Backend stderr: 2025-05-23 11:17:43,525 - INFO - Starting QueueForwarder
+2025-05-23 11:17:43,525 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-23 11:17:44,376 - INFO - Opening browser to http://localhost:9000
+2025-05-23 11:17:44,858 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 11:17:44] code 404, message File not found
+2025-05-23 11:17:44,858 - INFO - Frontend stderr: 127.0.0.1 - - [23/May/2025 11:17:44] "GET /src/app.js HTTP/1.1" 404 -

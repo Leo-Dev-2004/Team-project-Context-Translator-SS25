@@ -2,7 +2,6 @@
 import { WebSocketManager } from './modules/WebSocketManager.js';
 import { SimulationManager } from './modules/SimulationManager.js';
 import { MessageQueue } from './modules/MessageQueue.js';
-import { QueueDisplay } from './modules/QueueDisplay.js';
 import { setupEventListeners } from './modules/EventListeners.js';
 
 // Globale Variablen für die Queues
