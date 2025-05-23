@@ -106,6 +106,16 @@ class SystemRunner:
     def run_frontend_server(self):
         """Run frontend HTTP server"""
         logger.info("Starting frontend server...")
+        
+        # Ensure frontend directory exists
+        if not FRONTEND_DIR.exists():
+            raise FileNotFoundError(f"Frontend directory not found: {FRONTEND_DIR}")
+
+        # Debug log the directory structure
+        logger.info(f"Frontend directory contents: {list(FRONTEND_DIR.glob('*'))}")
+        if (FRONTEND_DIR / 'src').exists():
+            logger.info(f"src directory contents: {list((FRONTEND_DIR / 'src').glob('*'))}")
+
         frontend = subprocess.Popen(
             [
                 sys.executable, 
