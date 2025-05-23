@@ -108,6 +108,7 @@ function sendTestMessage() {
         }
     };
 
+    debugger; // Pause hier vor Enqueue
     fromFrontendQueue.enqueue(testMessage);
     console.log("DEBUG: Test message enqueued to fromFrontendQueue. Current size:", fromFrontendQueue.size(), "Content:", fromFrontendQueue.queue);
     // debugger; // Keep this debugger for now for test message flow

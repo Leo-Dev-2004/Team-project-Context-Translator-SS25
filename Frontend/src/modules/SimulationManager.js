@@ -17,6 +17,7 @@ async function startSimulation() {
         // Force immediate UI update with empty queues
         updateQueueDisplay({type: 'simulation_reset'});
 
+        debugger; // Pause hier vor API-Aufruf
         const response = await fetch('http://localhost:8000/simulation/start', {
             mode: 'cors',
             credentials: 'include'
