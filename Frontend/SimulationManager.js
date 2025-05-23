@@ -8,12 +8,13 @@ async function startSimulation() {
         console.log('Starting simulation...');
 
         // Clear all queues first (good practice for new sim run)
-        toFrontendQueue.clear(); // Use clear() method
+        toFrontendQueue.clear();
         fromFrontendQueue.clear();
         toBackendQueue.clear();
         fromBackendQueue.clear();
 
-        updateQueueDisplay(); // Update display to show empty queues
+        // Force immediate UI update with empty queues
+        updateQueueDisplay({type: 'simulation_reset'});
 
         const response = await fetch('http://localhost:8000/simulation/start', {
             mode: 'cors',
@@ -26,6 +27,9 @@ async function startSimulation() {
 
         const result = await response.json();
         console.log('Simulation started:', result);
+        
+        // Force UI update after starting simulation
+        updateQueueDisplay(WebSocketManager.getLastReceivedMessage());
 
         if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
             console.log("Waiting for backend confirmation via WebSocket...");
@@ -41,9 +45,15 @@ async function startSimulation() {
 async function stopSimulation() {
     try {
         const response = await fetch('http://localhost:8000/simulation/stop');
-        console.log('Simulation stopped:', await response.json());
+        const result = await response.json();
+        console.log('Simulation stopped:', result);
+        
+        // Force UI update after stopping simulation
+        updateQueueDisplay(WebSocketManager.getLastReceivedMessage());
+        return result;
     } catch (error) {
         console.error('Failed to stop simulation:', error);
+        throw error;
     }
 }
 
