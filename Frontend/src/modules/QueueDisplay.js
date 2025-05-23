@@ -10,6 +10,7 @@ const UPDATE_THROTTLE_MS = 100;
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
 function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
+    debugger; // Pause hier zu Debug-Zwecken
     console.log("DEBUG: updateQueueDisplay called.");
     const now = performance.now();
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
@@ -28,6 +29,7 @@ function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
 }
 
 function updateQueueLog(logId, queue) {
+    debugger; // Pause hier zu Debug-Zwecken
     console.log(`DEBUG: updateQueueLog called for ${logId}. Queue size: ${queue.size()}`);
     const logElement = document.getElementById(logId);
     if (!logElement) {
@@ -101,6 +103,7 @@ function updateQueueLog(logId, queue) {
 }
 
 function updateQueueCounters(lastMessage) { // Added lastMessage as argument
+    debugger; // Pause hier zu Debug-Zwecken
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
     document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
     document.getElementById('toBackendCount').textContent = toBackendQueue.size();
