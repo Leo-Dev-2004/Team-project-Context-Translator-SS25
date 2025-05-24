@@ -20,7 +20,10 @@ function updateQueueDisplay() {
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
         requestAnimationFrame(updateAllQueueDisplays);
         return;
-    }
+        }
+    
+        // Close the updateQueueLog function
+    
     lastUpdateTime = now;
 
     Promise.resolve().then(() => {
@@ -33,7 +36,8 @@ function updateQueueDisplay() {
 }
 
 // Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
-export function updateQueueLog(elementId, queue) {
+
+function updateQueueLog(elementId, queue) {
     // console.log(`DEBUG: updateQueueLog called for ${elementId}. Queue size: ${queue.size()}`);
 
     const logElement = document.getElementById(elementId); // Correct declaration here
@@ -79,21 +83,19 @@ export function updateQueueLog(elementId, queue) {
         }
 
         htmlContent += `
-            <div class="log-entry">
-                <div class="message-header">
-                    <span class="message-id">ID: ${String(id).substring(0, 8)}...</span>
-                </div>
-                <div class="message-body ${statusClass}">
-                    <div class="message-type">Type: ${type}</div>
-                    <div class="message-timestamp">${timestamp}</div>
-                    <div class="message-content">${content}</div>
-                </div>
+        <div class="log-entry">
+            <div class="message-header">
+                <span class="message-id">ID: ${String(id).substring(0, 8)}...</span> // <-- CORRECTED LINE
+                <span class="message-type">Type: ${type}</span>
+                <span class="message-timestamp">Timestamp: ${timestamp}</span>
             </div>
-        `;
-    });
+            <div class="message-content ${statusClass}">
+                ${content}
+            </div>
+        </div>`;
+}); // <-- Ensure this closing curly brace is here
+} // <-- Ensure this closing curly brace is here for updateQueueLog function
 
-    logElement.innerHTML = htmlContent;
-}
 
 function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
@@ -110,6 +112,7 @@ function updateQueueCounters() {
         });
     }
 }
-
+    
+    
 // Export the functions that need to be called externally
 export { updateQueueDisplay, updateQueueLog, updateQueueCounters };
