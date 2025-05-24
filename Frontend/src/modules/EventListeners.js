@@ -91,6 +91,11 @@ async function processBackendMessages() {
                 console.warn('MessageProcessor: Unknown message type received:', message.type, message);
         }
     }
+            }
+        } catch (error) {
+            console.error('Error processing backend message:', error);
+        }
+    }
     console.groupEnd();
 }
 

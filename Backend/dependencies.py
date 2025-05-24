@@ -1,6 +1,15 @@
 # Backend/dependencies.py
+import asyncio
+import logging
 from typing import Optional
-from Backend.core.simulator import SimulationManager # Absolute import for SimulationManager
+from Backend.core.simulator import SimulationManager
+from Backend.queues.shared_queue import (
+    get_to_backend_queue,
+    get_to_frontend_queue,
+    get_from_frontend_queue
+)
+
+logger = logging.getLogger(__name__)
 
 # This global variable will hold the SimulationManager instance
 _global_sim_manager_instance: Optional[SimulationManager] = None
