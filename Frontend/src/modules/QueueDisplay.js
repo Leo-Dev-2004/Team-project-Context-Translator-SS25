@@ -1,5 +1,10 @@
 // QueueDisplay.js
-import { toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue } from '../app.js';
+import {
+    toFrontendQueue,
+    fromFrontendQueue, 
+    toBackendQueue,
+    fromBackendQueue
+} from './MessageQueue.js';
 
 const MAX_VISIBLE_ITEMS = 20;
 let lastUpdateTime = 0;

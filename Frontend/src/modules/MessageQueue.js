@@ -29,8 +29,12 @@ class MessageQueue {
         return this.queue.length;
     }
 
+    peekAll() {
+        return [...this.queue]; // Return a copy without modifying queue
+    }
+
     getAll() {
-        return [...this.queue]; // Return a copy of the queue
+        return this.peekAll(); // Alias for backwards compatibility
     }
 
     addListener(callback) {
