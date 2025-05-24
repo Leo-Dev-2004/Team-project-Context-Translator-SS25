@@ -9,12 +9,11 @@ const UPDATE_THROTTLE_MS = 100;
 // For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
-function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
-    debugger; // Pause hier zu Debug-Zwecken
-    console.log("DEBUG: updateQueueDisplay called.");
+export function updateAllQueueDisplays() {
+    console.log("DEBUG: updateAllQueueDisplays called.");
     const now = performance.now();
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
-        requestAnimationFrame(() => updateQueueDisplay(lastMessage)); // Pass lastMessage
+        requestAnimationFrame(updateAllQueueDisplays);
         return;
     }
     lastUpdateTime = now;
@@ -24,7 +23,7 @@ function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
         updateQueueLog('fromFrontendLog', fromFrontendQueue);
         updateQueueLog('toBackendLog', toBackendQueue);
         updateQueueLog('fromBackendLog', fromBackendQueue);
-        updateQueueCounters(lastMessage); // Pass lastMessage
+        updateQueueCounters();
     });
 }
 
@@ -129,8 +128,7 @@ function updateQueueLog(logId, queue) {
     console.groupEnd();
 }
 
-function updateQueueCounters(lastMessage) { // Added lastMessage as argument
-    debugger; // Pause hier zu Debug-Zwecken
+export function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
     document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
     document.getElementById('toBackendCount').textContent = toBackendQueue.size();
@@ -141,8 +139,7 @@ function updateQueueCounters(lastMessage) { // Added lastMessage as argument
             toFrontend: toFrontendQueue.size(),
             fromFrontend: fromFrontendQueue.size(),
             toBackend: toBackendQueue.size(),
-            fromBackend: fromBackendQueue.size(),
-            lastMessage: lastMessage ? lastMessage.type : 'none'
+            fromBackend: fromBackendQueue.size()
         });
     }
 }

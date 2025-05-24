@@ -13,50 +13,76 @@ function sendTestMessage() {
         data: {
             text: 'Hello from Frontend Test Button!',
             timestamp: new Date().toISOString(),
-            id: 'test_msg_' + Date.now() // Add an ID, as your backend validator was looking for it
+            id: 'test_msg_' + Date.now()
         }
     };
-    fromFrontendQueue.enqueue(testMessage); // Enqueue for potential internal processing/logging
-    console.log("DEBUG: Test message enqueued to fromFrontendQueue. Current size:", fromFrontendQueue.size());
+    toBackendQueue.enqueue(testMessage);
+    console.log("DEBUG: Test message enqueued to toBackendQueue. Current size:", toBackendQueue.size());
 
-    // --- ADD THIS LINE TO IMMEDIATELY SEND IT ---
     WebSocketManager.sendMessage(testMessage);
-    // --- END ADDITION ---
+
+    updateQueueLog('toBackendLog', toBackendQueue);
+    updateAllQueueDisplays();
 }
 
 
 // This function will continuously process messages from the fromBackendQueue
 async function processBackendMessages() {
     console.group('Starting backend message processor');
-    
+        
     while (true) {
         try {
             const message = await fromBackendQueue.dequeue();
             console.log('Processing message:', message.type);
-            
-            // Update UI based on message type
-            switch(message.type) {
-                case 'system':
-                    document.getElementById('simulationStatus').textContent = 
-                        message.data.message || 'System update';
-                    break;
-                case 'simulation_update':
-                    document.getElementById('simulationProgress').textContent = 
-                        `Progress: ${message.data.progress}%`;
-                    break;
-                default:
-                    console.warn('Unhandled message type:', message.type);
+                
+            try {
+                switch (message.type) {
+                    case 'connection_ack':
+                        console.log('MessageProcessor: Backend acknowledged connection.', message.data);
+                        document.getElementById('connectionStatus').textContent = 'Connected';
+                        document.getElementById('connectionStatus').style.color = 'green';
+                        break;
+                    case 'error':
+                        console.error('MessageProcessor: Error from backend:', message.message);
+                        document.getElementById('simulationStatus').textContent = `Error: ${message.message}`;
+                        document.getElementById('simulationStatus').style.color = 'red';
+                        break;
+                    case 'system':
+                        console.log('MessageProcessor: System message received:', message.data);
+                        document.getElementById('simulationStatus').textContent = `Simulation Status: ${message.data.message}`;
+                        document.getElementById('simulationStatus').style.color = 'blue';
+                        break;
+                    case 'simulation_progress_update':
+                        console.log('MessageProcessor: Simulation progress update received:', message.data);
+                        document.getElementById('simulationStatus').textContent = `Sim Progress: Step ${message.data.current_step}, ${message.data.overall_progress}% - ${message.data.message}`;
+                        document.getElementById('simulationStatus').style.color = 'purple';
+                        break;
+                    case 'backend_status_update':
+                        console.log('MessageProcessor: Backend processing status update received:', message.data);
+                        document.getElementById('lastUpdate').textContent = `Backend Processed: ${message.data.original_type} (ID: ${message.data.original_id})`;
+                        break;
+                    case 'test_message':
+                        console.log('MessageProcessor: Test message received (echoed/processed):', message.data);
+                        document.getElementById('lastUpdate').textContent = `Test Msg Processed: ${message.data.text}`;
+                        break;
+                    case 'raw_simulation_data':
+                        console.log('MessageProcessor: Raw simulation data received:', message.data);
+                        document.getElementById('messageCount').textContent = parseInt(document.getElementById('messageCount').textContent) + 1;
+                        break;
+                    case 'status_update':
+                        console.log('MessageProcessor: Generic status_update received:', message.data);
+                        document.getElementById('lastUpdate').textContent = `Last Processed: ${message.data.original_type} (ID: ${message.data.id || message.data.original_id || 'N/A'})`;
+                        break;
+                    default:
+                        console.warn('MessageProcessor: Unhandled message type:', message.type, message);
+                        document.getElementById('simulationStatus').textContent = `Unknown Message: ${message.type}`;
+                }
+            } catch (error) {
+                console.error("MessageProcessor: Error processing message:", message, error);
+                document.getElementById('simulationStatus').textContent = `Processing Error: ${error.message}`;
             }
-            
-            // Update all queue displays periodically
-            if (this.updateCounter % 5 === 0) {
-                updateQueueLog('toFrontendLog', toFrontendQueue);
-                updateQueueLog('fromFrontendLog', fromFrontendQueue); 
-                updateQueueLog('toBackendLog', toBackendQueue);
-                updateQueueLog('fromBackendLog', fromBackendQueue);
-                updateQueueCounters();
-            }
-            this.updateCounter++;
+
+            updateAllQueueDisplays();
             
             console.log('MessageProcessor: Dequeued message from backend:', message);
 
