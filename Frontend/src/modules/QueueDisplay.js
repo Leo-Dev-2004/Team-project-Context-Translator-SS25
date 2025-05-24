@@ -29,8 +29,25 @@ function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
 }
 
 function updateQueueLog(logId, queue) {
-    debugger; // Pause hier zu Debug-Zwecken
-    console.log(`DEBUG: updateQueueLog called for ${logId}. Queue size: ${queue.size()}`);
+    console.group(`Updating ${logId}`);
+    console.log(`Queue size: ${queue.size()}`);
+    
+    const logElement = document.getElementById(logId);
+    if (!logElement) {
+        console.error('Log element not found:', logId);
+        return;
+    }
+    
+    // Letzte 20 Nachrichten anzeigen
+    const items = queue.getRecentItems(20); 
+    logElement.innerHTML = items.map(item => 
+        `<div class="log-entry">
+            <strong>${item.type}</strong>: ${JSON.stringify(item.data)}
+            <small>${new Date(item.timestamp * 1000).toLocaleTimeString()}</small>
+        </div>`
+    ).join('');
+    
+    console.groupEnd();
     const logElement = document.getElementById(logId);
     if (!logElement) {
         console.warn(`DEBUG: Log element not found for ID: ${logId}`);

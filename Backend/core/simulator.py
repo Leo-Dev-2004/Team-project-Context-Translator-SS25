@@ -108,7 +108,23 @@ class SimulationManager:
 
     async def _run_simulation(self):
         """Internal simulation task"""
-        logger.info("Simulation task starting")
+        logger.info("Starting simulation loop")
+        
+        # Initiale Statusnachricht
+        init_msg = {
+            "type": "system",
+            "data": {
+                "id": "sim_init",
+                "message": "Simulation gestartet",
+                "status": "running",
+                "progress": 0
+            },
+            "timestamp": time.time()
+        }
+        
+        logger.debug(f"Enqueue initial message to frontend: {init_msg}")
+        await self._to_frontend_queue.enqueue(init_msg)
+        logger.info("Initial message sent to frontend queue")
         
         try:
             system_msg = QueueMessage(

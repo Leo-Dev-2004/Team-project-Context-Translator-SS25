@@ -27,10 +27,29 @@ function sendTestMessage() {
 
 // This function will continuously process messages from the fromBackendQueue
 async function processBackendMessages() {
-    console.group('MessageProcessor: Starting message processing loop...');
+    console.group('Starting backend message processor');
+    
     while (true) {
-        // Wait for a message to be available in the queue
-        const message = await fromBackendQueue.dequeue();
+        try {
+            const message = await fromBackendQueue.dequeue();
+            console.log('Processing message:', message.type);
+            
+            // Update UI based on message type
+            switch(message.type) {
+                case 'system':
+                    document.getElementById('simulationStatus').textContent = 
+                        message.data.message || 'System update';
+                    break;
+                case 'simulation_update':
+                    document.getElementById('simulationProgress').textContent = 
+                        `Progress: ${message.data.progress}%`;
+                    break;
+                default:
+                    console.warn('Unhandled message type:', message.type);
+            }
+            
+            // Update all queue displays
+            updateQueueDisplay(message);
         console.log('MessageProcessor: Dequeued message from backend:', message);
 
         // Process the message based on its type

@@ -14,15 +14,19 @@ def set_simulation_manager_instance(manager: SimulationManager):
     _global_sim_manager_instance = manager
 
 def get_simulation_manager(require_ready: bool = True) -> SimulationManager:
-    """Erweitert mit Status-Check"""
+    global _global_sim_manager_instance
+    
     if _global_sim_manager_instance is None:
-        raise RuntimeError("SimulationManager not initialized")
+        logger.info("Initializing SimulationManager with queues")
+        _global_sim_manager_instance = SimulationManager(
+            to_backend_queue=get_to_backend_queue(),
+            to_frontend_queue=get_to_frontend_queue(),
+            from_backend_queue=get_from_frontend_queue()  # Korrekte Queue für eingehende Nachrichten
+        )
+        logger.info(f"SimulationManager initialized on loop {id(asyncio.get_running_loop())}")
+
     if require_ready and not _global_sim_manager_instance.is_ready:
         raise RuntimeError("SimulationManager not in ready state")
-    """
-    FastAPI dependency function to retrieve the initialized SimulationManager.
-    Raises an error if the manager has not been initialized.
-    """
-    if _global_sim_manager_instance is None:
-        raise RuntimeError("SimulationManager not initialized. Server startup likely failed or is incomplete.")
+
+    logger.debug(f"Retrieved SimulationManager instance")
     return _global_sim_manager_instance

@@ -38,13 +38,19 @@ async def health_check():
 async def get_metrics():
     return ws_manager.get_metrics()
 
-@router.post("/simulation/start") # Changed to POST
+@router.post("/simulation/start")
 async def start_simulation(
     background_tasks: BackgroundTasks,
     manager: SimulationManager = Depends(get_simulation_manager)
 ):
-    logger.info("Backend: Received POST request to /simulation/start")
-    return await manager.start(background_tasks)
+    logger.info("Backend: Starting simulation via API")
+    try:
+        response = await manager.start(background_tasks)
+        logger.info(f"Simulation started successfully: {response}")
+        return response
+    except Exception as e:
+        logger.error(f"Failed to start simulation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/simulation/stop") # Changed to POST
 async def stop_simulation(
