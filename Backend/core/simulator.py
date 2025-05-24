@@ -32,10 +32,18 @@ class SimulationManager:
         self.running = False
         self.counter = 0
         self.task = None
-        self.is_ready = True  # Changed from _is_ready to is_ready
         self._to_backend_queue = to_backend_queue
         self._to_frontend_queue = to_frontend_queue
         self._from_backend_queue = from_backend_queue
+        self._is_ready = True
+
+    @property
+    def is_ready(self):
+        return self._is_ready
+
+    @property
+    def is_running(self):
+        return self.running
 
     async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
@@ -109,23 +117,7 @@ class SimulationManager:
 
     async def _run_simulation(self):
         """Internal simulation task"""
-        logger.info("Starting simulation loop")
-        
-        # Initiale Statusnachricht
-        init_msg = {
-            "type": "system",
-            "data": {
-                "id": "sim_init",
-                "message": "Simulation gestartet",
-                "status": "running",
-                "progress": 0
-            },
-            "timestamp": time.time()
-        }
-        
-        logger.debug(f"Enqueue initial message to frontend: {init_msg}")
-        await self._to_frontend_queue.enqueue(init_msg)
-        logger.info("Initial message sent to frontend queue")
+        logger.info("Simulation task starting")
         
         try:
             system_msg = QueueMessage(
