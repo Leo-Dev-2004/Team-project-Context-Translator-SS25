@@ -81,7 +81,7 @@ export function updateQueueLog(elementId, queue) {
         htmlContent += `
             <div class="log-entry">
                 <div class="message-header">
-                    <span class="message-id">ID: <span class="math-inline">\{String\(id\)\.substring\(0, 8\)\}\.\.\.</span\>
+                    <span class="message-id">ID: ${String(id).substring(0, 8)}...</span>
 
 function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
