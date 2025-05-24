@@ -175,7 +175,20 @@ class SimulationManager:
                 processing_path=[],
                 forwarding_path=[]
             ).dict()
+            
+            # Send to both backend and frontend queues
             await self._to_backend_queue.enqueue(sim_msg)
+            
+            # Create simplified frontend notification
+            frontend_msg = {
+                "type": "simulation_update",
+                "data": {
+                    "id": f"sim_{self.counter}",
+                    "status": "generated",
+                    "timestamp": time.time()
+                }
+            }
+            await self._to_frontend_queue.enqueue(frontend_msg)
             
             await asyncio.sleep(0.5 + 1.5 * random.random())
             

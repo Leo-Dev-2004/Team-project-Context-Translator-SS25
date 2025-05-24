@@ -106,12 +106,26 @@ class MessageProcessor:
     async def _process_message(self, message: Dict) -> Optional[Dict]:
         """Nachrichtenverarbeitungslogik"""
         try:
-            # Ihre Verarbeitungslogik hier
             if not isinstance(message, dict):
                 raise ValueError("Invalid message format")
                 
+            # Add processing metadata
             message['status'] = 'processed'
             message['processed_at'] = time.time()
+            
+            # Create frontend notification
+            frontend_msg = {
+                'type': 'status_update',
+                'data': {
+                    'original_id': message.get('id'),
+                    'original_type': message.get('type'),
+                    'status': 'processed',
+                    'timestamp': time.time()
+                }
+            }
+            
+            # Forward both the processed message and notification
+            await self._safe_enqueue(self._frontend_queue, frontend_msg)
             return message
         except Exception as e:
             logger.error(f"Message processing failed: {str(e)}")
