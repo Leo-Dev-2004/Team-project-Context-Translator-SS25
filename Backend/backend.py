@@ -56,9 +56,16 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:9000",
+        "http://127.0.0.1:9000",
+        "http://localhost:8000", 
+        "http://127.0.0.1:8000",
+        "ws://localhost:9000",
+        "ws://127.0.0.1:9000"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
@@ -97,12 +104,17 @@ async def startup_event():
     from_frontend_q = queues["from_frontend"]
     logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
 
-    # 3. Initialize the SimulationManager
+    # 3. Initialize the SimulationManager with all required queues
     current_sim_manager = SimulationManager(
         to_backend_queue=to_backend_q,
         to_frontend_queue=to_frontend_q,
-        from_backend_queue=from_backend_q
+        from_backend_queue=from_backend_q,
+        from_frontend_queue=from_frontend_q
     )
+    # Ensure the manager is properly initialized
+    if not hasattr(current_sim_manager, 'is_ready'):
+        current_sim_manager.is_ready = False
+    current_sim_manager.is_ready = True
     # Store the initialized manager instance in the dependencies module
     set_simulation_manager_instance(current_sim_manager) # NEW CALL
     logger.info("SimulationManager initialized and stored in dependencies.")
