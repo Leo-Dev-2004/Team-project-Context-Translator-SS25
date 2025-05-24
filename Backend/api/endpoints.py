@@ -43,14 +43,47 @@ async def start_simulation(
     background_tasks: BackgroundTasks,
     manager: SimulationManager = Depends(get_simulation_manager)
 ):
-    logger.info("Backend: Starting simulation via API")
+    """Start the simulation
+    
+    Returns:
+        dict: Status message and simulation state
+    Raises:
+        HTTPException: If simulation fails to start
+    """
+    logger.info("Received request to start simulation")
+    
+    if not manager.is_ready:
+        logger.error("SimulationManager not ready")
+        raise HTTPException(
+            status_code=503,
+            detail="Simulation service not ready"
+        )
+        
+    if manager.is_running:
+        logger.warning("Simulation already running")
+        return {
+            "message": "Simulation already running",
+            "status": "running",
+            "timestamp": time.time()
+        }
+        
     try:
+        logger.info("Initiating simulation start via background task")
         response = await manager.start(background_tasks)
         logger.info(f"Simulation started successfully: {response}")
-        return response
+        
+        return {
+            **response,
+            "timestamp": time.time()
+        }
+    except HTTPException:
+        raise  # Re-raise already handled HTTP exceptions
     except Exception as e:
-        logger.error(f"Failed to start simulation: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to start simulation: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start simulation: {str(e)}"
+        )
 
 @router.post("/simulation/stop") # Changed to POST
 async def stop_simulation(
