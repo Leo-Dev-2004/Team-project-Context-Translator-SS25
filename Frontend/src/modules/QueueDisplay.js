@@ -90,6 +90,10 @@ export function updateQueueLog(elementId, queue) {
                 </div>
             </div>
         `;
+    });
+
+    logElement.innerHTML = htmlContent;
+}
 
 function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
