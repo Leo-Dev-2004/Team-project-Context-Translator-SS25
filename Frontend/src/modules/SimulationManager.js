@@ -1,63 +1,69 @@
-// SimulationManager.js
-import { toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue } from './MessageQueue.js';
-import { updateQueueDisplay } from './QueueDisplay.js'; // To clear/update display
-import { WebSocketManager } from './WebSocketManager.js'; // To check connection state
+// frontend/src/modules/SimulationManager.js
+
+import { WebSocketManager } from './WebSocketManager.js';
+import { fromBackendQueue, toBackendQueue } from '../app.js'; // Import queues from app.js
 
 async function startSimulation() {
+    console.group('startSimulation');
     console.log('TRACE: startSimulation called!');
     try {
-        console.log('Starting simulation...');
-
         // Clear all queues first (good practice for new sim run)
-        toFrontendQueue.clear();
-        fromFrontendQueue.clear();
-        toBackendQueue.clear();
-        fromBackendQueue.clear();
+        // It's good to ensure queues are clear for a new simulation,
+        // but the SimulationManager might not be the best place to clear *all* queues.
+        // Consider if this logic belongs elsewhere or needs to be more targeted.
 
-        // Force immediate UI update with empty queues
-        updateQueueDisplay({type: 'simulation_reset'});
+        // Example of how you *would* get the last message from a queue if needed:
+        // const lastMessage = fromBackendQueue.getLastMessage(); // Assuming MessageQueue has this method
+        // console.log("Last message from backend queue:", lastMessage);
 
-        debugger; // Pause hier vor API-Aufruf
+        // debugger; // Keep this if you want to pause here
+
         const response = await fetch('http://localhost:8000/simulation/start', {
+            method: 'POST', // Assuming it's a POST to start/stop
             mode: 'cors',
             credentials: 'include'
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
-        console.log('Simulation started:', result);
-        
-        // Force UI update after starting simulation
-        updateQueueDisplay(WebSocketManager.getLastReceivedMessage());
+        console.log('Simulation start response:', result);
+        // WebSocketManager.sendMessage({ type: 'simulation_started', content: result }); // Or handle via QueueForwarder
 
-        if (WebSocketManager.isConnected && WebSocketManager.getState() === WebSocket.OPEN) {
-            console.log("Waiting for backend confirmation via WebSocket...");
-        } else {
-            console.warn('WebSocket is not ready. Message not sent.');
-        }
     } catch (error) {
         console.error('Failed to start simulation:', error);
-        alert(`Failed to start simulation: ${error.message}`);
+        document.getElementById('simulationStatus').textContent = `Failed to start: ${error.message}`;
     }
+    console.groupEnd();
 }
 
 async function stopSimulation() {
+    console.group('stopSimulation');
     console.log('TRACE: stopSimulation called!');
     try {
-        const response = await fetch('http://localhost:8000/simulation/stop');
+        const response = await fetch('http://localhost:8000/simulation/stop', {
+            method: 'POST', // Assuming it's a POST
+            mode: 'cors',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
         const result = await response.json();
-        console.log('Simulation stopped:', result);
-        
-        // Force UI update after stopping simulation
-        updateQueueDisplay(WebSocketManager.getLastReceivedMessage());
-        return result;
+        console.log('Simulation stop response:', result);
+        // WebSocketManager.sendMessage({ type: 'simulation_stopped', content: result }); // Or handle via QueueForwarder
+
     } catch (error) {
         console.error('Failed to stop simulation:', error);
-        throw error;
+        document.getElementById('simulationStatus').textContent = `Failed to stop: ${error.message}`;
     }
+    console.groupEnd();
 }
 
 export { startSimulation, stopSimulation };
