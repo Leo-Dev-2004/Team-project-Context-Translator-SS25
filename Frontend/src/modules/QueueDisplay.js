@@ -27,35 +27,56 @@ export function updateAllQueueDisplays() {
     });
 }
 
-function updateQueueLog(logId, queue) {
-    const logElement = document.getElementById(logId);
+export function updateQueueLog(elementId, queue) {
+    const logElement = document.getElementById(elementId);
     if (!logElement) {
-        console.warn(`Queue log element not found: ${logId}`);
+        console.error(`Error: Log element with ID '${elementId}' not found.`);
         return;
     }
 
-    const items = queue.queue.slice(-20); // Get last 20 items
-    const now = Date.now();
-    
-    logElement.innerHTML = items.map(item => {
-        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
-        return `
-        <div class="log-entry">
-            <div class="message-header">
-                <span class="message-type ${item.type}">${item.type}</span>
-                <span class="message-id">${item.id || 'N/A'}</span>
-            </div>
-            <div class="message-content">
-                ${JSON.stringify(item.data, null, 2)}
-            </div>
-            <div class="message-footer">
-                <span>${timeDiff.toFixed(1)}s ago</span>
-                <span class="message-status">${item.status || 'pending'}</span>
-            </div>
-        </div>`;
-    }).join('');
+    const MAX_DISPLAY_ITEMS = 10;
+    const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS);
 
-    // Auto-scroll to bottom
+    let htmlContent = '';
+    if (queue.size() > MAX_DISPLAY_ITEMS) {
+        htmlContent += `<div class="log-overflow">Showing last ${MAX_DISPLAY_ITEMS} of ${queue.size()} messages.</div>`;
+    }
+
+    itemsToDisplay.forEach(message => {
+        const data = message.data || {};
+        const id = data.id || data.original_id || 'N/A';
+        const type = message.type || 'unknown';
+        const timestamp = new Date(message.timestamp * 1000).toLocaleTimeString();
+        const status = data.status || 'N/A';
+        const content = data.message || data.text || JSON.stringify(data);
+
+        let statusClass = '';
+        switch (status) {
+            case 'pending': statusClass = 'status-pending'; break;
+            case 'urgent': statusClass = 'status-urgent'; break;
+            case 'processing': statusClass = 'status-processing'; break;
+            case 'processed': statusClass = 'status-processed'; break;
+        }
+
+        htmlContent += `
+            <div class="log-entry">
+                <div class="message-header">
+                    <span class="message-id">ID: ${id.substring(0, 8)}...</span>
+                    <span class="message-type message">${type}</span>
+                    ${data.priority ? `<span class="message-priority priority-${data.priority}">P${data.priority}</span>` : ''}
+                </div>
+                <div class="message-content">
+                    ${content.length > 50 ? content.substring(0, 50) + '...' : content}
+                </div>
+                <div class="message-footer">
+                    <span class="message-status ${statusClass}">Status: ${status}</span>
+                    <span class="message-timestamp">${timestamp}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    logElement.innerHTML = htmlContent;
     logElement.scrollTop = logElement.scrollHeight;
     const logElement = document.getElementById(logId);
     if (!logElement) {

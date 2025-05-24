@@ -129,30 +129,30 @@ async function processBackendMessages() {
 
 // Event listener setup
 export function initializeEventListeners() {
-    console.group('EventListeners: Initializing...');
-
-    // Assign event handlers to buttons
+    console.log("EventListeners: Initializing...");
+    
     document.getElementById('startSim').addEventListener('click', () => {
+        console.log("EventListeners: startSim button clicked.");
         startSimulation();
-        console.log('EventListeners: startSim button clicked.');
     });
+
     document.getElementById('stopSim').addEventListener('click', () => {
+        console.log("EventListeners: stopSim button clicked.");
         stopSimulation();
-        console.log('EventListeners: stopSim button clicked.');
     });
+
     document.getElementById('testButton').addEventListener('click', sendTestMessage);
-    console.log('EventListeners: Buttons assigned.');
+    console.log("EventListeners: Buttons assigned.");
 
-    // Listen for WebSocket connection acknowledgement
-    document.addEventListener('websocket-ack', () => {
-        console.log('EventListeners: WebSocket fully initialized and acknowledged by server. Starting message processor.');
-        // Once WebSocket is confirmed, start processing messages from the backend
-        processBackendMessages();
-        // You might want an initial display update here too
-        updateQueueDisplay({ /* initial empty state or current state */ });
-        updateQueueCounters({ /* initial empty state */ });
-    });
+    const frontendReadyAck = {
+        type: 'frontend_ready_ack',
+        data: {
+            message: 'Frontend is ready to receive messages and process.',
+            timestamp: new Date().toISOString()
+        }
+    };
+    WebSocketManager.sendMessage(frontendReadyAck);
+    console.log("EventListeners: WebSocket fully initialized and acknowledged by server.");
 
-    console.log('EventListeners: Initialization complete.');
-    console.groupEnd();
+    console.log("EventListeners: Initialization complete.");
 }
