@@ -27,23 +27,33 @@ class SimulationManager:
         self,
         to_backend_queue: MessageQueue,
         to_frontend_queue: MessageQueue,
-        from_backend_queue: MessageQueue
+        from_backend_queue: MessageQueue,
+        from_frontend_queue: MessageQueue
     ):
-        self.running = False
+        self._running = False
         self.counter = 0
         self.task = None
         self._to_backend_queue = to_backend_queue
         self._to_frontend_queue = to_frontend_queue
         self._from_backend_queue = from_backend_queue
-        self._is_ready = True
+        self._from_frontend_queue = from_frontend_queue
+        self._is_ready = False  # Start as not ready by default
 
     @property
-    def is_ready(self):
+    def is_ready(self) -> bool:
+        """Whether the simulation manager is ready to start"""
         return self._is_ready
 
+    @is_ready.setter
+    def is_ready(self, value: bool) -> None:
+        """Set the ready status of the simulation manager"""
+        self._is_ready = value
+        logger.info(f"SimulationManager ready state set to: {value}")
+
     @property
-    def is_running(self):
-        return self.running
+    def is_running(self) -> bool:
+        """Whether the simulation is currently running"""
+        return self._running
 
     async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
