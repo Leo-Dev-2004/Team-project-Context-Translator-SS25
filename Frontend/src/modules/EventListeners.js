@@ -50,47 +50,41 @@ async function processBackendMessages() {
             
             // Update all queue displays
             updateQueueDisplay(message);
-        console.log('MessageProcessor: Dequeued message from backend:', message);
+            
+            console.log('MessageProcessor: Dequeued message from backend:', message);
 
-        // Process the message based on its type
-        switch (message.type) {
-            case 'simulation_status_update':
-                console.log('MessageProcessor: Simulation status update received:', message.payload);
-                updateQueueDisplay(message.data); // This payload should contain the counters/logs
-                break;
-            case 'agent_log':
-                console.log('MessageProcessor: Agent log received:', message.payload);
-                updateQueueLog(message.data);
-                break;
-            case 'queue_counters':
-                console.log('MessageProcessor: Queue counters received:', message.payload);
-                updateQueueCounters(message.data);
-                break;
-            // --- ADD THESE NEW CASES ---
-            case 'connection_ack': // Message from backend upon successful connection
-                console.log('MessageProcessor: Backend acknowledged connection.', message.payload);
-                // You might want to update a UI element here if connectionStatus isn't enough
-                break;
-            case 'error': // Backend sent an error message
-                console.error('MessageProcessor: Error from backend:', message.message || message.payload);
-                // Display error prominently in UI (e.g., an alert or error div)
-                // You might need to adjust based on the actual 'error' message structure
-                break;
-            case 'system': // System-level messages (like simulation start/stop confirmation)
-                console.log('MessageProcessor: System message received:', message.data);
-                document.getElementById('simulationStatus').textContent = `Simulation Status: ${message.data.message}`;
-                break;
-            // --- END NEW CASES ---
-            case 'frontend_ready_ack':
-                console.log('MessageProcessor: Backend acknowledged frontend readiness.');
-                break;
-            case 'message_from_backend': // General message type (if you use it)
-                console.log('MessageProcessor: Generic message from backend:', message.payload);
-                break;
-            default:
-                console.warn('MessageProcessor: Unknown message type received:', message.type, message);
-        }
-    }
+            // Process the message based on its type
+            switch (message.type) {
+                case 'simulation_status_update':
+                    console.log('MessageProcessor: Simulation status update received:', message.payload);
+                    updateQueueDisplay(message.data);
+                    break;
+                case 'agent_log':
+                    console.log('MessageProcessor: Agent log received:', message.payload);
+                    updateQueueLog(message.data);
+                    break;
+                case 'queue_counters':
+                    console.log('MessageProcessor: Queue counters received:', message.payload);
+                    updateQueueCounters(message.data);
+                    break;
+                case 'connection_ack':
+                    console.log('MessageProcessor: Backend acknowledged connection.', message.payload);
+                    break;
+                case 'error':
+                    console.error('MessageProcessor: Error from backend:', message.message || message.payload);
+                    break;
+                case 'system':
+                    console.log('MessageProcessor: System message received:', message.data);
+                    document.getElementById('simulationStatus').textContent = `Simulation Status: ${message.data.message}`;
+                    break;
+                case 'frontend_ready_ack':
+                    console.log('MessageProcessor: Backend acknowledged frontend readiness.');
+                    break;
+                case 'message_from_backend':
+                    console.log('MessageProcessor: Generic message from backend:', message.payload);
+                    break;
+                default:
+                    console.warn('MessageProcessor: Unknown message type received:', message.type, message);
             }
         } catch (error) {
             console.error('Error processing backend message:', error);
