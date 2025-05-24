@@ -7,16 +7,10 @@ async function startSimulation() {
     console.group('startSimulation');
     console.log('TRACE: startSimulation called!');
     try {
-        // Clear all queues first (good practice for new sim run)
-        // It's good to ensure queues are clear for a new simulation,
-        // but the SimulationManager might not be the best place to clear *all* queues.
-        // Consider if this logic belongs elsewhere or needs to be more targeted.
-
-        // Example of how you *would* get the last message from a queue if needed:
-        // const lastMessage = fromBackendQueue.getLastMessage(); // Assuming MessageQueue has this method
-        // console.log("Last message from backend queue:", lastMessage);
-
-        // debugger; // Keep this if you want to pause here
+        // Clear queues before starting new simulation
+        toBackendQueue.clear();
+        fromBackendQueue.clear();
+        console.log('Queues cleared before simulation start');
 
         const response = await fetch('http://localhost:8000/simulation/start', {
             method: 'POST', // Assuming it's a POST to start/stop
@@ -31,7 +25,8 @@ async function startSimulation() {
 
         const result = await response.json();
         console.log('Simulation start response:', result);
-        // WebSocketManager.sendMessage({ type: 'simulation_started', content: result }); // Or handle via QueueForwarder
+        document.getElementById('simulationStatus').textContent = 'Simulation started';
+        document.getElementById('simulationStatus').style.color = 'green';
 
     } catch (error) {
         console.error('Failed to start simulation:', error);
@@ -44,6 +39,7 @@ async function stopSimulation() {
     console.group('stopSimulation');
     console.log('TRACE: stopSimulation called!');
     try {
+        // First try graceful stop via API
         const response = await fetch('http://localhost:8000/simulation/stop', {
             method: 'POST', // Assuming it's a POST
             mode: 'cors',
@@ -57,7 +53,8 @@ async function stopSimulation() {
 
         const result = await response.json();
         console.log('Simulation stop response:', result);
-        // WebSocketManager.sendMessage({ type: 'simulation_stopped', content: result }); // Or handle via QueueForwarder
+        document.getElementById('simulationStatus').textContent = 'Simulation stopped';
+        document.getElementById('simulationStatus').style.color = 'red';
 
     } catch (error) {
         console.error('Failed to stop simulation:', error);
