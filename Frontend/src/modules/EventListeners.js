@@ -48,8 +48,15 @@ async function processBackendMessages() {
                     console.warn('Unhandled message type:', message.type);
             }
             
-            // Update all queue displays
-            updateQueueDisplay(message);
+            // Update all queue displays periodically
+            if (this.updateCounter % 5 === 0) {
+                updateQueueLog('toFrontendLog', toFrontendQueue);
+                updateQueueLog('fromFrontendLog', fromFrontendQueue); 
+                updateQueueLog('toBackendLog', toBackendQueue);
+                updateQueueLog('fromBackendLog', fromBackendQueue);
+                updateQueueCounters();
+            }
+            this.updateCounter++;
             
             console.log('MessageProcessor: Dequeued message from backend:', message);
 

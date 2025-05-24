@@ -32,6 +32,7 @@ class SimulationManager:
         self.running = False
         self.counter = 0
         self.task = None
+        self.is_ready = True  # Changed from _is_ready to is_ready
         self._to_backend_queue = to_backend_queue
         self._to_frontend_queue = to_frontend_queue
         self._from_backend_queue = from_backend_queue

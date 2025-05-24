@@ -1,5 +1,5 @@
 // QueueDisplay.js
-import { toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue } from './MessageQueue.js';
+import { toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue } from '../app.js';
 
 const MAX_VISIBLE_ITEMS = 20;
 let lastUpdateTime = 0;
@@ -29,25 +29,35 @@ function updateQueueDisplay(lastMessage) { // Added lastMessage as argument
 }
 
 function updateQueueLog(logId, queue) {
-    console.group(`Updating ${logId}`);
-    console.log(`Queue size: ${queue.size()}`);
-    
     const logElement = document.getElementById(logId);
     if (!logElement) {
-        console.error('Log element not found:', logId);
+        console.warn(`Queue log element not found: ${logId}`);
         return;
     }
+
+    const items = queue.queue.slice(-20); // Get last 20 items
+    const now = Date.now();
     
-    // Letzte 20 Nachrichten anzeigen
-    const items = queue.getRecentItems(20); 
-    logElement.innerHTML = items.map(item => 
-        `<div class="log-entry">
-            <strong>${item.type}</strong>: ${JSON.stringify(item.data)}
-            <small>${new Date(item.timestamp * 1000).toLocaleTimeString()}</small>
-        </div>`
-    ).join('');
-    
-    console.groupEnd();
+    logElement.innerHTML = items.map(item => {
+        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
+        return `
+        <div class="log-entry">
+            <div class="message-header">
+                <span class="message-type ${item.type}">${item.type}</span>
+                <span class="message-id">${item.id || 'N/A'}</span>
+            </div>
+            <div class="message-content">
+                ${JSON.stringify(item.data, null, 2)}
+            </div>
+            <div class="message-footer">
+                <span>${timeDiff.toFixed(1)}s ago</span>
+                <span class="message-status">${item.status || 'pending'}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Auto-scroll to bottom
+    logElement.scrollTop = logElement.scrollHeight;
     const logElement = document.getElementById(logId);
     if (!logElement) {
         console.warn(`DEBUG: Log element not found for ID: ${logId}`);

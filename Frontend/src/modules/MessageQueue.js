@@ -29,6 +29,10 @@ class MessageQueue {
         return this.queue.length;
     }
 
+    getAll() {
+        return [...this.queue]; // Return a copy of the queue
+    }
+
     addListener(callback) {
         this._listeners.add(callback);
     }

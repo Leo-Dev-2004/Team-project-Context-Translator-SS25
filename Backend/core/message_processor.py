@@ -33,11 +33,10 @@ class MessageProcessor:
             raise
 
     async def process(self):
-        """Hauptverarbeitungsschleife mit robustem Error-Handling"""
+        """Main processing loop with robust error handling"""
         self._running = True
         logger.info("Starting MessageProcessor")
         
-        # Message statistics
         processed_count = 0
         last_log_time = time.time()
         
@@ -49,44 +48,39 @@ class MessageProcessor:
                     await asyncio.sleep(0.1)
                     continue
 
-                
-                    
-                # Log message receipt
-                logger.debug(f"Processing message {message['id']} from {message.get('_trace', {}).get('source')}")
-                
                 # Process message
                 start_time = time.time()
                 processed_msg = await self._process_message(message)
                 processing_time = time.time() - start_time
+
+                if processed_msg:
+                    # Forward to backend queue
+                    await self._safe_enqueue(self._output_queue, processed_msg)
+                    
+                    # Create status update for frontend
+                    status_update = {
+                        'type': 'status_update',
+                        'data': {
+                            'id': processed_msg.get('id'),
+                            'status': 'processed',
+                            'processing_time': processing_time,
+                            'original_type': processed_msg.get('type')
+                        },
+                        'timestamp': time.time()
+                    }
+                    await self._safe_enqueue(self._frontend_queue, status_update)
+
+                processed_count += 1
+                
+                # Periodic logging
+                if time.time() - last_log_time > 5:
+                    logger.info(f"Processed {processed_count} messages")
+                    last_log_time = time.time()
+                    processed_count = 0
+
             except Exception as e:
                 logger.error(f"Error during message processing: {str(e)}")
-        
-        # Setup structured logging
-        msg_counter = 0
-        last_log_time = time.time()
-
-        while self._running:
-            try:
-                # Sicherer Dequeue mit Timeout
-                message = await self._safe_dequeue(self._input_queue)
-                if message is None:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                # Nachrichtenverarbeitung
-                processed_msg = await self._process_message(message)
-                if processed_msg:
-                    # Weiterleitung an Backend und Frontend
-                    await self._safe_enqueue(self._output_queue, processed_msg)
-                    await self._safe_enqueue(self._frontend_queue, {
-                        'type': 'status_update',
-                        'data': processed_msg,
-                        'timestamp': time.time()
-                    })
-
-            except Exception as e:
-                logger.error(f"Processing error: {str(e)}")
-                await asyncio.sleep(1)  # Backoff bei Fehlern
+                await asyncio.sleep(1)  # Backoff on errors
 
         logger.info("MessageProcessor stopped")
 
