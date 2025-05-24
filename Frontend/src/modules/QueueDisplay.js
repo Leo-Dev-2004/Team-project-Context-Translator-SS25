@@ -9,7 +9,7 @@ const UPDATE_THROTTLE_MS = 100;
 // For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
-export function updateAllQueueDisplays() {
+function updateQueueDisplay() {
     console.log("DEBUG: updateAllQueueDisplays called.");
     const now = performance.now();
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
@@ -27,7 +27,7 @@ export function updateAllQueueDisplays() {
     });
 }
 
-export function updateQueueLog(elementId, queue) {
+function updateQueueLog(elementId, queue) {
     const logElement = document.getElementById(elementId);
     if (!logElement) {
         console.error(`Error: Log element with ID '${elementId}' not found.`);
@@ -37,9 +37,9 @@ export function updateQueueLog(elementId, queue) {
     const MAX_DISPLAY_ITEMS = 10;
     const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS);
 
-    let htmlContent = '';
+    let logHtmlContent = '';
     if (queue.size() > MAX_DISPLAY_ITEMS) {
-        htmlContent += `<div class="log-overflow">Showing last ${MAX_DISPLAY_ITEMS} of ${queue.size()} messages.</div>`;
+        logHtmlContent += `<div class="log-overflow">Showing last ${MAX_DISPLAY_ITEMS} of ${queue.size()} messages.</div>`;
     }
 
     itemsToDisplay.forEach(message => {
@@ -53,32 +53,32 @@ export function updateQueueLog(elementId, queue) {
         let statusClass = '';
         switch (status) {
             case 'pending': statusClass = 'status-pending'; break;
-            case 'urgent': statusClass = 'status-urgent'; break;
+            case 'urgent': stasstusClass = 'status-urgent'; break;
             case 'processing': statusClass = 'status-processing'; break;
             case 'processed': statusClass = 'status-processed'; break;
         }
 
-        htmlContent += `
-            <div class="log-entry">
-                <div class="message-header">
-                    <span class="message-id">ID: ${id.substring(0, 8)}...</span>
-                    <span class="message-type message">${type}</span>
-                    ${data.priority ? `<span class="message-priority priority-${data.priority}">P${data.priority}</span>` : ''}
+        logHtmlContent += `
+                <div class="log-entry">
+                    <div class="message-header">
+                        <span class="message-id">ID: ${id.substring(0, 8)}...</span>
+                        <span class="message-type message">${type}</span>
+                        ${data.priority ? `<span class="message-priority priority-${data.priority}">P${data.priority}</span>` : ''}
+                    </div>
+                    <div class="message-content">
+                        ${content.length > 50 ? content.substring(0, 50) + '...' : content}
+                    </div>
+                    <div class="message-footer">
+                        <span class="message-status ${statusClass}">Status: ${status}</span>
+                        <span class="message-timestamp">${timestamp}</span>
+                    </div>
                 </div>
-                <div class="message-content">
-                    ${content.length > 50 ? content.substring(0, 50) + '...' : content}
-                </div>
-                <div class="message-footer">
-                    <span class="message-status ${statusClass}">Status: ${status}</span>
-                    <span class="message-timestamp">${timestamp}</span>
-                </div>
-            </div>
-        `;
+            `;
     });
 
-    logElement.innerHTML = htmlContent;
-    logElement.scrollTop = logElement.scrollHeight;
-    const logElement = document.getElementById(logId);
+    specificLogElement.innerHTML = logHtmlContent;
+    specificLogElement.scrollTop = specificLogElement.scrollHeight;
+    const specificLogElement = document.getElementById(logId);
     if (!logElement) {
         console.warn(`DEBUG: Log element not found for ID: ${logId}`);
         return;
@@ -149,7 +149,7 @@ export function updateQueueLog(elementId, queue) {
     console.groupEnd();
 }
 
-export function updateQueueCounters() {
+function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
     document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
     document.getElementById('toBackendCount').textContent = toBackendQueue.size();

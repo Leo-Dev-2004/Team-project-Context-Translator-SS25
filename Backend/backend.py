@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional, Dict, Set
 
 from fastapi import FastAPI, Depends, WebSocket
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware # import CORS
 
 # Import the shared queue functions
 from Backend.queues.shared_queue import (
@@ -42,6 +42,26 @@ logger = logging.getLogger(__name__)
 
 # --- FASTAPI APPLICATION INSTANCE ---
 app = FastAPI()
+
+# --- FASTAPI MIDDLEWARE ---
+origins = [
+    "http://localhost",
+    "http://localhost:9000", # Your frontend's origin
+    "http://127.0.0.1:9000", # Sometimes 127.0.0.1 is used
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# --- INCLUDE API ROUTERS ---
+from .api import endpoints  # Import nach der App-Erstellung
+app.include_router(endpoints.router)
 
 # --- APPLICATION STATE ---
 app.state.websockets = set()  # type: ignore # type: Set[WebSocket]
@@ -159,17 +179,3 @@ async def shutdown_event():
     logger.info("All WebSocket connections attempted to close.")
     
     logger.info("Application shutdown complete.")
-
-
-# --- FASTAPI MIDDLEWARE ---
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:9000", "http://127.0.0.1:9000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# --- INCLUDE API ROUTERS ---
-from .api import endpoints  # Import nach der App-Erstellung
-app.include_router(endpoints.router)
