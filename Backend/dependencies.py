@@ -13,7 +13,12 @@ def set_simulation_manager_instance(manager: SimulationManager):
     global _global_sim_manager_instance
     _global_sim_manager_instance = manager
 
-def get_simulation_manager() -> SimulationManager:
+def get_simulation_manager(require_ready: bool = True) -> SimulationManager:
+    """Erweitert mit Status-Check"""
+    if _global_sim_manager_instance is None:
+        raise RuntimeError("SimulationManager not initialized")
+    if require_ready and not _global_sim_manager_instance.is_ready:
+        raise RuntimeError("SimulationManager not in ready state")
     """
     FastAPI dependency function to retrieve the initialized SimulationManager.
     Raises an error if the manager has not been initialized.
