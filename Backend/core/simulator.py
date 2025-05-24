@@ -30,7 +30,8 @@ class SimulationManager:
         from_backend_queue: MessageQueue,
         from_frontend_queue: MessageQueue
     ):
-        self._running = False
+        self._running = False  # Private variable for internal state
+        self.running = False   # Public attribute for compatibility
         self.counter = 0
         self.task = None
         self._to_backend_queue = to_backend_queue
@@ -54,6 +55,13 @@ class SimulationManager:
     def is_running(self) -> bool:
         """Whether the simulation is currently running"""
         return self._running
+
+    @is_running.setter
+    def is_running(self, value: bool) -> None:
+        """Set the running state of the simulation"""
+        self._running = value
+        self.running = value  # Keep public attribute in sync
+        logger.info(f"Simulation running state set to: {value}")
 
     async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
