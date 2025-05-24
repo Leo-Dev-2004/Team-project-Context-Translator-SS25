@@ -32,127 +32,56 @@ function updateQueueDisplay() {
     });
 }
 
-function updateQueueLog(elementId, queue) {
-    const logElement = document.getElementById(elementId);
+// Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
+export function updateQueueLog(elementId, queue) {
+    // console.log(`DEBUG: updateQueueLog called for ${elementId}. Queue size: ${queue.size()}`);
+
+    const logElement = document.getElementById(elementId); // Correct declaration here
     if (!logElement) {
         console.error(`Error: Log element with ID '${elementId}' not found.`);
         return;
     }
 
-    const MAX_DISPLAY_ITEMS = 10;
-    const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS);
+    const MAX_DISPLAY_ITEMS_PER_QUEUE = 10;
+    const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS_PER_QUEUE);
 
-    let logHtmlContent = '';
-    if (queue.size() > MAX_DISPLAY_ITEMS) {
-        logHtmlContent += `<div class="log-overflow">Showing last ${MAX_DISPLAY_ITEMS} of ${queue.size()} messages.</div>`;
+    let htmlContent = '';
+    if (queue.size() > MAX_DISPLAY_ITEMS_PER_QUEUE) {
+        htmlContent += `<div class="log-overflow">Showing last ${itemsToDisplay.length} of ${queue.size()} messages.</div>`;
     }
 
     itemsToDisplay.forEach(message => {
         const data = message.data || {};
         const id = data.id || data.original_id || 'N/A';
         const type = message.type || 'unknown';
+        // Convert Unix timestamp (seconds) to JS timestamp (milliseconds)
         const timestamp = new Date(message.timestamp * 1000).toLocaleTimeString();
         const status = data.status || 'N/A';
-        const content = data.message || data.text || JSON.stringify(data);
+        const content = data.message || data.text || (typeof data === 'object' ? JSON.stringify(data) : data);
 
         let statusClass = '';
         switch (status) {
-            case 'pending': statusClass = 'status-pending'; break;
-            case 'urgent': stasstusClass = 'status-urgent'; break;
-            case 'processing': statusClass = 'status-processing'; break;
-            case 'processed': statusClass = 'status-processed'; break;
+            case 'pending':
+                statusClass = 'status-pending';
+                break;
+            case 'urgent':
+                statusClass = 'status-urgent';
+                break;
+            case 'processing':
+                statusClass = 'status-processing';
+                break;
+            case 'processed':
+                statusClass = 'status-processed';
+                break;
+            default:
+                statusClass = '';
+                break;
         }
 
-        logHtmlContent += `
-                <div class="log-entry">
-                    <div class="message-header">
-                        <span class="message-id">ID: ${id.substring(0, 8)}...</span>
-                        <span class="message-type message">${type}</span>
-                        ${data.priority ? `<span class="message-priority priority-${data.priority}">P${data.priority}</span>` : ''}
-                    </div>
-                    <div class="message-content">
-                        ${content.length > 50 ? content.substring(0, 50) + '...' : content}
-                    </div>
-                    <div class="message-footer">
-                        <span class="message-status ${statusClass}">Status: ${status}</span>
-                        <span class="message-timestamp">${timestamp}</span>
-                    </div>
-                </div>
-            `;
-    });
-
-    specificLogElement.innerHTML = logHtmlContent;
-    specificLogElement.scrollTop = specificLogElement.scrollHeight;
-    const specificLogElement = document.getElementById(logId);
-    if (!logElement) {
-        console.warn(`DEBUG: Log element not found for ID: ${logId}`);
-        return;
-    }
-
-    const items = [...queue.queue].reverse();
-    const now = Date.now();
-
-    let visibleItems = items;
-    if (logId === 'toFrontendLog') {
-        visibleItems = items.sort((a, b) => {
-            if (a.type === 'error') return -1;
-            if (b.type === 'error') return 1;
-            if (a.type === 'status_update') return -1;
-            if (b.type === 'status_update') return 1;
-            return 0;
-        });
-    }
-
-    visibleItems = visibleItems.slice(0, MAX_VISIBLE_ITEMS);
-
-    console.log("Generating HTML for", visibleItems.length, "visible items");
-    const htmlContent = visibleItems.map((item, index) => {
-        console.log(`Processing item ${index}:`, item.type);
-        const timeDiff = (now - (item.timestamp * 1000)) / 1000;
-        let statusClass = '';
-        let content = '';
-
-        if (item.type === 'status_update') {
-            statusClass = `status-${item.data.status || 'unknown'}`;
-            content = `<span class="message-id">${item.data.original_id || 'N/A'}</span>:
-                       ${item.data.status?.toUpperCase() || 'UNKNOWN'} (${item.data.progress}%)<br>
-                       <small>${timeDiff.toFixed(1)}s ago</small>`;
-        } else if (item.type === 'error') {
-            statusClass = 'status-error';
-            content = `<span class="message-id">ERROR</span>:
-                       ${item.data.message || 'Unknown error'}<br>
-                       ${item.data.details ? `<small>${item.data.details}</small><br>` : ''}
-                       <small>${timeDiff.toFixed(1)}s ago</small>`;
-        } else if (item.data && item.data.id) {
-            const itemStatus = item.status || item.data?.status;
-            if (itemStatus === 'created') statusClass = 'status-created';
-            else if (itemStatus === 'processing') statusClass = 'status-processing';
-            else if (itemStatus === 'processed') statusClass = 'status-processed';
-            content = `<span class="message-id">${item.data.id}</span>: ${item.data.data || JSON.stringify(item.data)}<br>
-                      <small>${(itemStatus?.toUpperCase() || '')} ${timeDiff.toFixed(1)}s ago</small>`;
-        } else { // Generic message display (test_message, simulation_update if not special cased by id)
-            content = `<span class="message-type">${item.type || 'message'}</span>:
-                       ${JSON.stringify(item.data || item)}<br>
-                       <small>${timeDiff.toFixed(1)}s ago</small>`;
-        }
-
-        return `<div class="log-entry ${statusClass}">${content}</div>`;
-    }).join('');
-
-    console.log(`DEBUG: Generated HTML for ${logId}:`, htmlContent);
-    console.log("Final HTML content:", htmlContent);
-    logElement.innerHTML = htmlContent;
-    logElement.scrollTop = logElement.scrollHeight;
-
-    if (queue.size() > MAX_VISIBLE_ITEMS) {
-        const overflowText = `+${queue.size() - MAX_VISIBLE_ITEMS} more items`;
-        console.log("Adding overflow indicator:", overflowText);
-        logElement.innerHTML += `<div class="log-overflow">${overflowText}</div>`;
-    }
-
-    console.log("Log updated successfully");
-    console.groupEnd();
-}
+        htmlContent += `
+            <div class="log-entry">
+                <div class="message-header">
+                    <span class="message-id">ID: <span class="math-inline">\{String\(id\)\.substring\(0, 8\)\}\.\.\.</span\>
 
 function updateQueueCounters() {
     document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
