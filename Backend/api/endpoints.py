@@ -38,58 +38,40 @@ async def health_check():
 async def get_metrics():
     return ws_manager.get_metrics()
 
-@router.get("/api/simulation/start")
 async def start_simulation(
-    background_tasks: BackgroundTasks,
-    manager: SimulationManager = Depends(get_simulation_manager)
+    background_tasks: Optional[BackgroundTasks],
+    manager: SimulationManager
 ):
-    """Start the simulation
-    
-    Returns:
-        dict: Status message and simulation state
-    Raises:
-        HTTPException: If simulation fails to start
-    """
-    logger.info("Received request to start simulation")
-    
+    """Internal function to start simulation, now called from WebSocket handler"""
     if not manager.is_ready:
         logger.error("SimulationManager not ready")
-        raise HTTPException(
-            status_code=503,
-            detail="Simulation service not ready"
-        )
+        return {
+            "status": "error",
+            "message": "Simulation service not ready"
+        }
         
     if manager.is_running:
         logger.warning("Simulation already running")
         return {
-            "message": "Simulation already running",
             "status": "running",
-            "timestamp": time.time()
+            "message": "Simulation already running"
         }
         
     try:
-        logger.info("Initiating simulation start via background task")
+        logger.info("Initiating simulation start")
         response = await manager.start(background_tasks)
         logger.info(f"Simulation started successfully: {response}")
-        
-        return {
-            **response,
-            "timestamp": time.time()
-        }
-    except HTTPException:
-        raise  # Re-raise already handled HTTP exceptions
+        return response
     except Exception as e:
         logger.error(f"Failed to start simulation: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to start simulation: {str(e)}"
-        )
+        return {
+            "status": "error",
+            "message": f"Failed to start simulation: {str(e)}"
+        }
 
-@router.get("/api/simulation/stop")
-async def stop_simulation(
-    manager: SimulationManager = Depends(get_simulation_manager)
-):
-    logger.info("Backend: Received POST request to /simulation/stop")
+async def stop_simulation(manager: SimulationManager):
+    """Internal function to stop simulation, now called from WebSocket handler"""
+    logger.info("Received stop simulation command")
     return await manager.stop()
 
 @router.get("/simulation/status")
@@ -149,6 +131,9 @@ async def websocket_endpoint(websocket: WebSocket):
         # Register connection with WebSocketManager IMMEDIATELY after accept
         await ws_manager.handle_connection(websocket)
         
+        # Get simulation manager instance
+        manager = get_simulation_manager(require_ready=False)
+        
         # Main connection loop
         while True:
             try:
@@ -159,7 +144,27 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
                 
                 # Process received message
-                await ws_manager.handle_message(websocket, data)
+                if isinstance(data, str):
+                    try:
+                        data = json.loads(data)
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON received: {data}")
+                        continue
+                
+                # Handle command messages
+                if data.get('type') == 'command':
+                    command = data.get('command')
+                    if command == 'start_simulation':
+                        logger.info("Received start_simulation command via WebSocket")
+                        await start_simulation(background_tasks=None, manager=manager)
+                    elif command == 'stop_simulation':
+                        logger.info("Received stop_simulation command via WebSocket")
+                        await stop_simulation(manager=manager)
+                    else:
+                        logger.warning(f"Unknown command received: {command}")
+                else:
+                    # Forward other messages to WebSocketManager
+                    await ws_manager.handle_message(websocket, data)
                 
             except asyncio.TimeoutError:
                 # Send ping to keep connection alive
