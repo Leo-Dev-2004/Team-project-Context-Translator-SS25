@@ -48,9 +48,17 @@ const WebSocketManager = {
             console.log('WebSocket MESSAGE event received:', event.data);
             try {
                 const message = JSON.parse(event.data);
+                if (!message.type) {
+                    throw new Error('Message type is missing');
+                }
                 this.handleIncomingMessage(message);
             } catch (e) {
                 console.error('Failed to parse WebSocket message:', e, event.data);
+                // Send error back to UI
+                const errorElement = document.getElementById('wsErrors');
+                if (errorElement) {
+                    errorElement.textContent = `WebSocket error: ${e.message}`;
+                }
             }
         };
 

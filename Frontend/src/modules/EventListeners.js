@@ -29,51 +29,124 @@ function sendTestMessage() {
 // This function will continuously process messages from the fromBackendQueue
 async function processBackendMessages() {
     console.group('MessageProcessor: Starting message processing loop...');
-    while (true) {
-        // Wait for a message to be available in the queue
-        const message = await fromBackendQueue.dequeue();
-        console.log('MessageProcessor: Dequeued message from backend:', message);
+    try {
+        while (true) {
+            // Wait for a message to be available in the queue
+            const message = await fromBackendQueue.dequeue();
+            if (!message) {
+                console.warn('MessageProcessor: Received empty message, skipping');
+                continue;
+            }
 
-        // Process the message based on its type
-        switch (message.type) {
-            case 'simulation_status_update':
-                console.log('MessageProcessor: Simulation status update received:', message.payload);
-                updateQueueDisplay(message.data); // This payload should contain the counters/logs
-                break;
-            case 'agent_log':
-                console.log('MessageProcessor: Agent log received:', message.payload);
-                updateQueueLog(message.data);
-                break;
-            case 'queue_counters':
-                console.log('MessageProcessor: Queue counters received:', message.payload);
-                updateQueueCounters(message.data);
-                break;
-            // --- ADD THESE NEW CASES ---
-            case 'connection_ack': // Message from backend upon successful connection
-                console.log('MessageProcessor: Backend acknowledged connection.', message.payload);
-                // You might want to update a UI element here if connectionStatus isn't enough
-                break;
-            case 'error': // Backend sent an error message
-                console.error('MessageProcessor: Error from backend:', message.message || message.payload);
-                // Display error prominently in UI (e.g., an alert or error div)
-                // You might need to adjust based on the actual 'error' message structure
-                break;
-            case 'system': // System-level messages (like simulation start/stop confirmation)
-                console.log('MessageProcessor: System message received:', message.data);
-                document.getElementById('simulationStatus').textContent = `Simulation Status: ${message.data.message}`;
-                break;
-            // --- END NEW CASES ---
-            case 'frontend_ready_ack':
-                console.log('MessageProcessor: Backend acknowledged frontend readiness.');
-                break;
-            case 'message_from_backend': // General message type (if you use it)
-                console.log('MessageProcessor: Generic message from backend:', message.payload);
-                break;
-            default:
-                console.warn('MessageProcessor: Unknown message type received:', message.type, message);
+            console.log('MessageProcessor: Dequeued message from backend:', message);
+
+            // Process the message based on its type
+            try {
+                switch (message.type) {
+                    case 'simulation_status_update':
+                        console.log('MessageProcessor: Simulation status update received:', message.data);
+                        updateQueueDisplay(message.data);
+                        break;
+                    case 'agent_log':
+                        console.log('MessageProcessor: Agent log received:', message.data);
+                        updateQueueLog('agent_log', message.data);
+                        break;
+                    case 'queue_counters':
+                        console.log('MessageProcessor: Queue counters received:', message.data);
+                        updateQueueCounters(message.data);
+                        break;
+                    case 'connection_ack':
+                        console.log('MessageProcessor: Backend connection acknowledged:', message.data);
+                        document.getElementById('connectionStatus').textContent = 'Connected (Acknowledged)';
+                        break;
+                    case 'error':
+                        console.error('MessageProcessor: Error from backend:', message.error || message.data);
+                        showErrorNotification(message.error || message.data);
+                        break;
+                    case 'system':
+                        console.log('MessageProcessor: System message received:', message.data);
+                        document.getElementById('simulationStatus').textContent = message.data.message;
+                        updateSystemLog(message.data);
+                        break;
+                    case 'simulation_started':
+                        console.log('MessageProcessor: Simulation started:', message.data);
+                        document.getElementById('simulationStatus').textContent = 'Running';
+                        break;
+                    case 'simulation_stopped':
+                        console.log('MessageProcessor: Simulation stopped:', message.data);
+                        document.getElementById('simulationStatus').textContent = 'Stopped';
+                        break;
+                    case 'frontend_ready_ack':
+                        console.log('MessageProcessor: Backend acknowledged frontend readiness.');
+                        break;
+                    case 'test_message':
+                        console.log('MessageProcessor: Test message response:', message.data);
+                        showTestMessageResponse(message.data);
+                        break;
+                    default:
+                        console.warn('MessageProcessor: Unknown message type:', message.type);
+                        handleUnknownMessage(message);
+                }
+            } catch (processError) {
+                console.error('MessageProcessor: Error processing message:', processError, message);
+                handleProcessingError(processError, message);
+            }
         }
     }
-    console.groupEnd();
+        }
+    } catch (error) {
+        console.error('MessageProcessor: Fatal error in message processing loop:', error);
+        showFatalError(error);
+    } finally {
+        console.groupEnd();
+    }
+}
+
+// Helper functions
+function showErrorNotification(error) {
+    const errorElement = document.getElementById('errorDisplay');
+    if (errorElement) {
+        errorElement.textContent = `Error: ${error}`;
+        errorElement.style.display = 'block';
+        setTimeout(() => errorElement.style.display = 'none', 5000);
+    }
+}
+
+function updateSystemLog(data) {
+    const logElement = document.getElementById('systemLog');
+    if (logElement) {
+        logElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${data.message}</div>`;
+    }
+}
+
+function showTestMessageResponse(data) {
+    const testResponseElement = document.getElementById('testResponse');
+    if (testResponseElement) {
+        testResponseElement.textContent = `Test response: ${data.text}`;
+    }
+}
+
+function handleUnknownMessage(message) {
+    const unknownMsgElement = document.getElementById('unknownMessages');
+    if (unknownMsgElement) {
+        unknownMsgElement.innerHTML += `<div>Unknown type ${message.type}: ${JSON.stringify(message)}</div>`;
+    }
+}
+
+function handleProcessingError(error, message) {
+    console.error('Failed to process message:', error);
+    const errorLog = document.getElementById('errorLog');
+    if (errorLog) {
+        errorLog.innerHTML += `<div>Error processing ${message.type}: ${error.message}</div>`;
+    }
+}
+
+function showFatalError(error) {
+    const fatalErrorElement = document.getElementById('fatalError');
+    if (fatalErrorElement) {
+        fatalErrorElement.textContent = `Fatal error: ${error.message}. Please reload the page.`;
+        fatalErrorElement.style.display = 'block';
+    }
 }
 
 
