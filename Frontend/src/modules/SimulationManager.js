@@ -12,7 +12,7 @@ async function startSimulation() {
         fromBackendQueue.clear();
         console.log('Queues cleared before simulation start');
 
-        const response = await fetch('/simulation/start', {
+        const response = await fetch('/api/simulation/start', {
             method: 'GET',
             mode: 'cors',
             credentials: 'include'
@@ -45,7 +45,7 @@ async function stopSimulation() {
     console.log('TRACE: stopSimulation called!');
     try {
         // First try graceful stop via API
-        const response = await fetch('/simulation/stop', {
+        const response = await fetch('/api/simulation/stop', {
             method: 'GET',
             mode: 'cors', 
             credentials: 'include'

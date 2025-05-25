@@ -38,7 +38,7 @@ async def health_check():
 async def get_metrics():
     return ws_manager.get_metrics()
 
-@router.get("/simulation/start")
+@router.get("/api/simulation/start")
 async def start_simulation(
     background_tasks: BackgroundTasks,
     manager: SimulationManager = Depends(get_simulation_manager)
@@ -85,7 +85,7 @@ async def start_simulation(
             detail=f"Failed to start simulation: {str(e)}"
         )
 
-@router.get("/simulation/stop")
+@router.get("/api/simulation/stop")
 async def stop_simulation(
     manager: SimulationManager = Depends(get_simulation_manager)
 ):
@@ -141,12 +141,21 @@ async def debug_queues():
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    logger.info(f"WebSocket connection established from {websocket.client}")
-
-    # Register connection with WebSocketManager IMMEDIATELY after accept
-    # This function should NOT close the websocket or block the main loop.
-    await ws_manager.handle_connection(websocket)
+    try:
+        await websocket.accept()
+        logger.info(f"WebSocket connection established from {websocket.client}")
+        
+        # Register connection with WebSocketManager IMMEDIATELY after accept
+        await ws_manager.handle_connection(websocket)
+        
+        # Keep connection alive
+        while True:
+            try:
+                data = await websocket.receive_text()
+                await ws_manager.handle_message(websocket, data)
+            except Exception as e:
+                logger.error(f"WebSocket receive error: {e}")
+                break
 
     # The main connection loop. This 'try' block wraps the entire
     # active lifetime of the WebSocket connection.
