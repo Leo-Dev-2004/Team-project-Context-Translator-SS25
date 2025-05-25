@@ -95,11 +95,11 @@ class WebSocketManager:
                         logger.error(f"Invalid message format from queue: {type(message)}")
                         continue
                     
-                if 'type' not in message:
-                    message['type'] = 'unknown_backend_message' # Assign a default type if missing
+                    if 'type' not in message:
+                        message['type'] = 'unknown_backend_message' # Assign a default type if missing
                     
-                if 'data' not in message:
-                    message['data'] = {}
+                    if 'data' not in message:
+                        message['data'] = {}
                     
                 # Ensure WebSocketMessage can parse this structure
                 try:
