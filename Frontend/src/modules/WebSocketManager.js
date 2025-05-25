@@ -3,14 +3,17 @@
 import { fromBackendQueue, toBackendQueue, fromFrontendQueue, toFrontendQueue } from '../app.js'; // Import the queues
 import { processBackendMessages } from './EventListeners.js'; // Import the message processor
 
-const WebSocketManager = {
-    ws: null,
-    reconnectAttempts: 0,
-    // Add these properties to hold the queue instances
-    _toFrontendQueue: null,
-    _fromFrontendQueue: null,
-    _toBackendQueue: null,
-    _fromBackendQueue: null,
+class WebSocketManager {
+    constructor() {
+        this.ws = null;
+        this.reconnectAttempts = 0;
+        this.reconnectTimer = null;
+        // Initialize queue references
+        this._toFrontendQueue = null;
+        this._fromFrontendQueue = null;
+        this._toBackendQueue = null;
+        this._fromBackendQueue = null;
+    }
 
     // Method to set the queue instances
     setQueues({ toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue }) {
