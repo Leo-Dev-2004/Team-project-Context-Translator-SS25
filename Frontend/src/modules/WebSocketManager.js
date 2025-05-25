@@ -8,6 +8,8 @@ class WebSocketManager {
         this.ws = null;
         this.reconnectAttempts = 0;
         this.reconnectTimer = null;
+        this.pingInterval = null;
+        this.lastPongTime = null;
         // Initialize queue references with null checks
         this._toFrontendQueue = null;
         this._fromFrontendQueue = null;
@@ -39,6 +41,11 @@ class WebSocketManager {
             this.reconnectTimer = null;
         }
 
+        // Clear any existing ping interval
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+        }
+
         console.log(`Attempting to connect to WebSocket at ${url}...`);
         
         // Close existing connection if it exists
@@ -57,13 +64,36 @@ class WebSocketManager {
 
         this.ws.onopen = (event) => {
             console.log('WebSocket OPEN event received:', event);
-            this.reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+            this.reconnectAttempts = 0;
+            this.lastPongTime = Date.now();
             document.getElementById('connectionStatus').textContent = 'Connected';
             document.getElementById('connectionStatus').style.color = 'green';
-            // Send an acknowledgement to the backend that frontend is ready
-            this.sendMessage({ type: 'frontend_ready_ack', data: { message: 'Frontend ready to receive'} });
-            // Dispatch a custom event to notify other modules (like EventListeners)
-            // that the WebSocket is now ready and acknowledged.
+
+            // Start ping interval (every 25 seconds)
+            this.pingInterval = setInterval(() => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.sendMessage({
+                        type: 'ping',
+                        timestamp: Date.now()
+                    });
+                    
+                    // Check if we got a pong response
+                    if (this.lastPongTime && (Date.now() - this.lastPongTime) > 40000) {
+                        console.warn('No pong received in 40 seconds, reconnecting...');
+                        this.connect(url);
+                    }
+                }
+            }, 25000);
+
+            // Send initial ack
+            this.sendMessage({ 
+                type: 'frontend_ready_ack', 
+                data: { 
+                    message: 'Frontend ready to receive',
+                    version: '1.0'
+                }
+            });
+
             document.dispatchEvent(new CustomEvent('websocket-ack'));
             console.groupEnd();
         };
@@ -75,6 +105,14 @@ class WebSocketManager {
                 if (!message.type) {
                     throw new Error('Message type is missing');
                 }
+
+                // Handle pong messages
+                if (message.type === 'pong') {
+                    this.lastPongTime = Date.now();
+                    console.debug('Received pong from server');
+                    return;
+                }
+
                 this.handleIncomingMessage(message);
                 // Trigger message processing after enqueuing
                 processBackendMessages();
@@ -160,6 +198,14 @@ class WebSocketManager {
             this.connect();
             return false;
         }
+        
+        // Verify we're getting pong responses
+        if (this.lastPongTime && (Date.now() - this.lastPongTime) > 60000) {
+            console.warn('No recent pong response, forcing reconnect...');
+            this.connect();
+            return false;
+        }
+        
         return true;
     }
 
@@ -171,8 +217,16 @@ class WebSocketManager {
                 this.reconnectTimer = null;
             }
             
+            // Clear ping interval
+            if (this.pingInterval) {
+                clearInterval(this.pingInterval);
+                this.pingInterval = null;
+            }
+            
             // Close connection with normal closure code (1000)
-            this.ws.close(1000, 'Client initiated disconnect');
+            if (this.ws.readyState === WebSocket.OPEN) {
+                this.ws.close(1000, 'Client initiated disconnect');
+            }
         }
     }
 };
