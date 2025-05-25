@@ -15,13 +15,32 @@ const UPDATE_THROTTLE_MS = 100;
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
 function updateQueueDisplay(queueName, queue, elementId) {
+    if (!elementId) {
+        console.error('updateQueueDisplay: elementId parameter is required');
+        return;
+    }
+    
     const displayElement = document.getElementById(elementId);
     if (!displayElement) {
-        console.error(`Display element with ID ${elementId} not found`);
+        console.error(`Display element with ID "${elementId}" not found`);
+        return;
+    }
+
+    if (!queue) {
+        console.error(`Queue "${queueName}" is undefined`);
+        return;
+    }
+
+    if (typeof queue.peekAll !== 'function') {
+        console.error(`Queue "${queueName}" does not have peekAll method`);
         return;
     }
 
     const items = queue.peekAll().slice(-10); // Show last 10 items
+    if (!Array.isArray(items)) {
+        console.error(`Queue "${queueName}" did not return valid items array`);
+        return;
+    }
     displayElement.innerHTML = items.map(item => 
         `<div class="queue-item">
             <strong>${item.type}</strong>: ${JSON.stringify(item.data)}

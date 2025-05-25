@@ -181,7 +181,10 @@ export function initializeEventListeners() {
         // Once WebSocket is confirmed, start processing messages from the backend
         processBackendMessages();
         // You might want an initial display update here too
-        updateQueueDisplay({ /* initial empty state or current state */ });
+        updateQueueDisplay('fromFrontendQueue', fromFrontendQueue, 'fromFrontendLog');
+        updateQueueDisplay('toFrontendQueue', toFrontendQueue, 'toFrontendLog');
+        updateQueueDisplay('fromBackendQueue', fromBackendQueue, 'fromBackendLog');
+        updateQueueDisplay('toBackendQueue', toBackendQueue, 'toBackendLog');
         updateQueueCounters({ /* initial empty state */ });
     });
 
