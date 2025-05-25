@@ -27,7 +27,7 @@ function sendTestMessage() {
 
 
 // This function will continuously process messages from the fromBackendQueue
-async function processBackendMessages() {
+export async function processBackendMessages() {
     console.group('MessageProcessor: Starting message processing loop...');
     try {
         while (true) {
@@ -43,6 +43,33 @@ async function processBackendMessages() {
             // Process the message based on its type
             try {
                 switch (message.type) {
+                    case 'connection_ack':
+                        console.log('MessageProcessor: Backend connection acknowledged:', message.data);
+                        document.getElementById('connectionStatus').textContent = 'Connected (Acknowledged)';
+                        updateQueueLog('system_log', `System: Connection acknowledged by backend`);
+                        break;
+                    case 'system':
+                        console.log('MessageProcessor: System message received:', message.data);
+                        document.getElementById('simulationStatus').textContent = message.data.message;
+                        updateSystemLog(message.data);
+                        updateQueueLog('system_log', `System: ${message.data.message}`);
+                        break;
+                    case 'simulation_update':
+                        console.log('MessageProcessor: Simulation update received:', message.data);
+                        updateQueueLog('simulation_log', 
+                            `Sim Update: ID=${message.data.id}, Status=${message.data.status}`);
+                        break;
+                    case 'status_update':
+                        console.log('MessageProcessor: Status update received:', message.data);
+                        updateQueueLog('status_log', 
+                            `Status: ${message.data.original_type} processed`);
+                        break;
+                    case 'test_message':
+                        console.log('MessageProcessor: Test message received:', message.data);
+                        showTestMessageResponse(message.data);
+                        updateQueueLog('test_log', 
+                            `Test Message: ${message.data.content}`);
+                        break;
                     case 'simulation_status_update':
                         console.log('MessageProcessor: Simulation status update received:', message.data);
                         updateQueueDisplay(message.data);
@@ -55,19 +82,6 @@ async function processBackendMessages() {
                         console.log('MessageProcessor: Queue counters received:', message.data);
                         updateQueueCounters(message.data);
                         break;
-                    case 'connection_ack':
-                        console.log('MessageProcessor: Backend connection acknowledged:', message.data);
-                        document.getElementById('connectionStatus').textContent = 'Connected (Acknowledged)';
-                        break;
-                    case 'error':
-                        console.error('MessageProcessor: Error from backend:', message.error || message.data);
-                        showErrorNotification(message.error || message.data);
-                        break;
-                    case 'system':
-                        console.log('MessageProcessor: System message received:', message.data);
-                        document.getElementById('simulationStatus').textContent = message.data.message;
-                        updateSystemLog(message.data);
-                        break;
                     case 'simulation_started':
                         console.log('MessageProcessor: Simulation started:', message.data);
                         document.getElementById('simulationStatus').textContent = 'Running';
@@ -78,10 +92,6 @@ async function processBackendMessages() {
                         break;
                     case 'frontend_ready_ack':
                         console.log('MessageProcessor: Backend acknowledged frontend readiness.');
-                        break;
-                    case 'test_message':
-                        console.log('MessageProcessor: Test message response:', message.data);
-                        showTestMessageResponse(message.data);
                         break;
                     default:
                         console.warn('MessageProcessor: Unknown message type:', message.type);

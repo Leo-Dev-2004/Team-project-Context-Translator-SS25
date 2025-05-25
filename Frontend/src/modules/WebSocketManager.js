@@ -1,6 +1,7 @@
 // frontend/src/modules/WebSocketManager.js
 
 import { fromBackendQueue, toBackendQueue, fromFrontendQueue, toFrontendQueue } from '../app.js'; // Import the queues
+import { processBackendMessages } from './EventListeners.js'; // Import the message processor
 
 const WebSocketManager = {
     ws: null,
@@ -52,9 +53,10 @@ const WebSocketManager = {
                     throw new Error('Message type is missing');
                 }
                 this.handleIncomingMessage(message);
+                // Trigger message processing after enqueuing
+                processBackendMessages();
             } catch (e) {
                 console.error('Failed to parse WebSocket message:', e, event.data);
-                // Send error back to UI
                 const errorElement = document.getElementById('wsErrors');
                 if (errorElement) {
                     errorElement.textContent = `WebSocket error: ${e.message}`;
