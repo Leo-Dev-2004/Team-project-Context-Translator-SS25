@@ -9583,3 +9583,824 @@
 2025-05-25 10:16:24,788 - INFO - Frontend stdout: 
 2025-05-25 10:16:24,788 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
 2025-05-25 10:16:24,801 - INFO - Backend stderr: INFO:     Stopping reloader process [31036]
+2025-05-25 10:19:02,968 - INFO - Starting backend server...
+2025-05-25 10:19:02,969 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:19:02,969 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:19:02,971 - INFO - Starting frontend server...
+2025-05-25 10:19:02,971 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:19:02,972 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:19:03,427 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:19:03,427 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:19:03,427 - INFO - Backend stderr: INFO:     Started reloader process [33263] using WatchFiles
+2025-05-25 10:19:04,130 - INFO - Backend stderr: INFO:     Started server process [33270]
+2025-05-25 10:19:04,130 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:19:04,130 - INFO - Backend stderr: 2025-05-25 10:19:04,130 - INFO - Application startup event triggered.
+2025-05-25 10:19:04,130 - INFO - Backend stderr: 2025-05-25 10:19:04,130 - INFO - Initializing all queues...
+2025-05-25 10:19:04,130 - INFO - Backend stderr: 2025-05-25 10:19:04,130 - INFO - All queues initialized on loop 371363360
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,130 - INFO - Shared queues initialized.
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - Retrieved queue instances. Event loop ID: 371363360
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - MessageProcessor queues verified
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - MessageProcessor task started.
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - QueueForwarder queues verified
+2025-05-25 10:19:04,131 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - QueueForwarder task started.
+2025-05-25 10:19:04,132 - INFO - Backend stderr: 2025-05-25 10:19:04,131 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:19:04,132 - INFO - Backend stderr: 2025-05-25 10:19:04,132 - INFO - Starting MessageProcessor
+2025-05-25 10:19:04,132 - INFO - Backend stderr: 2025-05-25 10:19:04,132 - INFO - Starting QueueForwarder
+2025-05-25 10:19:04,132 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:19:04,973 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:19:05,477 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:19:05] "GET / HTTP/1.1" 304 -
+2025-05-25 10:19:05,512 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:19:05] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:19:05,547 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:19:05] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:19:05,560 - INFO - Backend stderr: INFO:     ('127.0.0.1', 35960) - "WebSocket /ws" [accepted]
+2025-05-25 10:19:05,560 - INFO - Backend stderr: 2025-05-25 10:19:05,560 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=35960)
+2025-05-25 10:19:05,561 - INFO - Backend stderr: 2025-05-25 10:19:05,560 - ERROR - Connection lifetime error for 127.0.0.1:35960: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:05,561 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:19:05,561 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:19:05,562 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:19:05,562 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:19:05,562 - INFO - Backend stderr: await self.send(
+2025-05-25 10:19:05,562 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:19:05,562 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:19:05,562 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:05,562 - INFO - Backend stderr: 2025-05-25 10:19:05,561 - INFO - Initiating cleanup for connection: 127.0.0.1:35960
+2025-05-25 10:19:05,562 - INFO - Backend stderr: 2025-05-25 10:19:05,561 - INFO - Starting cleanup for 127.0.0.1:35960
+2025-05-25 10:19:05,562 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:19:05,582 - INFO - Backend stderr: 2025-05-25 10:19:05,582 - INFO - Closed WebSocket connection for 127.0.0.1:35960
+2025-05-25 10:19:05,582 - INFO - Backend stderr: 2025-05-25 10:19:05,582 - INFO - Connection cleanup completed for 127.0.0.1:35960. Remaining connections: 0
+2025-05-25 10:19:05,582 - INFO - Backend stderr: 2025-05-25 10:19:05,582 - INFO - Cleanup finished for connection: 127.0.0.1:35960. Total connections: 0
+2025-05-25 10:19:05,582 - INFO - Backend stderr: 2025-05-25 10:19:05,582 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=35960): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:05,582 - INFO - Backend stderr: 2025-05-25 10:19:05,582 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=35960): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:05,583 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:19:06,905 - INFO - Backend stderr: 2025-05-25 10:19:06,904 - INFO - Received request to start simulation
+2025-05-25 10:19:06,905 - INFO - Backend stderr: 2025-05-25 10:19:06,905 - INFO - Initiating simulation start via background task
+2025-05-25 10:19:06,905 - INFO - Backend stderr: 2025-05-25 10:19:06,905 - INFO - Simulation started successfully: {'status': 'started', 'message': 'Simulation messages will begin flowing through queues'}
+2025-05-25 10:19:06,905 - INFO - Backend stdout: INFO:     127.0.0.1:35962 - "POST /simulation/start HTTP/1.1" 200 OK
+2025-05-25 10:19:06,906 - INFO - Backend stderr: 2025-05-25 10:19:06,905 - INFO - Simulation task starting
+2025-05-25 10:19:06,906 - INFO - Backend stderr: 2025-05-25 10:19:06,906 - INFO - System message enqueued to backend queue
+2025-05-25 10:19:10,185 - INFO - Backend stderr: 2025-05-25 10:19:10,185 - INFO - Processed 3 messages
+2025-05-25 10:19:13,507 - INFO - Backend stderr: INFO:     ('127.0.0.1', 35966) - "WebSocket /ws" [accepted]
+2025-05-25 10:19:13,507 - INFO - Backend stderr: 2025-05-25 10:19:13,506 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=35966)
+2025-05-25 10:19:13,507 - INFO - Backend stderr: 2025-05-25 10:19:13,507 - ERROR - Connection lifetime error for 127.0.0.1:35966: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:13,507 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:19:13,507 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:19:13,508 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:19:13,508 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:19:13,508 - INFO - Backend stderr: await self.send(
+2025-05-25 10:19:13,508 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:19:13,508 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:19:13,508 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:13,508 - INFO - Backend stderr: 2025-05-25 10:19:13,507 - INFO - Initiating cleanup for connection: 127.0.0.1:35966
+2025-05-25 10:19:13,508 - INFO - Backend stderr: 2025-05-25 10:19:13,507 - INFO - Starting cleanup for 127.0.0.1:35966
+2025-05-25 10:19:13,508 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:19:13,511 - INFO - Backend stderr: 2025-05-25 10:19:13,511 - INFO - Closed WebSocket connection for 127.0.0.1:35966
+2025-05-25 10:19:13,511 - INFO - Backend stderr: 2025-05-25 10:19:13,511 - INFO - Connection cleanup completed for 127.0.0.1:35966. Remaining connections: 0
+2025-05-25 10:19:13,511 - INFO - Backend stderr: 2025-05-25 10:19:13,511 - INFO - Cleanup finished for connection: 127.0.0.1:35966. Total connections: 0
+2025-05-25 10:19:13,511 - INFO - Backend stderr: 2025-05-25 10:19:13,511 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=35966): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:13,511 - INFO - Backend stderr: 2025-05-25 10:19:13,511 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=35966): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:13,511 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:19:15,036 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:19:15] code 404, message File not found
+2025-05-25 10:19:15,036 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:19:15] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-05-25 10:19:15,218 - INFO - Backend stderr: 2025-05-25 10:19:15,217 - INFO - Processed 2 messages
+2025-05-25 10:19:18,506 - INFO - Backend stderr: INFO:     ('127.0.0.1', 53744) - "WebSocket /ws" [accepted]
+2025-05-25 10:19:18,507 - INFO - Backend stderr: 2025-05-25 10:19:18,506 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=53744)
+2025-05-25 10:19:18,507 - INFO - Backend stderr: 2025-05-25 10:19:18,506 - ERROR - Connection lifetime error for 127.0.0.1:53744: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:18,507 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:19:18,507 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:19:18,507 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:19:18,507 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:19:18,507 - INFO - Backend stderr: await self.send(
+2025-05-25 10:19:18,507 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:19:18,508 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:19:18,508 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:18,508 - INFO - Backend stderr: 2025-05-25 10:19:18,507 - INFO - Initiating cleanup for connection: 127.0.0.1:53744
+2025-05-25 10:19:18,508 - INFO - Backend stderr: 2025-05-25 10:19:18,507 - INFO - Starting cleanup for 127.0.0.1:53744
+2025-05-25 10:19:18,508 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:19:18,511 - INFO - Backend stderr: 2025-05-25 10:19:18,510 - INFO - Closed WebSocket connection for 127.0.0.1:53744
+2025-05-25 10:19:18,511 - INFO - Backend stderr: 2025-05-25 10:19:18,511 - INFO - Connection cleanup completed for 127.0.0.1:53744. Remaining connections: 0
+2025-05-25 10:19:18,511 - INFO - Backend stderr: 2025-05-25 10:19:18,511 - INFO - Cleanup finished for connection: 127.0.0.1:53744. Total connections: 0
+2025-05-25 10:19:18,511 - INFO - Backend stderr: 2025-05-25 10:19:18,511 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=53744): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:18,511 - INFO - Backend stderr: 2025-05-25 10:19:18,511 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=53744): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:18,511 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:19:20,267 - INFO - Backend stderr: 2025-05-25 10:19:20,267 - INFO - Processed 2 messages
+2025-05-25 10:19:27,171 - INFO - Backend stderr: 2025-05-25 10:19:27,171 - INFO - Processed 3 messages
+2025-05-25 10:19:33,017 - INFO - Backend stderr: 2025-05-25 10:19:33,017 - INFO - Processed 3 messages
+2025-05-25 10:19:35,588 - INFO - Shutting down servers...
+2025-05-25 10:19:35,588 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:19:35,588 - INFO - Frontend stdout: 
+2025-05-25 10:19:35,588 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:19:35,639 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:19:35,739 - INFO - Backend stderr: INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+2025-05-25 10:19:35,940 - INFO - Backend stderr: INFO:     Finished server process [33270]
+2025-05-25 10:19:35,944 - INFO - Backend stderr: ERROR:    Exception in ASGI application
+2025-05-25 10:19:35,944 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:19:35,945 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 435, in run_asgi
+2025-05-25 10:19:35,945 - INFO - Backend stderr: result = await app(  # type: ignore[func-returns-value]
+2025-05-25 10:19:35,945 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:19:35,945 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 78, in __call__
+2025-05-25 10:19:35,945 - INFO - Backend stderr: return await self.app(scope, receive, send)
+2025-05-25 10:19:35,945 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:19:35,945 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/fastapi/applications.py", line 276, in __call__
+2025-05-25 10:19:35,945 - INFO - Backend stderr: await super().__call__(scope, receive, send)
+2025-05-25 10:19:35,945 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/applications.py", line 122, in __call__
+2025-05-25 10:19:35,945 - INFO - Backend stderr: await self.middleware_stack(scope, receive, send)
+2025-05-25 10:19:35,946 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 162, in __call__
+2025-05-25 10:19:35,946 - INFO - Backend stderr: await self.app(scope, receive, _send)
+2025-05-25 10:19:35,946 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 91, in __call__
+2025-05-25 10:19:35,946 - INFO - Backend stderr: await self.simple_response(scope, receive, send, request_headers=headers)
+2025-05-25 10:19:35,946 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+2025-05-25 10:19:35,946 - INFO - Backend stderr: await self.app(scope, receive, send)
+2025-05-25 10:19:35,946 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+2025-05-25 10:19:35,946 - INFO - Backend stderr: await self.app(scope, receive, sender)
+2025-05-25 10:19:35,946 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await self.app(scope, receive, send)
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 718, in __call__
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await route.handle(scope, receive, send)
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await self.app(scope, receive, send)
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 69, in app
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await response(scope, receive, send)
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/responses.py", line 174, in __call__
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await self.background()
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/background.py", line 43, in __call__
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await task()
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/background.py", line 26, in __call__
+2025-05-25 10:19:35,947 - INFO - Backend stderr: await self.func(*self.args, **self.kwargs)
+2025-05-25 10:19:35,947 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/core/simulator.py", line 193, in _run_simulation
+2025-05-25 10:19:35,948 - INFO - Backend stderr: await asyncio.sleep(0.5 + 1.5 * random.random())
+2025-05-25 10:19:35,948 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/tasks.py", line 665, in sleep
+2025-05-25 10:19:35,948 - INFO - Backend stderr: return await future
+2025-05-25 10:19:35,948 - INFO - Backend stderr: ^^^^^^^^^^^^
+2025-05-25 10:19:35,948 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,944 - INFO - Application shutdown event triggered.
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,945 - INFO - SimulationManager stopped.
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,945 - INFO - Stopping MessageProcessor...
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,945 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,945 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:19:35,948 - INFO - Backend stderr: 2025-05-25 10:19:35,945 - INFO - Application shutdown complete.
+2025-05-25 10:19:35,948 - INFO - Backend stderr: ERROR:    Traceback (most recent call last):
+2025-05-25 10:19:35,948 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 686, in lifespan
+2025-05-25 10:19:35,949 - INFO - Backend stderr: await receive()
+2025-05-25 10:19:35,949 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/lifespan/on.py", line 139, in receive
+2025-05-25 10:19:35,949 - INFO - Backend stderr: return await self.receive_queue.get()
+2025-05-25 10:19:35,949 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:19:35,949 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/queues.py", line 158, in get
+2025-05-25 10:19:35,949 - INFO - Backend stderr: await getter
+2025-05-25 10:19:35,949 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-25 10:19:35,949 - INFO - Backend stderr: 
+2025-05-25 10:19:36,011 - INFO - Backend stderr: INFO:     Stopping reloader process [33263]
+2025-05-25 10:25:50,506 - INFO - Starting backend server...
+2025-05-25 10:25:50,506 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:25:50,506 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:25:50,508 - INFO - Starting frontend server...
+2025-05-25 10:25:50,508 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:25:50,509 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:25:50,980 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:25:50,996 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:25:50,996 - INFO - Backend stderr: INFO:     Started reloader process [36379] using WatchFiles
+2025-05-25 10:25:51,764 - INFO - Backend stderr: INFO:     Started server process [36386]
+2025-05-25 10:25:51,764 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:25:51,764 - INFO - Backend stderr: 2025-05-25 10:25:51,764 - INFO - Application startup event triggered.
+2025-05-25 10:25:51,764 - INFO - Backend stderr: 2025-05-25 10:25:51,764 - INFO - Initializing all queues...
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,764 - INFO - All queues initialized on loop 835935776
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,764 - INFO - Shared queues initialized.
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,764 - INFO - Retrieved queue instances. Event loop ID: 835935776
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - MessageProcessor queues verified
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - MessageProcessor task started.
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - QueueForwarder queues verified
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - QueueForwarder task started.
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:25:51,765 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - Starting MessageProcessor
+2025-05-25 10:25:51,766 - INFO - Backend stderr: 2025-05-25 10:25:51,765 - INFO - Starting QueueForwarder
+2025-05-25 10:25:51,766 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:25:52,510 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:25:53,133 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:53] "GET / HTTP/1.1" 304 -
+2025-05-25 10:25:53,156 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:53] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:25:53,161 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:53] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:25:53,185 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:53] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:25:59,177 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:59] code 404, message File not found
+2025-05-25 10:25:59,178 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:25:59] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-05-25 10:28:12,534 - INFO - Shutting down servers...
+2025-05-25 10:28:12,535 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:28:12,535 - INFO - Frontend stdout: 
+2025-05-25 10:28:12,535 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:28:12,613 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:28:12,713 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:28:12,714 - INFO - Backend stderr: 2025-05-25 10:28:12,713 - INFO - Application shutdown event triggered.
+2025-05-25 10:28:12,714 - INFO - Backend stderr: 2025-05-25 10:28:12,714 - INFO - Stopping MessageProcessor...
+2025-05-25 10:28:12,715 - INFO - Backend stderr: 2025-05-25 10:28:12,714 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:28:12,715 - INFO - Backend stderr: 2025-05-25 10:28:12,715 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:28:12,715 - INFO - Backend stderr: 2025-05-25 10:28:12,715 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:28:12,715 - INFO - Backend stderr: 2025-05-25 10:28:12,715 - INFO - Application shutdown complete.
+2025-05-25 10:28:12,715 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:28:12,715 - INFO - Backend stderr: INFO:     Finished server process [36386]
+2025-05-25 10:28:12,772 - INFO - Backend stderr: INFO:     Stopping reloader process [36379]
+2025-05-25 10:28:21,735 - INFO - Starting backend server...
+2025-05-25 10:28:21,736 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:28:21,736 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:28:21,737 - INFO - Starting frontend server...
+2025-05-25 10:28:21,738 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:28:21,738 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:28:22,186 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:28:22,186 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:28:22,187 - INFO - Backend stderr: INFO:     Started reloader process [37927] using WatchFiles
+2025-05-25 10:28:22,870 - INFO - Backend stderr: INFO:     Started server process [37934]
+2025-05-25 10:28:22,870 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:28:22,870 - INFO - Backend stderr: 2025-05-25 10:28:22,870 - INFO - Application startup event triggered.
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,870 - INFO - Initializing all queues...
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - All queues initialized on loop 500129312
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - Shared queues initialized.
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - Retrieved queue instances. Event loop ID: 500129312
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - MessageProcessor queues verified
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - MessageProcessor task started.
+2025-05-25 10:28:22,871 - INFO - Backend stderr: 2025-05-25 10:28:22,871 - INFO - QueueForwarder queues verified
+2025-05-25 10:28:22,872 - INFO - Backend stderr: 2025-05-25 10:28:22,872 - INFO - QueueForwarder task started.
+2025-05-25 10:28:22,872 - INFO - Backend stderr: 2025-05-25 10:28:22,872 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:28:22,872 - INFO - Backend stderr: 2025-05-25 10:28:22,872 - INFO - Starting MessageProcessor
+2025-05-25 10:28:22,872 - INFO - Backend stderr: 2025-05-25 10:28:22,872 - INFO - Starting QueueForwarder
+2025-05-25 10:28:22,872 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:28:23,740 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:28:24,341 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:28:24] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:28:38,222 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:28:38] code 404, message File not found
+2025-05-25 10:28:38,222 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:28:38] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-05-25 10:30:07,452 - INFO - Shutting down servers...
+2025-05-25 10:30:07,452 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:30:07,452 - INFO - Frontend stdout: 
+2025-05-25 10:30:07,453 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:30:07,524 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:30:07,625 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:30:07,625 - INFO - Backend stderr: 2025-05-25 10:30:07,625 - INFO - Application shutdown event triggered.
+2025-05-25 10:30:07,625 - INFO - Backend stderr: 2025-05-25 10:30:07,625 - INFO - Stopping MessageProcessor...
+2025-05-25 10:30:07,625 - INFO - Backend stderr: 2025-05-25 10:30:07,625 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:30:07,626 - INFO - Backend stderr: 2025-05-25 10:30:07,626 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:30:07,626 - INFO - Backend stderr: 2025-05-25 10:30:07,626 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:30:07,626 - INFO - Backend stderr: 2025-05-25 10:30:07,626 - INFO - Application shutdown complete.
+2025-05-25 10:30:07,626 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:30:07,626 - INFO - Backend stderr: INFO:     Finished server process [37934]
+2025-05-25 10:30:07,676 - INFO - Backend stderr: INFO:     Stopping reloader process [37927]
+2025-05-25 10:30:10,451 - INFO - Starting backend server...
+2025-05-25 10:30:10,451 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:30:10,451 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:30:10,453 - INFO - Starting frontend server...
+2025-05-25 10:30:10,453 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:30:10,453 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:30:10,899 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:30:10,899 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:30:10,899 - INFO - Backend stderr: INFO:     Started reloader process [39704] using WatchFiles
+2025-05-25 10:30:11,579 - INFO - Backend stderr: INFO:     Started server process [39711]
+2025-05-25 10:30:11,579 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - Application startup event triggered.
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - Initializing all queues...
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - All queues initialized on loop 907062816
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - Shared queues initialized.
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - Retrieved queue instances. Event loop ID: 907062816
+2025-05-25 10:30:11,579 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,579 - INFO - MessageProcessor queues verified
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - MessageProcessor task started.
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - QueueForwarder queues verified
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - QueueForwarder task started.
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - Starting MessageProcessor
+2025-05-25 10:30:11,580 - INFO - Backend stderr: 2025-05-25 10:30:11,580 - INFO - Starting QueueForwarder
+2025-05-25 10:30:11,581 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:30:12,455 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:30:12,949 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:12] "GET / HTTP/1.1" 304 -
+2025-05-25 10:30:12,996 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:12] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:30:13,001 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:13] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-25 10:30:13,010 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:13] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:30:25,657 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:25] code 404, message File not found
+2025-05-25 10:30:25,658 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:30:25] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-05-25 10:31:53,279 - INFO - Shutting down servers...
+2025-05-25 10:31:53,279 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:31:53,280 - INFO - Frontend stdout: 
+2025-05-25 10:31:53,280 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:31:53,342 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:31:53,443 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:31:53,443 - INFO - Backend stderr: 2025-05-25 10:31:53,443 - INFO - Application shutdown event triggered.
+2025-05-25 10:31:53,443 - INFO - Backend stderr: 2025-05-25 10:31:53,443 - INFO - Stopping MessageProcessor...
+2025-05-25 10:31:53,443 - INFO - Backend stderr: 2025-05-25 10:31:53,443 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:31:53,444 - INFO - Backend stderr: 2025-05-25 10:31:53,443 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:31:53,444 - INFO - Backend stderr: 2025-05-25 10:31:53,444 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:31:53,444 - INFO - Backend stderr: 2025-05-25 10:31:53,444 - INFO - Application shutdown complete.
+2025-05-25 10:31:53,444 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:31:53,444 - INFO - Backend stderr: INFO:     Finished server process [39711]
+2025-05-25 10:31:53,493 - INFO - Backend stderr: INFO:     Stopping reloader process [39704]
+2025-05-25 10:31:56,267 - INFO - Starting backend server...
+2025-05-25 10:31:56,267 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:31:56,267 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:31:56,269 - INFO - Starting frontend server...
+2025-05-25 10:31:56,269 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:31:56,270 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:31:56,756 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:31:56,756 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:31:56,756 - INFO - Backend stderr: INFO:     Started reloader process [40120] using WatchFiles
+2025-05-25 10:31:57,486 - INFO - Backend stderr: INFO:     Started server process [40145]
+2025-05-25 10:31:57,487 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - Application startup event triggered.
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - Initializing all queues...
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - All queues initialized on loop 348102176
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - Shared queues initialized.
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - Retrieved queue instances. Event loop ID: 348102176
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:31:57,487 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - MessageProcessor queues verified
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - MessageProcessor task started.
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - QueueForwarder queues verified
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,487 - INFO - QueueForwarder task started.
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,488 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,488 - INFO - Starting MessageProcessor
+2025-05-25 10:31:57,488 - INFO - Backend stderr: 2025-05-25 10:31:57,488 - INFO - Starting QueueForwarder
+2025-05-25 10:31:57,488 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:31:58,271 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:31:58,761 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:31:58] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:31:58,762 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:31:58] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,434 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET / HTTP/1.1" 200 -
+2025-05-25 10:32:05,456 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/app.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,477 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/modules/MessageQueue.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,477 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,478 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,489 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/modules/QueueDisplay.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,489 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:32:05,499 - INFO - Backend stderr: INFO:     ('127.0.0.1', 51066) - "WebSocket /ws" [accepted]
+2025-05-25 10:32:05,500 - INFO - Backend stderr: 2025-05-25 10:32:05,499 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51066)
+2025-05-25 10:32:05,501 - INFO - Backend stderr: 2025-05-25 10:32:05,500 - ERROR - Connection lifetime error for 127.0.0.1:51066: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:05,501 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:32:05,502 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:32:05,502 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:32:05,502 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:32:05,502 - INFO - Backend stderr: await self.send(
+2025-05-25 10:32:05,502 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:32:05,502 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:32:05,502 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:05,502 - INFO - Backend stderr: 2025-05-25 10:32:05,501 - INFO - Initiating cleanup for connection: 127.0.0.1:51066
+2025-05-25 10:32:05,503 - INFO - Backend stderr: 2025-05-25 10:32:05,501 - INFO - Starting cleanup for 127.0.0.1:51066
+2025-05-25 10:32:05,503 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:32:05,506 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] code 404, message File not found
+2025-05-25 10:32:05,507 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:05] "GET /favicon.ico HTTP/1.1" 404 -
+2025-05-25 10:32:05,507 - INFO - Backend stderr: 2025-05-25 10:32:05,507 - INFO - Closed WebSocket connection for 127.0.0.1:51066
+2025-05-25 10:32:05,507 - INFO - Backend stderr: 2025-05-25 10:32:05,507 - INFO - Connection cleanup completed for 127.0.0.1:51066. Remaining connections: 0
+2025-05-25 10:32:05,507 - INFO - Backend stderr: 2025-05-25 10:32:05,507 - INFO - Cleanup finished for connection: 127.0.0.1:51066. Total connections: 0
+2025-05-25 10:32:05,507 - INFO - Backend stderr: 2025-05-25 10:32:05,507 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=51066): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:32:05,507 - INFO - Backend stderr: 2025-05-25 10:32:05,507 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=51066): Cannot call "send" once a close message has been sent.
+2025-05-25 10:32:05,508 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:32:12,271 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET / HTTP/1.1" 200 -
+2025-05-25 10:32:12,290 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/app.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,309 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/modules/MessageQueue.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,309 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,310 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,321 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,321 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /src/modules/QueueDisplay.js HTTP/1.1" 200 -
+2025-05-25 10:32:12,331 - INFO - Backend stderr: INFO:     ('127.0.0.1', 51070) - "WebSocket /ws" [accepted]
+2025-05-25 10:32:12,331 - INFO - Backend stderr: 2025-05-25 10:32:12,331 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51070)
+2025-05-25 10:32:12,332 - INFO - Backend stderr: 2025-05-25 10:32:12,331 - ERROR - Connection lifetime error for 127.0.0.1:51070: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:12,332 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:32:12,332 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:32:12,332 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:32:12,332 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:32:12,332 - INFO - Backend stderr: await self.send(
+2025-05-25 10:32:12,332 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:32:12,332 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:32:12,332 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:12,332 - INFO - Backend stderr: 2025-05-25 10:32:12,332 - INFO - Initiating cleanup for connection: 127.0.0.1:51070
+2025-05-25 10:32:12,333 - INFO - Backend stderr: 2025-05-25 10:32:12,332 - INFO - Starting cleanup for 127.0.0.1:51070
+2025-05-25 10:32:12,333 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:32:12,336 - INFO - Backend stderr: 2025-05-25 10:32:12,335 - INFO - Closed WebSocket connection for 127.0.0.1:51070
+2025-05-25 10:32:12,336 - INFO - Backend stderr: 2025-05-25 10:32:12,336 - INFO - Connection cleanup completed for 127.0.0.1:51070. Remaining connections: 0
+2025-05-25 10:32:12,336 - INFO - Backend stderr: 2025-05-25 10:32:12,336 - INFO - Cleanup finished for connection: 127.0.0.1:51070. Total connections: 0
+2025-05-25 10:32:12,336 - INFO - Backend stderr: 2025-05-25 10:32:12,336 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=51070): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:32:12,336 - INFO - Backend stderr: 2025-05-25 10:32:12,336 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=51070): Cannot call "send" once a close message has been sent.
+2025-05-25 10:32:12,336 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:32:12,337 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] code 404, message File not found
+2025-05-25 10:32:12,338 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:32:12] "GET /favicon.ico HTTP/1.1" 404 -
+2025-05-25 10:32:17,018 - INFO - Shutting down servers...
+2025-05-25 10:32:17,018 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:32:17,018 - INFO - Frontend stdout: 
+2025-05-25 10:32:17,018 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:32:17,055 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:32:17,156 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:32:17,156 - INFO - Backend stderr: 2025-05-25 10:32:17,156 - INFO - Application shutdown event triggered.
+2025-05-25 10:32:17,156 - INFO - Backend stderr: 2025-05-25 10:32:17,156 - INFO - Stopping MessageProcessor...
+2025-05-25 10:32:17,156 - INFO - Backend stderr: 2025-05-25 10:32:17,156 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:32:17,157 - INFO - Backend stderr: 2025-05-25 10:32:17,156 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:32:17,157 - INFO - Backend stderr: 2025-05-25 10:32:17,157 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:32:17,157 - INFO - Backend stderr: 2025-05-25 10:32:17,157 - INFO - Application shutdown complete.
+2025-05-25 10:32:17,157 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:32:17,157 - INFO - Backend stderr: INFO:     Finished server process [40145]
+2025-05-25 10:32:17,207 - INFO - Backend stderr: INFO:     Stopping reloader process [40120]
+2025-05-25 10:35:14,007 - INFO - Starting backend server...
+2025-05-25 10:35:14,007 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:35:14,008 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:35:14,009 - INFO - Starting frontend server...
+2025-05-25 10:35:14,009 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:35:14,010 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:35:14,454 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:35:14,454 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:35:14,454 - INFO - Backend stderr: INFO:     Started reloader process [40625] using WatchFiles
+2025-05-25 10:35:15,140 - INFO - Backend stderr: INFO:     Started server process [40632]
+2025-05-25 10:35:15,141 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - Application startup event triggered.
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - Initializing all queues...
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - All queues initialized on loop 546479648
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - Shared queues initialized.
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - Retrieved queue instances. Event loop ID: 546479648
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - MessageProcessor queues verified
+2025-05-25 10:35:15,141 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - MessageProcessor task started.
+2025-05-25 10:35:15,142 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - QueueForwarder queues verified
+2025-05-25 10:35:15,142 - INFO - Backend stderr: 2025-05-25 10:35:15,141 - INFO - QueueForwarder task started.
+2025-05-25 10:35:15,142 - INFO - Backend stderr: 2025-05-25 10:35:15,142 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:35:15,142 - INFO - Backend stderr: 2025-05-25 10:35:15,142 - INFO - Starting MessageProcessor
+2025-05-25 10:35:15,142 - INFO - Backend stderr: 2025-05-25 10:35:15,142 - INFO - Starting QueueForwarder
+2025-05-25 10:35:15,142 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:35:16,011 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:35:16,473 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:16] "GET /src/app.js HTTP/1.1" 304 -
+2025-05-25 10:35:16,504 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:16] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:35:16,508 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:16] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:35:16,515 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:16] "GET /src/modules/SimulationManager.js HTTP/1.1" 304 -
+2025-05-25 10:35:16,526 - INFO - Backend stderr: INFO:     ('127.0.0.1', 38472) - "WebSocket /ws" [accepted]
+2025-05-25 10:35:16,526 - INFO - Backend stderr: 2025-05-25 10:35:16,526 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=38472)
+2025-05-25 10:35:16,527 - INFO - Backend stderr: 2025-05-25 10:35:16,526 - ERROR - Connection lifetime error for 127.0.0.1:38472: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:35:16,527 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:35:16,527 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:35:16,527 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:35:16,527 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:35:16,527 - INFO - Backend stderr: await self.send(
+2025-05-25 10:35:16,528 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:35:16,528 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:35:16,528 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:35:16,528 - INFO - Backend stderr: 2025-05-25 10:35:16,527 - INFO - Initiating cleanup for connection: 127.0.0.1:38472
+2025-05-25 10:35:16,528 - INFO - Backend stderr: 2025-05-25 10:35:16,527 - INFO - Starting cleanup for 127.0.0.1:38472
+2025-05-25 10:35:16,528 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:35:16,531 - INFO - Backend stderr: 2025-05-25 10:35:16,531 - INFO - Closed WebSocket connection for 127.0.0.1:38472
+2025-05-25 10:35:16,531 - INFO - Backend stderr: 2025-05-25 10:35:16,531 - INFO - Connection cleanup completed for 127.0.0.1:38472. Remaining connections: 0
+2025-05-25 10:35:16,532 - INFO - Backend stderr: 2025-05-25 10:35:16,531 - INFO - Cleanup finished for connection: 127.0.0.1:38472. Total connections: 0
+2025-05-25 10:35:16,532 - INFO - Backend stderr: 2025-05-25 10:35:16,532 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=38472): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:35:16,532 - INFO - Backend stderr: 2025-05-25 10:35:16,532 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=38472): Cannot call "send" once a close message has been sent.
+2025-05-25 10:35:16,532 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:35:19,877 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:19] code 501, message Unsupported method ('POST')
+2025-05-25 10:35:19,877 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:35:19] "POST /simulation/start HTTP/1.1" 501 -
+2025-05-25 10:35:29,253 - INFO - Shutting down servers...
+2025-05-25 10:35:29,254 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:35:29,254 - INFO - Frontend stdout: 
+2025-05-25 10:35:29,254 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:35:29,289 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:35:29,390 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - INFO - Application shutdown event triggered.
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - INFO - Stopping MessageProcessor...
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:35:29,390 - INFO - Backend stderr: 2025-05-25 10:35:29,390 - INFO - Application shutdown complete.
+2025-05-25 10:35:29,391 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:35:29,391 - INFO - Backend stderr: INFO:     Finished server process [40632]
+2025-05-25 10:35:29,439 - INFO - Backend stderr: INFO:     Stopping reloader process [40625]
+2025-05-25 10:37:43,124 - INFO - Starting backend server...
+2025-05-25 10:37:43,124 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:37:43,124 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:37:43,125 - INFO - Starting frontend server...
+2025-05-25 10:37:43,126 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:37:43,126 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:37:43,575 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:37:43,575 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:37:43,575 - INFO - Backend stderr: INFO:     Started reloader process [41019] using WatchFiles
+2025-05-25 10:37:44,261 - INFO - Backend stderr: INFO:     Started server process [41026]
+2025-05-25 10:37:44,261 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:37:44,261 - INFO - Backend stderr: 2025-05-25 10:37:44,261 - INFO - Application startup event triggered.
+2025-05-25 10:37:44,261 - INFO - Backend stderr: 2025-05-25 10:37:44,261 - INFO - Initializing all queues...
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - All queues initialized on loop 1048825376
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - Shared queues initialized.
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - Retrieved queue instances. Event loop ID: 1048825376
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - MessageProcessor queues verified
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - MessageProcessor task started.
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - QueueForwarder queues verified
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - QueueForwarder task started.
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:37:44,262 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - Starting MessageProcessor
+2025-05-25 10:37:44,263 - INFO - Backend stderr: 2025-05-25 10:37:44,262 - INFO - Starting QueueForwarder
+2025-05-25 10:37:44,263 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:37:45,127 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:37:45,545 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET / HTTP/1.1" 304 -
+2025-05-25 10:37:45,565 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET /src/app.js HTTP/1.1" 304 -
+2025-05-25 10:37:45,601 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET /src/modules/WebSocketManager.js HTTP/1.1" 304 -
+2025-05-25 10:37:45,606 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:37:45,613 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET /src/modules/SimulationManager.js HTTP/1.1" 304 -
+2025-05-25 10:37:45,614 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:45] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:37:45,624 - INFO - Backend stderr: INFO:     ('127.0.0.1', 37454) - "WebSocket /ws" [accepted]
+2025-05-25 10:37:45,625 - INFO - Backend stderr: 2025-05-25 10:37:45,624 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37454)
+2025-05-25 10:37:45,625 - INFO - Backend stderr: 2025-05-25 10:37:45,625 - ERROR - Connection lifetime error for 127.0.0.1:37454: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:45,626 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:37:45,626 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:37:45,626 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:37:45,626 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:37:45,626 - INFO - Backend stderr: await self.send(
+2025-05-25 10:37:45,626 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:37:45,626 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:37:45,626 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:45,627 - INFO - Backend stderr: 2025-05-25 10:37:45,625 - INFO - Initiating cleanup for connection: 127.0.0.1:37454
+2025-05-25 10:37:45,627 - INFO - Backend stderr: 2025-05-25 10:37:45,626 - INFO - Starting cleanup for 127.0.0.1:37454
+2025-05-25 10:37:45,627 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:37:45,631 - INFO - Backend stderr: 2025-05-25 10:37:45,630 - INFO - Closed WebSocket connection for 127.0.0.1:37454
+2025-05-25 10:37:45,631 - INFO - Backend stderr: 2025-05-25 10:37:45,631 - INFO - Connection cleanup completed for 127.0.0.1:37454. Remaining connections: 0
+2025-05-25 10:37:45,631 - INFO - Backend stderr: 2025-05-25 10:37:45,631 - INFO - Cleanup finished for connection: 127.0.0.1:37454. Total connections: 0
+2025-05-25 10:37:45,631 - INFO - Backend stderr: 2025-05-25 10:37:45,631 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37454): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:45,631 - INFO - Backend stderr: 2025-05-25 10:37:45,631 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37454): Cannot call "send" once a close message has been sent.
+2025-05-25 10:37:45,631 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:37:50,512 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET / HTTP/1.1" 200 -
+2025-05-25 10:37:50,531 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/app.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,555 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/MessageQueue.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,555 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,556 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,566 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,567 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/QueueDisplay.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,575 - INFO - Backend stderr: INFO:     ('127.0.0.1', 37456) - "WebSocket /ws" [accepted]
+2025-05-25 10:37:50,576 - INFO - Backend stderr: 2025-05-25 10:37:50,575 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37456)
+2025-05-25 10:37:50,576 - INFO - Backend stderr: 2025-05-25 10:37:50,575 - ERROR - Connection lifetime error for 127.0.0.1:37456: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,576 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:37:50,576 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:37:50,576 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:37:50,576 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:37:50,577 - INFO - Backend stderr: await self.send(
+2025-05-25 10:37:50,577 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:37:50,577 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:37:50,577 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,577 - INFO - Backend stderr: 2025-05-25 10:37:50,576 - INFO - Initiating cleanup for connection: 127.0.0.1:37456
+2025-05-25 10:37:50,577 - INFO - Backend stderr: 2025-05-25 10:37:50,576 - INFO - Starting cleanup for 127.0.0.1:37456
+2025-05-25 10:37:50,577 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:37:50,580 - INFO - Backend stderr: 2025-05-25 10:37:50,579 - INFO - Closed WebSocket connection for 127.0.0.1:37456
+2025-05-25 10:37:50,580 - INFO - Backend stderr: 2025-05-25 10:37:50,580 - INFO - Connection cleanup completed for 127.0.0.1:37456. Remaining connections: 0
+2025-05-25 10:37:50,580 - INFO - Backend stderr: 2025-05-25 10:37:50,580 - INFO - Cleanup finished for connection: 127.0.0.1:37456. Total connections: 0
+2025-05-25 10:37:50,580 - INFO - Backend stderr: 2025-05-25 10:37:50,580 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37456): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:50,580 - INFO - Backend stderr: 2025-05-25 10:37:50,580 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37456): Cannot call "send" once a close message has been sent.
+2025-05-25 10:37:50,580 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:37:50,583 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] code 404, message File not found
+2025-05-25 10:37:50,583 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /favicon.ico HTTP/1.1" 404 -
+2025-05-25 10:37:50,863 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET / HTTP/1.1" 200 -
+2025-05-25 10:37:50,883 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/app.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,901 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/WebSocketManager.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,902 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/EventListeners.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,902 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/MessageQueue.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,912 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/QueueDisplay.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,913 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:37:50,922 - INFO - Backend stderr: INFO:     ('127.0.0.1', 37468) - "WebSocket /ws" [accepted]
+2025-05-25 10:37:50,922 - INFO - Backend stderr: 2025-05-25 10:37:50,922 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37468)
+2025-05-25 10:37:50,922 - INFO - Backend stderr: 2025-05-25 10:37:50,922 - ERROR - Connection lifetime error for 127.0.0.1:37468: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,922 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:37:50,922 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:37:50,923 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:37:50,923 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:37:50,923 - INFO - Backend stderr: await self.send(
+2025-05-25 10:37:50,923 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:37:50,923 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:37:50,923 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,923 - INFO - Backend stderr: 2025-05-25 10:37:50,922 - INFO - Initiating cleanup for connection: 127.0.0.1:37468
+2025-05-25 10:37:50,923 - INFO - Backend stderr: 2025-05-25 10:37:50,922 - INFO - Starting cleanup for 127.0.0.1:37468
+2025-05-25 10:37:50,923 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:37:50,926 - INFO - Backend stderr: 2025-05-25 10:37:50,925 - INFO - Closed WebSocket connection for 127.0.0.1:37468
+2025-05-25 10:37:50,926 - INFO - Backend stderr: 2025-05-25 10:37:50,926 - INFO - Connection cleanup completed for 127.0.0.1:37468. Remaining connections: 0
+2025-05-25 10:37:50,926 - INFO - Backend stderr: 2025-05-25 10:37:50,926 - INFO - Cleanup finished for connection: 127.0.0.1:37468. Total connections: 0
+2025-05-25 10:37:50,926 - INFO - Backend stderr: 2025-05-25 10:37:50,926 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37468): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:50,926 - INFO - Backend stderr: 2025-05-25 10:37:50,926 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37468): Cannot call "send" once a close message has been sent.
+2025-05-25 10:37:50,926 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:37:50,927 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] code 404, message File not found
+2025-05-25 10:37:50,928 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:50] "GET /favicon.ico HTTP/1.1" 404 -
+2025-05-25 10:37:57,490 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:57] code 501, message Unsupported method ('POST')
+2025-05-25 10:37:57,491 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:37:57] "POST /simulation/start HTTP/1.1" 501 -
+2025-05-25 10:38:14,884 - INFO - Shutting down servers...
+2025-05-25 10:38:14,884 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:38:14,885 - INFO - Frontend stdout: 
+2025-05-25 10:38:14,885 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:38:14,956 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:38:15,056 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,056 - INFO - Application shutdown event triggered.
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,057 - INFO - Stopping MessageProcessor...
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,057 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,057 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,057 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:38:15,057 - INFO - Backend stderr: 2025-05-25 10:38:15,057 - INFO - Application shutdown complete.
+2025-05-25 10:38:15,057 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:38:15,058 - INFO - Backend stderr: INFO:     Finished server process [41026]
+2025-05-25 10:38:15,107 - INFO - Backend stderr: INFO:     Stopping reloader process [41019]
+2025-05-25 10:39:39,727 - INFO - Starting backend server...
+2025-05-25 10:39:39,727 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:39:39,727 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:39:39,729 - INFO - Starting frontend server...
+2025-05-25 10:39:39,729 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:39:39,729 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:39:40,241 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:39:40,242 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:39:40,242 - INFO - Backend stderr: INFO:     Started reloader process [41456] using WatchFiles
+2025-05-25 10:39:40,988 - INFO - Backend stderr: INFO:     Started server process [41482]
+2025-05-25 10:39:40,988 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:39:40,988 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - Application startup event triggered.
+2025-05-25 10:39:40,988 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - Initializing all queues...
+2025-05-25 10:39:40,988 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - All queues initialized on loop 511778336
+2025-05-25 10:39:40,988 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - Shared queues initialized.
+2025-05-25 10:39:40,988 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - Retrieved queue instances. Event loop ID: 511778336
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,988 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - MessageProcessor queues verified
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - MessageProcessor task started.
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - QueueForwarder queues verified
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - QueueForwarder task started.
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - Starting MessageProcessor
+2025-05-25 10:39:40,989 - INFO - Backend stderr: 2025-05-25 10:39:40,989 - INFO - Starting QueueForwarder
+2025-05-25 10:39:40,990 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:39:41,731 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:39:42,188 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:42] "GET /src/app.js HTTP/1.1" 304 -
+2025-05-25 10:39:42,214 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:42] "GET /src/modules/WebSocketManager.js HTTP/1.1" 304 -
+2025-05-25 10:39:42,219 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:42] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:39:42,226 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:42] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:39:42,236 - INFO - Backend stderr: INFO:     ('127.0.0.1', 47782) - "WebSocket /ws" [accepted]
+2025-05-25 10:39:42,236 - INFO - Backend stderr: 2025-05-25 10:39:42,236 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47782)
+2025-05-25 10:39:42,237 - INFO - Backend stderr: 2025-05-25 10:39:42,236 - ERROR - Connection lifetime error for 127.0.0.1:47782: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:39:42,237 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:39:42,237 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:39:42,238 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:39:42,238 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:39:42,238 - INFO - Backend stderr: await self.send(
+2025-05-25 10:39:42,238 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:39:42,238 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:39:42,238 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:39:42,238 - INFO - Backend stderr: 2025-05-25 10:39:42,237 - INFO - Initiating cleanup for connection: 127.0.0.1:47782
+2025-05-25 10:39:42,238 - INFO - Backend stderr: 2025-05-25 10:39:42,237 - INFO - Starting cleanup for 127.0.0.1:47782
+2025-05-25 10:39:42,238 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:39:42,242 - INFO - Backend stderr: 2025-05-25 10:39:42,242 - INFO - Closed WebSocket connection for 127.0.0.1:47782
+2025-05-25 10:39:42,242 - INFO - Backend stderr: 2025-05-25 10:39:42,242 - INFO - Connection cleanup completed for 127.0.0.1:47782. Remaining connections: 0
+2025-05-25 10:39:42,242 - INFO - Backend stderr: 2025-05-25 10:39:42,242 - INFO - Cleanup finished for connection: 127.0.0.1:47782. Total connections: 0
+2025-05-25 10:39:42,242 - INFO - Backend stderr: 2025-05-25 10:39:42,242 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=47782): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:39:42,243 - INFO - Backend stderr: 2025-05-25 10:39:42,242 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=47782): Cannot call "send" once a close message has been sent.
+2025-05-25 10:39:42,243 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:39:43,896 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:43] code 404, message File not found
+2025-05-25 10:39:43,897 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:39:43] "GET /simulation/start HTTP/1.1" 404 -
+2025-05-25 10:41:09,270 - INFO - Backend stderr: WARNING:  WatchFiles detected changes in 'Backend/api/endpoints.py'. Reloading...
+2025-05-25 10:41:09,271 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:41:09,372 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:41:09,372 - INFO - Backend stderr: 2025-05-25 10:41:09,372 - INFO - Application shutdown event triggered.
+2025-05-25 10:41:09,372 - INFO - Backend stderr: 2025-05-25 10:41:09,372 - INFO - Stopping MessageProcessor...
+2025-05-25 10:41:09,373 - INFO - Backend stderr: 2025-05-25 10:41:09,372 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:41:09,373 - INFO - Backend stderr: 2025-05-25 10:41:09,373 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:41:09,373 - INFO - Backend stderr: 2025-05-25 10:41:09,373 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:41:09,373 - INFO - Backend stderr: 2025-05-25 10:41:09,373 - INFO - Application shutdown complete.
+2025-05-25 10:41:09,373 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:41:09,373 - INFO - Backend stderr: INFO:     Finished server process [41482]
+2025-05-25 10:41:10,111 - INFO - Backend stderr: Process SpawnProcess-2:
+2025-05-25 10:41:10,112 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:41:10,112 - INFO - Backend stderr: File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+2025-05-25 10:41:10,113 - INFO - Backend stderr: self.run()
+2025-05-25 10:41:10,113 - INFO - Backend stderr: File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+2025-05-25 10:41:10,113 - INFO - Backend stderr: self._target(*self._args, **self._kwargs)
+2025-05-25 10:41:10,113 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
+2025-05-25 10:41:10,113 - INFO - Backend stderr: target(sockets=sockets)
+2025-05-25 10:41:10,113 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/server.py", line 61, in run
+2025-05-25 10:41:10,113 - INFO - Backend stderr: return asyncio.run(self.serve(sockets=sockets))
+2025-05-25 10:41:10,113 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,113 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+2025-05-25 10:41:10,113 - INFO - Backend stderr: return runner.run(main)
+2025-05-25 10:41:10,113 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,113 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+2025-05-25 10:41:10,113 - INFO - Backend stderr: return self._loop.run_until_complete(task)
+2025-05-25 10:41:10,113 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/server.py", line 68, in serve
+2025-05-25 10:41:10,114 - INFO - Backend stderr: config.load()
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/config.py", line 473, in load
+2025-05-25 10:41:10,114 - INFO - Backend stderr: self.loaded_app = import_from_string(self.app)
+2025-05-25 10:41:10,114 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/importer.py", line 21, in import_from_string
+2025-05-25 10:41:10,114 - INFO - Backend stderr: module = importlib.import_module(module_str)
+2025-05-25 10:41:10,114 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+2025-05-25 10:41:10,114 - INFO - Backend stderr: return _bootstrap._gcd_import(name[level:], package, level)
+2025-05-25 10:41:10,114 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2025-05-25 10:41:10,114 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/backend.py", line 26, in <module>
+2025-05-25 10:41:10,115 - INFO - Backend stderr: from Backend.api import endpoints
+2025-05-25 10:41:10,115 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 162
+2025-05-25 10:41:10,115 - INFO - Backend stderr: try:
+2025-05-25 10:41:10,115 - INFO - Backend stderr: ^^^
+2025-05-25 10:41:10,115 - INFO - Backend stderr: SyntaxError: expected 'except' or 'finally' block
+2025-05-25 10:43:05,361 - INFO - Backend stderr: WARNING:  WatchFiles detected changes in 'Backend/api/endpoints.py'. Reloading...
+2025-05-25 10:43:06,058 - INFO - Backend stderr: INFO:     Started server process [41816]
+2025-05-25 10:43:06,058 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - Application startup event triggered.
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - Initializing all queues...
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - All queues initialized on loop 21917904
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - Shared queues initialized.
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - Retrieved queue instances. Event loop ID: 21917904
+2025-05-25 10:43:06,058 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,058 - INFO - MessageProcessor queues verified
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - MessageProcessor task started.
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - QueueForwarder queues verified
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - QueueForwarder task started.
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - Starting MessageProcessor
+2025-05-25 10:43:06,059 - INFO - Backend stderr: 2025-05-25 10:43:06,059 - INFO - Starting QueueForwarder
+2025-05-25 10:43:06,059 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:43:16,987 - INFO - Shutting down servers...
+2025-05-25 10:43:16,987 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:43:16,988 - INFO - Frontend stdout: 
+2025-05-25 10:43:16,988 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:43:16,999 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:43:17,099 - INFO - Backend stderr: INFO:     Waiting for application shutdown.
+2025-05-25 10:43:17,099 - INFO - Backend stderr: 2025-05-25 10:43:17,099 - INFO - Application shutdown event triggered.
+2025-05-25 10:43:17,099 - INFO - Backend stderr: 2025-05-25 10:43:17,099 - INFO - Stopping MessageProcessor...
+2025-05-25 10:43:17,100 - INFO - Backend stderr: 2025-05-25 10:43:17,100 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:43:17,100 - INFO - Backend stderr: 2025-05-25 10:43:17,100 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:43:17,100 - INFO - Backend stderr: 2025-05-25 10:43:17,100 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:43:17,100 - INFO - Backend stderr: 2025-05-25 10:43:17,100 - INFO - Application shutdown complete.
+2025-05-25 10:43:17,100 - INFO - Backend stderr: INFO:     Application shutdown complete.
+2025-05-25 10:43:17,100 - INFO - Backend stderr: INFO:     Finished server process [41816]
+2025-05-25 10:43:17,150 - INFO - Backend stderr: INFO:     Stopping reloader process [41456]
+2025-05-25 10:43:19,075 - INFO - Starting backend server...
+2025-05-25 10:43:19,076 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:43:19,076 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:43:19,078 - INFO - Starting frontend server...
+2025-05-25 10:43:19,079 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:43:19,079 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:43:19,570 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:43:19,570 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:43:19,570 - INFO - Backend stderr: INFO:     Started reloader process [41936] using WatchFiles
+2025-05-25 10:43:20,318 - INFO - Backend stderr: INFO:     Started server process [41962]
+2025-05-25 10:43:20,318 - INFO - Backend stderr: INFO:     Waiting for application startup.
+2025-05-25 10:43:20,318 - INFO - Backend stderr: 2025-05-25 10:43:20,318 - INFO - Application startup event triggered.
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,318 - INFO - Initializing all queues...
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,318 - INFO - All queues initialized on loop 56294944
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - Shared queues initialized.
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - Retrieved queue instances. Event loop ID: 56294944
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - MessageProcessor queues verified
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - MessageProcessor task started.
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - QueueForwarder queues verified
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - QueueForwarder task started.
+2025-05-25 10:43:20,319 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:43:20,320 - INFO - Backend stderr: 2025-05-25 10:43:20,319 - INFO - Starting MessageProcessor
+2025-05-25 10:43:20,320 - INFO - Backend stderr: 2025-05-25 10:43:20,320 - INFO - Starting QueueForwarder
+2025-05-25 10:43:20,320 - INFO - Backend stderr: INFO:     Application startup complete.
+2025-05-25 10:43:21,080 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:43:21,500 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET / HTTP/1.1" 304 -
+2025-05-25 10:43:21,519 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET /src/app.js HTTP/1.1" 304 -
+2025-05-25 10:43:21,550 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET /src/modules/WebSocketManager.js HTTP/1.1" 304 -
+2025-05-25 10:43:21,554 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:43:21,560 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET /src/modules/SimulationManager.js HTTP/1.1" 200 -
+2025-05-25 10:43:21,561 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:21] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:43:21,572 - INFO - Backend stderr: INFO:     ('127.0.0.1', 49572) - "WebSocket /ws" [accepted]
+2025-05-25 10:43:21,572 - INFO - Backend stderr: 2025-05-25 10:43:21,572 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=49572)
+2025-05-25 10:43:21,573 - INFO - Backend stderr: 2025-05-25 10:43:21,572 - ERROR - Connection lifetime error for 127.0.0.1:49572: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:43:21,573 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:43:21,573 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+2025-05-25 10:43:21,573 - INFO - Backend stderr: await websocket.accept()
+2025-05-25 10:43:21,573 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+2025-05-25 10:43:21,573 - INFO - Backend stderr: await self.send(
+2025-05-25 10:43:21,573 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+2025-05-25 10:43:21,573 - INFO - Backend stderr: raise RuntimeError(
+2025-05-25 10:43:21,573 - INFO - Backend stderr: RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:43:21,573 - INFO - Backend stderr: 2025-05-25 10:43:21,573 - INFO - Initiating cleanup for connection: 127.0.0.1:49572
+2025-05-25 10:43:21,573 - INFO - Backend stderr: 2025-05-25 10:43:21,573 - INFO - Starting cleanup for 127.0.0.1:49572
+2025-05-25 10:43:21,574 - INFO - Backend stderr: INFO:     connection open
+2025-05-25 10:43:21,577 - INFO - Backend stderr: 2025-05-25 10:43:21,577 - INFO - Closed WebSocket connection for 127.0.0.1:49572
+2025-05-25 10:43:21,577 - INFO - Backend stderr: 2025-05-25 10:43:21,577 - INFO - Connection cleanup completed for 127.0.0.1:49572. Remaining connections: 0
+2025-05-25 10:43:21,577 - INFO - Backend stderr: 2025-05-25 10:43:21,577 - INFO - Cleanup finished for connection: 127.0.0.1:49572. Total connections: 0
+2025-05-25 10:43:21,578 - INFO - Backend stderr: 2025-05-25 10:43:21,577 - ERROR - WebSocket receive error: WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:43:21,578 - INFO - Backend stderr: 2025-05-25 10:43:21,577 - ERROR - Error during WebSocket cleanup: Cannot call "send" once a close message has been sent.
+2025-05-25 10:43:21,578 - INFO - Backend stderr: INFO:     connection closed
+2025-05-25 10:43:23,213 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:23] code 404, message File not found
+2025-05-25 10:43:23,213 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:43:23] "GET /api/simulation/start HTTP/1.1" 404 -
+2025-05-25 10:44:20,216 - INFO - Shutting down servers...
+2025-05-25 10:44:20,217 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:44:20,217 - INFO - Frontend stdout: 
+2025-05-25 10:44:20,217 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:44:20,295 - INFO - Backend stderr: INFO:     Shutting down
+2025-05-25 10:44:20,396 - INFO - Backend stderr: INFO:     Finished server process [41962]
+2025-05-25 10:44:20,396 - INFO - Backend stderr: 2025-05-25 10:44:20,396 - INFO - Application shutdown event triggered.
+2025-05-25 10:44:20,396 - INFO - Backend stderr: 2025-05-25 10:44:20,396 - INFO - Stopping MessageProcessor...
+2025-05-25 10:44:20,396 - INFO - Backend stderr: 2025-05-25 10:44:20,396 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-25 10:44:20,396 - INFO - Backend stderr: 2025-05-25 10:44:20,396 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:44:20,396 - INFO - Backend stderr: 2025-05-25 10:44:20,396 - INFO - Application shutdown complete.
+2025-05-25 10:44:20,398 - INFO - Backend stderr: ERROR:    Traceback (most recent call last):
+2025-05-25 10:44:20,398 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/starlette/routing.py", line 686, in lifespan
+2025-05-25 10:44:20,398 - INFO - Backend stderr: await receive()
+2025-05-25 10:44:20,398 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/lifespan/on.py", line 139, in receive
+2025-05-25 10:44:20,398 - INFO - Backend stderr: return await self.receive_queue.get()
+2025-05-25 10:44:20,399 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:44:20,399 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/queues.py", line 158, in get
+2025-05-25 10:44:20,399 - INFO - Backend stderr: await getter
+2025-05-25 10:44:20,399 - INFO - Backend stderr: asyncio.exceptions.CancelledError
+2025-05-25 10:44:20,399 - INFO - Backend stderr: 
+2025-05-25 10:44:20,449 - INFO - Backend stderr: INFO:     Stopping reloader process [41936]

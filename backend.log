@@ -3162,3 +3162,399 @@ starlette.websockets.WebSocketDisconnect: 1012
 2025-05-25 09:57:13,316 - INFO - Starting cleanup for 127.0.0.1:34302
 2025-05-25 09:57:13,316 - INFO - Connection cleanup completed for 127.0.0.1:34302. Remaining connections: 0
 2025-05-25 09:57:13,316 - INFO - Cleanup finished for connection: 127.0.0.1:34302. Total connections: 0
+2025-05-25 10:19:04,130 - INFO - Application startup event triggered.
+2025-05-25 10:19:04,130 - INFO - Initializing all queues...
+2025-05-25 10:19:04,130 - INFO - All queues initialized on loop 371363360
+2025-05-25 10:19:04,130 - INFO - Shared queues initialized.
+2025-05-25 10:19:04,131 - INFO - Retrieved queue instances. Event loop ID: 371363360
+2025-05-25 10:19:04,131 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:19:04,131 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:19:04,131 - INFO - MessageProcessor queues verified
+2025-05-25 10:19:04,131 - INFO - MessageProcessor task started.
+2025-05-25 10:19:04,131 - INFO - QueueForwarder queues verified
+2025-05-25 10:19:04,131 - INFO - QueueForwarder task started.
+2025-05-25 10:19:04,131 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:19:04,132 - INFO - Starting MessageProcessor
+2025-05-25 10:19:04,132 - INFO - Starting QueueForwarder
+2025-05-25 10:19:05,560 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=35960)
+2025-05-25 10:19:05,560 - ERROR - Connection lifetime error for 127.0.0.1:35960: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:05,561 - INFO - Initiating cleanup for connection: 127.0.0.1:35960
+2025-05-25 10:19:05,561 - INFO - Starting cleanup for 127.0.0.1:35960
+2025-05-25 10:19:05,582 - INFO - Closed WebSocket connection for 127.0.0.1:35960
+2025-05-25 10:19:05,582 - INFO - Connection cleanup completed for 127.0.0.1:35960. Remaining connections: 0
+2025-05-25 10:19:05,582 - INFO - Cleanup finished for connection: 127.0.0.1:35960. Total connections: 0
+2025-05-25 10:19:05,582 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=35960): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:05,582 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=35960): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:06,904 - INFO - Received request to start simulation
+2025-05-25 10:19:06,905 - INFO - Initiating simulation start via background task
+2025-05-25 10:19:06,905 - INFO - Simulation started successfully: {'status': 'started', 'message': 'Simulation messages will begin flowing through queues'}
+2025-05-25 10:19:06,905 - INFO - Simulation task starting
+2025-05-25 10:19:06,906 - INFO - System message enqueued to backend queue
+2025-05-25 10:19:10,185 - INFO - Processed 3 messages
+2025-05-25 10:19:13,506 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=35966)
+2025-05-25 10:19:13,507 - ERROR - Connection lifetime error for 127.0.0.1:35966: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:13,507 - INFO - Initiating cleanup for connection: 127.0.0.1:35966
+2025-05-25 10:19:13,507 - INFO - Starting cleanup for 127.0.0.1:35966
+2025-05-25 10:19:13,511 - INFO - Closed WebSocket connection for 127.0.0.1:35966
+2025-05-25 10:19:13,511 - INFO - Connection cleanup completed for 127.0.0.1:35966. Remaining connections: 0
+2025-05-25 10:19:13,511 - INFO - Cleanup finished for connection: 127.0.0.1:35966. Total connections: 0
+2025-05-25 10:19:13,511 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=35966): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:13,511 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=35966): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:15,217 - INFO - Processed 2 messages
+2025-05-25 10:19:18,506 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=53744)
+2025-05-25 10:19:18,506 - ERROR - Connection lifetime error for 127.0.0.1:53744: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:19:18,507 - INFO - Initiating cleanup for connection: 127.0.0.1:53744
+2025-05-25 10:19:18,507 - INFO - Starting cleanup for 127.0.0.1:53744
+2025-05-25 10:19:18,510 - INFO - Closed WebSocket connection for 127.0.0.1:53744
+2025-05-25 10:19:18,511 - INFO - Connection cleanup completed for 127.0.0.1:53744. Remaining connections: 0
+2025-05-25 10:19:18,511 - INFO - Cleanup finished for connection: 127.0.0.1:53744. Total connections: 0
+2025-05-25 10:19:18,511 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=53744): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:19:18,511 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=53744): Cannot call "send" once a close message has been sent.
+2025-05-25 10:19:20,267 - INFO - Processed 2 messages
+2025-05-25 10:19:27,171 - INFO - Processed 3 messages
+2025-05-25 10:19:33,017 - INFO - Processed 3 messages
+2025-05-25 10:19:35,944 - INFO - Application shutdown event triggered.
+2025-05-25 10:19:35,945 - INFO - SimulationManager stopped.
+2025-05-25 10:19:35,945 - INFO - Stopping MessageProcessor...
+2025-05-25 10:19:35,945 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-25 10:19:35,945 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:19:35,945 - INFO - Application shutdown complete.
+2025-05-25 10:25:51,764 - INFO - Application startup event triggered.
+2025-05-25 10:25:51,764 - INFO - Initializing all queues...
+2025-05-25 10:25:51,764 - INFO - All queues initialized on loop 835935776
+2025-05-25 10:25:51,764 - INFO - Shared queues initialized.
+2025-05-25 10:25:51,764 - INFO - Retrieved queue instances. Event loop ID: 835935776
+2025-05-25 10:25:51,765 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:25:51,765 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:25:51,765 - INFO - MessageProcessor queues verified
+2025-05-25 10:25:51,765 - INFO - MessageProcessor task started.
+2025-05-25 10:25:51,765 - INFO - QueueForwarder queues verified
+2025-05-25 10:25:51,765 - INFO - QueueForwarder task started.
+2025-05-25 10:25:51,765 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:25:51,765 - INFO - Starting MessageProcessor
+2025-05-25 10:25:51,765 - INFO - Starting QueueForwarder
+2025-05-25 10:28:12,713 - INFO - Application shutdown event triggered.
+2025-05-25 10:28:12,714 - INFO - Stopping MessageProcessor...
+2025-05-25 10:28:12,714 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:28:12,715 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:28:12,715 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:28:12,715 - INFO - Application shutdown complete.
+2025-05-25 10:28:22,870 - INFO - Application startup event triggered.
+2025-05-25 10:28:22,870 - INFO - Initializing all queues...
+2025-05-25 10:28:22,871 - INFO - All queues initialized on loop 500129312
+2025-05-25 10:28:22,871 - INFO - Shared queues initialized.
+2025-05-25 10:28:22,871 - INFO - Retrieved queue instances. Event loop ID: 500129312
+2025-05-25 10:28:22,871 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:28:22,871 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:28:22,871 - INFO - MessageProcessor queues verified
+2025-05-25 10:28:22,871 - INFO - MessageProcessor task started.
+2025-05-25 10:28:22,871 - INFO - QueueForwarder queues verified
+2025-05-25 10:28:22,872 - INFO - QueueForwarder task started.
+2025-05-25 10:28:22,872 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:28:22,872 - INFO - Starting MessageProcessor
+2025-05-25 10:28:22,872 - INFO - Starting QueueForwarder
+2025-05-25 10:30:07,625 - INFO - Application shutdown event triggered.
+2025-05-25 10:30:07,625 - INFO - Stopping MessageProcessor...
+2025-05-25 10:30:07,625 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:30:07,626 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:30:07,626 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:30:07,626 - INFO - Application shutdown complete.
+2025-05-25 10:30:11,579 - INFO - Application startup event triggered.
+2025-05-25 10:30:11,579 - INFO - Initializing all queues...
+2025-05-25 10:30:11,579 - INFO - All queues initialized on loop 907062816
+2025-05-25 10:30:11,579 - INFO - Shared queues initialized.
+2025-05-25 10:30:11,579 - INFO - Retrieved queue instances. Event loop ID: 907062816
+2025-05-25 10:30:11,579 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:30:11,579 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:30:11,579 - INFO - MessageProcessor queues verified
+2025-05-25 10:30:11,580 - INFO - MessageProcessor task started.
+2025-05-25 10:30:11,580 - INFO - QueueForwarder queues verified
+2025-05-25 10:30:11,580 - INFO - QueueForwarder task started.
+2025-05-25 10:30:11,580 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:30:11,580 - INFO - Starting MessageProcessor
+2025-05-25 10:30:11,580 - INFO - Starting QueueForwarder
+2025-05-25 10:31:53,443 - INFO - Application shutdown event triggered.
+2025-05-25 10:31:53,443 - INFO - Stopping MessageProcessor...
+2025-05-25 10:31:53,443 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:31:53,443 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:31:53,444 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:31:53,444 - INFO - Application shutdown complete.
+2025-05-25 10:31:57,487 - INFO - Application startup event triggered.
+2025-05-25 10:31:57,487 - INFO - Initializing all queues...
+2025-05-25 10:31:57,487 - INFO - All queues initialized on loop 348102176
+2025-05-25 10:31:57,487 - INFO - Shared queues initialized.
+2025-05-25 10:31:57,487 - INFO - Retrieved queue instances. Event loop ID: 348102176
+2025-05-25 10:31:57,487 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:31:57,487 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:31:57,487 - INFO - MessageProcessor queues verified
+2025-05-25 10:31:57,487 - INFO - MessageProcessor task started.
+2025-05-25 10:31:57,487 - INFO - QueueForwarder queues verified
+2025-05-25 10:31:57,487 - INFO - QueueForwarder task started.
+2025-05-25 10:31:57,488 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:31:57,488 - INFO - Starting MessageProcessor
+2025-05-25 10:31:57,488 - INFO - Starting QueueForwarder
+2025-05-25 10:32:05,499 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51066)
+2025-05-25 10:32:05,500 - ERROR - Connection lifetime error for 127.0.0.1:51066: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:05,501 - INFO - Initiating cleanup for connection: 127.0.0.1:51066
+2025-05-25 10:32:05,501 - INFO - Starting cleanup for 127.0.0.1:51066
+2025-05-25 10:32:05,507 - INFO - Closed WebSocket connection for 127.0.0.1:51066
+2025-05-25 10:32:05,507 - INFO - Connection cleanup completed for 127.0.0.1:51066. Remaining connections: 0
+2025-05-25 10:32:05,507 - INFO - Cleanup finished for connection: 127.0.0.1:51066. Total connections: 0
+2025-05-25 10:32:05,507 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=51066): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:32:05,507 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=51066): Cannot call "send" once a close message has been sent.
+2025-05-25 10:32:12,331 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51070)
+2025-05-25 10:32:12,331 - ERROR - Connection lifetime error for 127.0.0.1:51070: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:32:12,332 - INFO - Initiating cleanup for connection: 127.0.0.1:51070
+2025-05-25 10:32:12,332 - INFO - Starting cleanup for 127.0.0.1:51070
+2025-05-25 10:32:12,335 - INFO - Closed WebSocket connection for 127.0.0.1:51070
+2025-05-25 10:32:12,336 - INFO - Connection cleanup completed for 127.0.0.1:51070. Remaining connections: 0
+2025-05-25 10:32:12,336 - INFO - Cleanup finished for connection: 127.0.0.1:51070. Total connections: 0
+2025-05-25 10:32:12,336 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=51070): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:32:12,336 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=51070): Cannot call "send" once a close message has been sent.
+2025-05-25 10:32:17,156 - INFO - Application shutdown event triggered.
+2025-05-25 10:32:17,156 - INFO - Stopping MessageProcessor...
+2025-05-25 10:32:17,156 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:32:17,156 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:32:17,157 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:32:17,157 - INFO - Application shutdown complete.
+2025-05-25 10:35:15,141 - INFO - Application startup event triggered.
+2025-05-25 10:35:15,141 - INFO - Initializing all queues...
+2025-05-25 10:35:15,141 - INFO - All queues initialized on loop 546479648
+2025-05-25 10:35:15,141 - INFO - Shared queues initialized.
+2025-05-25 10:35:15,141 - INFO - Retrieved queue instances. Event loop ID: 546479648
+2025-05-25 10:35:15,141 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:35:15,141 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:35:15,141 - INFO - MessageProcessor queues verified
+2025-05-25 10:35:15,141 - INFO - MessageProcessor task started.
+2025-05-25 10:35:15,141 - INFO - QueueForwarder queues verified
+2025-05-25 10:35:15,141 - INFO - QueueForwarder task started.
+2025-05-25 10:35:15,142 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:35:15,142 - INFO - Starting MessageProcessor
+2025-05-25 10:35:15,142 - INFO - Starting QueueForwarder
+2025-05-25 10:35:16,526 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=38472)
+2025-05-25 10:35:16,526 - ERROR - Connection lifetime error for 127.0.0.1:38472: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:35:16,527 - INFO - Initiating cleanup for connection: 127.0.0.1:38472
+2025-05-25 10:35:16,527 - INFO - Starting cleanup for 127.0.0.1:38472
+2025-05-25 10:35:16,531 - INFO - Closed WebSocket connection for 127.0.0.1:38472
+2025-05-25 10:35:16,531 - INFO - Connection cleanup completed for 127.0.0.1:38472. Remaining connections: 0
+2025-05-25 10:35:16,531 - INFO - Cleanup finished for connection: 127.0.0.1:38472. Total connections: 0
+2025-05-25 10:35:16,532 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=38472): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:35:16,532 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=38472): Cannot call "send" once a close message has been sent.
+2025-05-25 10:35:29,390 - INFO - Application shutdown event triggered.
+2025-05-25 10:35:29,390 - INFO - Stopping MessageProcessor...
+2025-05-25 10:35:29,390 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:35:29,390 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:35:29,390 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:35:29,390 - INFO - Application shutdown complete.
+2025-05-25 10:37:44,261 - INFO - Application startup event triggered.
+2025-05-25 10:37:44,261 - INFO - Initializing all queues...
+2025-05-25 10:37:44,262 - INFO - All queues initialized on loop 1048825376
+2025-05-25 10:37:44,262 - INFO - Shared queues initialized.
+2025-05-25 10:37:44,262 - INFO - Retrieved queue instances. Event loop ID: 1048825376
+2025-05-25 10:37:44,262 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:37:44,262 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:37:44,262 - INFO - MessageProcessor queues verified
+2025-05-25 10:37:44,262 - INFO - MessageProcessor task started.
+2025-05-25 10:37:44,262 - INFO - QueueForwarder queues verified
+2025-05-25 10:37:44,262 - INFO - QueueForwarder task started.
+2025-05-25 10:37:44,262 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:37:44,262 - INFO - Starting MessageProcessor
+2025-05-25 10:37:44,262 - INFO - Starting QueueForwarder
+2025-05-25 10:37:45,624 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37454)
+2025-05-25 10:37:45,625 - ERROR - Connection lifetime error for 127.0.0.1:37454: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:45,625 - INFO - Initiating cleanup for connection: 127.0.0.1:37454
+2025-05-25 10:37:45,626 - INFO - Starting cleanup for 127.0.0.1:37454
+2025-05-25 10:37:45,630 - INFO - Closed WebSocket connection for 127.0.0.1:37454
+2025-05-25 10:37:45,631 - INFO - Connection cleanup completed for 127.0.0.1:37454. Remaining connections: 0
+2025-05-25 10:37:45,631 - INFO - Cleanup finished for connection: 127.0.0.1:37454. Total connections: 0
+2025-05-25 10:37:45,631 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37454): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:45,631 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37454): Cannot call "send" once a close message has been sent.
+2025-05-25 10:37:50,575 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37456)
+2025-05-25 10:37:50,575 - ERROR - Connection lifetime error for 127.0.0.1:37456: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,576 - INFO - Initiating cleanup for connection: 127.0.0.1:37456
+2025-05-25 10:37:50,576 - INFO - Starting cleanup for 127.0.0.1:37456
+2025-05-25 10:37:50,579 - INFO - Closed WebSocket connection for 127.0.0.1:37456
+2025-05-25 10:37:50,580 - INFO - Connection cleanup completed for 127.0.0.1:37456. Remaining connections: 0
+2025-05-25 10:37:50,580 - INFO - Cleanup finished for connection: 127.0.0.1:37456. Total connections: 0
+2025-05-25 10:37:50,580 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37456): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:50,580 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37456): Cannot call "send" once a close message has been sent.
+2025-05-25 10:37:50,922 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37468)
+2025-05-25 10:37:50,922 - ERROR - Connection lifetime error for 127.0.0.1:37468: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:37:50,922 - INFO - Initiating cleanup for connection: 127.0.0.1:37468
+2025-05-25 10:37:50,922 - INFO - Starting cleanup for 127.0.0.1:37468
+2025-05-25 10:37:50,925 - INFO - Closed WebSocket connection for 127.0.0.1:37468
+2025-05-25 10:37:50,926 - INFO - Connection cleanup completed for 127.0.0.1:37468. Remaining connections: 0
+2025-05-25 10:37:50,926 - INFO - Cleanup finished for connection: 127.0.0.1:37468. Total connections: 0
+2025-05-25 10:37:50,926 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=37468): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:37:50,926 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=37468): Cannot call "send" once a close message has been sent.
+2025-05-25 10:38:15,056 - INFO - Application shutdown event triggered.
+2025-05-25 10:38:15,057 - INFO - Stopping MessageProcessor...
+2025-05-25 10:38:15,057 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:38:15,057 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:38:15,057 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:38:15,057 - INFO - Application shutdown complete.
+2025-05-25 10:39:40,988 - INFO - Application startup event triggered.
+2025-05-25 10:39:40,988 - INFO - Initializing all queues...
+2025-05-25 10:39:40,988 - INFO - All queues initialized on loop 511778336
+2025-05-25 10:39:40,988 - INFO - Shared queues initialized.
+2025-05-25 10:39:40,988 - INFO - Retrieved queue instances. Event loop ID: 511778336
+2025-05-25 10:39:40,988 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:39:40,989 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:39:40,989 - INFO - MessageProcessor queues verified
+2025-05-25 10:39:40,989 - INFO - MessageProcessor task started.
+2025-05-25 10:39:40,989 - INFO - QueueForwarder queues verified
+2025-05-25 10:39:40,989 - INFO - QueueForwarder task started.
+2025-05-25 10:39:40,989 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:39:40,989 - INFO - Starting MessageProcessor
+2025-05-25 10:39:40,989 - INFO - Starting QueueForwarder
+2025-05-25 10:39:42,236 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47782)
+2025-05-25 10:39:42,236 - ERROR - Connection lifetime error for 127.0.0.1:47782: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:39:42,237 - INFO - Initiating cleanup for connection: 127.0.0.1:47782
+2025-05-25 10:39:42,237 - INFO - Starting cleanup for 127.0.0.1:47782
+2025-05-25 10:39:42,242 - INFO - Closed WebSocket connection for 127.0.0.1:47782
+2025-05-25 10:39:42,242 - INFO - Connection cleanup completed for 127.0.0.1:47782. Remaining connections: 0
+2025-05-25 10:39:42,242 - INFO - Cleanup finished for connection: 127.0.0.1:47782. Total connections: 0
+2025-05-25 10:39:42,242 - ERROR - WebSocket receive error for Address(host='127.0.0.1', port=47782): WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:39:42,242 - ERROR - Error during WebSocket cleanup for Address(host='127.0.0.1', port=47782): Cannot call "send" once a close message has been sent.
+2025-05-25 10:41:09,372 - INFO - Application shutdown event triggered.
+2025-05-25 10:41:09,372 - INFO - Stopping MessageProcessor...
+2025-05-25 10:41:09,372 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:41:09,373 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:41:09,373 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:41:09,373 - INFO - Application shutdown complete.
+2025-05-25 10:43:06,058 - INFO - Application startup event triggered.
+2025-05-25 10:43:06,058 - INFO - Initializing all queues...
+2025-05-25 10:43:06,058 - INFO - All queues initialized on loop 21917904
+2025-05-25 10:43:06,058 - INFO - Shared queues initialized.
+2025-05-25 10:43:06,058 - INFO - Retrieved queue instances. Event loop ID: 21917904
+2025-05-25 10:43:06,058 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:43:06,058 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:43:06,058 - INFO - MessageProcessor queues verified
+2025-05-25 10:43:06,059 - INFO - MessageProcessor task started.
+2025-05-25 10:43:06,059 - INFO - QueueForwarder queues verified
+2025-05-25 10:43:06,059 - INFO - QueueForwarder task started.
+2025-05-25 10:43:06,059 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:43:06,059 - INFO - Starting MessageProcessor
+2025-05-25 10:43:06,059 - INFO - Starting QueueForwarder
+2025-05-25 10:43:17,099 - INFO - Application shutdown event triggered.
+2025-05-25 10:43:17,099 - INFO - Stopping MessageProcessor...
+2025-05-25 10:43:17,100 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-25 10:43:17,100 - INFO - QueueForwarder task cancelled.
+2025-05-25 10:43:17,100 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:43:17,100 - INFO - Application shutdown complete.
+2025-05-25 10:43:20,318 - INFO - Application startup event triggered.
+2025-05-25 10:43:20,318 - INFO - Initializing all queues...
+2025-05-25 10:43:20,318 - INFO - All queues initialized on loop 56294944
+2025-05-25 10:43:20,319 - INFO - Shared queues initialized.
+2025-05-25 10:43:20,319 - INFO - Retrieved queue instances. Event loop ID: 56294944
+2025-05-25 10:43:20,319 - INFO - SimulationManager ready state set to: True
+2025-05-25 10:43:20,319 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-25 10:43:20,319 - INFO - MessageProcessor queues verified
+2025-05-25 10:43:20,319 - INFO - MessageProcessor task started.
+2025-05-25 10:43:20,319 - INFO - QueueForwarder queues verified
+2025-05-25 10:43:20,319 - INFO - QueueForwarder task started.
+2025-05-25 10:43:20,319 - INFO - Application startup complete. All core services initialized.
+2025-05-25 10:43:20,319 - INFO - Starting MessageProcessor
+2025-05-25 10:43:20,320 - INFO - Starting QueueForwarder
+2025-05-25 10:43:21,572 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=49572)
+2025-05-25 10:43:21,572 - ERROR - Connection lifetime error for 127.0.0.1:49572: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 38, in handle_connection
+    await websocket.accept()
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 99, in accept
+    await self.send(
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 79, in send
+    raise RuntimeError(
+RuntimeError: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+2025-05-25 10:43:21,573 - INFO - Initiating cleanup for connection: 127.0.0.1:49572
+2025-05-25 10:43:21,573 - INFO - Starting cleanup for 127.0.0.1:49572
+2025-05-25 10:43:21,577 - INFO - Closed WebSocket connection for 127.0.0.1:49572
+2025-05-25 10:43:21,577 - INFO - Connection cleanup completed for 127.0.0.1:49572. Remaining connections: 0
+2025-05-25 10:43:21,577 - INFO - Cleanup finished for connection: 127.0.0.1:49572. Total connections: 0
+2025-05-25 10:43:21,577 - ERROR - WebSocket receive error: WebSocket is not connected. Need to call "accept" first.
+2025-05-25 10:43:21,577 - ERROR - Error during WebSocket cleanup: Cannot call "send" once a close message has been sent.
+2025-05-25 10:44:20,396 - INFO - Application shutdown event triggered.
+2025-05-25 10:44:20,396 - INFO - Stopping MessageProcessor...
+2025-05-25 10:44:20,396 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-25 10:44:20,396 - INFO - All WebSocket connections attempted to close.
+2025-05-25 10:44:20,396 - INFO - Application shutdown complete.
