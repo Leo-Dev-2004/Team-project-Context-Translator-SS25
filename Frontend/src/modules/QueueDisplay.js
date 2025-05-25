@@ -43,6 +43,11 @@ function updateQueueLog(elementId, queueOrMessage) {
         console.error(`Error: Log element with ID '${elementId}' not found.`);
         return;
     }
+    
+    // Sicherstellen, dass das Element sichtbar ist
+    if (logElement.style.display === 'none') {
+        logElement.style.display = 'block';
+    }
 
     // Wenn zweiter Parameter eine Queue ist
     if (queueOrMessage && typeof queueOrMessage.peekAll === 'function') {

@@ -142,7 +142,7 @@
             padding: 5px;
             background-color: #f8d7da;
         }
-        .queue-log, .log-content {
+        .queue-log, .log-content, pre {
             flex-grow: 1;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
@@ -258,19 +258,19 @@
     <div id="logsContainer" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         <div class="log-box">
             <h3>System Log</h3>
-            <div id="system_log" class="log-content"></div>
+            <pre id="system_log" class="log-content"></pre>
         </div>
         <div class="log-box">
             <h3>Simulation Log</h3>
-            <div id="simulation_log" class="log-content"></div>
+            <pre id="simulation_log" class="log-content"></pre>
         </div>
         <div class="log-box">
             <h3>Status Log</h3>
-            <div id="status_log" class="log-content"></div>
+            <pre id="status_log" class="log-content"></pre>
         </div>
         <div class="log-box">
             <h3>Test Log</h3>
-            <div id="test_log" class="log-content"></div>
+            <pre id="test_log" class="log-content"></pre>
         </div>
     </div>
 
