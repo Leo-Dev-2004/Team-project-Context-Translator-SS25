@@ -13,7 +13,7 @@ async function startSimulation() {
         console.log('Queues cleared before simulation start');
 
         const response = await fetch('/simulation/start', {
-            method: 'POST', // Assuming it's a POST to start/stop
+            method: 'GET',
             mode: 'cors',
             credentials: 'include'
         });
@@ -45,9 +45,9 @@ async function stopSimulation() {
     console.log('TRACE: stopSimulation called!');
     try {
         // First try graceful stop via API
-        const response = await fetch('http://localhost:8000/simulation/stop', {
-            method: 'POST', // Assuming it's a POST
-            mode: 'cors',
+        const response = await fetch('/simulation/stop', {
+            method: 'GET',
+            mode: 'cors', 
             credentials: 'include'
         });
 
