@@ -1,5 +1,6 @@
 // Haupt-Einstiegspunkt der Anwendung
-import WebSocketManager from './modules/WebSocketManager.js'; // Import default export
+import { WebSocketManager } from './modules/WebSocketManager.js';
+import { processBackendMessages } from './modules/EventListeners.js';
 import { MessageQueue } from './modules/MessageQueue.js'; // This is the class
 import { initializeEventListeners } from './modules/EventListeners.js'; // This is the function
 // We don't need to import SimulationManager or QueueDisplay here,
@@ -28,23 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.group('Main App: DOMContentLoaded');
     console.log("Main App: Initializing...");
 
-    // Create WebSocketManager instance
-    const wsManager = new WebSocketManager();
-    
-    // Set queues on the WebSocketManager instance
-    wsManager.setQueues({
+    // Initialize WebSocketManager with queues
+    WebSocketManager.setQueues({
         toFrontendQueue,
         fromFrontendQueue,
         toBackendQueue,
         fromBackendQueue
     });
 
-    // Initialize Event Listeners. This function will import
-    // startSimulation, stopSimulation, sendTestMessage directly from their modules.
+    // Initialize Event Listeners
     initializeEventListeners();
 
-    // Connect to WebSocket using the instance
-    wsManager.connect();
+    // Connect to WebSocket
+    WebSocketManager.connect();
+
+    // Start processing backend messages
+    processBackendMessages();
 
     console.log("Main App: Initialization complete.");
     console.groupEnd();

@@ -231,6 +231,6 @@ class WebSocketManager {
     }
 };
 
-// Export as both default and named for compatibility
-export default WebSocketManager;
-export { WebSocketManager };
+// Create and export a single instance
+const webSocketManager = new WebSocketManager();
+export { webSocketManager as WebSocketManager };
