@@ -1,5 +1,5 @@
 // Haupt-Einstiegspunkt der Anwendung
-import { WebSocketManager } from './modules/WebSocketManager.js'; // This is the exported object
+import { WebSocketManager } from './modules/WebSocketManager.js'; // Import the class
 import { MessageQueue } from './modules/MessageQueue.js'; // This is the class
 import { initializeEventListeners } from './modules/EventListeners.js'; // This is the function
 // We don't need to import SimulationManager or QueueDisplay here,
@@ -28,10 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.group('Main App: DOMContentLoaded');
     console.log("Main App: Initializing...");
 
-    // Set queues on the WebSocketManager object.
-    // Assuming WebSocketManager.js has methods to set these:
-    // (You might need to add these setter methods to WebSocketManager.js if they don't exist)
-    WebSocketManager.setQueues({
+    // Create WebSocketManager instance
+    const wsManager = new WebSocketManager();
+    
+    // Set queues on the WebSocketManager instance
+    wsManager.setQueues({
         toFrontendQueue,
         fromFrontendQueue,
         toBackendQueue,
@@ -42,8 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // startSimulation, stopSimulation, sendTestMessage directly from their modules.
     initializeEventListeners();
 
-    // Connect to WebSocket. WebSocketManager is the object, so call its method directly.
-    WebSocketManager.connect(); // No 'new' keyword
+    // Connect to WebSocket using the instance
+    wsManager.connect();
 
     console.log("Main App: Initialization complete.");
     console.groupEnd();

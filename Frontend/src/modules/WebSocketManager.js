@@ -150,4 +150,5 @@ class WebSocketManager {
     }
 };
 
-export { WebSocketManager };
+// Export the class
+export default WebSocketManager;
