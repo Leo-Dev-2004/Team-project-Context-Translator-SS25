@@ -124,11 +124,11 @@ class WebSocketManager:
                             timestamp=message.get('timestamp', time.time())
                         )
                     except ValidationError as e:
-                    logger.error(
-                        "Validation error creating WebSocketMessage in sender: %s",
-                        e.errors()
-                    )
-                    continue  # Skip sending invalid message
+                        logger.error(
+                            "Validation error creating WebSocketMessage in sender: %s",
+                            e.errors()
+                        )
+                        continue  # Skip sending invalid message
 
                 # Wrap send operation in a try-except to catch disconnects
                 try:
