@@ -1,5 +1,6 @@
 # Backend/api/endpoints.py
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends, HTTPException
+from fastapi.websockets import WebSocketDisconnect
 import asyncio
 import logging
 import time
