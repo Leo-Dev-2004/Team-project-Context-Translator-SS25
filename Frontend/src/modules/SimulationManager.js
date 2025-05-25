@@ -12,7 +12,7 @@ async function startSimulation() {
         fromBackendQueue.clear();
         console.log('Queues cleared before simulation start');
 
-        const response = await fetch('http://localhost:8000/simulation/start', {
+        const response = await fetch('/simulation/start', {
             method: 'POST', // Assuming it's a POST to start/stop
             mode: 'cors',
             credentials: 'include'
@@ -30,7 +30,12 @@ async function startSimulation() {
 
     } catch (error) {
         console.error('Failed to start simulation:', error);
-        document.getElementById('simulationStatus').textContent = `Failed to start: ${error.message}`;
+        let errorMsg = error.message;
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            errorMsg = 'Backend server not reachable. Is it running?';
+        }
+        document.getElementById('simulationStatus').textContent = `Failed to start: ${errorMsg}`;
+        document.getElementById('simulationStatus').style.color = 'red';
     }
     console.groupEnd();
 }
