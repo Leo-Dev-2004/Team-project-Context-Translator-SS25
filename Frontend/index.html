@@ -142,7 +142,7 @@
             padding: 5px;
             background-color: #f8d7da;
         }
-        .queue-log {
+        .queue-log, .log-content {
             flex-grow: 1;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
@@ -150,11 +150,23 @@
             padding: 8px;
             border: 1px solid #e0e0e0;
             margin-top: 10px;
-            max-height: calc(100% - 40px);
+            max-height: 300px;
             border-radius: 4px;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
             scrollbar-width: thin;
             scrollbar-color: #0d6efd #f0f0f0;
+        }
+
+        .log-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #logsContainer {
+            margin-top: 30px;
         }
 
         .queue-log::-webkit-scrollbar {
@@ -240,6 +252,25 @@
         <div class="queue-box">
             <h3>From Backend Queue <span id="fromBackendCount" class="queue-count">0</span></h3>
             <div id="fromBackendLog" class="queue-log"></div>
+        </div>
+    </div>
+
+    <div id="logsContainer" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="log-box">
+            <h3>System Log</h3>
+            <div id="system_log" class="log-content"></div>
+        </div>
+        <div class="log-box">
+            <h3>Simulation Log</h3>
+            <div id="simulation_log" class="log-content"></div>
+        </div>
+        <div class="log-box">
+            <h3>Status Log</h3>
+            <div id="status_log" class="log-content"></div>
+        </div>
+        <div class="log-box">
+            <h3>Test Log</h3>
+            <div id="test_log" class="log-content"></div>
         </div>
     </div>
 
