@@ -37,14 +37,16 @@ function updateAllQueueDisplays() {
 
 // Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
 
-function updateQueueLog(elementId, queue) {
-    // console.log(`DEBUG: updateQueueLog called for ${elementId}. Queue size: ${queue.size()}`);
-
-    const logElement = document.getElementById(elementId); // Correct declaration here
+function updateQueueLog(elementId, queueOrMessage) {
+    const logElement = document.getElementById(elementId);
     if (!logElement) {
         console.error(`Error: Log element with ID '${elementId}' not found.`);
         return;
     }
+
+    // Wenn zweiter Parameter eine Queue ist
+    if (queueOrMessage && typeof queueOrMessage.peekAll === 'function') {
+        const queue = queueOrMessage;
 
     const MAX_DISPLAY_ITEMS_PER_QUEUE = 10;
     const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS_PER_QUEUE);
@@ -93,8 +95,13 @@ function updateQueueLog(elementId, queue) {
                 ${content}
             </div>
         </div>`;
-}); // <-- Ensure this closing curly brace is here
-} // <-- Ensure this closing curly brace is here for updateQueueLog function
+        });
+    } 
+    // Wenn zweiter Parameter eine direkte Nachricht ist
+    else if (typeof queueOrMessage === 'string') {
+        logElement.textContent += queueOrMessage + '\n';
+    }
+}
 
 
 function updateQueueCounters() {

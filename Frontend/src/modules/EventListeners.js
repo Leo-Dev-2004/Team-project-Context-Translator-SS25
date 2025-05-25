@@ -61,8 +61,9 @@ export async function processBackendMessages() {
                         break;
                     case 'status_update':
                         console.log('MessageProcessor: Status update received:', message.data);
-                        updateQueueLog('status_log', 
-                            `Status: ${message.data.original_type} processed`);
+                        // Korrekte Aufrufweise mit Queue als zweitem Parameter
+                        const logMessage = `Status: ${message.data.original_type} processed`;
+                        document.getElementById('status_log').textContent += logMessage + '\n';
                         break;
                     case 'test_message':
                         console.log('MessageProcessor: Test message received:', message.data);
