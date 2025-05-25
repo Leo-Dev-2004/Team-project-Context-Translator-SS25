@@ -151,6 +151,14 @@ async def websocket_endpoint(websocket: WebSocket):
                         logger.error(f"Invalid JSON received: {data}")
                         continue
                 
+                # Handle ping/pong
+                if data.get('type') == 'ping':
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": time.time()
+                    })
+                    continue
+                    
                 # Handle command messages
                 if data.get('type') == 'command':
                     command = data.get('command')
@@ -182,15 +190,29 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.error(f"WebSocket receive error: {e}")
                 break
 
+    except WebSocketDisconnect:
+        logger.info(f"Client {websocket.client} disconnected normally")
     except Exception as e:
-        logger.error(f"WebSocket connection error: {e}")
+        logger.error(f"WebSocket error with {websocket.client}: {str(e)}", exc_info=True)
     finally:
-        # Cleanup connection
         try:
-            if websocket.client_state != WebSocketState.DISCONNECTED:
-                await websocket.close(code=1000)
-                logger.info(f"Closed WebSocket connection for {websocket.client}")
+            # Only attempt cleanup if connection is still active
+            if websocket.client_state == WebSocketState.CONNECTED:
+                try:
+                    await websocket.send_json({
+                        "type": "system",
+                        "data": {
+                            "message": "Closing connection",
+                            "status": "info"
+                        },
+                        "timestamp": time.time()
+                    })
+                except:
+                    pass  # Don't fail if send fails
                 
+                await websocket.close(code=1000)
+            
+            # Always clean up in manager
             await ws_manager._cleanup_connection(websocket, str(websocket.client))
         except Exception as e:
-            logger.error(f"Error during WebSocket cleanup: {e}")
+            logger.error(f"Error during WebSocket cleanup: {str(e)}", exc_info=True)

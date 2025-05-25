@@ -2,7 +2,7 @@
 import { fromFrontendQueue, fromBackendQueue, toFrontendQueue, toBackendQueue } from '../app.js';
 import { startSimulation, stopSimulation } from './SimulationManager.js'; // Import specific functions
 import { updateAllQueueDisplays, updateQueueLog, updateQueueCounters, updateQueueDisplay } from './QueueDisplay.js'; // Import specific functions
-import WebSocketManager from './WebSocketManager.js'; // Import the WebSocketManager class
+import { WebSocketManager } from './WebSocketManager.js'; // Import as named export
 
 
 // Function for the Test Message button
