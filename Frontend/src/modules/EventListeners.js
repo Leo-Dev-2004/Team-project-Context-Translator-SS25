@@ -93,7 +93,6 @@ async function processBackendMessages() {
             }
         }
     }
-        }
     } catch (error) {
         console.error('MessageProcessor: Fatal error in message processing loop:', error);
         showFatalError(error);
