@@ -14,6 +14,21 @@ const UPDATE_THROTTLE_MS = 100;
 // For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
+function updateQueueDisplay(queueName, queue, elementId) {
+    const displayElement = document.getElementById(elementId);
+    if (!displayElement) {
+        console.error(`Display element with ID ${elementId} not found`);
+        return;
+    }
+
+    const items = queue.peekAll().slice(-10); // Show last 10 items
+    displayElement.innerHTML = items.map(item => 
+        `<div class="queue-item">
+            <strong>${item.type}</strong>: ${JSON.stringify(item.data)}
+        </div>`
+    ).join('');
+}
+
 function updateAllQueueDisplays() {
     console.log("DEBUG: updateAllQueueDisplays called.");
     const now = performance.now();
@@ -127,4 +142,4 @@ function updateQueueCounters() {
     
     
 // Export the functions that need to be called externally
-export { updateAllQueueDisplays, updateQueueLog, updateQueueCounters };
+export { updateAllQueueDisplays, updateQueueLog, updateQueueCounters, updateQueueDisplay };

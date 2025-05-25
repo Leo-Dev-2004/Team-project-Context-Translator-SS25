@@ -1,7 +1,7 @@
 // frontend/src/modules/EventListeners.js
 import { fromFrontendQueue, fromBackendQueue, toFrontendQueue, toBackendQueue } from '../app.js';
 import { startSimulation, stopSimulation } from './SimulationManager.js'; // Import specific functions
-import { updateAllQueueDisplays, updateQueueLog, updateQueueCounters } from './QueueDisplay.js'; // Import specific functions
+import { updateAllQueueDisplays, updateQueueLog, updateQueueCounters, updateQueueDisplay } from './QueueDisplay.js'; // Import specific functions
 import { WebSocketManager } from './WebSocketManager.js'; // Import the WebSocketManager object
 
 
