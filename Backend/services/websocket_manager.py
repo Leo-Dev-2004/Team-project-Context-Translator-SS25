@@ -123,17 +123,17 @@ class WebSocketManager:
                             client_id=message.get('client_id', str(websocket.client)),
                             timestamp=message.get('timestamp', time.time())
                         )
+
+                        # Wrap send operation in a try-except to catch disconnects
+                        try:
+                            await websocket.send_text(ws_msg.json())
+                            logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
                     except ValidationError as e:
                         logger.error(
                             "Validation error creating WebSocketMessage in sender: %s",
                             e.errors()
                         )
                         continue  # Skip sending invalid message
-
-                # Wrap send operation in a try-except to catch disconnects
-                try:
-                    await websocket.send_text(ws_msg.json())
-                    logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
                 except RuntimeError as e: # This catches errors if the socket is already closed
                     logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
                     break # Break the sender loop if sending fails
