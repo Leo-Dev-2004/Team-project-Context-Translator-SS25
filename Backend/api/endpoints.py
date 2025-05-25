@@ -141,6 +141,7 @@ async def debug_queues():
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    """Handle WebSocket connections with proper error handling and cleanup."""
     try:
         await websocket.accept()
         logger.info(f"WebSocket connection established from {websocket.client}")
@@ -148,60 +149,43 @@ async def websocket_endpoint(websocket: WebSocket):
         # Register connection with WebSocketManager IMMEDIATELY after accept
         await ws_manager.handle_connection(websocket)
         
-        # Keep connection alive
+        # Main connection loop
         while True:
             try:
-                data = await websocket.receive_text()
-                await ws_manager.handle_message(websocket, data)
-            except Exception as e:
-                logger.error(f"WebSocket receive error: {e}")
-                break
-
-    # The main connection loop. This 'try' block wraps the entire
-    # active lifetime of the WebSocket connection.
-    try:
-        while True: # This loop keeps the connection alive
-            try:
-                # Attempt to receive a message with a timeout.
-                # If nothing is received within 30 seconds, it will raise asyncio.TimeoutError
+                # Attempt to receive a message with a timeout
                 data = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=30.0 # Timeout for receiving messages
+                    timeout=30.0  # Timeout for receiving messages
                 )
-
-                # If a message is received, handle it using the WebSocketManager
+                
+                # Process received message
                 await ws_manager.handle_message(websocket, data)
-
+                
             except asyncio.TimeoutError:
-                # If timeout occurs, send a ping to keep the connection alive (heartbeat)
+                # Send ping to keep connection alive
                 try:
                     await websocket.send_json({"type": "ping", "timestamp": time.time()})
                     logger.debug("Sent WebSocket ping to client.")
                 except RuntimeError as e:
-                    # If sending ping fails, it means the client has likely disconnected
                     logger.warning(f"Failed to send ping, client likely disconnected: {e}")
-                    break # Exit the while True loop, which leads to the finally block
+                    break
+                except Exception as e:
+                    logger.error(f"Error sending ping: {e}")
+                    break
+                    
             except Exception as e:
-                # Catch any other specific errors during message reception (e.g., client closed abruptly)
-                logger.error(f"WebSocket receive error for {websocket.client}: {e}")
-                break # Exit the while True loop on other errors
+                logger.error(f"WebSocket receive error: {e}")
+                break
 
-    # This 'except' block catches any exceptions that occur during the entire
-    # lifecycle of the websocket (outside of the inner receive loop errors)
     except Exception as e:
-        logger.error(f"WebSocket connection lifetime error for {websocket.client}: {e}")
+        logger.error(f"WebSocket connection error: {e}")
     finally:
-        # This 'finally' block is executed ONLY when the 'try' block (and its 'while True' loop)
-        # has finished executing, either by a 'break', a 'return', or an unhandled exception.
+        # Cleanup connection
         try:
-            # Check if the websocket is still connected before trying to close it
             if websocket.client_state != WebSocketState.DISCONNECTED:
-                # Close the websocket if it's not already disconnected
-                await websocket.close(code=1000) # 1000 is a normal closure code
-                logger.info(f"WebSocket connection explicitly closed for {websocket.client}")
-
-            # Perform cleanup with the WebSocketManager
+                await websocket.close(code=1000)
+                logger.info(f"Closed WebSocket connection for {websocket.client}")
+                
             await ws_manager._cleanup_connection(websocket, str(websocket.client))
-
         except Exception as e:
-            logger.error(f"Error during WebSocket cleanup for {websocket.client}: {e}")
+            logger.error(f"Error during WebSocket cleanup: {e}")
