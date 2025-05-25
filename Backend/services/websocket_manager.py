@@ -101,16 +101,16 @@ class WebSocketManager:
                     if 'data' not in message:
                         message['data'] = {}
                     
-                # Ensure WebSocketMessage can parse this structure
-                try:
-                    # If message is already a dict that matches WebSocketMessage structure,
-                    # you can pass it directly to the constructor or use parse_obj
-                    ws_msg = WebSocketMessage(
-                        type=message['type'],
-                        data=message.get('data', {}),
-                        client_id=message.get('client_id', str(websocket.client)),
-                        timestamp=message.get('timestamp', time.time())
-                    )
+                    # Ensure WebSocketMessage can parse this structure
+                    try:
+                        # If message is already a dict that matches WebSocketMessage structure,
+                        # you can pass it directly to the constructor or use parse_obj
+                        ws_msg = WebSocketMessage(
+                            type=message['type'],
+                            data=message.get('data', {}),
+                            client_id=message.get('client_id', str(websocket.client)),
+                            timestamp=message.get('timestamp', time.time())
+                        )
                 except ValidationError as e:
                     logger.error(f"Validation error creating WebSocketMessage in sender: {e.errors()}")
                     continue # Skip sending invalid message
