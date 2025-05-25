@@ -1,6 +1,6 @@
 // frontend/src/modules/SimulationManager.js
 
-import { WebSocketManager } from './WebSocketManager.js';
+import WebSocketManager from './WebSocketManager.js';
 import { fromBackendQueue, toBackendQueue } from '../app.js'; // Import queues from app.js
 
 async function startSimulation() {

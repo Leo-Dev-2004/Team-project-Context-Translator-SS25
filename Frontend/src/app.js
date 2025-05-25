@@ -1,5 +1,5 @@
 // Haupt-Einstiegspunkt der Anwendung
-import { WebSocketManager } from './modules/WebSocketManager.js'; // Import the class
+import WebSocketManager from './modules/WebSocketManager.js'; // Import default export
 import { MessageQueue } from './modules/MessageQueue.js'; // This is the class
 import { initializeEventListeners } from './modules/EventListeners.js'; // This is the function
 // We don't need to import SimulationManager or QueueDisplay here,
