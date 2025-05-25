@@ -123,7 +123,7 @@ class WebSocketManager:
                             client_id=message.get('client_id', str(websocket.client)),
                             timestamp=message.get('timestamp', time.time())
                         )
-                except ValidationError as e:
+                    except ValidationError as e:
                     logger.error(
                         "Validation error creating WebSocketMessage in sender: %s",
                         e.errors()
