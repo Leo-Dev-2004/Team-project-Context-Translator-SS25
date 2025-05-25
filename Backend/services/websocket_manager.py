@@ -128,6 +128,13 @@ class WebSocketManager:
                         try:
                             await websocket.send_text(ws_msg.json())
                             logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
+                        except RuntimeError as e: # This catches errors if the socket is already closed
+                            logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
+                            break # Break the sender loop if sending fails
+                        except Exception as e:
+                            logger.error(f"Unexpected error during WebSocket send to {websocket.client}: {e}", exc_info=True)
+                            break # Break on other unexpected errors
+
                     except ValidationError as e:
                         logger.error(
                             "Validation error creating WebSocketMessage in sender: %s",
