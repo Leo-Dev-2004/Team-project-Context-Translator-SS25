@@ -38,7 +38,7 @@ async def health_check():
 async def get_metrics():
     return ws_manager.get_metrics()
 
-@router.post("/simulation/start")
+@router.get("/simulation/start")
 async def start_simulation(
     background_tasks: BackgroundTasks,
     manager: SimulationManager = Depends(get_simulation_manager)
@@ -85,7 +85,7 @@ async def start_simulation(
             detail=f"Failed to start simulation: {str(e)}"
         )
 
-@router.post("/simulation/stop") # Changed to POST
+@router.get("/simulation/stop")
 async def stop_simulation(
     manager: SimulationManager = Depends(get_simulation_manager)
 ):
