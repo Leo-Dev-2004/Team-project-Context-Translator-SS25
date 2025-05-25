@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Translator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #queuesContainer {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 150px);
+        }
+        
+        .queue-box {
+            flex: 1;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 250px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .queue-box:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .queue-box::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to top, rgba(248,249,250,1), rgba(248,249,250,0));
+            pointer-events: none;
+        }
+
+        .queue-box h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 0 10px 0;
+            padding-bottom: 8px;
+            color: #0d6efd;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .queue-count {
+            background: #0d6efd;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+        
+        .log-entry {
+            border-left: 4px solid #ddd;
+            padding: 12px;
+            margin: 6px 0;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            position: relative;
+        }
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .log-entry:hover::before {
+            opacity: 1;
+        }
+        .log-entry:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .message-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .message-id {
+            font-weight: bold;
+            color: #333;
+        }
+        .message-type {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        .message-type.message { background: #e6f7ff; }
+        .message-type.alert { background: #ffebee; }
+        .message-priority {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            background: #f5f5f5;
+        }
+        .priority-1 { background: #e8f5e9 !important; }
+        .priority-2 { background: #c8e6c9 !important; }
+        .priority-3 { background: #a5d6a7 !important; }
+        .priority-4 { background: #81c784 !important; }
+        .message-content {
+            margin: 4px 0;
+        }
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .message-status {
+            font-weight: bold;
+        }
+        .status-pending { color: #ff9800; }
+        .status-urgent { color: #f44336; }
+        .status-processing { color: #2196f3; }
+        .status-processed { color: #4caf50; }
+        .log-overflow {
+            color: red;
+            font-weight: bold;
+            padding: 5px;
+            background-color: #f8d7da;
+        }
+        .queue-log, .log-content, pre {
+            flex-grow: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            background-color: white;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            margin-top: 10px;
+            max-height: 300px;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            scrollbar-width: thin;
+            scrollbar-color: #0d6efd #f0f0f0;
+        }
+
+        .log-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #logsContainer {
+            margin-top: 30px;
+        }
+
+        .queue-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .queue-log::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .queue-log::-webkit-scrollbar-thumb {
+            background-color: #0d6efd;
+            border-radius: 4px;
+        }
+
+        @keyframes highlightNew {
+            0% { background-color: rgba(13, 110, 253, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        .new-entry {
+            animation: highlightNew 1.5s ease-out;
+        }
+        .queue-box h3 {
+            color: #0d6efd;
+            margin-top: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .queue-log {
+            font-family: monospace;
+            white-space: pre;
+            overflow-wrap: break-word;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        #queueDisplay .last-message {
+            background-color: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+    </style>
+</head>
+<body>
+    <h1>Context Translator</h1>
+    <div id="controls">
+        <button id="startSim">Start Simulation</button>
+        <button id="stopSim">Stop Simulation</button>
+        <button id="testButton">Send Test Message</button> <div id="statusMonitor" style="margin-top:10px; padding:10px; background:#f0f0f0; border-radius:4px;">
+            <div>Connection: <span id="connectionStatus">Disconnected</span></div>
+            <div>Simulation: <span id="simulationStatus">Not Running</span></div> <div>Last Update: <span id="lastUpdate">Never</span></div>
+            <div>Message Count: <span id="messageCount">0</span></div>
+        </div>
+    </div>
+    </div>
+    <div id="queuesContainer" style="display: flex; gap: 20px; margin-top: 20px;">
+        <div class="queue-box">
+            <h3>To Frontend Queue <span id="toFrontendCount" class="queue-count">0</span></h3>
+            <div id="toFrontendLog" class="queue-log"></div>
+        </div>
+        <div class="queue-box">
+            <h3>From Frontend Queue <span id="fromFrontendCount" class="queue-count">0</span></h3>
+            <div id="fromFrontendLog" class="queue-log"></div>
+        </div>
+        <div class="queue-box">
+            <h3>To Backend Queue <span id="toBackendCount" class="queue-count">0</span></h3>
+            <div id="toBackendLog" class="queue-log"></div>
+        </div>
+        <div class="queue-box">
+            <h3>From Backend Queue <span id="fromBackendCount" class="queue-count">0</span></h3>
+            <div id="fromBackendLog" class="queue-log"></div>
+        </div>
+    </div>
+
+    <div id="logsContainer" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="log-box">
+            <h3>System Log</h3>
+            <pre id="system_log" class="log-content"></pre>
+        </div>
+        <div class="log-box">
+            <h3>Simulation Log</h3>
+            <pre id="simulation_log" class="log-content"></pre>
+        </div>
+        <div class="log-box">
+            <h3>Status Log</h3>
+            <pre id="status_log" class="log-content"></pre>
+        </div>
+        <div class="log-box">
+            <h3>Test Log</h3>
+            <pre id="test_log" class="log-content"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Add this to your frontend.js later
+        function updateQueueCounters() {
+            document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
+            document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
+            document.getElementById('toBackendCount').textContent = toBackendQueue.size();
+            document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+        }
+    </script>
+    
+    <script type="module" src="./src/app.js"></script>
+</body>
+</html>
