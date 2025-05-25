@@ -1,55 +1,66 @@
 // Haupt-Einstiegspunkt der Anwendung
-import { WebSocketManager } from './modules/WebSocketManager.js';
-import { SimulationManager } from './modules/SimulationManager.js';
-import { MessageQueue } from './modules/MessageQueue.js';
-import { setupEventListeners } from './modules/EventListeners.js';
+import { WebSocketManager } from './modules/WebSocketManager.js'; // This is the exported object
+import { MessageQueue } from './modules/MessageQueue.js'; // This is the class
+import { initializeEventListeners } from './modules/EventListeners.js'; // This is the function
+// We don't need to import SimulationManager or QueueDisplay here,
+// as their functions are used/imported by EventListeners.js directly.
 
-// Globale Variablen für die Queues
+// Globale Variablen für die Queues (these are correctly instantiated here)
 export const toFrontendQueue = new MessageQueue('toFrontend');
 export const fromFrontendQueue = new MessageQueue('fromFrontend');
 export const toBackendQueue = new MessageQueue('toBackend');
 export const fromBackendQueue = new MessageQueue('fromBackend');
 
-// WebSocket Manager initialisieren
-const wsManager = new WebSocketManager();
+// This part is crucial for making the queues available to other modules
+// that need them (like WebSocketManager and EventListeners).
+// You can pass them as arguments, or make them available globally
+// if your architecture relies on that (which the original WebSocketManager does).
 
-// Queue Display initialisieren
-const queueDisplay = new QueueDisplay({
-    toFrontendQueue,
-    fromFrontendQueue,
-    toBackendQueue,
-    fromBackendQueue
-});
+// Let's ensure the WebSocketManager has access to the queues it needs
+// by setting them up on the WebSocketManager object *after* they are instantiated.
+// This is a common pattern for utility objects that need dependencies.
 
-// Simulation Manager initialisieren
-const simManager = new SimulationManager(wsManager);
+// WebSocketManager connects directly; it doesn't need to be 'new'ed
+// No 'wsManager' variable is needed here since WebSocketManager is already the global object.
+// We just call its method.
 
-// Event Listener registrieren
-setupEventListeners({
-    wsManager,
-    simManager,
-    queueDisplay
-});
+document.addEventListener('DOMContentLoaded', () => {
+    console.group('Main App: DOMContentLoaded');
+    console.log("Main App: Initializing...");
 
-// Initiale UI-Aktualisierung
-queueDisplay.updateAllDisplays();
-
-// Verbindung zum Backend herstellen
-wsManager.connect('ws://localhost:8000/ws')
-    .then(() => {
-        console.log('WebSocket verbunden');
-        document.getElementById('connectionStatus').textContent = 'Connected';
-    })
-    .catch(err => {
-        console.error('WebSocket Verbindungsfehler:', err);
-        document.getElementById('connectionStatus').textContent = 'Error: ' + err.message;
+    // Set queues on the WebSocketManager object.
+    // Assuming WebSocketManager.js has methods to set these:
+    // (You might need to add these setter methods to WebSocketManager.js if they don't exist)
+    WebSocketManager.setQueues({
+        toFrontendQueue,
+        fromFrontendQueue,
+        toBackendQueue,
+        fromBackendQueue
     });
 
-// Hilfsfunktion für Testzwecke
-window.sendTestMessage = function() {
-    wsManager.sendMessage({
-        type: 'test',
-        content: 'Testnachricht vom Frontend',
-        timestamp: new Date().toISOString()
-    });
-};
+    // Initialize Event Listeners. This function will import
+    // startSimulation, stopSimulation, sendTestMessage directly from their modules.
+    initializeEventListeners();
+
+    // Connect to WebSocket. WebSocketManager is the object, so call its method directly.
+    WebSocketManager.connect(); // No 'new' keyword
+
+    console.log("Main App: Initialization complete.");
+    console.groupEnd();
+});
+
+// Remove this section completely. sendTestMessage is handled by EventListeners.js
+// window.sendTestMessage = function() {
+//     wsManager.sendMessage({
+//         type: 'test',
+//         content: 'Testnachricht vom Frontend',
+//         timestamp: new Date().toISOString()
+//     });
+// };
+
+// Optional: Initial UI update, if you still want one on load.
+// If QueueDisplay functions are imported by EventListeners.js,
+// then the initial update should happen there or after.
+// For now, let's keep it simple and ensure EventListeners.js
+// sets up the initial display logic.
+// queueDisplay.updateAllDisplays(); // This assumes a queueDisplay object exists which it doesn't.

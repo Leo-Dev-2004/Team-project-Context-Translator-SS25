@@ -14,7 +14,7 @@ const UPDATE_THROTTLE_MS = 100;
 // For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
 // Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
 
-function updateAllQueueDisplays() {
+function updateQueueDisplay() {
     console.log("DEBUG: updateAllQueueDisplays called.");
     const now = performance.now();
     if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
@@ -115,4 +115,4 @@ function updateQueueCounters() {
     
     
 // Export the functions that need to be called externally
-export { updateAllQueueDisplays, updateQueueLog, updateQueueCounters };
+export { updateQueueDisplay, updateQueueLog, updateQueueCounters };

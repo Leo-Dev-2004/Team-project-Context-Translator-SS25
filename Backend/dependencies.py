@@ -29,12 +29,13 @@ def get_simulation_manager(require_ready: bool = True) -> SimulationManager:
         logger.info("Initializing SimulationManager with queues")
         _global_sim_manager_instance = SimulationManager(
             to_backend_queue=get_to_backend_queue(),
+            from_backend_queue=get_to_backend_queue(),
             to_frontend_queue=get_to_frontend_queue(),
-            from_backend_queue=get_from_frontend_queue()  # Korrekte Queue für eingehende Nachrichten
+            from_frontend_queue=get_from_frontend_queue()  # Korrekte Queue für eingehende Nachrichten
         )
         logger.info(f"SimulationManager initialized on loop {id(asyncio.get_running_loop())}")
 
-    if require_ready and not _global_sim_manager_instance.is_ready:
+    if require_ready and not _global_sim_manager_instance._is_ready:
         raise RuntimeError("SimulationManager not in ready state")
 
     logger.debug(f"Retrieved SimulationManager instance")

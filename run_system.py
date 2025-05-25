@@ -56,7 +56,7 @@ class SystemRunner:
                 try:
                     # Find process using the port (works on Linux/Unix/Windows)
                     for conn in psutil.net_connections():
-                        if conn.status == 'LISTEN' and conn.laddr.port == port:
+                        if conn.status == 'LISTEN' and isinstance(conn.laddr, tuple) and len(conn.laddr) >= 2 and conn.laddr[1] == port:
                             try:
                                 proc = psutil.Process(conn.pid)
                                 logger.warning(f"Killing process {proc.pid} ({proc.name()}) using port {port}")
