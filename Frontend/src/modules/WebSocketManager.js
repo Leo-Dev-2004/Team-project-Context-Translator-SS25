@@ -22,7 +22,7 @@ class WebSocketManager {
         this._toBackendQueue = toBackendQueue;
         this._fromBackendQueue = fromBackendQueue;
         console.log('WebSocketManager: Queues set.');
-    },
+    }
 
     connect(url = 'ws://localhost:8000/ws') {
         console.group('WebSocketManager: Connect');
@@ -111,7 +111,7 @@ class WebSocketManager {
             document.getElementById('connectionStatus').style.color = 'orange';
             console.groupEnd();
         };
-    },
+    }
 
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -126,7 +126,7 @@ class WebSocketManager {
             // Optionally enqueue to fromFrontendQueue if you want to retry sending
             // this._fromFrontendQueue.enqueue(message);
         }
-    },
+    }
 
     handleIncomingMessage(message) {
         console.log('Handling incoming message:', message);
