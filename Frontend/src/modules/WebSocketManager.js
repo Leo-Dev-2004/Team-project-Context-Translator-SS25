@@ -92,8 +92,8 @@ class WebSocketManager {
             document.getElementById('connectionStatus').textContent = 'Disconnected';
             document.getElementById('connectionStatus').style.color = 'red';
 
-            // Only reconnect if the close was unexpected
-            if (!event.wasClean || event.code !== 1000) {
+            // Always attempt to reconnect unless it was a normal closure (1000) or going away (1001)
+            if (event.code !== 1000 && event.code !== 1001) {
                 this.reconnectAttempts++;
                 const baseDelay = 1000;
                 const maxDelay = 30000;
@@ -101,12 +101,17 @@ class WebSocketManager {
                 
                 console.log(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${this.reconnectAttempts})`);
                 
+                // Clear any existing reconnect timer
+                if (this.reconnectTimer) {
+                    clearTimeout(this.reconnectTimer);
+                }
+                
                 this.reconnectTimer = setTimeout(() => {
                     console.log('Executing reconnect attempt...');
                     this.connect(url);
                 }, delay);
             } else {
-                console.log('WebSocket closed intentionally, not reconnecting');
+                console.log('WebSocket closed normally, not reconnecting');
             }
             console.groupEnd();
         };
@@ -115,6 +120,15 @@ class WebSocketManager {
             console.error('WebSocket ERROR event received:', error);
             document.getElementById('connectionStatus').textContent = 'Error';
             document.getElementById('connectionStatus').style.color = 'orange';
+            
+            // Trigger immediate reconnect attempt on error
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer);
+            }
+            this.reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+            this.reconnectTimer = setTimeout(() => this.connect(url), delay);
+            
             console.groupEnd();
         };
     }
@@ -147,6 +161,19 @@ class WebSocketManager {
             return false;
         }
         return true;
+    }
+
+    disconnect() {
+        if (this.ws) {
+            // Clear any pending reconnect attempts
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer);
+                this.reconnectTimer = null;
+            }
+            
+            // Close connection with normal closure code (1000)
+            this.ws.close(1000, 'Client initiated disconnect');
+        }
     }
 };
 
