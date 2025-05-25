@@ -23,7 +23,21 @@ const WebSocketManager = {
 
     connect(url = 'ws://localhost:8000/ws') {
         console.group('WebSocketManager: Connect');
+        
+        // Clear any pending reconnection attempt
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+
         console.log(`Attempting to connect to WebSocket at ${url}...`);
+        
+        // Close existing connection if it exists
+        if (this.ws) {
+            this.ws.onclose = null; // Remove previous handler to prevent recursive reconnects
+            this.ws.close();
+        }
+
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
             console.log('WebSocket already open or connecting.');
             console.groupEnd();
@@ -68,12 +82,22 @@ const WebSocketManager = {
             console.warn('WebSocket CLOSE event received:', event);
             document.getElementById('connectionStatus').textContent = 'Disconnected';
             document.getElementById('connectionStatus').style.color = 'red';
-            // Implement reconnect logic
-            if (event.code !== 1000 && event.code !== 1001) { // 1000 = Normal Closure, 1001 = Going Away
+
+            // Only reconnect if the close was unexpected
+            if (!event.wasClean || event.code !== 1000) {
                 this.reconnectAttempts++;
-                const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000); // Max 30 seconds
+                const baseDelay = 1000;
+                const maxDelay = 30000;
+                const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempts), maxDelay);
+                
                 console.log(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${this.reconnectAttempts})`);
-                setTimeout(() => this.connect(url), delay);
+                
+                this.reconnectTimer = setTimeout(() => {
+                    console.log('Executing reconnect attempt...');
+                    this.connect(url);
+                }, delay);
+            } else {
+                console.log('WebSocket closed intentionally, not reconnecting');
             }
             console.groupEnd();
         };
@@ -105,6 +129,15 @@ const WebSocketManager = {
         console.log('Handling incoming message:', message);
         this._fromBackendQueue.enqueue(message); // Messages from backend go to fromBackendQueue
         // The MessageProcessor in EventListeners.js will dequeue and process this.
+    }
+
+    checkConnection() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            console.log('WebSocket connection lost, attempting to reconnect...');
+            this.connect();
+            return false;
+        }
+        return true;
     }
 };
 
