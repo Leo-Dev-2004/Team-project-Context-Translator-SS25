@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+from typing import Dict, Set, Tuple, Optional
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
@@ -14,16 +15,23 @@ from ..dependencies import get_simulation_manager
 logger = logging.getLogger(__name__)
 
 class WebSocketManager:
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize WebSocketManager with empty connection sets and task tracking."""
+        self.connections: Set[WebSocket] = set()
+        self.ack_status: Dict[WebSocket, bool] = {}
+        # Maps websocket_id to (sender_task, receiver_task)
+        self.active_tasks: Dict[int, Tuple[asyncio.Task, asyncio.Task]] = {}
+        """Initialize WebSocketManager with empty connection sets and task tracking."""
         self.connections = set()
         self.ack_status = {}
-        # Keep track of active tasks for graceful shutdown if needed
-        self.active_tasks = {} # maps websocket_id to (sender_task, receiver_task)
+        # Maps websocket_id to (sender_task, receiver_task)
+        self.active_tasks = {}  
 
     async def handle_connection(self, websocket: WebSocket):
-        """Handle new WebSocket connection"""
+        """Handle new WebSocket connection and manage its lifecycle."""
         client = websocket.client
-        client_info = f"{client.host}:{client.port}" if client else "unknown"
+        client_info = (f"{client.host}:{client.port}" 
+                      if client else "unknown")
         websocket_id = id(websocket)
 
         try:
@@ -67,7 +75,7 @@ class WebSocketManager:
             # before gather returns
             if websocket_id in self.active_tasks:
                 for task in self.active_tasks[websocket_id]:
-                    if not task.done():
+                    if not task.done(): 
                         task.cancel()
                         try:
                             await task # Await cancellation
@@ -78,8 +86,12 @@ class WebSocketManager:
             await self._cleanup_connection(websocket, client_info)
             logger.info(f"Cleanup finished for connection: {client_info}. Total connections: {len(self.connections)}")
 
-    async def _sender(self, websocket: WebSocket):
-        """Send messages from to_frontend_queue to client"""
+    async def _sender(self, websocket: WebSocket) -> None:
+        """Send messages from to_frontend_queue to client.
+        
+        Args:
+            websocket: The WebSocket connection to send messages through.
+        """
         client_info = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
         logger.info(f"Starting sender for {client_info}")
 
@@ -112,8 +124,11 @@ class WebSocketManager:
                             timestamp=message.get('timestamp', time.time())
                         )
                 except ValidationError as e:
-                    logger.error(f"Validation error creating WebSocketMessage in sender: {e.errors()}")
-                    continue # Skip sending invalid message
+                    logger.error(
+                        "Validation error creating WebSocketMessage in sender: %s",
+                        e.errors()
+                    )
+                    continue  # Skip sending invalid message
 
                 # Wrap send operation in a try-except to catch disconnects
                 try:
@@ -201,7 +216,7 @@ class WebSocketManager:
             # The handle_connection's finally block will handle overall cleanup
             pass
 
-    async def _send_ack(self, websocket: WebSocket):
+    async def _send_ack(self, websocket: WebSocket) -> None:
         """Send connection acknowledgment"""
         ack = {
             "type": "connection_ack",
@@ -218,7 +233,8 @@ class WebSocketManager:
         except Exception as e:
             logger.error(f"Error sending connection_ack to {websocket.client}: {e}")
 
-    async def _cleanup_connection(self, websocket: WebSocket, client_info: str):
+
+    async def _cleanup_connection(self, websocket: WebSocket, client_info: str) -> None:
         """Clean up connection resources"""
         logger.info(f"Starting cleanup for {client_info}")
         
