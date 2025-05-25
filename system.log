@@ -9520,3 +9520,66 @@
 2025-05-25 10:12:20,785 - INFO - Frontend stdout: 
 2025-05-25 10:12:20,785 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
 2025-05-25 10:12:20,811 - INFO - Backend stderr: INFO:     Stopping reloader process [29920]
+2025-05-25 10:16:07,574 - INFO - Starting backend server...
+2025-05-25 10:16:07,574 - INFO - Current working directory: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:16:07,574 - INFO - PYTHONPATH set to: /home/Leo/Documents/Coding/Teamprojekt Context Translator
+2025-05-25 10:16:07,576 - INFO - Starting frontend server...
+2025-05-25 10:16:07,576 - INFO - Frontend directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/system.log'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/index.html')]
+2025-05-25 10:16:07,577 - INFO - src directory contents: [PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/modules'), PosixPath('/home/Leo/Documents/Coding/Teamprojekt Context Translator/Frontend/src/app.js')]
+2025-05-25 10:16:08,045 - INFO - Backend stderr: INFO:     Will watch for changes in these directories: ['/home/Leo/Documents/Coding/Teamprojekt Context Translator']
+2025-05-25 10:16:08,046 - INFO - Backend stderr: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-05-25 10:16:08,046 - INFO - Backend stderr: INFO:     Started reloader process [31036] using WatchFiles
+2025-05-25 10:16:08,780 - INFO - Backend stderr: Process SpawnProcess-1:
+2025-05-25 10:16:08,781 - INFO - Backend stderr: Traceback (most recent call last):
+2025-05-25 10:16:08,782 - INFO - Backend stderr: File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+2025-05-25 10:16:08,782 - INFO - Backend stderr: self.run()
+2025-05-25 10:16:08,782 - INFO - Backend stderr: File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+2025-05-25 10:16:08,782 - INFO - Backend stderr: self._target(*self._args, **self._kwargs)
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
+2025-05-25 10:16:08,783 - INFO - Backend stderr: target(sockets=sockets)
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/server.py", line 61, in run
+2025-05-25 10:16:08,783 - INFO - Backend stderr: return asyncio.run(self.serve(sockets=sockets))
+2025-05-25 10:16:08,783 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+2025-05-25 10:16:08,783 - INFO - Backend stderr: return runner.run(main)
+2025-05-25 10:16:08,783 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+2025-05-25 10:16:08,783 - INFO - Backend stderr: return self._loop.run_until_complete(task)
+2025-05-25 10:16:08,783 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+2025-05-25 10:16:08,783 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/server.py", line 68, in serve
+2025-05-25 10:16:08,784 - INFO - Backend stderr: config.load()
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/config.py", line 473, in load
+2025-05-25 10:16:08,784 - INFO - Backend stderr: self.loaded_app = import_from_string(self.app)
+2025-05-25 10:16:08,784 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/importer.py", line 21, in import_from_string
+2025-05-25 10:16:08,784 - INFO - Backend stderr: module = importlib.import_module(module_str)
+2025-05-25 10:16:08,784 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+2025-05-25 10:16:08,784 - INFO - Backend stderr: return _bootstrap._gcd_import(name[level:], package, level)
+2025-05-25 10:16:08,784 - INFO - Backend stderr: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/backend.py", line 26, in <module>
+2025-05-25 10:16:08,784 - INFO - Backend stderr: from Backend.api import endpoints
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 19, in <module>
+2025-05-25 10:16:08,784 - INFO - Backend stderr: from ..services.websocket_manager import WebSocketManager
+2025-05-25 10:16:08,784 - INFO - Backend stderr: File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 131
+2025-05-25 10:16:08,785 - INFO - Backend stderr: except ValidationError as e:
+2025-05-25 10:16:08,785 - INFO - Backend stderr: SyntaxError: expected 'except' or 'finally' block
+2025-05-25 10:16:09,578 - INFO - Opening browser to http://localhost:9000
+2025-05-25 10:16:10,028 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] "GET / HTTP/1.1" 200 -
+2025-05-25 10:16:10,061 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] "GET /src/modules/WebSocketManager.js HTTP/1.1" 304 -
+2025-05-25 10:16:10,068 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] "GET /src/modules/EventListeners.js HTTP/1.1" 304 -
+2025-05-25 10:16:10,091 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] "GET /src/modules/QueueDisplay.js HTTP/1.1" 304 -
+2025-05-25 10:16:10,135 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] code 404, message File not found
+2025-05-25 10:16:10,135 - INFO - Frontend stderr: 127.0.0.1 - - [25/May/2025 10:16:10] "GET /favicon.ico HTTP/1.1" 404 -
+2025-05-25 10:16:24,787 - INFO - Shutting down servers...
+2025-05-25 10:16:24,787 - INFO - Frontend stdout: Serving HTTP on 0.0.0.0 port 9000 (http://0.0.0.0:9000/) ...
+2025-05-25 10:16:24,788 - INFO - Frontend stdout: 
+2025-05-25 10:16:24,788 - INFO - Frontend stdout: Keyboard interrupt received, exiting.
+2025-05-25 10:16:24,801 - INFO - Backend stderr: INFO:     Stopping reloader process [31036]

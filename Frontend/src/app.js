@@ -48,19 +48,3 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Main App: Initialization complete.");
     console.groupEnd();
 });
-
-// Remove this section completely. sendTestMessage is handled by EventListeners.js
-// window.sendTestMessage = function() {
-//     wsManager.sendMessage({
-//         type: 'test',
-//         content: 'Testnachricht vom Frontend',
-//         timestamp: new Date().toISOString()
-//     });
-// };
-
-// Optional: Initial UI update, if you still want one on load.
-// If QueueDisplay functions are imported by EventListeners.js,
-// then the initial update should happen there or after.
-// For now, let's keep it simple and ensure EventListeners.js
-// sets up the initial display logic.
-// queueDisplay.updateAllDisplays(); // This assumes a queueDisplay object exists which it doesn't.
