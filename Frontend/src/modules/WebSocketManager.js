@@ -1,6 +1,6 @@
 // frontend/src/modules/WebSocketManager.js
 
-import { fromBackendQueue, toBackendQueue, fromFrontendQueue, toFrontendQueue } from '../app.js'; // Import the queues
+// Remove queue imports since they'll be provided via setQueues
 import { processBackendMessages } from './EventListeners.js'; // Import the message processor
 
 class WebSocketManager {
@@ -8,11 +8,16 @@ class WebSocketManager {
         this.ws = null;
         this.reconnectAttempts = 0;
         this.reconnectTimer = null;
-        // Initialize queue references
+        // Initialize queue references with null checks
         this._toFrontendQueue = null;
         this._fromFrontendQueue = null;
         this._toBackendQueue = null;
         this._fromBackendQueue = null;
+        
+        // Bind methods to maintain 'this' context
+        this.setQueues = this.setQueues.bind(this);
+        this.connect = this.connect.bind(this);
+        this.sendMessage = this.sendMessage.bind(this);
     }
 
     // Method to set the queue instances
@@ -21,7 +26,8 @@ class WebSocketManager {
         this._fromFrontendQueue = fromFrontendQueue;
         this._toBackendQueue = toBackendQueue;
         this._fromBackendQueue = fromBackendQueue;
-        console.log('WebSocketManager: Queues set.');
+        console.log('WebSocketManager: Queues set via setQueues method.');
+        return this; // Allow method chaining
     }
 
     connect(url = 'ws://localhost:8000/ws') {
