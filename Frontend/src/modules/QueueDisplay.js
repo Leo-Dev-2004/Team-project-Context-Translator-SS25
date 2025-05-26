@@ -1,7 +1,7 @@
 // frontend/src/modules/QueueDisplay.js
 import {
-    toFrontendQueue,
-    fromFrontendQueue,
+    frontendDisplayQueue,
+    frontendActionQueue,
     toBackendQueue,
     fromBackendQueue
 } from '../app.js'; // This correctly imports queues from app.js
@@ -114,10 +114,10 @@ function updateAllQueueDisplays() {
     lastUpdateTime = now;
 
     // IMPORTANT: Make sure the arguments are (QUEUE_OBJECT, 'ELEMENT_ID_STRING')
-    updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay'); // Correct order
-    updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');       // Correct order
-    updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');   // Correct order
-    updateQueueDisplay(toFrontendQueue, 'toFrontendQueueDisplay');     // Correct order
+    updateQueueDisplay(frontendActionQueue, 'fromFrontendQueueDisplay'); // Correct order
+    updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');         // Correct order
+    updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');     // Correct order
+    updateQueueDisplay(frontendDisplayQueue, 'toFrontendQueueDisplay');  // Correct order
 
     updateQueueCounters();
 }

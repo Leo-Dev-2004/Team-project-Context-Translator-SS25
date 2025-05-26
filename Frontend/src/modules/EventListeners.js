@@ -37,9 +37,9 @@ function sendTestMessage() {
     };
 
     // Enqueue and update display immediately
-    fromFrontendQueue.enqueue(testMessage);
+    frontendActionQueue.enqueue(testMessage);
     // Correct call: (QUEUE_OBJECT, 'ELEMENT_ID_STRING')
-    updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay');
+    updateQueueDisplay(frontendActionQueue, 'fromFrontendQueueDisplay');
 
     // Send via WebSocket
     WebSocketManager.sendMessage(testMessage);
@@ -197,8 +197,8 @@ export function initializeEventListeners() {
                 status: 'pending_frontend'
             }
         };
-        fromFrontendQueue.enqueue(startCommand);
-        updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay'); // Update its display
+        frontendActionQueue.enqueue(startCommand);
+        updateQueueDisplay(frontendActionQueue, 'fromFrontendQueueDisplay'); // Update its display
         WebSocketManager.sendMessage(startCommand); // Send to backend
         console.log('EventListeners: startSim button clicked, command sent.');
     });
@@ -214,8 +214,8 @@ export function initializeEventListeners() {
                 status: 'pending_frontend'
             }
         };
-        fromFrontendQueue.enqueue(stopCommand);
-        updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay'); // Update its display
+        frontendActionQueue.enqueue(stopCommand);
+        updateQueueDisplay(frontendActionQueue, 'fromFrontendQueueDisplay'); // Update its display
         WebSocketManager.sendMessage(stopCommand); // Send to backend
         console.log('EventListeners: stopSim button clicked, command sent.');
     });
