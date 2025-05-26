@@ -61,10 +61,10 @@ function updateAllQueueDisplays() {
     lastUpdateTime = now;
 
     Promise.resolve().then(() => {
-        updateQueueLog('toFrontendLog', toFrontendQueue);
-        updateQueueLog('fromFrontendLog', fromFrontendQueue);
-        updateQueueLog('toBackendLog', toBackendQueue);
-        updateQueueLog('fromBackendLog', fromBackendQueue);
+        updateQueueLog('toFrontendQueueDisplay', toFrontendQueue);
+        updateQueueLog('fromFrontendQueueDisplay', fromFrontendQueue);
+        updateQueueLog('toBackendQueueDisplay', toBackendQueue);
+        updateQueueLog('fromBackendQueueDisplay', fromBackendQueue);
         updateQueueCounters();
     });
 }
