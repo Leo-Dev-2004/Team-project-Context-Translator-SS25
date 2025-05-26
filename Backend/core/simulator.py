@@ -66,12 +66,8 @@ class SimulationManager:
     async def start(self, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
         if self.running:
-            return {
-                "status": "already running",
-                "message": "Simulation already running"
-            }
+            return {"status": "already running"}
         
-        logger.info("Preparing to start simulation")
         await self._to_backend_queue.clear()
         await self._to_frontend_queue.clear()
         
