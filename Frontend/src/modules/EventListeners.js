@@ -1,9 +1,9 @@
 // frontend/src/modules/EventListeners.js
 // IMPORTANT: Ensure these imports are correct and complete.
 import {
-    frontendActionQueue,
+    fromFrontendQueue,
     fromBackendQueue,
-    frontendDisplayQueue,
+    toFrontendQueue,
     toBackendQueue
 } from '../app.js';
 

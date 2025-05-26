@@ -1,10 +1,10 @@
 // frontend/src/modules/QueueDisplay.js
 import {
-    frontendDisplayQueue,
-    frontendActionQueue,
+    toFrontendQueue,
+    fromFrontendQueue,
     toBackendQueue,
     fromBackendQueue
-} from '../app.js'; // This correctly imports queues from app.js
+} from '../app.js';
 
 const MAX_VISIBLE_ITEMS = 20;
 let lastUpdateTime = 0;
@@ -98,8 +98,8 @@ function updateQueueCounters() {
     const toBackendCountElem = document.getElementById('toBackendCount');
     const fromBackendCountElem = document.getElementById('fromBackendCount');
 
-    if (toFrontendCountElem) toFrontendCountElem.textContent = frontendDisplayQueue.size();
-    if (fromFrontendCountElem) fromFrontendCountElem.textContent = frontendActionQueue.size();
+    if (toFrontendCountElem) toFrontendCountElem.textContent = toFrontendQueue.size();
+    if (fromFrontendCountElem) fromFrontendCountElem.textContent = fromFrontendQueue.size();
     if (toBackendCountElem) toBackendCountElem.textContent = toBackendQueue.size();
     if (fromBackendCountElem) fromBackendCountElem.textContent = fromBackendQueue.size();
 }
@@ -114,10 +114,10 @@ function updateAllQueueDisplays() {
     lastUpdateTime = now;
 
     // IMPORTANT: Make sure the arguments are (QUEUE_OBJECT, 'ELEMENT_ID_STRING')
-    updateQueueDisplay(frontendActionQueue, 'fromFrontendQueueDisplay'); // Correct order
-    updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');         // Correct order
-    updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');     // Correct order
-    updateQueueDisplay(frontendDisplayQueue, 'toFrontendQueueDisplay');  // Correct order
+    updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay'); // Correct order
+    updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');       // Correct order
+    updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');   // Correct order
+    updateQueueDisplay(toFrontendQueue, 'toFrontendQueueDisplay');     // Correct order
 
     updateQueueCounters();
 }
