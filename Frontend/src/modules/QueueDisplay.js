@@ -95,46 +95,36 @@ function updateQueueLog(elementId, queueOrMessage) {
         htmlContent += `<div class="log-overflow">Showing last ${itemsToDisplay.length} of ${queue.size()} messages.</div>`;
     }
 
-    itemsToDisplay.forEach(message => {
-        const data = message.data || {};
-        const id = data.id || data.original_id || 'N/A';
-        const type = message.type || 'unknown';
-        // Convert Unix timestamp (seconds) to JS timestamp (milliseconds)
-        const timestamp = new Date(message.timestamp * 1000).toLocaleTimeString();
-        const status = data.status || 'N/A';
-        const content = data.message || data.text || (typeof data === 'object' ? JSON.stringify(data) : data);
-
-        let statusClass = '';
-        switch (status) {
-            case 'pending':
-                statusClass = 'status-pending';
-                break;
-            case 'urgent':
-                statusClass = 'status-urgent';
-                break;
-            case 'processing':
-                statusClass = 'status-processing';
-                break;
-            case 'processed':
-                statusClass = 'status-processed';
-                break;
-            default:
-                statusClass = '';
-                break;
-        }
-
-        htmlContent += `
-        <div class="log-entry">
-            <div class="message-header">
-                <span class="message-id">ID: ${String(id).substring(0, 8)}...</span> // <-- CORRECTED LINE
-                <span class="message-type">Type: ${type}</span>
-                <span class="message-timestamp">Timestamp: ${timestamp}</span>
-            </div>
-            <div class="message-content ${statusClass}">
-                ${content}
-            </div>
-        </div>`;
+    const itemsContainer = document.querySelector(`#${elementId} .queue-items`);
+    if (itemsContainer) {
+        itemsContainer.innerHTML = '';
+        
+        itemsToDisplay.forEach(message => {
+            const data = message.data || {};
+            const id = data.id || data.original_id || 'N/A';
+            const type = message.type || 'unknown';
+            const status = data.status || 'N/A';
+            
+            const itemElement = document.createElement('div');
+            itemElement.className = 'queue-item';
+            itemElement.innerHTML = `
+                <span>${type}</span>
+                <span>${String(id).substring(0, 8)}...</span>
+                <span class="${getStatusClass(status)}">${status}</span>
+            `;
+            itemsContainer.appendChild(itemElement);
         });
+    }
+
+    function getStatusClass(status) {
+        switch (status.toLowerCase()) {
+            case 'pending': return 'status-pending';
+            case 'urgent': return 'status-urgent';
+            case 'processing': return 'status-processing';
+            case 'processed': return 'status-processed';
+            default: return '';
+        }
+    }
     } 
     // Wenn zweiter Parameter eine direkte Nachricht ist
     else if (typeof queueOrMessage === 'string') {

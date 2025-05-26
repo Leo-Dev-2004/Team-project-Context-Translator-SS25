@@ -203,6 +203,32 @@
             overflow-wrap: break-word;
             max-height: 350px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .queue-header {
+            display: flex;
+            font-weight: bold;
+            padding: 5px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+        }
+        .queue-header span {
+            flex: 1;
+            text-align: center;
+        }
+        .queue-items {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .queue-item {
+            display: flex;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .queue-item span {
+            flex: 1;
+            text-align: center;
         }
         #queueDisplay .last-message {
             background-color: #e9ecef;
@@ -243,7 +269,14 @@
         </div>
         <div class="queue-box">
             <h3>From Frontend Queue <span id="fromFrontendCount" class="queue-count">0</span></h3>
-            <div id="fromFrontendQueueDisplay" class="queue-log"></div>
+            <div id="fromFrontendQueueDisplay" class="queue-log">
+                <div class="queue-header">
+                    <span>Type</span>
+                    <span>ID</span>
+                    <span>Status</span>
+                </div>
+                <div class="queue-items"></div>
+            </div>
         </div>
         <div class="queue-box">
             <h3>To Backend Queue <span id="toBackendCount" class="queue-count">0</span></h3>
