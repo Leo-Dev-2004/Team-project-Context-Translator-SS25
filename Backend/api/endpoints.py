@@ -1,5 +1,6 @@
 # Backend/api/endpoints.py
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends, HTTPException
+import asyncio
 from fastapi.websockets import WebSocketDisconnect
 import asyncio
 import logging
@@ -21,6 +22,21 @@ from ..services.websocket_manager import WebSocketManager
 
 # IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
 from ..dependencies import get_simulation_manager
+
+async def forward_messages_to_websocket(websocket: WebSocket, queue):
+    """Continuously forward messages from queue to websocket."""
+    try:
+        while True:
+            message = await queue.dequeue()
+            if message:
+                try:
+                    await websocket.send_json(message)
+                except Exception as e:
+                    logger.error(f"Failed to send message to websocket: {e}")
+                    break
+            await asyncio.sleep(0.1)  # Prevent busy waiting
+    except Exception as e:
+        logger.error(f"Message forwarding task failed: {e}")
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -135,6 +151,13 @@ async def websocket_endpoint(websocket: WebSocket):
     """Handle WebSocket connections with proper error handling and cleanup."""
     try:
         await websocket.accept()
+        # Start queue forwarder task for this connection
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(
+            forward_messages_to_websocket,
+            websocket,
+            get_to_frontend_queue()
+        )
         logger.info(f"WebSocket connection established from {websocket.client}")
         
         # Register connection with WebSocketManager IMMEDIATELY after accept

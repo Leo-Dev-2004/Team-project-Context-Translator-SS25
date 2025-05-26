@@ -105,12 +105,14 @@ function updateQueueLog(elementId, queueOrMessage) {
             const type = message.type || 'unknown';
             const status = data.status || 'N/A';
             
+            const timestamp = message.timestamp ? new Date(message.timestamp * 1000).toLocaleTimeString() : 'N/A';
             const itemElement = document.createElement('div');
             itemElement.className = 'queue-item';
             itemElement.innerHTML = `
                 <span>${type}</span>
                 <span>${String(id).substring(0, 8)}...</span>
                 <span class="${getStatusClass(status)}">${status}</span>
+                <span>${timestamp}</span>
             `;
             itemsContainer.appendChild(itemElement);
         });
