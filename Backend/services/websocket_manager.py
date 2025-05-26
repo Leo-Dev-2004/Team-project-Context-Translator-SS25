@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import time
-from typing import Dict, Set, Tuple, Optional
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
@@ -15,57 +14,40 @@ from ..dependencies import get_simulation_manager
 logger = logging.getLogger(__name__)
 
 class WebSocketManager:
-    def __init__(self) -> None:
-        """Initialize WebSocketManager with empty connection sets and task tracking."""
-        self.connections: Set[WebSocket] = set()
-        self.ack_status: Dict[WebSocket, bool] = {}
-        # Maps websocket_id to (sender_task, receiver_task)
-        self.active_tasks: Dict[int, Tuple[asyncio.Task, asyncio.Task]] = {}
-        """Initialize WebSocketManager with empty connection sets and task tracking."""
+    def __init__(self):
         self.connections = set()
         self.ack_status = {}
-        # Maps websocket_id to (sender_task, receiver_task)
-        self.active_tasks = {}  
+        # Keep track of active tasks for graceful shutdown if needed
+        self.active_tasks = {} # maps websocket_id to (sender_task, receiver_task)
 
     async def handle_connection(self, websocket: WebSocket):
-        """Handle new WebSocket connection and manage its lifecycle."""
+        """Handle new WebSocket connection"""
         client = websocket.client
-        client_info = (f"{client.host}:{client.port}" 
-                      if client else "unknown")
-        websocket_id = id(websocket)
+        client_info = f"{client.host}:{client.port}" if client else "unknown"
+
+        # Unique ID for this websocket instance to manage tasks
+        websocket_id = id(websocket) # Use object ID as a unique identifier for tasks
 
         try:
-            await websocket.accept()
             self.connections.add(websocket)
-            logger.info(f"New connection: {client_info}. Total connections: {len(self.connections)}")
+            logger.info(f"Adding connection: {client_info}. Total connections: {len(self.connections)}")
 
             # Send connection acknowledgment
             await self._send_ack(websocket)
 
-            # Create tasks with proper error handling
-            sender_task = asyncio.create_task(
-                self._sender(websocket),
-                name=f"sender-{websocket_id}"
-            )
-            receiver_task = asyncio.create_task(
-                self._receiver(websocket),
-                name=f"receiver-{websocket_id}"
-            )
+            # Start sender/receiver tasks
+            sender_task = asyncio.create_task(self._sender(websocket))
+            receiver_task = asyncio.create_task(self._receiver(websocket))
+
+            # Store tasks so we can cancel them if needed during cleanup
             self.active_tasks[websocket_id] = (sender_task, receiver_task)
 
-            # Use wait instead of gather for better error handling
-            done, pending = await asyncio.wait(
-                {sender_task, receiver_task},
-                return_when=asyncio.FIRST_COMPLETED
-            )
-
-            # Cancel remaining tasks
-            for task in pending:
-                task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
+            # Wait for tasks to complete. This will keep the connection open
+            # until either sender or receiver task terminates due to an error
+            # or the client explicitly disconnects.
+            # Using asyncio.gather will wait for *both* tasks to complete.
+            # If one fails, the other will continue unless explicitly cancelled or errors propagate.
+            await asyncio.gather(sender_task, receiver_task) # <--- CRITICAL CHANGE HERE
 
         except Exception as e:
             logger.error(f"Connection lifetime error for {client_info}: {e}", exc_info=True) # Add exc_info for full traceback
@@ -75,7 +57,7 @@ class WebSocketManager:
             # before gather returns
             if websocket_id in self.active_tasks:
                 for task in self.active_tasks[websocket_id]:
-                    if not task.done(): 
+                    if not task.done():
                         task.cancel()
                         try:
                             await task # Await cancellation
@@ -86,61 +68,45 @@ class WebSocketManager:
             await self._cleanup_connection(websocket, client_info)
             logger.info(f"Cleanup finished for connection: {client_info}. Total connections: {len(self.connections)}")
 
-    async def _sender(self, websocket: WebSocket) -> None:
-        """Send messages from to_frontend_queue to client.
-        
-        Args:
-            websocket: The WebSocket connection to send messages through.
-        """
-        client_info = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
-        logger.info(f"Starting sender for {client_info}")
-
+    async def _sender(self, websocket: WebSocket):
+        """Send messages from to_frontend_queue to client"""
+        # Add a log point here to see if the sender task starts
+        logger.info(f"Sender task started for {websocket.client}")
         try:
-            while websocket.client_state == WebSocketState.CONNECTED:
+            while True:
+                message = await get_to_frontend_queue().dequeue()
+                if not message: # Should ideally not be empty due to await, but as a safeguard
+                    continue
+                    
+                # Validate message format (Simplified for clarity, your existing validation is fine)
+                if not isinstance(message, dict):
+                    logger.error(f"Invalid message format in sender: {type(message)}")
+                    continue
+                    
+                if 'type' not in message:
+                    message['type'] = 'unknown_backend_message' # Assign a default type if missing
+                    
+                if 'data' not in message:
+                    message['data'] = {}
+                    
+                # Ensure WebSocketMessage can parse this structure
                 try:
-                    message = await get_to_frontend_queue().dequeue()
-                    if not message:
-                        await asyncio.sleep(0.1)  # Small delay if queue is empty
-                        continue
+                    # If message is already a dict that matches WebSocketMessage structure,
+                    # you can pass it directly to the constructor or use parse_obj
+                    ws_msg = WebSocketMessage(
+                        type=message['type'],
+                        data=message.get('data', {}),
+                        client_id=message.get('client_id', str(websocket.client)),
+                        timestamp=message.get('timestamp', time.time())
+                    )
+                except ValidationError as e:
+                    logger.error(f"Validation error creating WebSocketMessage in sender: {e.errors()}")
+                    continue # Skip sending invalid message
 
-                    if not isinstance(message, dict):
-                        logger.error(f"Invalid message format from queue: {type(message)}")
-                        continue
-                    
-                    if 'type' not in message:
-                        message['type'] = 'unknown_backend_message' # Assign a default type if missing
-                    
-                    if 'data' not in message:
-                        message['data'] = {}
-                    
-                    # Ensure WebSocketMessage can parse this structure
-                    try:
-                        # If message is already a dict that matches WebSocketMessage structure,
-                        # you can pass it directly to the constructor or use parse_obj
-                        ws_msg = WebSocketMessage(
-                            type=message['type'],
-                            data=message.get('data', {}),
-                            client_id=message.get('client_id', str(websocket.client)),
-                            timestamp=message.get('timestamp', time.time())
-                        )
-
-                        # Wrap send operation in a try-except to catch disconnects
-                        try:
-                            await websocket.send_text(ws_msg.json())
-                            logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
-                        except RuntimeError as e: # This catches errors if the socket is already closed
-                            logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
-                            break # Break the sender loop if sending fails
-                        except Exception as e:
-                            logger.error(f"Unexpected error during WebSocket send to {websocket.client}: {e}", exc_info=True)
-                            break # Break on other unexpected errors
-
-                    except ValidationError as e:
-                        logger.error(
-                            "Validation error creating WebSocketMessage in sender: %s",
-                            e.errors()
-                        )
-                        continue  # Skip sending invalid message
+                # Wrap send operation in a try-except to catch disconnects
+                try:
+                    await websocket.send_text(ws_msg.json())
+                    logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
                 except RuntimeError as e: # This catches errors if the socket is already closed
                     logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
                     break # Break the sender loop if sending fails
@@ -159,16 +125,12 @@ class WebSocketManager:
 
     async def _receiver(self, websocket: WebSocket):
         """Receive messages from client and add to from_frontend_queue"""
-        client_info = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
-        logger.info(f"Starting receiver for {client_info}")
-
+        # Add a log point here to see if the receiver task starts
+        logger.info(f"Receiver task started for {websocket.client}")
         try:
-            while websocket.client_state == WebSocketState.CONNECTED:
+            while True:
                 try:
                     data = await websocket.receive_text()
-                    if not data:
-                        logger.debug(f"Empty message received from {client_info}")
-                        continue
                     logger.debug(f"Received raw WebSocket data from {websocket.client}: {data}")
                     
                     # Your existing message parsing and validation logic
@@ -223,11 +185,13 @@ class WebSocketManager:
             # The handle_connection's finally block will handle overall cleanup
             pass
 
-    async def _send_ack(self, websocket: WebSocket) -> None:
+    async def _send_ack(self, websocket: WebSocket):
         """Send connection acknowledgment"""
         ack = {
             "type": "connection_ack",
-            "status": "connected",
+            "data": {
+                "status": "connected"
+            },
             "timestamp": time.time()
         }
         # Wrap send operation in a try-except in case client disconnects immediately
@@ -240,8 +204,7 @@ class WebSocketManager:
         except Exception as e:
             logger.error(f"Error sending connection_ack to {websocket.client}: {e}")
 
-
-    async def _cleanup_connection(self, websocket: WebSocket, client_info: str) -> None:
+    async def _cleanup_connection(self, websocket: WebSocket, client_info: str):
         """Clean up connection resources"""
         logger.info(f"Starting cleanup for {client_info}")
         
