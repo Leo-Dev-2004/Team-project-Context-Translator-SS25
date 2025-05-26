@@ -71,66 +71,84 @@ function updateAllQueueDisplays() {
 
 // Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
 
-function updateQueueLog(elementId, queueOrMessage) {
-    const logElement = document.getElementById(elementId);
-    if (!logElement) {
-        console.error(`Error: Log element with ID '${elementId}' not found.`);
+function updateQueueDisplay(queue, elementId) {
+    if (!elementId) {
+        console.error('updateQueueDisplay: elementId parameter is required');
         return;
     }
-    
-    // Sicherstellen, dass das Element sichtbar ist
-    if (logElement.style.display === 'none') {
-        logElement.style.display = 'block';
+
+    const displayElement = document.getElementById(elementId);
+    if (!displayElement) {
+        console.error(`Display element with ID "${elementId}" not found`);
+        return;
     }
 
-    // Wenn zweiter Parameter eine Queue ist
-    if (queueOrMessage && typeof queueOrMessage.peekAll === 'function') {
-        const queue = queueOrMessage;
+    if (!queue || typeof queue.peekAll !== 'function') {
+        console.error(`Queue for element "${elementId}" is invalid or missing peekAll method`);
+        return;
+    }
 
     const MAX_DISPLAY_ITEMS_PER_QUEUE = 10;
     const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS_PER_QUEUE);
 
-    let htmlContent = '';
-    if (queue.size() > MAX_DISPLAY_ITEMS_PER_QUEUE) {
-        htmlContent += `<div class="log-overflow">Showing last ${itemsToDisplay.length} of ${queue.size()} messages.</div>`;
-    }
-
-    const itemsContainer = document.querySelector(`#${elementId} .queue-items`);
-    if (itemsContainer) {
-        itemsContainer.innerHTML = '';
+    // Find or create the .queue-items container
+    let itemsContainer = displayElement.querySelector('.queue-items');
+    if (!itemsContainer) {
+        // If the container doesn't exist, create it and prepend a header if needed
+        const header = document.createElement('div');
+        header.className = 'queue-header';
+        header.innerHTML = `
+            <span>Type</span>
+            <span>ID</span>
+            <span>Status</span>
+            <span>Timestamp</span>
+        `;
+        displayElement.appendChild(header); // Append header
         
-        itemsToDisplay.forEach(message => {
-            const data = message.data || {};
-            const id = data.id || data.original_id || 'N/A';
-            const type = message.type || 'unknown';
-            const status = data.status || 'N/A';
-            
-            const timestamp = message.timestamp ? new Date(message.timestamp * 1000).toLocaleTimeString() : 'N/A';
-            const itemElement = document.createElement('div');
-            itemElement.className = 'queue-item';
-            itemElement.innerHTML = `
-                <span>${type}</span>
-                <span>${String(id).substring(0, 8)}...</span>
-                <span class="${getStatusClass(status)}">${status}</span>
-                <span>${timestamp}</span>
-            `;
-            itemsContainer.appendChild(itemElement);
-        });
+        itemsContainer = document.createElement('div');
+        itemsContainer.className = 'queue-items';
+        displayElement.appendChild(itemsContainer); // Append items container
+    } else {
+        // Clear existing content if container already exists
+        itemsContainer.innerHTML = '';
     }
 
-    function getStatusClass(status) {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'status-pending';
-            case 'urgent': return 'status-urgent';
-            case 'processing': return 'status-processing';
-            case 'processed': return 'status-processed';
-            default: return '';
-        }
+    // Add overflow message if needed
+    if (queue.size() > MAX_DISPLAY_ITEMS_PER_QUEUE) {
+        const overflowDiv = document.createElement('div');
+        overflowDiv.className = 'log-overflow';
+        overflowDiv.textContent = `Showing last ${itemsToDisplay.length} of ${queue.size()} messages.`;
+        itemsContainer.appendChild(overflowDiv);
     }
-    } 
-    // Wenn zweiter Parameter eine direkte Nachricht ist
-    else if (typeof queueOrMessage === 'string') {
-        logElement.textContent += queueOrMessage + '\n';
+
+    itemsToDisplay.forEach(message => {
+        const data = message.data || {};
+        const id = data.id || data.original_id || 'N/A';
+        const type = message.type || 'unknown';
+        const status = data.status || 'N/A';
+
+        const timestamp = message.timestamp ? new Date(message.timestamp * 1000).toLocaleTimeString() : 'N/A';
+        const itemElement = document.createElement('div');
+        itemElement.className = 'queue-item';
+        itemElement.innerHTML = `
+            <span>${type}</span>
+            <span>${String(id).substring(0, 8)}...</span>
+            <span class="${getStatusClass(status)}">${status}</span>
+            <span>${timestamp}</span>
+        `;
+        itemsContainer.appendChild(itemElement);
+    });
+}
+
+function getStatusClass(status) {
+    switch (status.toLowerCase()) {
+        case 'pending': return 'status-pending';
+        case 'urgent': return 'status-urgent';
+        case 'processing': return 'status-processing';
+        case 'processed': return 'status-processed';
+        case 'generated': return 'status-generated';
+        case 'pending_frontend': return 'status-pending_frontend';
+        default: return '';
     }
 }
 

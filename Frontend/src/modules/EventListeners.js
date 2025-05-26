@@ -12,17 +12,19 @@ function sendTestMessage() {
         type: 'test_message',
         data: {
             text: 'Hello from Frontend Test Button!',
-            timestamp: new Date().toISOString(),
-            id: 'test_msg_' + Date.now() // Add an ID, as your backend validator was looking for it
+            timestamp: Date.now() / 1000,
+            id: 'test_msg_' + Date.now(),
+            status: 'pending_frontend'
         }
     };
-    fromFrontendQueue.enqueue(testMessage); // Enqueue for potential internal processing/logging
-    console.log("DEBUG: Test message enqueued to fromFrontendQueue. Current size:", fromFrontendQueue.size());
-
-    // --- ADD THIS LINE TO IMMEDIATELY SEND IT ---
+    
+    // Enqueue and update display immediately
+    fromFrontendQueue.enqueue(testMessage);
+    updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay');
+    
+    // Send via WebSocket
     WebSocketManager.sendMessage(testMessage);
-    console.log("DEBUG: Test message enqueued to fromFrontendQueue. Current size:", fromFrontendQueue.size());
-    updateQueueDisplay('fromFrontendQueue', fromFrontendQueue, 'fromFrontendQueueDisplay'); // ENSURE THIS IS PRESENT
+    console.log("DEBUG: Test message sent to backend");
 }
 
 
