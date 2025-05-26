@@ -1,86 +1,59 @@
-// QueueDisplay.js
+// frontend/src/modules/QueueDisplay.js
 import {
     toFrontendQueue,
-    fromFrontendQueue, 
+    fromFrontendQueue,
     toBackendQueue,
     fromBackendQueue
-} from './MessageQueue.js';
+} from '../app.js'; // This correctly imports queues from app.js
 
 const MAX_VISIBLE_ITEMS = 20;
 let lastUpdateTime = 0;
 const UPDATE_THROTTLE_MS = 100;
 
-// lastMessage is currently a global variable, needs to be passed or managed differently
-// For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
-// Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
-
-
-function updateAllQueueDisplays() {
-    console.log("DEBUG: updateAllQueueDisplays called.");
-    const now = performance.now();
-    if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
-        requestAnimationFrame(updateAllQueueDisplays);
-        return;
-        }
-    
-        // Close the updateQueueLog function
-    
-    lastUpdateTime = now;
-
-    Promise.resolve().then(() => {
-        updateQueueDisplay(toFrontendQueue, 'toFrontendQueueDisplay');
-        updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay');
-        updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');
-        updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');
-        updateQueueCounters();
-    });
-}
-
-// Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
-
 function updateQueueDisplay(queue, elementId) {
-    if (!elementId) {
-        console.error('updateQueueDisplay: elementId parameter is required');
+    // This is LINE 16, where the error is detected if arguments are swapped upstream
+    if (typeof elementId !== 'string' || !elementId) {
+        console.error('updateQueueDisplay: elementId parameter is required and must be a string. Received:', elementId);
         return;
     }
 
     const displayElement = document.getElementById(elementId);
     if (!displayElement) {
-        console.error(`Display element with ID "${elementId}" not found`);
+        console.error(`Display element with ID "${elementId}" not found in the DOM.`);
         return;
     }
 
     if (!queue || typeof queue.peekAll !== 'function') {
-        console.error(`Queue for element "${elementId}" is invalid or missing peekAll method`);
+        console.error(`Queue for element "${elementId}" is invalid or missing peekAll method. Queue:`, queue);
         return;
     }
 
     const MAX_DISPLAY_ITEMS_PER_QUEUE = 10;
     const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS_PER_QUEUE);
 
-    // Find or create the .queue-items container
     let itemsContainer = displayElement.querySelector('.queue-items');
-    if (!itemsContainer) {
-        // If the container doesn't exist, create it and prepend a header if needed
-        const header = document.createElement('div');
-        header.className = 'queue-header';
-        header.innerHTML = `
+    let headerContainer = displayElement.querySelector('.queue-header');
+
+    if (!headerContainer || !itemsContainer) {
+        displayElement.innerHTML = '';
+
+        headerContainer = document.createElement('div');
+        headerContainer.className = 'queue-header';
+        headerContainer.innerHTML = `
             <span>Type</span>
             <span>ID</span>
             <span>Status</span>
             <span>Timestamp</span>
         `;
-        displayElement.appendChild(header); // Append header
-        
+        displayElement.appendChild(headerContainer);
+
         itemsContainer = document.createElement('div');
         itemsContainer.className = 'queue-items';
-        displayElement.appendChild(itemsContainer); // Append items container
+        displayElement.appendChild(itemsContainer);
     } else {
-        // Clear existing content if container already exists
         itemsContainer.innerHTML = '';
     }
 
-    // Add overflow message if needed
     if (queue.size() > MAX_DISPLAY_ITEMS_PER_QUEUE) {
         const overflowDiv = document.createElement('div');
         overflowDiv.className = 'log-overflow';
@@ -110,32 +83,85 @@ function updateQueueDisplay(queue, elementId) {
 function getStatusClass(status) {
     switch (status.toLowerCase()) {
         case 'pending': return 'status-pending';
+        case 'pending_frontend': return 'status-pending-frontend';
         case 'urgent': return 'status-urgent';
         case 'processing': return 'status-processing';
         case 'processed': return 'status-processed';
         case 'generated': return 'status-generated';
-        case 'pending_frontend': return 'status-pending_frontend';
         default: return '';
     }
 }
 
-
 function updateQueueCounters() {
-    document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
-    document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
-    document.getElementById('toBackendCount').textContent = toBackendQueue.size();
-    document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+    const toFrontendCountElem = document.getElementById('toFrontendCount');
+    const fromFrontendCountElem = document.getElementById('fromFrontendCount');
+    const toBackendCountElem = document.getElementById('toBackendCount');
+    const fromBackendCountElem = document.getElementById('fromBackendCount');
 
-    if (console.debug) {
-        console.debug('Queue Stats:', {
-            toFrontend: toFrontendQueue.size(),
-            fromFrontend: fromFrontendQueue.size(),
-            toBackend: toBackendQueue.size(),
-            fromBackend: fromBackendQueue.size()
-        });
+    if (toFrontendCountElem) toFrontendCountElem.textContent = toFrontendQueue.size();
+    if (fromFrontendCountElem) fromFrontendCountElem.textContent = fromFrontendQueue.size();
+    if (toBackendCountElem) toBackendCountElem.textContent = toBackendQueue.size();
+    if (fromBackendCountElem) fromBackendCountElem.textContent = fromBackendQueue.size();
+}
+
+// THIS IS THE CRITICAL FUNCTION TO CHECK FOR SWAPPED ARGUMENTS
+function updateAllQueueDisplays() {
+    const now = performance.now();
+    if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
+        requestAnimationFrame(updateAllQueueDisplays);
+        return;
+    }
+    lastUpdateTime = now;
+
+    // IMPORTANT: Make sure the arguments are (QUEUE_OBJECT, 'ELEMENT_ID_STRING')
+    updateQueueDisplay(fromFrontendQueue, 'fromFrontendQueueDisplay'); // Correct order
+    updateQueueDisplay(toBackendQueue, 'toBackendQueueDisplay');       // Correct order
+    updateQueueDisplay(fromBackendQueue, 'fromBackendQueueDisplay');   // Correct order
+    updateQueueDisplay(toFrontendQueue, 'toFrontendQueueDisplay');     // Correct order
+
+    updateQueueCounters();
+}
+
+function updateSystemLog(data) {
+    const logElement = document.getElementById('system_log');
+    if (logElement) {
+        const messageText = typeof data === 'string' ? data : (data.message || JSON.stringify(data));
+        logElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${messageText}</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
     }
 }
-    
-    
-// Export the functions that need to be called externally
-export { updateAllQueueDisplays, updateQueueLog, updateQueueCounters, updateQueueDisplay };
+
+function updateSimulationLog(data) {
+    const logElement = document.getElementById('simulation_log');
+    if (logElement) {
+        const messageText = `Sim Update: ID=${data.id || 'N/A'}, Status=${data.status || 'N/A'}`;
+        logElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${messageText}</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+}
+
+function updateStatusLog(message) {
+    const logElement = document.getElementById('status_log');
+    if (logElement) {
+        logElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+}
+
+function updateTestLog(message) {
+    const logElement = document.getElementById('test_log');
+    if (logElement) {
+        logElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+}
+
+export {
+    updateAllQueueDisplays,
+    updateQueueDisplay,
+    updateQueueCounters,
+    updateSystemLog,
+    updateSimulationLog,
+    updateStatusLog,
+    updateTestLog
+};
