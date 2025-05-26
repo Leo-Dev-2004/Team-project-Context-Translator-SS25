@@ -1,6 +1,5 @@
 # Backend/api/endpoints.py
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends, HTTPException
-import json
 import asyncio
 from fastapi.websockets import WebSocketDisconnect
 import asyncio
@@ -31,7 +30,7 @@ async def forward_messages_to_websocket(websocket: WebSocket, queue):
             message = await queue.dequeue()
             if message:
                 try:
-                    await websocket.send_text(json.dumps(message))
+                    await websocket.send_json(message)
                 except Exception as e:
                     logger.error(f"Failed to send message to websocket: {e}")
                     break
@@ -189,7 +188,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text(json.dumps({
                         "type": "pong",
                         "timestamp": time.time()
-                    })
+                    }))
                     continue
                     
                 # Handle command messages
