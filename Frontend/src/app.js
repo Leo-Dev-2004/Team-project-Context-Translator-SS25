@@ -1,51 +1,70 @@
-// Haupt-Einstiegspunkt der Anwendung
+// frontend/src/app.js
+
+import { MessageQueue } from './modules/MessageQueue.js';
 import { WebSocketManager } from './modules/WebSocketManager.js';
-import { processBackendMessages } from './modules/EventListeners.js';
-import { MessageQueue } from './modules/MessageQueue.js'; // This is the class
-import { initializeEventListeners } from './modules/EventListeners.js'; // This is the function
-// We don't need to import SimulationManager or QueueDisplay here,
-// as their functions are used/imported by EventListeners.js directly.
+import { initializeEventListeners, processBackendMessages } from './modules/EventListeners.js';
+import { updateAllQueueDisplays } from './modules/QueueDisplay.js';
 
-// Message Queues for inter-module communication
-export const frontendDisplayQueue = new MessageQueue('frontendDisplay');
-export const frontendActionQueue = new MessageQueue('frontendAction');
-export const toBackendQueue = new MessageQueue('toBackend');
-export const fromBackendQueue = new MessageQueue('fromBackend');
+// --- 1. Define Message Queues for inter-module communication and display ---
+// These are the actual JavaScript MessageQueue instances living in your frontend.
 
-// This part is crucial for making the queues available to other modules
-// that need them (like WebSocketManager and EventListeners).
-// You can pass them as arguments, or make them available globally
-// if your architecture relies on that (which the original WebSocketManager does).
+// Messages representing actions or data originating from the frontend (frontend's local outbox)
+export const frontendActionQueue = new MessageQueue('frontendAction'); // Renamed from fromFrontendQueue
 
-// Let's ensure the WebSocketManager has access to the queues it needs
-// by setting them up on the WebSocketManager object *after* they are instantiated.
-// This is a common pattern for utility objects that need dependencies.
+// Messages leaving the frontend to the backend (frontend's outbound buffer to server)
+export const toBackendQueue = new MessageQueue('toBackend'); // Name remains the same
 
-// WebSocketManager connects directly; it doesn't need to be 'new'ed
-// No 'wsManager' variable is needed here since WebSocketManager is already the global object.
-// We just call its method.
+// Messages arriving at the frontend from the backend (frontend's inbound buffer from server)
+export const fromBackendQueue = new MessageQueue('fromBackend'); // Name remains the same
 
+// Messages processed from backend, destined for specific frontend display/UI components (frontend's display inbox)
+export const frontendDisplayQueue = new MessageQueue('frontendDisplay'); // Renamed from toFrontendQueue
+
+// --- 2. Main Application Initialization ---
+
+// Event listener for when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.group('Main App: DOMContentLoaded');
-    console.log("Main App: Initializing...");
-
-    // Initialize WebSocketManager with queues
-    WebSocketManager.setQueues({
-        toFrontendQueue,
-        fromFrontendQueue,
-        toBackendQueue,
-        fromBackendQueue
-    });
-
-    // Initialize Event Listeners
-    initializeEventListeners();
-
-    // Connect to WebSocket
-    WebSocketManager.connect();
-
-    // Start processing backend messages
-    processBackendMessages();
-
-    console.log("Main App: Initialization complete.");
-    console.groupEnd();
+    console.log("app.js: DOMContentLoaded");
+    initialize();
 });
+
+// Asynchronous initialization function
+async function initialize() {
+    console.log("app.js: Initializing...");
+
+    // 2.1 Set up WebSocketManager with the queues it needs
+    // Pass the queues in the order WebSocketManager.setQueues expects:
+    // (toBackend, fromBackend, frontendAction, frontendDisplay)
+    //WebSocketManager.setQueues(toBackendQueue, fromBackendQueue, frontendActionQueue, frontendDisplayQueue);
+    // NEW WAY (in app.js -> initialize function):
+    WebSocketManager.setQueues({
+        toBackendQueue: toBackendQueue,
+        fromBackendQueue: fromBackendQueue,
+        frontendActionQueue: frontendActionQueue,
+        frontendDisplayQueue: frontendDisplayQueue
+    });
+    
+    console.log("app.js: Queues passed to WebSocketManager.");
+
+    // 2.2 Initialize all event listeners for UI interactions
+    initializeEventListeners();
+    console.log("app.js: Event listeners initialized.");
+
+    // 2.3 Start the WebSocket connection
+    WebSocketManager.connect();
+    console.log("app.js: WebSocket connection initiated.");
+
+    // 2.4 Start the continuous message processing loop for messages from the backend
+    // This will run in the background, dequeuing messages from fromBackendQueue
+    // and routing them to update functions or frontendDisplayQueue.
+    processBackendMessages(); // This is an async function that runs indefinitely
+
+    // 2.5 Start periodic UI updates for queue displays
+    // requestAnimationFrame(updateAllQueueDisplays); // This will be called via setInterval/setTimeout in QueueDisplay
+    updateAllQueueDisplays(); // Start the first update cycle immediately
+
+    console.log("app.js: Initialization complete.");
+}
+
+// Any other global functions or exports (e.g., for direct debugging in console)
+// (None defined explicitly in previous steps, but can be added if needed)
