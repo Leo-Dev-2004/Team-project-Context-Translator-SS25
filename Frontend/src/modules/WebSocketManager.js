@@ -74,6 +74,7 @@ class WebSocketManager {
                 if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                     this.sendMessage({
                         type: 'ping',
+                        data: {},  // Ensure data field exists
                         timestamp: Date.now()
                     });
                     
@@ -86,12 +87,14 @@ class WebSocketManager {
             }, 25000);
 
             // Send initial ack
-            this.sendMessage({ 
-                type: 'frontend_ready_ack', 
-                data: { 
+            this.sendMessage({
+                type: 'frontend_ready_ack',
+                data: {
                     message: 'Frontend ready to receive',
-                    version: '1.0'
-                }
+                    version: '1.0',
+                    status: 'ready'
+                },
+                timestamp: Date.now()
             });
 
             document.dispatchEvent(new CustomEvent('websocket-ack'));

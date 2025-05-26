@@ -75,6 +75,14 @@ async def stop_simulation(manager: SimulationManager):
     logger.info("Received stop simulation command")
     return await manager.stop()
 
+@router.post("/simulation/start")
+async def start_simulation_endpoint(
+    background_tasks: BackgroundTasks,
+    manager: SimulationManager = Depends(get_simulation_manager)
+):
+    """Endpoint to start the simulation"""
+    return await start_simulation(background_tasks, manager)
+
 @router.get("/simulation/status")
 async def simulation_status(
     manager: SimulationManager = Depends(get_simulation_manager)
