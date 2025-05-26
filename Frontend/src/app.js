@@ -6,9 +6,9 @@ import { initializeEventListeners } from './modules/EventListeners.js'; // This 
 // We don't need to import SimulationManager or QueueDisplay here,
 // as their functions are used/imported by EventListeners.js directly.
 
-// Globale Variablen für die Queues (these are correctly instantiated here)
-export const toFrontendQueue = new MessageQueue('toFrontend');
-export const fromFrontendQueue = new MessageQueue('fromFrontend');
+// Message Queues for inter-module communication
+export const frontendDisplayQueue = new MessageQueue('frontendDisplay'); // Renamed from toFrontendQueue
+export const frontendActionQueue = new MessageQueue('frontendAction');  // Renamed from fromFrontendQueue
 export const toBackendQueue = new MessageQueue('toBackend');
 export const fromBackendQueue = new MessageQueue('fromBackend');
 

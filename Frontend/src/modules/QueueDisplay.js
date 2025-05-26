@@ -98,8 +98,8 @@ function updateQueueCounters() {
     const toBackendCountElem = document.getElementById('toBackendCount');
     const fromBackendCountElem = document.getElementById('fromBackendCount');
 
-    if (toFrontendCountElem) toFrontendCountElem.textContent = toFrontendQueue.size();
-    if (fromFrontendCountElem) fromFrontendCountElem.textContent = fromFrontendQueue.size();
+    if (toFrontendCountElem) toFrontendCountElem.textContent = frontendDisplayQueue.size();
+    if (fromFrontendCountElem) fromFrontendCountElem.textContent = frontendActionQueue.size();
     if (toBackendCountElem) toBackendCountElem.textContent = toBackendQueue.size();
     if (fromBackendCountElem) fromBackendCountElem.textContent = fromBackendQueue.size();
 }
