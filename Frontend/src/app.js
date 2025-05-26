@@ -7,8 +7,8 @@ import { initializeEventListeners } from './modules/EventListeners.js'; // This 
 // as their functions are used/imported by EventListeners.js directly.
 
 // Message Queues for inter-module communication
-export const toFrontendQueue = new MessageQueue('toFrontend');
-export const fromFrontendQueue = new MessageQueue('fromFrontend'); 
+export const frontendDisplayQueue = new MessageQueue('frontendDisplay');
+export const frontendActionQueue = new MessageQueue('frontendAction');
 export const toBackendQueue = new MessageQueue('toBackend');
 export const fromBackendQueue = new MessageQueue('fromBackend');
 
