@@ -89,11 +89,11 @@ class WebSocketMessage(BaseModel):
     )
     
     # UPDATED: Use the specific PathEntry models for WebSocketMessage
-    processing_path: List[ProcessingPathEntry] = Field(
+    processing_path: List[Union[ProcessingPathEntry, Dict[str, Any]]] = Field(
         default_factory=list,
         description="Tracking of processing steps"
     )
-    forwarding_path: List[ForwardingPathEntry] = Field(
+    forwarding_path: List[Union[ForwardingPathEntry, Dict[str, Any]]] = Field(
         default_factory=list,
         description="Tracking of queue forwarding steps"
     )

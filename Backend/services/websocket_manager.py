@@ -105,31 +105,72 @@ class WebSocketManager:
         logger.info(f"Sender task started for {websocket.client}")
         try:
             while True:
-                # This dequeue will return a dictionary that was formatted by _create_queue_message
-                message = await get_to_frontend_queue().dequeue()
+                try:
+                    # Get message from queue with timeout
+                    message = await asyncio.wait_for(
+                        get_to_frontend_queue().dequeue(),
+                        timeout=1.0
+                    )
+                except asyncio.TimeoutError:
+                    # Check if we should still be running
+                    if not self._running:
+                        break
+                    continue
+                except Exception as e:
+                    logger.error(f"Error dequeuing message: {str(e)}")
+                    await asyncio.sleep(1)
+                    continue
+
                 if not message:
                     continue
-                    
-                # The message from the queue should already be a dict conforming to WebSocketMessage
-                # We can directly instantiate WebSocketMessage from the dequeued dictionary
-                try:
-                    # Create a WebSocketMessage from the dequeued dict (it should have all fields)
-                    ws_msg = WebSocketMessage(**message)
-                except ValidationError as e:
-                    logger.error(f"Validation error creating WebSocketMessage from dequeued message in sender: {e.errors()} Message: {message}")
-                    continue # Skip sending invalid message
 
+                # Convert queue message to WebSocketMessage
                 try:
-                    await websocket.send_text(ws_msg.json()) # Use .json() for Pydantic v1.x
-                    logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
+                    # Ensure required fields exist
+                    message.setdefault('id', str(uuid.uuid4()))
+                    message.setdefault('timestamp', time.time())
+                    
+                    # Convert to WebSocketMessage with extra validation
+                    ws_msg = WebSocketMessage.parse_obj(message)
+                    logger.debug(f"Prepared WebSocket message of type '{ws_msg.type}' for client {websocket.client}")
+                except ValidationError as e:
+                    logger.error(f"Invalid message format in sender: {e.errors()}\nOriginal message: {message}")
+                    # Convert to error message to send to frontend
+                    ws_msg = WebSocketMessage(
+                        type="error",
+                        data={
+                            "error": "invalid_message_format",
+                            "details": str(e.errors()),
+                            "original_type": message.get('type')
+                        },
+                        timestamp=time.time()
+                    )
+                except Exception as e:
+                    logger.error(f"Unexpected error preparing message: {str(e)}")
+                    continue
+
+                # Send message
+                try:
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_text(ws_msg.json())
+                        logger.debug(f"Sent message {ws_msg.id} (type: {ws_msg.type}) to {websocket.client}")
+                    else:
+                        logger.warning(f"WebSocket not connected, discarding message {ws_msg.id}")
+                        break
                 except RuntimeError as e:
-                    logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
+                    logger.warning(f"WebSocket connection error: {str(e)}")
                     break
                 except Exception as e:
-                    logger.error(f"Unexpected error during WebSocket send to {websocket.client}: {e}", exc_info=True)
-                    break
-                
-            logger.info(f"Sender task for {websocket.client} finished.")
+                    logger.error(f"Unexpected send error: {str(e)}")
+                    await asyncio.sleep(1)
+                    continue
+
+        except asyncio.CancelledError:
+            logger.info(f"Sender task for {websocket.client} was cancelled normally")
+        except Exception as e:
+            logger.error(f"Sender task crashed: {str(e)}", exc_info=True)
+        finally:
+            logger.info(f"Sender task for {websocket.client} finished")
         except asyncio.CancelledError:
             logger.info(f"Sender task for {websocket.client} was cancelled.")
         except Exception as e:
