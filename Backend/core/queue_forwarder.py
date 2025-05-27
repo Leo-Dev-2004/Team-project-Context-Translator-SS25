@@ -13,21 +13,20 @@ logger = logging.getLogger(__name__)
 class QueueForwarder:
     def __init__(self):
         self._running = False
-        self._input_queue = None
-        self._output_queue = None
-        self._dead_letter_queue = None
+        # Initialisiere Queues direkt im Konstruktor
+        self._input_queue = get_from_frontend_queue()
+        self._output_queue = get_to_backend_queue()
+        self._dead_letter_queue = get_dead_letter_queue()
+
+        # Validiere Queues sofort
+        if None in (self._input_queue, self._output_queue, self._dead_letter_queue):
+            raise RuntimeError("Queues must be initialized during construction")
+        
+        logger.info("QueueForwarder initialized with all queues")
 
     async def initialize(self):
-        """Sichere Initialisierung mit Queue-Validierung"""
-        try:
-            self._input_queue = get_from_frontend_queue()
-            self._output_queue = get_to_backend_queue()
-            self._dead_letter_queue = get_dead_letter_queue()
-
-            if None in (self._input_queue, self._output_queue, self._dead_letter_queue):
-                raise RuntimeError("One or more queues not initialized")
-
-            logger.info("QueueForwarder queues verified")
+        """Bestätigt die Queue-Initialisierung (keine erneute Initialisierung mehr nötig)"""
+        logger.info("QueueForwarder queues already initialized")
         except Exception as e:
             logger.error(f"Failed to initialize QueueForwarder: {str(e)}")
             raise
@@ -35,12 +34,13 @@ class QueueForwarder:
     async def forward(self):
         """Hauptweiterleitungsschleife mit robustem Error-Handling"""
         self._running = True
-        logger.info("Starting QueueForwarder")
+        logger.info("Starting QueueForwarder with input=%s, output=%s",
+                  self._input_queue._name, self._output_queue._name)
 
         while self._running:
             try:
-                # Nachricht empfangen
-                message = await self._safe_dequeue(self._input_queue)
+                # Nachricht empfangen - keine None-Checks mehr nötig, da Queues garantiert initialisiert
+                message = await self._input_queue.dequeue()
                 if message is None:
                     await asyncio.sleep(0.1)
                     continue
