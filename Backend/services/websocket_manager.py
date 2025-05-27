@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
@@ -164,9 +165,12 @@ class WebSocketManager:
                         'type': message.type,
                         'data': message.data,
                         'timestamp': message.timestamp,
-                        'client_id': message.client_id, # Use validated client_id
-                        'processing_path': message_dict.get('processing_path', []),
-                        'forwarding_path': message_dict.get('forwarding_path', [])
+                        'client_id': message.client_id,
+                        'id': str(message.id) if hasattr(message, 'id') else str(uuid.uuid4()),
+                        'processing_path': getattr(message, '_trace', {}).get('processing_path', []),
+                        'forwarding_path': getattr(message, '_trace', {}).get('forwarding_path', []),
+                        'source': 'websocket',
+                        'status': 'pending'
                     }
                     
                     logger.info(f"Enqueuing valid message of type '{message.type}' from {websocket.client}")
@@ -346,7 +350,7 @@ class WebSocketManager:
         command = msg.data.get('command')
         if command == 'start_simulation':
             logger.info(f"Processing start_simulation command from {msg.client_id}")
-            await get_simulation_manager().start()
+            await get_simulation_manager().start(client_id=msg.client_id)
         elif command == 'stop_simulation':
             logger.info(f"Processing stop_simulation command from {msg.client_id}")
             await get_simulation_manager().stop()
