@@ -8,10 +8,9 @@ import uuid # Needed for generating IDs for new messages
 from typing import Optional, Dict, Any
 from pydantic import ValidationError # Needed for Pydantic model validation
 from ..queues.shared_queue import (
-    get_to_backend_queue,
-    get_to_frontend_queue,
-    get_dead_letter_queue,
-    get_from_frontend_queue  # Added missing import
+    get_to_backend_queue, # Correct input queue for MessageProcessor
+    get_to_frontend_queue, # Output queue for responses to frontend
+    get_dead_letter_queue # For handling unprocessable messages
 )
 from ..models.message_types import ProcessingPathEntry, WebSocketMessage # Ensure WebSocketMessage is imported
 from ..dependencies import get_simulation_manager # Assuming this dependency is used for commands
@@ -21,15 +20,10 @@ logger = logging.getLogger(__name__)
 class MessageProcessor:
     def __init__(self):
         self._running = False
-        self._processing_task = None
-        # Initialize queues directly
-        self._input_queue = get_from_frontend_queue()
-        self._output_queue = get_to_frontend_queue()
-        self._dead_letter_queue = get_dead_letter_queue()
-        
-        # Validate queues
-        if None in (self._input_queue, self._output_queue, self._dead_letter_queue):
-            raise RuntimeError("MessageProcessor queues not initialized correctly")
+        self._processing_task = None # To store the running task
+        self._input_queue = None
+        self._output_queue = None
+        self._dead_letter_queue = None
 
     async def initialize(self):
         """Sichere Initialisierung mit Queue-Validierung"""
@@ -47,6 +41,12 @@ class MessageProcessor:
             logger.error(f"Failed to initialize MessageProcessor: {str(e)}", exc_info=True)
             raise
 
+    def _get_input_queue_size(self):
+        """Returns the size of the input queue."""
+        if self._input_queue:
+            return self._input_queue.size()
+        return 0
+
     async def start(self):
         """Starts the main message processing loop as a background task."""
         if not self._running:
@@ -57,87 +57,54 @@ class MessageProcessor:
         else:
             logger.info("MessageProcessor already running.")
 
-    async def _process_messages(self):
-        """Main message processing loop"""
-        logger.info("Starting MessageProcessor main loop")
+    async def _process_messages(self): # Renamed from 'process'
+        """Main processing loop with robust error handling"""
+        logger.info("MessageProcessor main loop started.")
+        
+        processed_count = 0
+        last_log_time = time.time()
         
         while self._running:
             try:
+                if self._input_queue is None:
+                    logger.error("MessageProcessor input queue not initialized. Cannot process messages. message_processor; L64")
+                    await asyncio.sleep(1)
+                    continue
+
                 message = await self._input_queue.dequeue()
-                if message:
-                    await self._process_single_message(message)
-                else:
-                    await asyncio.sleep(0.1)  # Small delay if queue is empty
-                    
-            except asyncio.CancelledError:
-                logger.info("MessageProcessor stopped by cancellation")
-                break
-            except Exception as e:
-                logger.error(f"Error in processing loop: {e}", exc_info=True)
-                await asyncio.sleep(1)  # Backoff on errors
+                # --- ADDED 1-SECOND DELAY ---
+                await asyncio.sleep(1) # 1-second delay after dequeuing
+                logger.debug(f"MessageProcessor dequeued message {message.get('id', 'N/A')} of type '{message.get('type', 'N/A')}'. Delaying for 1s.")
+                # --- END ADDED DELAY ---
+
+                if message is None:
+                    await asyncio.sleep(0.1) # Small sleep if queue is empty
+                    continue
+
+                # Process message and get potential response
+                processed_and_response_msg = await self._process_single_message(message) # Delegate to new helper
+
+                # If _process_single_message generated a response, it would have enqueued it.
+                # This loop just continues to the next message.
+
+                processed_count += 1
                 
-        logger.info("MessageProcessor main loop ended")
+                # Periodic logging
+                if time.time() - last_log_time > 5:
+                    logger.info(f"Processed {processed_count} messages in the last 5 seconds.")
+                    last_log_time = time.time()
+                    processed_count = 0
 
-    async def _process_single_message(self, message: Dict) -> None:
-        """Process a single message with proper command handling"""
-        try:
-            if not isinstance(message, dict):
-                logger.error("Invalid message format")
-                await self._dead_letter_queue.enqueue({
-                    'error': 'invalid_message_format',
-                    'original': message
-                })
-                return
+            except asyncio.CancelledError:
+                logger.info("MessageProcessor task was cancelled gracefully.")
+                break # Exit the loop on cancellation
+            except Exception as e:
+                logger.error(f"Error during MessageProcessor main loop: {str(e)}", exc_info=True)
+                await asyncio.sleep(1)  # Backoff on errors
 
-            msg_type = message.get('type')
-            client_id = message.get('client_id', 'unknown')
+        logger.info("MessageProcessor main loop stopped.")
 
-            if msg_type == 'command':
-                command = message.get('data', {}).get('command')
-                logger.info(f"Processing command: {command} from {client_id}")
-
-                if command == 'start_simulation':
-                    # Get simulation manager instance
-                    manager = get_simulation_manager()
-                    await manager.start(client_id=client_id)
-                    
-                    # Send response
-                    response = {
-                        'type': 'simulation_status',
-                        'data': {
-                            'status': 'started',
-                            'client_id': client_id
-                        },
-                        'processing_path': message.get('processing_path', []) + ['message_processor']
-                    }
-                    await self._output_queue.enqueue(response)
-
-                elif command == 'stop_simulation':
-                    manager = get_simulation_manager()
-                    await manager.stop(client_id=client_id)
-                    
-                    response = {
-                        'type': 'simulation_status', 
-                        'data': {
-                            'status': 'stopped',
-                            'client_id': client_id
-                        },
-                        'processing_path': message.get('processing_path', []) + ['message_processor']
-                    }
-                    await self._output_queue.enqueue(response)
-
-            # Handle other message types if needed
-            else:
-                logger.debug(f"Forwarding message of type {msg_type}")
-                await self._output_queue.enqueue(message)
-
-        except Exception as e:
-            logger.error(f"Error processing message: {e}", exc_info=True)
-            await self._dead_letter_queue.enqueue({
-                'error': str(e),
-                'original': message,
-                'timestamp': time.time()
-            })
+    async def _process_single_message(self, message: Dict) -> Optional[Dict]:
         """Nachrichtenverarbeitungslogik für eine einzelne Nachricht"""
         response_message_dict = None # Initialize response to None
 
