@@ -1,56 +1,62 @@
+# Backend/models/message_types.py
+
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any # Added Any for Dict values
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 import time
+import uuid # <--- ADD THIS IMPORT!
 
 class QueueMessage(BaseModel):
     """Model for messages passing through internal queues"""
     type: str
-    data: Dict[str, Any] = Field(default_factory=dict) # Explicitly use Field for dict default
+    data: Dict[str, Any] = Field(default_factory=dict)
     timestamp: float = Field(default_factory=time.time)
-    processing_path: List[Dict[str, Any]] = Field(default_factory=list) # Ensure list is mutable default
-    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list) # Ensure list is mutable default
+    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
+    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
     
     class Config:
         json_encoders = {
             datetime: lambda v: v.timestamp()
         }
 
-# --- BaseMessage and derivatives are a bit unusual for WebSockets
-# --- Often, WebSocketMessage handles the 'type' and 'data' directly
-# --- I'm keeping them for now, but consider if they're strictly needed
-# --- or if WebSocketMessage can be the primary message model for all comms.
+# --- BaseMessage and derivatives ---
+# Keeping these as they are, but reiterating that WebSocketMessage is key for comms.
 class BaseMessage(BaseModel):
     type: str
-    timestamp: float = Field(default_factory=time.time) # Use Field for mutable default
-    status: str = "pending" # Default here is fine as it's immutable
-    processing_path: List[Dict[str, Any]] = Field(default_factory=list) # Ensure mutable default
-    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list) # Ensure mutable default
+    timestamp: float = Field(default_factory=time.time)
+    status: str = "pending"
+    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
+    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
 
 class SystemMessage(BaseMessage):
-    data: Dict[str, Any] # Changed from str to Any to match common usage
+    data: Dict[str, Any]
 
 class SimulationMessage(BaseMessage):
-    data: Dict[str, Any] # Changed from str to Any
+    data: Dict[str, Any]
 
 class FrontendMessage(BaseMessage):
-    data: Dict[str, Any] # Changed from str to Any
+    data: Dict[str, Any]
 
 class BackendProcessedMessage(BaseMessage):
-    data: Dict[str, Any] # Changed from str to Any
+    data: Dict[str, Any]
     progress: Optional[int] = None
 
 # --- This is your primary WebSocket Message Model ---
 class WebSocketMessage(BaseModel):
+    # <--- ADD THIS FIELD TO YOUR WebSocketMessage MODEL!
+    id: Optional[str] = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for the message"
+    )
     type: str = Field(
         ...,
         description="Message type is required (e.g. 'command', 'data', 'status')",
-        examples=["command", "data", "status"] # Changed 'example' to 'examples' for list, safer
+        examples=["command", "data", "status"]
     )
     data: Dict[str, Any] = Field(
         default_factory=dict,
         description="Message payload data",
-        examples=[{"command": "start_simulation"}, {"message": "Hello"}] # Changed 'example' to 'examples' for list
+        examples=[{"command": "start_simulation"}, {"message": "Hello"}]
     )
     timestamp: float = Field(
         default_factory=time.time,
@@ -59,15 +65,19 @@ class WebSocketMessage(BaseModel):
     client_id: Optional[str] = Field(
         None,
         description="Optional client identifier",
-        examples=["client_123", "another_client_id"] # Changed 'example' to 'examples' for list
+        examples=["client_123", "another_client_id"]
     )
     
+    # Internal tracing/routing information (optional, for backend message flow)
+    # Pydantic models can have attributes starting with '_' that are not part of schema
+    _trace: Dict[str, Any] = Field(default_factory=dict) # <--- Re-add if removed for tracing path details
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.timestamp()
         }
         schema_extra = {
-            "examples": [ # Use 'examples' for the list of model examples
+            "examples": [
                 {
                     "type": "command",
                     "data": {"command": "start_simulation"},

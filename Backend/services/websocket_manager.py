@@ -38,7 +38,7 @@ class WebSocketManager:
         trace_data = {}
         if hasattr(message, '_trace'):
             # Convert to dict if it's a Pydantic model
-            trace_data = message._trace.dict() if hasattr(message._trace, 'dict') else message._trace
+            trace_data = message._trace if message._trace is not None else {}
             if trace_data is None:
                 trace_data = {}
 
