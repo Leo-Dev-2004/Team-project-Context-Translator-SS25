@@ -130,11 +130,12 @@ class MessageProcessor:
             if not isinstance(processed_msg.get('processing_path'), list):
                 processed_msg['processing_path'] = []
             
-            # Add current processing step
+            # Add current processing step using ProcessingPathEntry
             processed_msg['processing_path'].append({
                 'processor': 'message_processor',
                 'timestamp': time.time(),
-                'status': 'processing'
+                'status': 'processing',
+                'completed_at': time.time()
             })
 
             # Add processing metadata

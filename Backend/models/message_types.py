@@ -4,15 +4,31 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import time
-import uuid # <--- ADD THIS IMPORT!
+import uuid
+
+class PathEntry(BaseModel):
+    """Base model for tracking message processing steps"""
+    processor: str
+    timestamp: float = Field(default_factory=time.time)
+    status: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+
+class ProcessingPathEntry(PathEntry):
+    """Model for processing path entries"""
+    completed_at: Optional[float] = None
+
+class ForwardingPathEntry(PathEntry):
+    """Model for forwarding path entries"""
+    from_queue: Optional[str] = None
+    to_queue: Optional[str] = None
 
 class QueueMessage(BaseModel):
     """Model for messages passing through internal queues"""
     type: str
     data: Dict[str, Any] = Field(default_factory=dict)
     timestamp: float = Field(default_factory=time.time)
-    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
-    forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
+    processing_path: List[ProcessingPathEntry] = Field(default_factory=list)
+    forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list)
     
     class Config:
         json_encoders = {
