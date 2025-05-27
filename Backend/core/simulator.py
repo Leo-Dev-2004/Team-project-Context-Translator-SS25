@@ -32,12 +32,14 @@ class SimulationManager:
         to_frontend_queue: MessageQueue,
         from_backend_queue: MessageQueue,
         from_frontend_queue: MessageQueue,
-        dead_letter_queue: MessageQueue # Added this in previous fix, keeping it.
+        dead_letter_queue: MessageQueue
     ):
         self._running = False
         self.running = False
         self.counter = 0
         self.task = None
+        self._autostart_enabled = False
+        self._autostart_task = None
         self._to_backend_queue = to_backend_queue
         self._to_frontend_queue = to_frontend_queue
         self._from_backend_queue = from_backend_queue
@@ -51,8 +53,11 @@ class SimulationManager:
 
     @is_ready.setter
     def is_ready(self, value: bool) -> None:
+        old_value = self._is_ready
         self._is_ready = value
-        logger.info(f"SimulationManager ready state set to: {value}")
+        logger.info(f"SimulationManager ready state changed from {old_value} to {value}")
+        if value and self._autostart_enabled and not self.is_running:
+            asyncio.create_task(self.start(client_id="autostart"))
 
     @property
     def is_running(self) -> bool:
@@ -106,6 +111,30 @@ class SimulationManager:
             "status": "started",
             "message": "Simulation messages will begin flowing through queues"
         }
+
+    def enable_autostart(self, enable: bool = True):
+        """Enable or disable automatic simulation start"""
+        self._autostart_enabled = enable
+        if enable and not self._autostart_task:
+            self._autostart_task = asyncio.create_task(self._autostart_check())
+        elif not enable and self._autostart_task:
+            self._autostart_task.cancel()
+            self._autostart_task = None
+        logger.info(f"Simulation autostart {'enabled' if enable else 'disabled'}")
+
+    async def _autostart_check(self):
+        """Periodically check if simulation should start automatically"""
+        while self._autostart_enabled:
+            try:
+                if self.is_ready and not self.is_running:
+                    logger.info("Autostart: Starting simulation")
+                    await self.start(client_id="autostart")
+                await asyncio.sleep(5)  # Check every 5 seconds
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Autostart check failed: {e}", exc_info=True)
+                await asyncio.sleep(5)
 
     async def stop(self, client_id: Optional[str] = None):
         """Stop the simulation"""
