@@ -34,15 +34,22 @@ class WebSocketManager:
         # this safely converts None to 'unknown'.
         client_id_str = message.client_id if message.client_id is not None else 'unknown'
 
+        # Safely get trace data from Pydantic model
+        trace_data = {}
+        if hasattr(message, '_trace'):
+            # Convert to dict if it's a Pydantic model
+            trace_data = message._trace.dict() if hasattr(message._trace, 'dict') else message._trace
+            if trace_data is None:
+                trace_data = {}
+
         return {
             'id': message_id,
             'type': message.type,
             'data': message.data,
             'timestamp': message.timestamp,
             'client_id': client_id_str,
-            # Ensure _trace and its keys are handled safely if they might be missing
-            'processing_path': getattr(message, '_trace', {}).get('processing_path', []),
-            'forwarding_path': getattr(message, '_trace', {}).get('forwarding_path', []),
+            'processing_path': trace_data.get('processing_path', []),
+            'forwarding_path': trace_data.get('forwarding_path', []),
             'source': source,
             'status': status
         }
