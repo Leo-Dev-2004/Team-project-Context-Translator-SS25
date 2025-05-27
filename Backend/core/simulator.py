@@ -82,9 +82,9 @@ class SimulationManager:
         
         self.running = True
         if background_tasks:
-            self.task = background_tasks.add_task(self._run_simulation)
+            self.task = background_tasks.add_task(self._run_simulation, client_id)
         else:
-            self.task = asyncio.create_task(self._run_simulation())
+            self.task = asyncio.create_task(self._run_simulation(client_id))
             
         system_msg = {
             "type": "system",
@@ -142,7 +142,7 @@ class SimulationManager:
             }
         }
 
-    async def _run_simulation(self):
+    async def _run_simulation(self, client_id: Optional[str] = None):
         """Internal simulation task"""
         logger.info("Simulation task starting")
         
