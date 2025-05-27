@@ -27,26 +27,23 @@ class WebSocketManager:
         """Constructs a dictionary formatted for internal MessageQueue usage.
         Ensures all required fields for queue validation are present.
         """
-        # Ensure message.id is a string or generate a new one
-        message_id = str(message.id) if hasattr(message, 'id') and message.id else str(uuid.uuid4())
+        # Convert Pydantic model to dict first
+        message_dict = message.dict(exclude_unset=True)
         
-        # Ensure client_id is always a string. If msg.client_id is Optional[str],
-        # this safely converts None to 'unknown'.
-        client_id_str = message.client_id if message.client_id is not None else 'unknown'
+        # Ensure message.id is a string or generate a new one
+        message_id = str(message_dict.get('id', uuid.uuid4()))
+        
+        # Ensure client_id is always a string
+        client_id_str = message_dict.get('client_id', 'unknown')
 
-        # Safely get trace data from Pydantic model
-        trace_data = {}
-        if hasattr(message, '_trace'):
-            # Convert to dict if it's a Pydantic model
-            trace_data = message._trace if message._trace is not None else {}
-            if trace_data is None:
-                trace_data = {}
-
+        # Get trace data from the converted dict
+        trace_data = message_dict.get('_trace', {})
+        
         return {
             'id': message_id,
-            'type': message.type,
-            'data': message.data,
-            'timestamp': message.timestamp,
+            'type': message_dict['type'],
+            'data': message_dict['data'],
+            'timestamp': message_dict.get('timestamp', time.time()),
             'client_id': client_id_str,
             'processing_path': trace_data.get('processing_path', []),
             'forwarding_path': trace_data.get('forwarding_path', []),

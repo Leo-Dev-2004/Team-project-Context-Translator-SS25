@@ -50,7 +50,18 @@ class QueueForwarder:
                     logger.warning(f"Invalid message format: {message}")
                     continue
 
-                # Nachricht weiterleiten oder an Dead-Letter-Queue
+                # Update forwarding path
+                forwarding_step = {
+                    'forwarder': 'queue_forwarder',
+                    'timestamp': time.time(),
+                    'from_queue': self._input_queue._name,
+                    'to_queue': self._output_queue._name
+                }
+                if 'forwarding_path' not in message:
+                    message['forwarding_path'] = []
+                message['forwarding_path'].append(forwarding_step)
+
+                # Forward message or send to dead letter queue
                 if not await self._safe_enqueue(self._output_queue, message):
                     logger.warning("Message forwarding failed, sending to dead letter queue")
                     await self._safe_enqueue(self._dead_letter_queue, {

@@ -116,12 +116,15 @@ class MessageProcessor:
             message.setdefault('processing_path', [])
             message.setdefault('forwarding_path', [])
 
-            # Update processing path
-            message['processing_path'].append({
+            # Update processing path with current step
+            processing_step = {
                 'processor': 'message_processor',
                 'timestamp': time.time(),
                 'status': 'processing'
-            })
+            }
+            if 'processing_path' not in message:
+                message['processing_path'] = []
+            message['processing_path'].append(processing_step)
 
             # Add processing metadata
             message['status'] = 'processed'

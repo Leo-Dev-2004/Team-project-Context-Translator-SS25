@@ -68,9 +68,15 @@ class WebSocketMessage(BaseModel):
         examples=["client_123", "another_client_id"]
     )
     
-    # Internal tracing/routing information (optional, for backend message flow)
-    # Pydantic models can have attributes starting with '_' that are not part of schema
-    _trace: Dict[str, Any] = Field(default_factory=dict) # <--- Re-add if removed for tracing path details
+    # Internal tracing/routing information
+    processing_path: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Tracking of processing steps the message has gone through"
+    )
+    forwarding_path: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Tracking of queue forwarding steps the message has taken"
+    )
 
     class Config:
         json_encoders = {
