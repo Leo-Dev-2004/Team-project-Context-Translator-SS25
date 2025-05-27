@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import time
-from typing import Optional, Dict
+import uuid
+from typing import Optional, Dict, List, Any
 from ..queues.shared_queue import (
     get_to_backend_queue,
     get_from_backend_queue,
@@ -104,26 +105,49 @@ class MessageProcessor:
             return False
 
     async def _process_message(self, message: Dict) -> Optional[Dict]:
-        """Nachrichtenverarbeitungslogik"""
+        """Nachrichtenverarbeitungslogik mit vollständiger Pfadverfolgung"""
         try:
             if not isinstance(message, dict):
                 raise ValueError("Invalid message format")
-                
+
+            # Ensure required fields exist
+            message.setdefault('id', str(uuid.uuid4()))
+            message.setdefault('client_id', 'unknown')
+            message.setdefault('processing_path', [])
+            message.setdefault('forwarding_path', [])
+
+            # Update processing path
+            message['processing_path'].append({
+                'processor': 'message_processor',
+                'timestamp': time.time(),
+                'status': 'processing'
+            })
+
             # Add processing metadata
             message['status'] = 'processed'
             message['processed_at'] = time.time()
-            
-            # Create frontend notification
+
+            # Update processing path with completion
+            message['processing_path'][-1]['status'] = 'completed'
+            message['processing_path'][-1]['completed_at'] = time.time()
+
+            # Create comprehensive frontend notification
             frontend_msg = {
                 'type': 'status_update',
                 'data': {
                     'original_id': message.get('id'),
                     'original_type': message.get('type'),
                     'status': 'processed',
+                    'processing_path': message.get('processing_path', []),
+                    'forwarding_path': message.get('forwarding_path', []),
                     'timestamp': time.time()
-                }
+                },
+                'id': str(uuid.uuid4()),
+                'client_id': message.get('client_id'),
+                'processing_path': [],
+                'forwarding_path': []
             }
-            
+
             # Forward both the processed message and notification
             await self._safe_enqueue(self._frontend_queue, frontend_msg)
             return message
