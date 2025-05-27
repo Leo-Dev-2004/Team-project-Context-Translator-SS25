@@ -146,6 +146,7 @@ class WebSocketManager:
                     logger.error(f"Invalid message format in sender: {e.errors()}\nOriginal message: {message}")
                     # Convert to error message to send to frontend
                     ws_msg = WebSocketMessage(
+                        client_id=message.get('client_id', 'unknown'),
                         type="error",
                         data={
                             "error": "invalid_message_format",
@@ -201,25 +202,29 @@ class WebSocketManager:
                         
                         required_fields = ['type', 'data']
                         missing_fields = [field for field in required_fields if field not in message_dict]
-                    if missing_fields:
-                        await self._send_error(websocket, f"Missing required fields: {', '.join(missing_fields)}")
-                        continue
+                        if missing_fields:
+                            await self._send_error(websocket, f"Missing required fields: {', '.join(missing_fields)}")
+                            continue
 
-                    try:
-                        message = WebSocketMessage.parse_obj(message_dict)
-                        # Ensure client_id is set if not provided by the client, using websocket info
-                        # This line guarantees message.client_id is a string (or 'unknown') after this point
-                        message.client_id = message.client_id if message.client_id is not None else str(websocket.client) 
-                    except ValidationError as e:
-                        error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-                        await self._send_error(websocket, f"Validation failed: {error_details}")
-                        continue
+                        try:
+                            message = WebSocketMessage.parse_obj(message_dict)
+                            # Ensure client_id is set if not provided by the client, using websocket info
+                            # This line guarantees message.client_id is a string (or 'unknown') after this point
+                            message.client_id = message.client_id if message.client_id is not None else str(websocket.client) 
+                        except ValidationError as e:
+                            error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
+                            await self._send_error(websocket, f"Validation failed: {error_details}")
+                            continue
 
-                    # Use the helper to create the queue message, with source='websocket'
-                    queue_msg = self._create_queue_message(message, source='websocket', status='pending')
-                    
-                    logger.info(f"Enqueuing valid message of type '{message.type}' from {websocket.client}")
-                    await get_from_frontend_queue().enqueue(queue_msg)
+                        # Use the helper to create the queue message, with source='websocket'
+                        queue_msg = self._create_queue_message(message, source='websocket', status='pending')
+                        
+                        logger.info(f"Enqueuing valid message of type '{message.type}' from {websocket.client}")
+                        await get_from_frontend_queue().enqueue(queue_msg)
+                    except Exception as e:
+                        logger.error(f"Error processing received message: {e}", exc_info=True)
+                        await self._send_error(websocket, "Error processing message")
+                        continue
                 
                 except Exception as e:
                     logger.error(f"Receive/processing error for {websocket.client}: {e}", exc_info=True)
