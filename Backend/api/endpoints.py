@@ -1,15 +1,17 @@
 # Backend/api/endpoints.py
+
 from fastapi import APIRouter, WebSocket, BackgroundTasks, Depends, HTTPException
 import asyncio
-from fastapi.websockets import WebSocketDisconnect
-import asyncio
+from fastapi.websockets import WebSocketDisconnect, WebSocketState
 import logging
 import time
-import json # Ensure json is imported
-from typing import Optional
+import json
+from typing import Optional, Any # Ensure Any is imported
 
-from fastapi.websockets import WebSocketState
+# Ensure BaseModel is imported for type checking
+from pydantic import BaseModel
 
+# Ensure these imports are correct based on your file structure
 from ..core.simulator import SimulationManager
 from ..queues.shared_queue import (
     get_to_backend_queue,
@@ -19,7 +21,7 @@ from ..queues.shared_queue import (
     get_dead_letter_queue
 )
 from ..services.websocket_manager import WebSocketManager
-from ..models.message_types import WebSocketMessage # Import WebSocketMessage for clearer type hints if needed
+from ..models.message_types import WebSocketMessage
 
 # IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
 from ..dependencies import get_simulation_manager
@@ -28,7 +30,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 ws_manager = WebSocketManager()
 
-
+# --- FIX: Move forward_messages_to_websocket definition here, BEFORE websocket_endpoint ---
 async def forward_messages_to_websocket(websocket: WebSocket, queue):
     """Continuously forward messages from queue to websocket."""
     try:
@@ -36,27 +38,25 @@ async def forward_messages_to_websocket(websocket: WebSocket, queue):
             message = await queue.dequeue()
             if message:
                 try:
-                    # Ensure message is a plain dictionary before sending.
-                    # This handles cases where the message might be a Pydantic model instance.
-                    if isinstance(message, WebSocketMessage): # Check specifically for your Pydantic model
-                        message_to_send = message.model_dump(mode='json') # Use model_dump for Pydantic v2
-                    elif isinstance(message, dict): # Already a dict
+                    if isinstance(message, WebSocketMessage):
+                        message_to_send = message.model_dump(mode='json')
+                    elif isinstance(message, dict):
                         message_to_send = message
                     else:
                         logger.error(f"Cannot serialize message of type {type(message)} from queue for WebSocket: {message}")
-                        continue # Skip sending malformed message
-
-                    # Use send_text with json.dumps for consistency with WebSocketManager.
+                        continue
+                    
                     await websocket.send_text(json.dumps(message_to_send))
                     logger.debug(f"Forwarded message from queue to client: {message_to_send.get('type')}")
                 except Exception as e:
                     logger.error(f"Failed to send message from queue to websocket ({websocket.client}): {e}", exc_info=True)
-                    break # Break if sending fails, likely connection issue
-            await asyncio.sleep(0.01) # Reduce sleep slightly to 10ms to be more responsive if queues are busy
+                    break
+            await asyncio.sleep(0.01)
     except asyncio.CancelledError:
         logger.info(f"Message forwarding task for {websocket.client} cancelled.")
     except Exception as e:
         logger.error(f"Message forwarding task for {websocket.client} failed: {e}", exc_info=True)
+# --- END FIX ---
 
 
 @router.get("/")
@@ -71,11 +71,12 @@ async def health_check():
 async def get_metrics():
     return ws_manager.get_metrics()
 
-async def start_simulation(
+async def start_simulation_helper(
+    client_id: str,
     background_tasks: Optional[BackgroundTasks],
     manager: SimulationManager
 ):
-    """Internal function to start simulation, now called from WebSocket handler"""
+    """Internal function to start simulation, now called from WebSocket handler or API endpoint."""
     if not manager.is_ready:
         logger.error("SimulationManager not ready")
         return {
@@ -91,8 +92,8 @@ async def start_simulation(
         }
 
     try:
-        logger.info("Initiating simulation start")
-        response = await manager.start(background_tasks)
+        logger.info(f"Initiating simulation start for client: {client_id}")
+        response = await manager.start(client_id=client_id, background_tasks=background_tasks)
         logger.info(f"Simulation started successfully: {response}")
         return response
     except Exception as e:
@@ -102,18 +103,28 @@ async def start_simulation(
             "message": f"Failed to start simulation: {str(e)}"
         }
 
-async def stop_simulation(manager: SimulationManager):
-    """Internal function to stop simulation, now called from WebSocket handler"""
-    logger.info("Received stop simulation command")
-    return await manager.stop()
+async def stop_simulation_helper(
+    manager: SimulationManager,
+    client_id: Optional[str] = None
+):
+    """Internal function to stop simulation, now called from WebSocket handler or API endpoint."""
+    logger.info(f"Received stop simulation command for client: {client_id}")
+    # This call relies on manager.stop being updated in Backend/core/simulator.py
+    return await manager.stop(client_id=client_id)
+
 
 @router.post("/simulation/start")
 async def start_simulation_endpoint(
+    client_id: str,
     background_tasks: BackgroundTasks,
     manager: SimulationManager = Depends(get_simulation_manager)
 ):
-    """Endpoint to start the simulation"""
-    return await start_simulation(background_tasks, manager)
+    """Endpoint to start the simulation via API call."""
+    return await start_simulation_helper(
+        client_id=client_id,
+        background_tasks=background_tasks,
+        manager=manager
+    )
 
 @router.get("/simulation/status")
 async def simulation_status(
@@ -124,35 +135,35 @@ async def simulation_status(
 @router.get("/queues/debug")
 async def debug_queues():
     """Debug endpoint to show detailed queue contents"""
-    def format_queue_item_details(item) -> dict: # Removed dict type hint for 'item'
+    def format_queue_item_details(item: Any) -> dict:
         """Helper to format individual queue item details for consistent output."""
-        # If item is a Pydantic model, convert it to dict first
-        if isinstance(item, WebSocketMessage): # Check specifically for your Pydantic model
-            item = item.model_dump(mode='json') # Use model_dump for Pydantic v2
+        if isinstance(item, BaseModel):
+            item_dict = item.model_dump(mode='json')
         elif isinstance(item, dict):
-            pass # Already a dict
+            item_dict = item
         else:
-            logger.warning(f"Debug queue item is not a dict or WebSocketMessage: {type(item)}")
-            return {"type": "unknown", "message": f"Non-dict/WebSocketMessage item: {str(item)}"}
-
+            logger.warning(f"Debug queue item is not a dict or BaseModel: {type(item)}")
+            return {"type": "unknown", "message": f"Non-dict/BaseModel item: {str(item)}"}
 
         details = {
-            "type": item.get('type', 'unknown'),
-            "timestamp": item.get('timestamp'),
-            "processing_path": item.get('processing_path', []),
-            "forwarding_path": item.get('forwarding_path', []),
-            # Use json.dumps to estimate size, handle potential non-serializable data gracefully
-            "size_bytes": len(json.dumps(item)) if isinstance(item, dict) else 0 # Ensure it's a dict for dumps
+            "type": item_dict.get('type', 'unknown'),
+            "timestamp": item_dict.get('timestamp'),
+            "processing_path": item_dict.get('processing_path', []),
+            "forwarding_path": item_dict.get('forwarding_path', []),
+            "size_bytes": len(json.dumps(item_dict))
         }
-        if 'data' in item:
-            data = item['data']
+        if 'data' in item_dict:
+            data = item_dict['data']
             details.update({
                 "id": data.get('id'),
                 "status": data.get('status'),
                 "progress": data.get('progress'),
                 "message": data.get('message') or data.get('content')
             })
+        elif 'id' in item_dict:
+            details["id"] = item_dict.get('id')
         return details
+
 
     return {
         "to_frontend_queue": {
@@ -176,85 +187,74 @@ async def debug_queues():
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """Handle WebSocket connections with proper error handling and cleanup."""
-    # FIX: Initialize forwarder_task to None to prevent unbound variable warning
     forwarder_task = None
     try:
         await websocket.accept()
-        # Start queue forwarder task for this connection
+        # --- FIX: forward_messages_to_websocket is now defined above ---
         forwarder_task = asyncio.create_task(
             forward_messages_to_websocket(websocket, get_to_frontend_queue())
         )
         logger.info(f"WebSocket connection established from {websocket.client}")
 
-        # Register connection with WebSocketManager IMMEDIATELY after accept
-        # ws_manager will handle sending the connection_ack and managing send/receive loops
         await ws_manager.handle_connection(websocket)
 
-        # Get simulation manager instance
         manager = get_simulation_manager(require_ready=False)
 
-        # Main connection loop for receiving messages.
-        # Note: The ws_manager._receiver task also listens for messages.
-        # This loop in endpoints.py might be redundant if ws_manager._receiver is robust.
-        # If ws_manager._receiver is indeed handling all incoming messages,
-        # you can remove this outer while True loop and the receive_text logic here.
-        # For now, let's assume it's still needed for some direct command handling.
         while True:
             try:
-                # Attempt to receive a message with a timeout
                 data = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=30.0 # Timeout for receiving messages (client inactivity)
+                    timeout=30.0
                 )
 
-                # Process received message
-                # data is guaranteed to be a string here due to websocket.receive_text()
                 try:
                     message_from_client = json.loads(data)
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from {websocket.client}: {data}")
                     await ws_manager._send_error(websocket, f"Invalid JSON format: {data[:50]}...")
-                    continue # Continue to next message
+                    continue
 
-                # Handle ping/pong (client-side ping handling, server can respond with pong)
                 if message_from_client.get('type') == 'ping':
-                    # Use send_text with json.dumps for pong response consistency
-                    await websocket.send_text(json.dumps({
-                        "type": "pong",
-                        "timestamp": time.time()
-                    }))
+                    await websocket.send_text(json.dumps({"type": "pong", "timestamp": time.time()}))
                     logger.debug(f"Responded with pong to {websocket.client}.")
-                    continue # Don't forward ping/pong messages to ws_manager.handle_message
+                    continue
+
+                try:
+                    ws_message = WebSocketMessage.parse_obj(message_from_client)
+                    ws_message.client_id = ws_message.client_id or str(websocket.client)
+                except Exception as e:
+                    logger.error(f"Validation error for incoming WebSocket message: {e}", exc_info=True)
+                    await ws_manager._send_error(websocket, f"Invalid message structure: {str(e)}")
+                    continue
 
 
-                # Handle specific command messages directly in endpoints if needed,
-                # otherwise forward all to ws_manager.handle_message
-                if message_from_client.get('type') == 'command':
-                    command = message_from_client.get('data', {}).get('command') # Access command from data
+                if ws_message.type == 'command':
+                    command = ws_message.data.get('command')
                     if command == 'start_simulation':
-                        logger.info(f"Received start_simulation command via WebSocket from {websocket.client}")
-                        await start_simulation(background_tasks=None, manager=manager)
+                        logger.info(f"Received start_simulation command via WebSocket from {ws_message.client_id}")
+                        await start_simulation_helper(
+                            client_id=ws_message.client_id,
+                            background_tasks=None,
+                            manager=manager
+                        )
                     elif command == 'stop_simulation':
-                        logger.info(f"Received stop_simulation command via WebSocket from {websocket.client}")
-                        await stop_simulation(manager=manager)
+                        logger.info(f"Received stop_simulation command via WebSocket from {ws_message.client_id}")
+                        await stop_simulation_helper(
+                            manager=manager,
+                            client_id=ws_message.client_id
+                        )
                     else:
-                        logger.warning(f"Unknown command received: {command} from {websocket.client}")
+                        logger.warning(f"Unknown command received: {command} from {ws_message.client_id}")
                         await ws_manager._send_error(websocket, f"Unknown command: {command}")
                 else:
-                    # Forward other messages to WebSocketManager for central processing
-                    # ws_manager.handle_message expects raw_data (string) to parse.
                     await ws_manager.handle_message(websocket, data)
 
-
             except asyncio.TimeoutError:
-                # If no message from client for 30s, this is expected.
-                # Your WebSocketManager already sends pings periodically from the server side.
                 logger.debug(f"No message from {websocket.client} for 30s (client inactivity timeout).")
-                continue # Continue to next receive loop
+                continue
 
             except Exception as e:
                 logger.error(f"WebSocket receive/process error for {websocket.client}: {e}", exc_info=True)
-                # If an error occurs here, break the loop to close the connection
                 break
 
     except WebSocketDisconnect:
@@ -262,15 +262,10 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"Unexpected WebSocket error for {websocket.client} in /ws endpoint: {str(e)}", exc_info=True)
     finally:
-        # Cancel the forwarder task on disconnect/error
         if forwarder_task and not forwarder_task.done():
             forwarder_task.cancel()
             try:
-                await forwarder_task # Await cancellation
+                await forwarder_task
             except asyncio.CancelledError:
                 pass
-
-        # The ws_manager.handle_connection method (which was awaited) takes responsibility
-        # for closing the websocket and cleaning up its internal tasks (sender/receiver).
-        # Therefore, we should NOT call `websocket.close()` or `ws_manager._cleanup_connection` here again.
         logger.info(f"Cleanup finished for {websocket.client} at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.")

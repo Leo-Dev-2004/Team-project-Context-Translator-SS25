@@ -12,7 +12,8 @@ from Backend.queues.shared_queue import (
     get_to_backend_queue,
     get_from_backend_queue,
     get_to_frontend_queue,
-    get_from_frontend_queue
+    get_from_frontend_queue,
+    get_dead_letter_queue
 )
 
 # Import the SimulationManager class (for type hinting and instantiation)
@@ -102,6 +103,7 @@ async def startup_event():
     from_backend_q = queues["from_backend"] 
     to_frontend_q = queues["to_frontend"]
     from_frontend_q = queues["from_frontend"]
+    dead_letter_q = get_dead_letter_queue()  # Use the function to get the dead letter queue
     logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
 
     # 3. Initialize the SimulationManager with all required queues
@@ -109,7 +111,8 @@ async def startup_event():
         to_backend_queue=to_backend_q,
         to_frontend_queue=to_frontend_q,
         from_backend_queue=from_backend_q,
-        from_frontend_queue=from_frontend_q
+        from_frontend_queue=from_frontend_q,
+        dead_letter_queue=dead_letter_q
     )
     # Ensure the manager is properly initialized
     if not hasattr(current_sim_manager, 'is_ready'):

@@ -116,12 +116,15 @@ function sendTestMessage() {
     const testMessage = {
         type: 'test_message',
         data: {
-            text: `Hello from frontend! (Timestamp: ${new Date().toLocaleTimeString()})`
+            text: `Hello from frontend! (Timestamp: ${new Date().toLocaleTimeString()})`,
+            value: 123
         },
         timestamp: Date.now()
     };
+    console.log("DEBUG: Prepared test message:", testMessage); // <--- ADD THIS
     webSocketManagerInstance.sendMessage(testMessage); // Use the manager instance
-    console.log('DEBUG: Test message sent to backend');
+    console.log("DEBUG: sendTestMessage completed, message passed to WebSocketManager."); // <--- ADD THIS
+    
     updateSystemLog('Sent Test Message to Backend');
 }
 

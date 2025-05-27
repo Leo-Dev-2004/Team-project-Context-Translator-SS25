@@ -1,32 +1,36 @@
-# Backend/models/message_types.py
-
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import time
 import uuid
 
-class PathEntry(BaseModel):
-    """Base model for tracking message processing steps"""
+# --- REVISED: PathEntry and its derivatives to match the expected dictionary structure ---
+class ProcessingPathEntry(BaseModel):
+    """Model for entries in the processing_path list."""
+    # 'processor' is the key used in your MessageProcessor
     processor: str
     timestamp: float = Field(default_factory=time.time)
     status: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
+    completed_at: Optional[float] = None # This was in your log output for processed messages
+    # 'details' could be added here if you need more structured custom data beyond status/completed_at
 
-class ProcessingPathEntry(PathEntry):
-    """Model for processing path entries"""
-    completed_at: Optional[float] = None
+class ForwardingPathEntry(BaseModel):
+    """Model for entries in the forwarding_path list."""
+    # 'processor' is likely the key you'll use in QueueForwarder (or a similar descriptive name)
+    processor: str
+    timestamp: float = Field(default_factory=time.time)
+    status: Optional[str] = None
+    from_queue: Optional[str] = None # Matches the 'from_queue' key from your log
+    to_queue: Optional[str] = None   # Matches the 'to_queue' key from your log
 
-class ForwardingPathEntry(PathEntry):
-    """Model for forwarding path entries"""
-    from_queue: Optional[str] = None
-    to_queue: Optional[str] = None
+# --- END REVISED PathEntry Models ---
 
 class QueueMessage(BaseModel):
     """Model for messages passing through internal queues"""
     type: str
     data: Dict[str, Any] = Field(default_factory=dict)
     timestamp: float = Field(default_factory=time.time)
+    # UPDATED: Use the specific PathEntry models
     processing_path: List[ProcessingPathEntry] = Field(default_factory=list)
     forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list)
     
@@ -35,13 +39,14 @@ class QueueMessage(BaseModel):
             datetime: lambda v: v.timestamp()
         }
 
-# --- BaseMessage and derivatives ---
-# Keeping these as they are, but reiterating that WebSocketMessage is key for comms.
+# --- BaseMessage and derivatives (Kept as is, no changes needed here for the current problem) ---
 class BaseMessage(BaseModel):
     type: str
     timestamp: float = Field(default_factory=time.time)
     status: str = "pending"
-    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
+    # Keeping these as List[Dict[str, Any]] for BaseMessage if you need that flexibility for inherited models
+    # However, for specific types like WebSocketMessage and QueueMessage, it's better to use the defined Pydantic models.
+    processing_path: List[Dict[str, Any]] = Field(default_factory=list) 
     forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
 
 class SystemMessage(BaseMessage):
@@ -57,9 +62,8 @@ class BackendProcessedMessage(BaseMessage):
     data: Dict[str, Any]
     progress: Optional[int] = None
 
-# --- This is your primary WebSocket Message Model ---
+# --- Your primary WebSocket Message Model ---
 class WebSocketMessage(BaseModel):
-    # <--- ADD THIS FIELD TO YOUR WebSocketMessage MODEL!
     id: Optional[str] = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique identifier for the message"
@@ -84,14 +88,14 @@ class WebSocketMessage(BaseModel):
         examples=["client_123", "another_client_id"]
     )
     
-    # Message routing and processing tracking
-    processing_path: List[str] = Field(
+    # UPDATED: Use the specific PathEntry models for WebSocketMessage
+    processing_path: List[ProcessingPathEntry] = Field(
         default_factory=list,
-        description="Tracking of processing steps (e.g. ['message_processor', 'queue_forwarder'])"
+        description="Tracking of processing steps"
     )
-    forwarding_path: List[str] = Field(
+    forwarding_path: List[ForwardingPathEntry] = Field(
         default_factory=list,
-        description="Tracking of queue forwarding steps (e.g. ['from_frontend', 'to_backend'])"
+        description="Tracking of queue forwarding steps"
     )
     _trace: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
