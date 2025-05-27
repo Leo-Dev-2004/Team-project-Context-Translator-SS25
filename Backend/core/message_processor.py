@@ -8,9 +8,10 @@ import uuid # Needed for generating IDs for new messages
 from typing import Optional, Dict, Any
 from pydantic import ValidationError # Needed for Pydantic model validation
 from ..queues.shared_queue import (
-    get_to_backend_queue, # Correct input queue for MessageProcessor
-    get_to_frontend_queue, # Output queue for responses to frontend
-    get_dead_letter_queue # For handling unprocessable messages
+    get_to_backend_queue,
+    get_to_frontend_queue,
+    get_dead_letter_queue,
+    get_from_frontend_queue  # Added missing import
 )
 from ..models.message_types import ProcessingPathEntry, WebSocketMessage # Ensure WebSocketMessage is imported
 from ..dependencies import get_simulation_manager # Assuming this dependency is used for commands
