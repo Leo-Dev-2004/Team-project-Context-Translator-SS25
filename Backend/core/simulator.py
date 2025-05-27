@@ -181,10 +181,12 @@ class SimulationManager:
             
             # Create simplified frontend notification
             frontend_msg = {
-                "type": "simulation_update",
+                "type": "simulation_status",
                 "data": {
                     "id": f"sim_{self.counter}",
-                    "status": "generated",
+                    "status": "running",
+                    "progress": self.counter,
+                    "client_id": client_id,
                     "timestamp": time.time()
                 }
             }

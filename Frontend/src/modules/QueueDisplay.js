@@ -71,9 +71,16 @@ function updateQueueDisplay(queue, elementId) {
 
     itemsToDisplay.forEach(message => {
         const data = message.data || {};
-        const id = message.id || data.id || data.original_id || 'N/A'; // Use message.id first for consistency
-        const type = message.type || 'unknown';
-        const status = data.status || 'N/A';
+        let id = message.id || data.id || data.original_id || 'N/A';
+        let type = message.type || 'unknown';
+        let status = data.status || 'N/A';
+            
+        // Special handling for command messages
+        if (type === 'command') {
+            type = `command: ${data.command || 'N/A'}`;
+            id = data.client_id || 'N/A';
+            status = 'pending';
+        }
 
         const timestamp = message.timestamp ? new Date(message.timestamp * 1000).toLocaleTimeString() : 'N/A';
         const itemElement = document.createElement('div');
