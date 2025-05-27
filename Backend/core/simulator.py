@@ -63,9 +63,18 @@ class SimulationManager:
         self.running = value  # Keep public attribute in sync
         logger.info(f"Simulation running state set to: {value}")
 
-    async def start(self, background_tasks: Optional[BackgroundTasks] = None):
+    async def start(self, background_tasks: Optional[BackgroundTasks] = None, client_id: Optional[str] = None):
         """Start the simulation"""
         if self.running:
+            status_msg = {
+                "type": "simulation_status", 
+                "data": {
+                    "status": "already_running",
+                    "client_id": client_id
+                },
+                "timestamp": time.time()
+            }
+            await self._to_frontend_queue.enqueue(status_msg)
             return {"status": "already running"}
         
         await self._to_backend_queue.clear()
