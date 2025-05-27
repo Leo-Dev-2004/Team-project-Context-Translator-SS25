@@ -200,7 +200,7 @@ class WebSocketManager:
                             message_dict['data'] = {}
                         
                         required_fields = ['type', 'data']
-                    missing_fields = [field for field in required_fields if field not in message_dict]
+                        missing_fields = [field for field in required_fields if field not in message_dict]
                     if missing_fields:
                         await self._send_error(websocket, f"Missing required fields: {', '.join(missing_fields)}")
                         continue
