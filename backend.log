@@ -10817,3 +10817,265 @@ RuntimeError: Cannot call "receive" once a disconnect message has been received.
 2025-05-27 11:50:26,645 - INFO - Connection cleanup completed for 127.0.0.1:37972. Remaining connections: 0
 2025-05-27 11:50:26,645 - INFO - Cleanup finished for connection: 127.0.0.1:37972. Total connections: 0
 2025-05-27 11:50:26,645 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37972) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:57:26,822 - INFO - Application startup event triggered.
+2025-05-27 11:57:26,822 - INFO - Initializing all queues...
+2025-05-27 11:57:26,822 - INFO - All queues initialized on loop 1034841632
+2025-05-27 11:57:26,822 - INFO - Shared queues initialized.
+2025-05-27 11:57:26,822 - INFO - Retrieved queue instances. Event loop ID: 1034841632
+2025-05-27 11:57:26,822 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:57:26,822 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:57:26,823 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:57:26,823 - INFO - MessageProcessor task started.
+2025-05-27 11:57:26,823 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:57:26,823 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:57:26,823 - INFO - QueueForwarder task started.
+2025-05-27 11:57:26,823 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:57:26,823 - INFO - Starting MessageProcessor main loop
+2025-05-27 11:57:26,823 - INFO - MessageProcessor main loop ended
+2025-05-27 11:57:26,823 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:57:28,231 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=38092)
+2025-05-27 11:57:28,231 - INFO - Adding connection: 127.0.0.1:38092. Total connections: 1
+2025-05-27 11:57:28,232 - INFO - Sent connection_ack to 127.0.0.1:38092
+2025-05-27 11:57:28,233 - INFO - Sender task started for 127.0.0.1:38092
+2025-05-27 11:57:28,233 - INFO - Receiver task started for 127.0.0.1:38092
+2025-05-27 11:57:28,237 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:38092
+2025-05-27 11:57:30,851 - INFO - WebSocket disconnected from 127.0.0.1:38092 while receiving: Code 1001
+2025-05-27 11:57:30,852 - INFO - Receiver task for 127.0.0.1:38092 finished.
+2025-05-27 11:57:31,527 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=46354)
+2025-05-27 11:57:31,528 - INFO - Adding connection: 127.0.0.1:46354. Total connections: 2
+2025-05-27 11:57:31,529 - INFO - Sent connection_ack to 127.0.0.1:46354
+2025-05-27 11:57:31,530 - INFO - Sender task started for 127.0.0.1:46354
+2025-05-27 11:57:31,530 - INFO - Receiver task started for 127.0.0.1:46354
+2025-05-27 11:57:31,535 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:46354
+2025-05-27 11:57:56,536 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:46354
+2025-05-27 11:58:10,475 - INFO - WebSocket disconnected from 127.0.0.1:46354 while receiving: Code 1001
+2025-05-27 11:58:10,475 - INFO - Receiver task for 127.0.0.1:46354 finished.
+2025-05-27 12:00:44,021 - INFO - Sender task for 127.0.0.1:46354 was cancelled normally.
+2025-05-27 12:00:44,021 - INFO - Sender task for 127.0.0.1:46354 finished.
+2025-05-27 12:00:44,021 - INFO - Sender task for 127.0.0.1:38092 was cancelled normally.
+2025-05-27 12:00:44,022 - INFO - Sender task for 127.0.0.1:38092 finished.
+2025-05-27 12:00:44,022 - INFO - Application shutdown event triggered.
+2025-05-27 12:00:44,022 - INFO - Stopping MessageProcessor...
+2025-05-27 12:00:44,022 - INFO - MessageProcessor was not running.
+2025-05-27 12:00:44,022 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 12:00:44,022 - INFO - All WebSocket connections attempted to close.
+2025-05-27 12:00:44,022 - INFO - Application shutdown complete.
+2025-05-27 12:00:44,024 - INFO - Message forwarding task for Address(host='127.0.0.1', port=46354) cancelled.
+2025-05-27 12:00:44,024 - INFO - Message forwarding task for Address(host='127.0.0.1', port=38092) cancelled.
+2025-05-27 12:00:44,024 - INFO - Initiating cleanup for connection: 127.0.0.1:46354
+2025-05-27 12:00:44,024 - INFO - Starting cleanup for 127.0.0.1:46354
+2025-05-27 12:00:44,024 - INFO - Connection cleanup completed for 127.0.0.1:46354. Remaining connections: 1
+2025-05-27 12:00:44,024 - INFO - Cleanup finished for connection: 127.0.0.1:46354. Total connections: 1
+2025-05-27 12:00:44,024 - INFO - Cleanup finished for Address(host='127.0.0.1', port=46354) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:00:44,027 - INFO - Initiating cleanup for connection: 127.0.0.1:38092
+2025-05-27 12:00:44,027 - INFO - Starting cleanup for 127.0.0.1:38092
+2025-05-27 12:00:44,027 - INFO - Connection cleanup completed for 127.0.0.1:38092. Remaining connections: 0
+2025-05-27 12:00:44,027 - INFO - Cleanup finished for connection: 127.0.0.1:38092. Total connections: 0
+2025-05-27 12:00:44,027 - INFO - Cleanup finished for Address(host='127.0.0.1', port=38092) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:00:46,920 - INFO - Application startup event triggered.
+2025-05-27 12:00:46,920 - INFO - Initializing all queues...
+2025-05-27 12:00:46,920 - INFO - All queues initialized on loop 699330080
+2025-05-27 12:00:46,920 - INFO - Shared queues initialized.
+2025-05-27 12:00:46,920 - INFO - Retrieved queue instances. Event loop ID: 699330080
+2025-05-27 12:00:46,921 - INFO - SimulationManager ready state changed from False to True
+2025-05-27 12:00:46,921 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 12:00:46,921 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 12:00:46,921 - INFO - MessageProcessor task started.
+2025-05-27 12:00:46,921 - INFO - QueueForwarder initialized with all queues
+2025-05-27 12:00:46,921 - INFO - QueueForwarder queues already initialized
+2025-05-27 12:00:46,921 - INFO - QueueForwarder task started.
+2025-05-27 12:00:46,921 - INFO - Application startup complete. All core services initialized.
+2025-05-27 12:00:46,921 - INFO - Starting MessageProcessor main loop
+2025-05-27 12:00:46,921 - INFO - MessageProcessor main loop ended
+2025-05-27 12:00:46,921 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 12:00:48,745 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=53934)
+2025-05-27 12:00:48,745 - INFO - Adding connection: 127.0.0.1:53934. Total connections: 1
+2025-05-27 12:00:48,747 - INFO - Sent connection_ack to 127.0.0.1:53934
+2025-05-27 12:00:48,747 - INFO - Sender task started for 127.0.0.1:53934
+2025-05-27 12:00:48,748 - INFO - Receiver task started for 127.0.0.1:53934
+2025-05-27 12:00:48,752 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:53934
+2025-05-27 12:01:13,754 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:53934
+2025-05-27 12:01:39,599 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:53934
+2025-05-27 12:01:39,600 - INFO - WebSocket disconnected from 127.0.0.1:53934 while receiving: Code 1005
+2025-05-27 12:01:39,600 - INFO - Receiver task for 127.0.0.1:53934 finished.
+2025-05-27 12:01:39,604 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=53212)
+2025-05-27 12:01:39,604 - INFO - Adding connection: 127.0.0.1:53212. Total connections: 2
+2025-05-27 12:01:39,606 - INFO - Sent connection_ack to 127.0.0.1:53212
+2025-05-27 12:01:39,606 - INFO - Sender task started for 127.0.0.1:53212
+2025-05-27 12:01:39,606 - INFO - Receiver task started for 127.0.0.1:53212
+2025-05-27 12:01:39,610 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:53212
+2025-05-27 12:02:05,599 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:53212
+2025-05-27 12:02:30,599 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:53212
+2025-05-27 12:02:30,600 - INFO - WebSocket disconnected from 127.0.0.1:53212 while receiving: Code 1005
+2025-05-27 12:02:30,600 - INFO - Receiver task for 127.0.0.1:53212 finished.
+2025-05-27 12:02:30,602 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47026)
+2025-05-27 12:02:30,602 - INFO - Adding connection: 127.0.0.1:47026. Total connections: 3
+2025-05-27 12:02:30,603 - INFO - Sent connection_ack to 127.0.0.1:47026
+2025-05-27 12:02:30,603 - INFO - Sender task started for 127.0.0.1:47026
+2025-05-27 12:02:30,603 - INFO - Receiver task started for 127.0.0.1:47026
+2025-05-27 12:02:30,606 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:47026
+2025-05-27 12:02:56,599 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:47026
+2025-05-27 12:03:21,598 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:47026
+2025-05-27 12:03:21,599 - INFO - WebSocket disconnected from 127.0.0.1:47026 while receiving: Code 1005
+2025-05-27 12:03:21,599 - INFO - Receiver task for 127.0.0.1:47026 finished.
+2025-05-27 12:03:21,600 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=52932)
+2025-05-27 12:03:21,600 - INFO - Adding connection: 127.0.0.1:52932. Total connections: 4
+2025-05-27 12:03:21,601 - INFO - Sent connection_ack to 127.0.0.1:52932
+2025-05-27 12:03:21,601 - INFO - Sender task started for 127.0.0.1:52932
+2025-05-27 12:03:21,601 - INFO - Receiver task started for 127.0.0.1:52932
+2025-05-27 12:03:21,603 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:52932
+2025-05-27 12:03:47,600 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:52932
+2025-05-27 12:04:10,663 - INFO - WebSocket disconnected from 127.0.0.1:52932 while receiving: Code 1012
+2025-05-27 12:04:10,663 - INFO - Receiver task for 127.0.0.1:52932 finished.
+2025-05-27 12:04:10,865 - INFO - Message forwarding task for Address(host='127.0.0.1', port=52932) cancelled.
+2025-05-27 12:04:10,865 - INFO - Sender task for 127.0.0.1:47026 was cancelled normally.
+2025-05-27 12:04:10,865 - INFO - Sender task for 127.0.0.1:47026 finished.
+2025-05-27 12:04:10,866 - INFO - Message forwarding task for Address(host='127.0.0.1', port=53212) cancelled.
+2025-05-27 12:04:10,866 - INFO - Sender task for 127.0.0.1:53934 was cancelled normally.
+2025-05-27 12:04:10,866 - INFO - Sender task for 127.0.0.1:53934 finished.
+2025-05-27 12:04:10,866 - INFO - Application shutdown event triggered.
+2025-05-27 12:04:10,866 - INFO - Stopping MessageProcessor...
+2025-05-27 12:04:10,866 - INFO - MessageProcessor was not running.
+2025-05-27 12:04:10,866 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 12:04:10,866 - INFO - All WebSocket connections attempted to close.
+2025-05-27 12:04:10,866 - INFO - Application shutdown complete.
+2025-05-27 12:04:10,867 - INFO - Message forwarding task for Address(host='127.0.0.1', port=47026) cancelled.
+2025-05-27 12:04:10,868 - INFO - Sender task for 127.0.0.1:53212 was cancelled normally.
+2025-05-27 12:04:10,868 - INFO - Sender task for 127.0.0.1:53212 finished.
+2025-05-27 12:04:10,868 - INFO - Message forwarding task for Address(host='127.0.0.1', port=53934) cancelled.
+2025-05-27 12:04:10,868 - INFO - Sender task for 127.0.0.1:52932 was cancelled normally.
+2025-05-27 12:04:10,868 - INFO - Sender task for 127.0.0.1:52932 finished.
+2025-05-27 12:04:10,868 - INFO - Initiating cleanup for connection: 127.0.0.1:47026
+2025-05-27 12:04:10,868 - INFO - Starting cleanup for 127.0.0.1:47026
+2025-05-27 12:04:10,868 - INFO - Connection cleanup completed for 127.0.0.1:47026. Remaining connections: 3
+2025-05-27 12:04:10,868 - INFO - Cleanup finished for connection: 127.0.0.1:47026. Total connections: 3
+2025-05-27 12:04:10,868 - INFO - Cleanup finished for Address(host='127.0.0.1', port=47026) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:04:10,871 - INFO - Initiating cleanup for connection: 127.0.0.1:53934
+2025-05-27 12:04:10,871 - INFO - Starting cleanup for 127.0.0.1:53934
+2025-05-27 12:04:10,871 - INFO - Connection cleanup completed for 127.0.0.1:53934. Remaining connections: 2
+2025-05-27 12:04:10,871 - INFO - Cleanup finished for connection: 127.0.0.1:53934. Total connections: 2
+2025-05-27 12:04:10,871 - INFO - Cleanup finished for Address(host='127.0.0.1', port=53934) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:04:10,872 - INFO - Initiating cleanup for connection: 127.0.0.1:53212
+2025-05-27 12:04:10,872 - INFO - Starting cleanup for 127.0.0.1:53212
+2025-05-27 12:04:10,872 - INFO - Connection cleanup completed for 127.0.0.1:53212. Remaining connections: 1
+2025-05-27 12:04:10,872 - INFO - Cleanup finished for connection: 127.0.0.1:53212. Total connections: 1
+2025-05-27 12:04:10,872 - INFO - Cleanup finished for Address(host='127.0.0.1', port=53212) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:04:10,873 - INFO - Initiating cleanup for connection: 127.0.0.1:52932
+2025-05-27 12:04:10,873 - INFO - Starting cleanup for 127.0.0.1:52932
+2025-05-27 12:04:10,873 - INFO - Connection cleanup completed for 127.0.0.1:52932. Remaining connections: 0
+2025-05-27 12:04:10,874 - INFO - Cleanup finished for connection: 127.0.0.1:52932. Total connections: 0
+2025-05-27 12:04:10,874 - INFO - Cleanup finished for Address(host='127.0.0.1', port=52932) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:04:18,026 - INFO - Application startup event triggered.
+2025-05-27 12:04:18,026 - INFO - Initializing all queues...
+2025-05-27 12:04:18,026 - INFO - All queues initialized on loop 1021980192
+2025-05-27 12:04:18,026 - INFO - Shared queues initialized.
+2025-05-27 12:04:18,026 - INFO - Retrieved queue instances. Event loop ID: 1021980192
+2025-05-27 12:04:18,027 - INFO - SimulationManager ready state changed from False to True
+2025-05-27 12:04:18,027 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 12:04:18,027 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 12:04:18,027 - INFO - MessageProcessor task started.
+2025-05-27 12:04:18,027 - INFO - QueueForwarder initialized with all queues
+2025-05-27 12:04:18,027 - INFO - QueueForwarder queues already initialized
+2025-05-27 12:04:18,027 - INFO - QueueForwarder task started.
+2025-05-27 12:04:18,027 - INFO - Application startup complete. All core services initialized.
+2025-05-27 12:04:18,027 - INFO - Starting MessageProcessor main loop
+2025-05-27 12:04:18,027 - INFO - MessageProcessor main loop ended
+2025-05-27 12:04:18,027 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 12:04:19,855 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41250)
+2025-05-27 12:04:19,856 - INFO - Adding connection: 127.0.0.1:41250. Total connections: 1
+2025-05-27 12:04:19,857 - INFO - Sent connection_ack to 127.0.0.1:41250
+2025-05-27 12:04:19,857 - INFO - Sender task started for 127.0.0.1:41250
+2025-05-27 12:04:19,858 - INFO - Receiver task started for 127.0.0.1:41250
+2025-05-27 12:04:19,862 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:41250
+2025-05-27 12:04:22,602 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41266)
+2025-05-27 12:04:22,602 - INFO - Adding connection: 127.0.0.1:41266. Total connections: 2
+2025-05-27 12:04:22,603 - INFO - Sent connection_ack to 127.0.0.1:41266
+2025-05-27 12:04:22,603 - INFO - Sender task started for 127.0.0.1:41266
+2025-05-27 12:04:22,603 - INFO - Receiver task started for 127.0.0.1:41266
+2025-05-27 12:04:22,608 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:41266
+2025-05-27 12:04:40,454 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:41250
+2025-05-27 12:04:44,863 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:41250
+2025-05-27 12:04:48,599 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:41266
+2025-05-27 12:05:04,682 - INFO - WebSocket disconnected from 127.0.0.1:41266 while receiving: Code 1001
+2025-05-27 12:05:04,682 - INFO - Receiver task for 127.0.0.1:41266 finished.
+2025-05-27 12:05:06,048 - INFO - WebSocket disconnected from 127.0.0.1:41250 while receiving: Code 1001
+2025-05-27 12:05:06,048 - INFO - Receiver task for 127.0.0.1:41250 finished.
+2025-05-27 12:06:13,773 - INFO - Message forwarding task for Address(host='127.0.0.1', port=41266) cancelled.
+2025-05-27 12:06:13,774 - INFO - Sender task for 127.0.0.1:41250 was cancelled normally.
+2025-05-27 12:06:13,774 - INFO - Sender task for 127.0.0.1:41250 finished.
+2025-05-27 12:06:13,774 - INFO - Application shutdown event triggered.
+2025-05-27 12:06:13,774 - INFO - Stopping MessageProcessor...
+2025-05-27 12:06:13,774 - INFO - MessageProcessor was not running.
+2025-05-27 12:06:13,774 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 12:06:13,774 - INFO - All WebSocket connections attempted to close.
+2025-05-27 12:06:13,774 - INFO - Application shutdown complete.
+2025-05-27 12:06:13,776 - INFO - Sender task for 127.0.0.1:41266 was cancelled normally.
+2025-05-27 12:06:13,776 - INFO - Sender task for 127.0.0.1:41266 finished.
+2025-05-27 12:06:13,776 - INFO - Message forwarding task for Address(host='127.0.0.1', port=41250) cancelled.
+2025-05-27 12:06:13,776 - INFO - Initiating cleanup for connection: 127.0.0.1:41250
+2025-05-27 12:06:13,776 - INFO - Starting cleanup for 127.0.0.1:41250
+2025-05-27 12:06:13,776 - INFO - Connection cleanup completed for 127.0.0.1:41250. Remaining connections: 1
+2025-05-27 12:06:13,776 - INFO - Cleanup finished for connection: 127.0.0.1:41250. Total connections: 1
+2025-05-27 12:06:13,776 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41250) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:06:13,778 - INFO - Initiating cleanup for connection: 127.0.0.1:41266
+2025-05-27 12:06:13,779 - INFO - Starting cleanup for 127.0.0.1:41266
+2025-05-27 12:06:13,779 - INFO - Connection cleanup completed for 127.0.0.1:41266. Remaining connections: 0
+2025-05-27 12:06:13,779 - INFO - Cleanup finished for connection: 127.0.0.1:41266. Total connections: 0
+2025-05-27 12:06:13,779 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41266) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:06:45,980 - INFO - Application startup event triggered.
+2025-05-27 12:06:45,981 - INFO - Initializing all queues...
+2025-05-27 12:06:45,981 - INFO - All queues initialized on loop 1016450592
+2025-05-27 12:06:45,981 - INFO - Shared queues initialized.
+2025-05-27 12:06:45,981 - INFO - Retrieved queue instances. Event loop ID: 1016450592
+2025-05-27 12:06:45,981 - INFO - SimulationManager ready state changed from False to True
+2025-05-27 12:06:45,981 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 12:06:45,981 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 12:06:45,981 - INFO - MessageProcessor task started.
+2025-05-27 12:06:45,981 - INFO - QueueForwarder initialized with all queues
+2025-05-27 12:06:45,982 - INFO - QueueForwarder queues already initialized
+2025-05-27 12:06:45,982 - INFO - QueueForwarder task started.
+2025-05-27 12:06:45,982 - INFO - Application startup complete. All core services initialized.
+2025-05-27 12:06:45,982 - INFO - Starting MessageProcessor main loop
+2025-05-27 12:06:45,982 - INFO - MessageProcessor main loop ended
+2025-05-27 12:06:45,982 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 12:06:47,836 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54428)
+2025-05-27 12:06:47,836 - INFO - Adding connection: 127.0.0.1:54428. Total connections: 1
+2025-05-27 12:06:47,838 - INFO - Sent connection_ack to 127.0.0.1:54428
+2025-05-27 12:06:47,838 - INFO - Sender task started for 127.0.0.1:54428
+2025-05-27 12:06:47,838 - INFO - Receiver task started for 127.0.0.1:54428
+2025-05-27 12:06:47,846 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54428
+2025-05-27 12:07:01,687 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:54428
+2025-05-27 12:07:12,847 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54428
+2025-05-27 12:07:37,847 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54428
+2025-05-27 12:07:37,848 - INFO - WebSocket disconnected from 127.0.0.1:54428 while receiving: Code 1005
+2025-05-27 12:07:37,848 - INFO - Receiver task for 127.0.0.1:54428 finished.
+2025-05-27 12:07:37,850 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37176)
+2025-05-27 12:07:37,850 - INFO - Adding connection: 127.0.0.1:37176. Total connections: 2
+2025-05-27 12:07:37,851 - INFO - Sent connection_ack to 127.0.0.1:37176
+2025-05-27 12:07:37,851 - INFO - Sender task started for 127.0.0.1:37176
+2025-05-27 12:07:37,852 - INFO - Receiver task started for 127.0.0.1:37176
+2025-05-27 12:07:37,856 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37176
+2025-05-27 12:07:44,871 - INFO - WebSocket disconnected from 127.0.0.1:37176 while receiving: Code 1001
+2025-05-27 12:07:44,871 - INFO - Receiver task for 127.0.0.1:37176 finished.
+2025-05-27 12:07:46,386 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37176) cancelled.
+2025-05-27 12:07:46,386 - INFO - Sender task for 127.0.0.1:54428 was cancelled normally.
+2025-05-27 12:07:46,386 - INFO - Sender task for 127.0.0.1:54428 finished.
+2025-05-27 12:07:46,386 - INFO - Application shutdown event triggered.
+2025-05-27 12:07:46,386 - INFO - Stopping MessageProcessor...
+2025-05-27 12:07:46,387 - INFO - MessageProcessor was not running.
+2025-05-27 12:07:46,387 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 12:07:46,387 - INFO - All WebSocket connections attempted to close.
+2025-05-27 12:07:46,387 - INFO - Application shutdown complete.
+2025-05-27 12:07:46,388 - INFO - Sender task for 127.0.0.1:37176 was cancelled normally.
+2025-05-27 12:07:46,388 - INFO - Sender task for 127.0.0.1:37176 finished.
+2025-05-27 12:07:46,388 - INFO - Message forwarding task for Address(host='127.0.0.1', port=54428) cancelled.
+2025-05-27 12:07:46,388 - INFO - Initiating cleanup for connection: 127.0.0.1:54428
+2025-05-27 12:07:46,388 - INFO - Starting cleanup for 127.0.0.1:54428
+2025-05-27 12:07:46,388 - INFO - Connection cleanup completed for 127.0.0.1:54428. Remaining connections: 1
+2025-05-27 12:07:46,388 - INFO - Cleanup finished for connection: 127.0.0.1:54428. Total connections: 1
+2025-05-27 12:07:46,388 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54428) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 12:07:46,391 - INFO - Initiating cleanup for connection: 127.0.0.1:37176
+2025-05-27 12:07:46,391 - INFO - Starting cleanup for 127.0.0.1:37176
+2025-05-27 12:07:46,391 - INFO - Connection cleanup completed for 127.0.0.1:37176. Remaining connections: 0
+2025-05-27 12:07:46,391 - INFO - Cleanup finished for connection: 127.0.0.1:37176. Total connections: 0
+2025-05-27 12:07:46,391 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37176) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
