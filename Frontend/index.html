@@ -183,7 +183,8 @@
             padding: 8px;
             border: 1px solid #e0e0e0;
             margin-top: 10px;
-            max-height: 200px; /* Adjusted max-height to better fit in redesigned boxes */
+            max-height: 400px;
+            min-height: 200px;
             border-radius: 4px;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
             scrollbar-width: thin;
@@ -359,10 +360,22 @@
         /* Layout for the main queue flow */
         #queuesFlowContainer {
             display: grid;
-            /* Explicitly define 4 columns, adjust as needed if content pushes it */
-            grid-template-columns: repeat(4, 1fr); 
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: auto auto auto;
             gap: 20px;
-            align-items: start; /* Align items to the start of their grid area */
+            align-items: stretch;
+        }
+
+        .queue-box {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flow-connector {
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
         }
         .flow-connector {
@@ -623,6 +636,48 @@
         }
     </script>
     
-    <script type="module" src="src/app.js"></script>
+    <script type="module">
+        import { initializeApplication } from './src/app.js';
+        
+        // Extended WebSocket handling
+        class SimulationObserver {
+            constructor() {
+                this.messageHandlers = {
+                    'connection_ack': this.handleConnectionAck,
+                    'status': this.handleStatusUpdate,
+                    'pong': this.handlePong,
+                    'error': this.handleError
+                };
+            }
+
+            handleMessage(message) {
+                const handler = this.messageHandlers[message.type];
+                if (handler) {
+                    handler(message);
+                } else {
+                    console.warn('Unhandled message type:', message.type);
+                }
+            }
+
+            handleConnectionAck(msg) {
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                document.getElementById('connectionStatus').className = 'font-semibold text-green-600';
+                console.log('Connection established:', msg.data);
+            }
+
+            handleStatusUpdate(msg) {
+                if (msg.data.status === 'running') {
+                    document.getElementById('simulationStatus').textContent = 'Running';
+                    document.getElementById('simulationStatus').className = 'font-semibold text-green-600';
+                }
+                updateSimulationLog(msg);
+            }
+
+            // Other handler methods...
+        }
+
+        // Initialize with enhanced observer
+        initializeApplication(new SimulationObserver());
+    </script>
 </body>
 </html>

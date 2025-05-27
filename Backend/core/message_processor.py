@@ -104,7 +104,63 @@ class MessageProcessor:
 
         logger.info("MessageProcessor main loop stopped.")
 
-    async def _process_single_message(self, message: Dict) -> Optional[Dict]:
+    async def _process_single_message(self, message: Dict) -> None:
+        """Process messages with simulation flow tracking"""
+        try:
+            msg = WebSocketMessage.parse_obj(message)
+            logger.debug(f"Processing {msg.type} message from {msg.client_id}")
+
+            # Track processing path
+            msg.processing_path.append("MessageProcessor")
+            
+            if msg.type == "ping":
+                response = WebSocketMessage(
+                    id=str(uuid.uuid4()),
+                    type="pong",
+                    data={"original_id": msg.id},
+                    timestamp=time.time(),
+                    client_id=msg.client_id,
+                    processing_path=msg.processing_path,
+                    forwarding_path=[]
+                )
+                await self._output_queue.enqueue(response.dict())
+
+            elif msg.type == "command":
+                if msg.data.get("command") == "start_simulation":
+                    # Start simulation flow
+                    status_msg = WebSocketMessage(
+                        id=str(uuid.uuid4()),
+                        type="status",
+                        data={
+                            "status": "starting",
+                            "command": "start_simulation"
+                        },
+                        timestamp=time.time(),
+                        client_id=msg.client_id,
+                        processing_path=msg.processing_path,
+                        forwarding_path=[]
+                    )
+                    await self._output_queue.enqueue(status_msg.dict())
+
+                    # Simulate processing delay
+                    await asyncio.sleep(1)
+                    
+                    # Send simulation started confirmation
+                    started_msg = WebSocketMessage(
+                        id=str(uuid.uuid4()),
+                        type="status",
+                        data={
+                            "status": "running",
+                            "progress": 0
+                        },
+                        timestamp=time.time(),
+                        client_id=msg.client_id,
+                        processing_path=msg.processing_path,
+                        forwarding_path=[]
+                    )
+                    await self._output_queue.enqueue(started_msg.dict())
+
+            # Handle other message types...
         """Nachrichtenverarbeitungslogik für eine einzelne Nachricht"""
         response_message_dict = None # Initialize response to None
 
