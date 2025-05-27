@@ -1,18 +1,19 @@
+# Backend/services/websocket_manager.py
+
 import asyncio
 import json
 import logging
 import time
 import uuid
-from pydantic import ValidationError
+from pydantic import ValidationError # Added import for Pydantic validation
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
-from pydantic import ValidationError
 from typing import Dict, Any, Union 
-from starlette.websockets import WebSocketDisconnect # <--- Add this line
+from starlette.websockets import WebSocketDisconnect # Corrected placement, ensuring it's imported
 
-from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue
-from ..models.message_types import WebSocketMessage
-from ..dependencies import get_simulation_manager
+from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue, get_dead_letter_queue # Added import for dead_letter_queue
+from ..models.message_types import WebSocketMessage # Ensure WebSocketMessage is imported
+from ..dependencies import get_simulation_manager # Assuming this dependency is used for commands
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +53,6 @@ class WebSocketManager:
         client_id_str = message_as_dict.get('client_id')
         if not isinstance(client_id_str, str) or client_id_str is None:
             # If client_id was not a string or was None from the message, default to 'unknown'
-            # Note: This helper doesn't have access to the websocket object,
-            # so it can't format the client address here directly.
-            # The caller must ensure client_id is correctly set before calling this.
             client_id_str = 'unknown'
 
         # Get paths directly from message
@@ -88,7 +86,7 @@ class WebSocketManager:
             self.connections.add(websocket)
             logger.info(f"Adding connection: {client_info}. Total connections: {len(self.connections)}")
 
-            await self._send_ack(websocket)
+            await self.send_ack(websocket) # Changed from _send_ack
 
             sender_task = asyncio.create_task(self._sender(websocket))
             receiver_task = asyncio.create_task(self._receiver(websocket))
@@ -111,7 +109,7 @@ class WebSocketManager:
                             pass
                 del self.active_tasks[websocket_id]
             
-            await self._cleanup_connection(websocket, client_info)
+            await self.cleanup_connection(websocket, client_info) # Changed from _cleanup_connection
             logger.info(f"Cleanup finished for connection: {client_info}. Total connections: {len(self.connections)}")
 
     async def _sender(self, websocket: WebSocket):
@@ -121,51 +119,44 @@ class WebSocketManager:
         try:
             while True:
                 try:
-                    message = await asyncio.wait_for(
+                    message_dict = await asyncio.wait_for(
                         get_to_frontend_queue().dequeue(),
                         timeout=1.0
                     )
+                    # --- ADDED 1-SECOND DELAY ---
+                    await asyncio.sleep(1) # 1-second delay after dequeuing
+                    logger.debug(f"WebSocketManager sender dequeued message {message_dict.get('id', 'N/A')} of type '{message_dict.get('type', 'N/A')}'. Delaying for 1s.")
+                    # --- END ADDED DELAY ---
                 except asyncio.TimeoutError:
-                    continue
+                    continue # No message in queue, try again
                 except Exception as e:
-                    logger.error(f"Error dequeuing message: {str(e)}")
-                    await asyncio.sleep(1)
+                    logger.error(f"Error dequeuing message in sender: {str(e)}", exc_info=True)
+                    await asyncio.sleep(1) # Backoff on dequeue errors
                     continue
 
-                if message is None:
-                    logger.warning("Received None message from queue, stopping sender")
-                    break
-
-                if not message:
-                    continue
+                if message_dict is None:
+                    logger.warning("Received None message from queue in sender, stopping sender")
+                    break # Queue was likely shut down
 
                 try:
                     # Ensure required fields exist before parsing
-                    message.setdefault('id', str(uuid.uuid4()))
-                    message.setdefault('timestamp', time.time())
+                    message_dict.setdefault('id', str(uuid.uuid4()))
+                    message_dict.setdefault('timestamp', time.time())
                     # Ensure client_id is correctly formatted if it came from the queue
                     # and was perhaps added by another service.
-                    if 'client_id' in message and isinstance(message['client_id'], (list, tuple)):
-                        message['client_id'] = f"{message['client_id'][0]}:{message['client_id'][1]}"
-                    elif 'client_id' not in message or message['client_id'] is None:
-                        message['client_id'] = client_info # Default to current client_info if missing/None
+                    if 'client_id' in message_dict and isinstance(message_dict['client_id'], (list, tuple)):
+                        message_dict['client_id'] = f"{message_dict['client_id'][0]}:{message_dict['client_id'][1]}"
+                    elif 'client_id' not in message_dict or message_dict['client_id'] is None:
+                        message_dict['client_id'] = client_info # Default to current client_info if missing/None
 
-
-                    ws_msg = WebSocketMessage.parse_obj(message)
+                    ws_msg = WebSocketMessage.parse_obj(message_dict)
                     logger.debug(f"Prepared WebSocket message of type '{ws_msg.type}' for client {client_info}")
                 except ValidationError as e:
-                    logger.error(f"Invalid message format in sender: {e.errors()}\nOriginal message: {message}")
-                    ws_msg = WebSocketMessage(
-                        client_id=message.get('client_id', client_info), # Use client_info if original client_id is bad
-                        type="error",
-                        data={
-                            "error": "invalid_message_format",
-                            "details": str(e.errors()),
-                            "original_type": message.get('type')
-                        },
-                        timestamp=time.time(),
-                        id=str(uuid.uuid4()) # Ensure ID for error messages
-                    )
+                    logger.error(f"Invalid message format for sending from queue: {e.errors()}\nOriginal message: {message_dict}")
+                    # Send an error message to the client, but discard the malformed one
+                    await self.send_error(websocket, "backend_message_validation_failed", f"Backend message invalid: {str(e.errors())}") # Changed from _send_error
+                    # Consider sending to dead letter queue if this is a critical message that needs audit
+                    continue # Skip sending this malformed message
                 except Exception as e:
                     logger.error(f"Unexpected error preparing message in sender: {str(e)}", exc_info=True)
                     continue
@@ -181,22 +172,22 @@ class WebSocketManager:
                         await websocket.send_text(json_data)
                         logger.debug(f"Sent message {ws_msg.id} (type: {ws_msg.type}) to {client_info}")
                     else:
-                        logger.warning(f"WebSocket not connected for {client_info}, discarding message {ws_msg.id}")
-                        break
+                        logger.warning(f"WebSocket not connected for {client_info}, discarding message {ws_msg.id}. Connection state: {websocket.client_state.name}")
+                        break # Exit loop if connection is no longer active
                 except RuntimeError as e:
-                    logger.warning(f"WebSocket connection error for {client_info}: {str(e)}")
-                    break
+                    logger.warning(f"WebSocket connection error for {client_info} during send: {str(e)}. Assuming disconnection.")
+                    break # Exit loop on connection error
                 except Exception as e:
                     logger.error(f"Unexpected send error to {client_info}: {str(e)}", exc_info=True)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(1) # Backoff on send errors
                     continue
 
         except asyncio.CancelledError:
-            logger.info(f"Sender task for {client_info} was cancelled normally")
+            logger.info(f"Sender task for {client_info} was cancelled normally.")
         except Exception as e:
             logger.error(f"Sender task crashed for {client_info}: {str(e)}", exc_info=True)
         finally:
-            logger.info(f"Sender task for {client_info} finished")
+            logger.info(f"Sender task for {client_info} finished.")
 
     async def _receiver(self, websocket: WebSocket):
         """Receive messages from client and add to from_frontend_queue"""
@@ -204,59 +195,82 @@ class WebSocketManager:
         logger.info(f"Receiver task started for {client_info}")
         try:
             while True:
-                try:
+                try: 
                     data = await websocket.receive_text()
                     logger.debug(f"Received raw WebSocket data from {client_info}: {data}")
                     
                     try:
                         # Parse raw JSON data
-                        parsed_data = json.loads(data)
+                        raw_message_dict = json.loads(data)
                         
-                        # Validate and enrich using WebSocketMessage model
-                        websocket_msg = WebSocketMessage(
-                            **parsed_data,
-                            client_id=client_info  # Use the already formatted client_info
-                        )
-                        
-                        # Convert to dict for queue
-                        queue_msg = websocket_msg.dict()
-                        
-                        # Ensure data is always a dict
-                        if not isinstance(queue_msg.get('data'), dict):
-                            queue_msg['data'] = {}
+                        # --- CRUCIAL FIX FOR CLIENT_ID IN RECEIVER ---
+                        # Ensure client_id is formatted correctly as host:port
+                        if 'client_id' in raw_message_dict and isinstance(raw_message_dict['client_id'], (list, tuple)):
+                            raw_message_dict['client_id'] = f"{raw_message_dict['client_id'][0]}:{raw_message_dict['client_id'][1]}"
+                        else: # If client_id is missing or not list/tuple, use the actual connection client_info
+                            raw_message_dict['client_id'] = client_info
+                        # --- END CRUCIAL FIX ---
 
-                        logger.info(f"Enqueuing valid message of type '{queue_msg['type']}' from {client_info}")
+                        # Validate and enrich using WebSocketMessage model
+                        # This also sets default 'id' and 'timestamp' if not present in raw_message_dict
+                        message = WebSocketMessage.parse_obj(raw_message_dict) 
+                        
+                        logger.info(f"Enqueuing valid message of type '{message.type}' from {message.client_id}")
+                        
+                        # Use _create_queue_message to standardize for internal queue
+                        queue_msg = self._create_queue_message(message, source='websocket_receiver', status='received')
+                        
                         await get_from_frontend_queue().enqueue(queue_msg)
 
                     except ValidationError as e:
                         error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
                         logger.error(f"Validation error for incoming WebSocket message from {client_info}: {error_details}. Raw data: {data}")
-                        await self._send_error(websocket, f"Validation failed: {error_details}")
-                        continue
+                        await self.send_error(websocket, "client_message_validation_failed", f"Validation failed: {error_details}") # Changed from _send_error
+                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on validation error
+                            'original_raw_data': data,
+                            'error': 'pydantic_validation_error',
+                            'details': e.errors(),
+                            'timestamp': time.time(),
+                            'client_id': client_info
+                        })
+                        continue # Continue loop, discard this message
                     except json.JSONDecodeError as jde: 
                         logger.error(f"JSON decode error for incoming WebSocket message from {client_info}: {jde}. Raw data: {data}")
-                        await self._send_error(websocket, "Invalid JSON format")
-                        continue
+                        await self.send_error(websocket, "invalid_json_format", "Invalid JSON format") # Changed from _send_error
+                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on JSON error
+                            'original_raw_data': data,
+                            'error': 'json_decode_error',
+                            'timestamp': time.time(),
+                            'client_id': client_info
+                        })
+                        continue # Continue loop, discard this message
                     except Exception as e:
-                        logger.error(f"Error processing received message from {client_info}: {e}", exc_info=True)
-                        await self._send_error(websocket, "Error processing message")
-                        continue
+                        logger.error(f"Error processing received message from {client_info}: {e}", exc_info=True) 
+                        await self.send_error(websocket, "internal_receiver_error", "Error processing message") # Changed from _send_error
+                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on general error
+                            'original_raw_data': data,
+                            'error': 'unhandled_receiver_error',
+                            'details': str(e),
+                            'timestamp': time.time(),
+                            'client_id': client_info
+                        })
+                        continue # Continue loop, discard this message
                 
                 except WebSocketDisconnect as e: 
                     logger.info(f"WebSocket disconnected from {client_info} while receiving: Code {e.code}")
-                    break 
-                except Exception as e: # Catch other potential receive errors
+                    break # Exit loop on disconnect
+                except Exception as e: # Catch other potential receive errors (e.g., connection issues)
                     logger.error(f"Receive error for {client_info}: {e}", exc_info=True)
-                    break 
+                    break # Exit loop on severe receive error
             logger.info(f"Receiver task for {client_info} finished.")
         except asyncio.CancelledError:
             logger.info(f"Receiver task for {client_info} was cancelled.")
         except Exception as e:
             logger.error(f"Critical error in receiver task for {client_info}: {e}", exc_info=True)
         finally:
-            pass
+            pass # No specific cleanup in receiver, handled by handle_connection finally block
 
-    async def _send_ack(self, websocket: WebSocket):
+    async def send_ack(self, websocket: WebSocket): # Changed from _send_ack
         """Send connection acknowledgment"""
         client_info = self._get_formatted_client_address(websocket) # Use the helper
         ack = {
@@ -284,7 +298,7 @@ class WebSocketManager:
         except Exception as e:
             logger.error(f"Error sending connection_ack to {client_info}: {e}")
 
-    async def _cleanup_connection(self, websocket: WebSocket, client_info: str):
+    async def cleanup_connection(self, websocket: WebSocket, client_info: str): # Changed from _cleanup_connection
         """Clean up connection resources"""
         logger.info(f"Starting cleanup for {client_info}")
         
@@ -304,13 +318,13 @@ class WebSocketManager:
 
         logger.info(f"Connection cleanup completed for {client_info}. Remaining connections: {len(self.connections)}")
 
-    async def _send_error(self, websocket: WebSocket, error_msg: str):
-        """Send error response to client"""
+    async def send_error(self, websocket: WebSocket, error_type: str, error_msg: str): # Changed from _send_error
+        """Send error response to client with a specific type."""
         client_info = self._get_formatted_client_address(websocket)
         try:
             error_response = {
                 "type": "error",
-                "data": {"message": error_msg},
+                "data": {"error_type": error_type, "message": error_msg}, # Include error_type
                 "timestamp": time.time(),
                 "id": str(uuid.uuid4()),
                 "client_id": client_info
@@ -348,14 +362,13 @@ class WebSocketManager:
                         except asyncio.CancelledError:
                             pass
                 del self.active_tasks[websocket_id]
-            await self._cleanup_connection(websocket, client_info)
+            await self.cleanup_connection(websocket, client_info) # Changed from _cleanup_connection
         logger.info("WebSocketManager shutdown complete.")
 
     async def handle_message(self, websocket: WebSocket, raw_data: str):
         """Handle incoming WebSocket message from the endpoint.
-        This method is likely called from your API endpoint directly.
-        It should probably enqueue messages to `from_frontend_queue`
-        for processing by `MessageProcessor`, rather than directly handling commands.
+        This method is likely called from your FastAPI endpoint directly.
+        It enqueues messages to `from_frontend_queue` for processing.
         """
         client_info = self._get_formatted_client_address(websocket)
         logger.debug(f"Handling message from endpoint: {raw_data} for {client_info}")
@@ -363,49 +376,67 @@ class WebSocketManager:
         try:
             message_dict = json.loads(raw_data)
         except json.JSONDecodeError:
-            await self._send_error(websocket, "Invalid JSON format")
+            await self.send_error(websocket, "invalid_json_format", "Invalid JSON format") # Changed from _send_error
             return
 
         try:
             if not isinstance(message_dict, dict):
-                await self._send_error(websocket, "Message must be a JSON object")
+                await self.send_error(websocket, "invalid_message_format", "Message must be a JSON object") # Changed from _send_error
                 return
                 
             required_fields = ['type', 'data']
             missing_fields = [field for field in required_fields if field not in message_dict]
             if missing_fields:
-                await self._send_error(websocket, f"Missing required fields: {', '.join(missing_fields)}")
+                await self.send_error(websocket, "missing_fields", f"Missing required fields: {', '.join(missing_fields)}") # Changed from _send_error
                 return
             
             # --- CRUCIAL FIX FOR CLIENT_ID in handle_message ---
-            if 'client_id' in message_dict:
-                if isinstance(message_dict['client_id'], (list, tuple)):
-                    message_dict['client_id'] = f"{message_dict['client_id'][0]}:{message_dict['client_id'][1]}"
-                elif not isinstance(message_dict['client_id'], str):
-                    message_dict['client_id'] = str(message_dict['client_id'])
-            else:
+            if 'client_id' in message_dict and isinstance(message_dict['client_id'], (list, tuple)):
+                message_dict['client_id'] = f"{message_dict['client_id'][0]}:{message_dict['client_id'][1]}"
+            else: # If client_id is missing or not list/tuple, use the actual connection client_info
                 message_dict['client_id'] = client_info # Default if missing
             # --- END CRUCIAL FIX ---
 
             try:
+                # Use WebSocketMessage.parse_obj to validate and set defaults (like ID, timestamp)
                 msg = WebSocketMessage.parse_obj(message_dict)
             except ValidationError as e:
                 error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-                await self._send_error(websocket, f"Validation failed: {error_details}")
+                await self.send_error(websocket, "message_validation_failed", f"Validation failed: {error_details}") # Changed from _send_error
+                # Enqueue to DLQ for messages received via handle_message (endpoint)
+                await get_dead_letter_queue().enqueue({
+                    'original_raw_data': raw_data,
+                    'error': 'endpoint_validation_error',
+                    'details': e.errors(),
+                    'timestamp': time.time(),
+                    'client_id': client_info
+                })
                 return
 
             # Use the helper to create the queue message, with appropriate source
             # The client_id in 'msg' is already properly formatted due to the fix above.
-            queue_msg = self._create_queue_message(msg, source='frontend_endpoint', status='received')
+            queue_msg = self._create_queue_message(msg, source='http_endpoint', status='received') # Changed source to http_endpoint
             await get_from_frontend_queue().enqueue(queue_msg)
             logger.info(f"Enqueued message of type '{msg.type}' from endpoint for {msg.client_id}")
 
         except Exception as e:
-            logger.error(f"Top-level message handling error for {client_info}: {e}", exc_info=True)
-            await self._send_error(websocket, "Internal server error during message processing")
+            logger.error(f"Top-level message handling error for {client_info} in handle_message: {e}", exc_info=True)
+            await self.send_error(websocket, "internal_server_error", "Internal server error during message processing") # Changed from _send_error
+            await get_dead_letter_queue().enqueue({
+                'original_raw_data': raw_data,
+                'error': 'endpoint_processing_exception',
+                'details': str(e),
+                'timestamp': time.time(),
+                'client_id': client_info
+            })
 
     async def _handle_command(self, msg: WebSocketMessage):
-        """Handle command messages (e.g., start/stop simulation)"""
+        """
+        Handle command messages (e.g., start/stop simulation).
+        NOTE: This method is likely for direct processing if the WebSocketManager
+        itself acts on commands, but ideally, commands are forwarded to MessageProcessor.
+        If this is called, ensure MessageProcessor isn't also acting on them to avoid duplication.
+        """
         command = msg.data.get('command')
         
         # Ensure client_id is a string here, as per our expectation from _receiver/handle_message
@@ -413,21 +444,25 @@ class WebSocketManager:
 
         if command == 'start_simulation':
             logger.info(f"Processing start_simulation command from {client_id_str}")
-            await get_simulation_manager().start(client_id=client_id_str)
+            # Example: Interact with a simulation manager
+            # await get_simulation_manager().start(client_id=client_id_str)
         elif command == 'stop_simulation':
             logger.info(f"Processing stop_simulation command from {client_id_str}")
-            await get_simulation_manager().stop(client_id=client_id_str)
+            # Example: Interact with a simulation manager
+            # await get_simulation_manager().stop(client_id=client_id_str)
         else:
             logger.warning(f"Unknown command received: {command} from {client_id_str}")
 
     async def _handle_data(self, msg: WebSocketMessage):
-        """Handle generic data messages from frontend by enqueuing them to from_frontend_queue."""
+        """
+        Handle generic data messages from frontend by enqueuing them to from_frontend_queue.
+        NOTE: This is redundant if all messages go through the main queuing mechanism.
+        """
         client_id_str: str = msg.client_id if isinstance(msg.client_id, str) else 'unknown'
         logger.info(f"Handling data message from {client_id_str} (type: {msg.type})")
         queue_msg = self._create_queue_message(msg, source='frontend_data', status='processed')
         await get_from_frontend_queue().enqueue(queue_msg)
 
-    # Added for completeness, assuming send_personal_message is needed somewhere
     async def send_personal_message(self, message_data: Dict[str, Any], client_id: str):
         """Sends a message directly to a specific client by its client_id (host:port)."""
         logger.info(f"Attempting to send personal message to client: {client_id}")

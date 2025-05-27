@@ -42,6 +42,13 @@ class QueueForwarder:
             try:
                 # Nachricht empfangen - keine None-Checks mehr nötig, da Queues garantiert initialisiert
                 message = await self._input_queue.dequeue()
+                
+                
+                # Added delay
+                await asyncio.sleep(1)  # Simulate processing delay
+                ###
+
+
                 if message is None:
                     await asyncio.sleep(0.1)
                     continue

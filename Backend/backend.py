@@ -128,7 +128,7 @@ async def startup_event():
 
     message_processor_instance = MessageProcessor() # Assign to the global instance variable
     await message_processor_instance.initialize()
-    message_processor_task = asyncio.create_task(message_processor_instance.process())
+    message_processor_task = asyncio.create_task(message_processor_instance._process_messages())
     logger.info("MessageProcessor task started.")
 
     queue_forwarder_instance = QueueForwarder() # Assign to the global instance variable
@@ -170,7 +170,7 @@ async def shutdown_event():
                     logger.warning("MessageProcessor didn't stop cleanly")
 
                 # Call get_input_queue_size on the GLOBAL INSTANCE
-                remaining = message_processor_instance.get_input_queue_size() # FIX for line 126
+                remaining = message_processor_instance._get_input_queue_size() # FIX for line 126
                 if remaining > 0:
                     logger.info(f"Draining {remaining} messages from input queue")
         except Exception as e:

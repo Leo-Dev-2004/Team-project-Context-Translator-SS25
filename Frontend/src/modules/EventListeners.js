@@ -119,7 +119,8 @@ function sendTestMessage() {
             text: `Hello from frontend! (Timestamp: ${new Date().toLocaleTimeString()})`,
             value: 123
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        id: 123454321
     };
     console.log("DEBUG: Prepared test message:", testMessage); // <--- ADD THIS
     webSocketManagerInstance.sendMessage(testMessage); // Use the manager instance

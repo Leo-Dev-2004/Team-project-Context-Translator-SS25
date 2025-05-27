@@ -9399,3 +9399,1421 @@ RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket
 2025-05-27 10:22:44,128 - INFO - Connection cleanup completed for 127.0.0.1:41210. Remaining connections: 0
 2025-05-27 10:22:44,128 - INFO - Cleanup finished for connection: 127.0.0.1:41210. Total connections: 0
 2025-05-27 10:22:44,128 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41210) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:27:09,178 - INFO - Application startup event triggered.
+2025-05-27 10:27:09,178 - INFO - Initializing all queues...
+2025-05-27 10:27:09,178 - INFO - All queues initialized on loop 747998752
+2025-05-27 10:27:09,178 - INFO - Shared queues initialized.
+2025-05-27 10:27:09,178 - INFO - Retrieved queue instances. Event loop ID: 747998752
+2025-05-27 10:27:09,178 - INFO - SimulationManager ready state set to: True
+2025-05-27 10:27:09,178 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 10:27:09,178 - INFO - MessageProcessor queues verified
+2025-05-27 10:27:09,178 - INFO - MessageProcessor task started.
+2025-05-27 10:27:09,179 - INFO - Starting MessageProcessor
+2025-05-27 10:27:46,346 - INFO - Application startup event triggered.
+2025-05-27 10:27:46,346 - INFO - Initializing all queues...
+2025-05-27 10:27:46,346 - INFO - All queues initialized on loop 78503456
+2025-05-27 10:27:46,346 - INFO - Shared queues initialized.
+2025-05-27 10:27:46,346 - INFO - Retrieved queue instances. Event loop ID: 78503456
+2025-05-27 10:27:46,346 - INFO - SimulationManager ready state set to: True
+2025-05-27 10:27:46,346 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 10:27:46,346 - INFO - MessageProcessor queues verified
+2025-05-27 10:27:46,346 - INFO - MessageProcessor task started.
+2025-05-27 10:27:46,346 - INFO - QueueForwarder initialized with all queues
+2025-05-27 10:27:46,346 - INFO - QueueForwarder queues already initialized
+2025-05-27 10:27:46,346 - INFO - QueueForwarder task started.
+2025-05-27 10:27:46,346 - INFO - Application startup complete. All core services initialized.
+2025-05-27 10:27:46,346 - INFO - Starting MessageProcessor
+2025-05-27 10:27:46,347 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 10:27:48,048 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47054)
+2025-05-27 10:27:48,048 - INFO - Adding connection: 127.0.0.1:47054. Total connections: 1
+2025-05-27 10:27:48,048 - INFO - Sent connection_ack to 127.0.0.1:47054
+2025-05-27 10:27:48,049 - INFO - Sender task started for 127.0.0.1:47054
+2025-05-27 10:27:48,049 - INFO - Receiver task started for 127.0.0.1:47054
+2025-05-27 10:27:48,050 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:47054
+2025-05-27 10:27:53,360 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:47054
+2025-05-27 10:27:53,361 - INFO - Processed 2 messages
+2025-05-27 10:28:11,204 - INFO - WebSocket disconnected from 127.0.0.1:47054 while receiving: Code 1012
+2025-05-27 10:28:11,204 - INFO - Receiver task for 127.0.0.1:47054 finished.
+2025-05-27 10:28:11,404 - INFO - Application shutdown event triggered.
+2025-05-27 10:28:11,405 - INFO - Stopping MessageProcessor...
+2025-05-27 10:28:11,405 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 10:28:11,405 - INFO - All WebSocket connections attempted to close.
+2025-05-27 10:28:11,405 - INFO - Application shutdown complete.
+2025-05-27 10:28:11,406 - INFO - Sender task for 127.0.0.1:47054 was cancelled normally
+2025-05-27 10:28:11,406 - INFO - Sender task for 127.0.0.1:47054 finished
+2025-05-27 10:28:11,406 - INFO - Message forwarding task for Address(host='127.0.0.1', port=47054) cancelled.
+2025-05-27 10:28:11,406 - INFO - Initiating cleanup for connection: 127.0.0.1:47054
+2025-05-27 10:28:11,406 - INFO - Starting cleanup for 127.0.0.1:47054
+2025-05-27 10:28:11,407 - INFO - Connection cleanup completed for 127.0.0.1:47054. Remaining connections: 0
+2025-05-27 10:28:11,407 - INFO - Cleanup finished for connection: 127.0.0.1:47054. Total connections: 0
+2025-05-27 10:28:11,407 - INFO - Cleanup finished for Address(host='127.0.0.1', port=47054) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:29:32,115 - INFO - Application startup event triggered.
+2025-05-27 10:29:32,115 - INFO - Initializing all queues...
+2025-05-27 10:29:32,115 - INFO - All queues initialized on loop 1022983712
+2025-05-27 10:29:32,115 - INFO - Shared queues initialized.
+2025-05-27 10:29:32,115 - INFO - Retrieved queue instances. Event loop ID: 1022983712
+2025-05-27 10:29:32,115 - INFO - SimulationManager ready state set to: True
+2025-05-27 10:29:32,116 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 10:29:32,116 - INFO - MessageProcessor queues verified
+2025-05-27 10:29:32,116 - INFO - MessageProcessor task started.
+2025-05-27 10:29:32,116 - INFO - QueueForwarder initialized with all queues
+2025-05-27 10:29:32,116 - INFO - QueueForwarder queues already initialized
+2025-05-27 10:29:32,116 - INFO - QueueForwarder task started.
+2025-05-27 10:29:32,116 - INFO - Application startup complete. All core services initialized.
+2025-05-27 10:29:32,116 - INFO - Starting MessageProcessor
+2025-05-27 10:29:32,116 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 10:29:33,812 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=33254)
+2025-05-27 10:29:33,812 - INFO - Adding connection: 127.0.0.1:33254. Total connections: 1
+2025-05-27 10:29:33,813 - INFO - Sent connection_ack to 127.0.0.1:33254
+2025-05-27 10:29:33,813 - INFO - Sender task started for 127.0.0.1:33254
+2025-05-27 10:29:33,813 - INFO - Receiver task started for 127.0.0.1:33254
+2025-05-27 10:29:33,820 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:33254
+2025-05-27 10:29:38,287 - INFO - WebSocket disconnected from 127.0.0.1:33254 while receiving: Code 1001
+2025-05-27 10:29:38,287 - INFO - Receiver task for 127.0.0.1:33254 finished.
+2025-05-27 10:29:40,334 - INFO - Sender task for 127.0.0.1:33254 was cancelled normally
+2025-05-27 10:29:40,335 - INFO - Sender task for 127.0.0.1:33254 finished
+2025-05-27 10:29:40,335 - INFO - Application shutdown event triggered.
+2025-05-27 10:29:40,335 - INFO - Stopping MessageProcessor...
+2025-05-27 10:29:40,335 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 10:29:40,335 - INFO - All WebSocket connections attempted to close.
+2025-05-27 10:29:40,335 - INFO - Application shutdown complete.
+2025-05-27 10:29:40,336 - INFO - Message forwarding task for Address(host='127.0.0.1', port=33254) cancelled.
+2025-05-27 10:29:40,337 - INFO - Initiating cleanup for connection: 127.0.0.1:33254
+2025-05-27 10:29:40,337 - INFO - Starting cleanup for 127.0.0.1:33254
+2025-05-27 10:29:40,337 - INFO - Connection cleanup completed for 127.0.0.1:33254. Remaining connections: 0
+2025-05-27 10:29:40,337 - INFO - Cleanup finished for connection: 127.0.0.1:33254. Total connections: 0
+2025-05-27 10:29:40,337 - INFO - Cleanup finished for Address(host='127.0.0.1', port=33254) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:30:03,222 - INFO - Application startup event triggered.
+2025-05-27 10:30:03,222 - INFO - Initializing all queues...
+2025-05-27 10:30:03,222 - INFO - All queues initialized on loop 289504800
+2025-05-27 10:30:03,222 - INFO - Shared queues initialized.
+2025-05-27 10:30:03,222 - INFO - Retrieved queue instances. Event loop ID: 289504800
+2025-05-27 10:30:03,222 - INFO - SimulationManager ready state set to: True
+2025-05-27 10:30:03,222 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 10:30:03,222 - INFO - MessageProcessor queues verified
+2025-05-27 10:30:03,222 - INFO - MessageProcessor task started.
+2025-05-27 10:30:03,223 - INFO - QueueForwarder initialized with all queues
+2025-05-27 10:30:03,223 - INFO - QueueForwarder queues already initialized
+2025-05-27 10:30:03,223 - INFO - QueueForwarder task started.
+2025-05-27 10:30:03,223 - INFO - Application startup complete. All core services initialized.
+2025-05-27 10:30:03,223 - INFO - Starting MessageProcessor
+2025-05-27 10:30:03,223 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 10:30:04,940 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54040)
+2025-05-27 10:30:04,940 - INFO - Adding connection: 127.0.0.1:54040. Total connections: 1
+2025-05-27 10:30:04,941 - INFO - Sent connection_ack to 127.0.0.1:54040
+2025-05-27 10:30:04,941 - INFO - Sender task started for 127.0.0.1:54040
+2025-05-27 10:30:04,941 - INFO - Receiver task started for 127.0.0.1:54040
+2025-05-27 10:30:04,943 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54040
+2025-05-27 10:30:06,530 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:54040
+2025-05-27 10:30:10,526 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:54040
+2025-05-27 10:30:10,526 - INFO - Processed 3 messages
+2025-05-27 10:30:30,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54040
+2025-05-27 10:30:30,338 - ERROR - Error processing received message from 127.0.0.1:54040: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:30:55,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54040
+2025-05-27 10:30:55,338 - ERROR - Error processing received message from 127.0.0.1:54040: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:30:55,339 - ERROR - Failed to send error message to 127.0.0.1:54040: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:30:55,341 - INFO - WebSocket disconnected from 127.0.0.1:54040 while receiving: Code 1005
+2025-05-27 10:30:55,341 - INFO - Receiver task for 127.0.0.1:54040 finished.
+2025-05-27 10:30:55,341 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=38464)
+2025-05-27 10:30:55,341 - INFO - Adding connection: 127.0.0.1:38464. Total connections: 2
+2025-05-27 10:30:55,342 - INFO - Sent connection_ack to 127.0.0.1:38464
+2025-05-27 10:30:55,342 - INFO - Sender task started for 127.0.0.1:38464
+2025-05-27 10:30:55,342 - INFO - Receiver task started for 127.0.0.1:38464
+2025-05-27 10:30:55,343 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:38464
+2025-05-27 10:30:55,343 - INFO - Processed 1 messages
+2025-05-27 10:30:55,344 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=54040)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:30:55,344 - WARNING - WebSocket not connected for 127.0.0.1:54040, discarding message 35733de9-9e1e-45df-b356-d461878c3e37
+2025-05-27 10:30:55,344 - INFO - Sender task for 127.0.0.1:54040 finished
+2025-05-27 10:30:55,344 - INFO - Initiating cleanup for connection: 127.0.0.1:54040
+2025-05-27 10:30:55,344 - INFO - Starting cleanup for 127.0.0.1:54040
+2025-05-27 10:30:55,344 - INFO - Connection cleanup completed for 127.0.0.1:54040. Remaining connections: 1
+2025-05-27 10:30:55,344 - INFO - Cleanup finished for connection: 127.0.0.1:54040. Total connections: 1
+2025-05-27 10:30:55,345 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=54040): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 10:30:55,345 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54040) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:31:21,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:38464
+2025-05-27 10:31:21,338 - ERROR - Error processing received message from 127.0.0.1:38464: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:31:46,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:38464
+2025-05-27 10:31:46,338 - ERROR - Error processing received message from 127.0.0.1:38464: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:31:46,340 - ERROR - Failed to send error message to 127.0.0.1:38464: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:31:46,341 - INFO - WebSocket disconnected from 127.0.0.1:38464 while receiving: Code 1005
+2025-05-27 10:31:46,341 - INFO - Receiver task for 127.0.0.1:38464 finished.
+2025-05-27 10:31:46,341 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=60378)
+2025-05-27 10:31:46,341 - INFO - Adding connection: 127.0.0.1:60378. Total connections: 2
+2025-05-27 10:31:46,342 - INFO - Sent connection_ack to 127.0.0.1:60378
+2025-05-27 10:31:46,342 - INFO - Sender task started for 127.0.0.1:60378
+2025-05-27 10:31:46,342 - INFO - Receiver task started for 127.0.0.1:60378
+2025-05-27 10:31:46,343 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:60378
+2025-05-27 10:31:46,343 - INFO - Processed 1 messages
+2025-05-27 10:31:46,343 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=38464)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:31:46,344 - WARNING - WebSocket not connected for 127.0.0.1:38464, discarding message 24d671c8-bc12-422f-a057-c834cf05f447
+2025-05-27 10:31:46,344 - INFO - Sender task for 127.0.0.1:38464 finished
+2025-05-27 10:31:46,344 - INFO - Initiating cleanup for connection: 127.0.0.1:38464
+2025-05-27 10:31:46,344 - INFO - Starting cleanup for 127.0.0.1:38464
+2025-05-27 10:31:46,344 - INFO - Connection cleanup completed for 127.0.0.1:38464. Remaining connections: 1
+2025-05-27 10:31:46,344 - INFO - Cleanup finished for connection: 127.0.0.1:38464. Total connections: 1
+2025-05-27 10:31:46,344 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=38464): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 10:31:46,344 - INFO - Cleanup finished for Address(host='127.0.0.1', port=38464) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:31:47,926 - INFO - WebSocket disconnected from 127.0.0.1:60378 while receiving: Code 1012
+2025-05-27 10:31:47,926 - INFO - Receiver task for 127.0.0.1:60378 finished.
+2025-05-27 10:31:48,728 - INFO - Sender task for 127.0.0.1:60378 was cancelled normally
+2025-05-27 10:31:48,728 - INFO - Sender task for 127.0.0.1:60378 finished
+2025-05-27 10:31:48,728 - INFO - Application shutdown event triggered.
+2025-05-27 10:31:48,728 - INFO - Stopping MessageProcessor...
+2025-05-27 10:31:48,728 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 10:31:48,728 - INFO - All WebSocket connections attempted to close.
+2025-05-27 10:31:48,728 - INFO - Application shutdown complete.
+2025-05-27 10:31:48,728 - INFO - Message forwarding task for Address(host='127.0.0.1', port=60378) cancelled.
+2025-05-27 10:31:48,729 - INFO - Initiating cleanup for connection: 127.0.0.1:60378
+2025-05-27 10:31:48,729 - INFO - Starting cleanup for 127.0.0.1:60378
+2025-05-27 10:31:48,729 - INFO - Connection cleanup completed for 127.0.0.1:60378. Remaining connections: 0
+2025-05-27 10:31:48,729 - INFO - Cleanup finished for connection: 127.0.0.1:60378. Total connections: 0
+2025-05-27 10:31:48,729 - INFO - Cleanup finished for Address(host='127.0.0.1', port=60378) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:37:25,903 - INFO - Application startup event triggered.
+2025-05-27 10:37:25,903 - INFO - Initializing all queues...
+2025-05-27 10:37:25,903 - INFO - All queues initialized on loop 263917088
+2025-05-27 10:37:25,903 - INFO - Shared queues initialized.
+2025-05-27 10:37:25,903 - INFO - Retrieved queue instances. Event loop ID: 263917088
+2025-05-27 10:37:25,903 - INFO - SimulationManager ready state set to: True
+2025-05-27 10:37:25,903 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 10:37:25,903 - INFO - MessageProcessor queues verified
+2025-05-27 10:37:25,903 - INFO - MessageProcessor task started.
+2025-05-27 10:37:25,903 - INFO - QueueForwarder initialized with all queues
+2025-05-27 10:37:25,903 - INFO - QueueForwarder queues already initialized
+2025-05-27 10:37:25,903 - INFO - QueueForwarder task started.
+2025-05-27 10:37:25,903 - INFO - Application startup complete. All core services initialized.
+2025-05-27 10:37:25,903 - INFO - Starting MessageProcessor
+2025-05-27 10:37:25,903 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 10:37:27,574 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51360)
+2025-05-27 10:37:27,574 - INFO - Adding connection: 127.0.0.1:51360. Total connections: 1
+2025-05-27 10:37:27,574 - INFO - Sent connection_ack to 127.0.0.1:51360
+2025-05-27 10:37:27,575 - INFO - Sender task started for 127.0.0.1:51360
+2025-05-27 10:37:27,575 - INFO - Receiver task started for 127.0.0.1:51360
+2025-05-27 10:37:27,584 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:51360
+2025-05-27 10:37:31,007 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:51360
+2025-05-27 10:37:31,007 - INFO - Processed 2 messages
+2025-05-27 10:37:33,762 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:51360
+2025-05-27 10:37:35,033 - INFO - WebSocket disconnected from 127.0.0.1:51360 while receiving: Code 1001
+2025-05-27 10:37:35,033 - INFO - Receiver task for 127.0.0.1:51360 finished.
+2025-05-27 10:37:35,059 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54460)
+2025-05-27 10:37:35,059 - INFO - Adding connection: 127.0.0.1:54460. Total connections: 2
+2025-05-27 10:37:35,060 - INFO - Sent connection_ack to 127.0.0.1:54460
+2025-05-27 10:37:35,060 - INFO - Sender task started for 127.0.0.1:54460
+2025-05-27 10:37:35,060 - INFO - Receiver task started for 127.0.0.1:54460
+2025-05-27 10:37:35,061 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54460
+2025-05-27 10:37:35,062 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=51360)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:37:35,063 - WARNING - WebSocket not connected for 127.0.0.1:51360, discarding message f8bce584-1fd1-4d7e-bf37-db0bb28b0747
+2025-05-27 10:37:35,063 - INFO - Sender task for 127.0.0.1:51360 finished
+2025-05-27 10:37:35,063 - INFO - Initiating cleanup for connection: 127.0.0.1:51360
+2025-05-27 10:37:35,063 - INFO - Starting cleanup for 127.0.0.1:51360
+2025-05-27 10:37:35,063 - INFO - Connection cleanup completed for 127.0.0.1:51360. Remaining connections: 1
+2025-05-27 10:37:35,063 - INFO - Cleanup finished for connection: 127.0.0.1:51360. Total connections: 1
+2025-05-27 10:37:35,063 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=51360): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 10:37:35,064 - INFO - Cleanup finished for Address(host='127.0.0.1', port=51360) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:37:40,340 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54470)
+2025-05-27 10:37:40,340 - INFO - Adding connection: 127.0.0.1:54470. Total connections: 2
+2025-05-27 10:37:40,341 - INFO - Sent connection_ack to 127.0.0.1:54470
+2025-05-27 10:37:40,341 - INFO - Sender task started for 127.0.0.1:54470
+2025-05-27 10:37:40,341 - INFO - Receiver task started for 127.0.0.1:54470
+2025-05-27 10:37:40,343 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54470
+2025-05-27 10:37:40,344 - INFO - Processed 3 messages
+2025-05-27 10:38:00,062 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54460
+2025-05-27 10:38:00,062 - ERROR - Error processing received message from 127.0.0.1:54460: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:38:06,339 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54470
+2025-05-27 10:38:06,339 - ERROR - Error processing received message from 127.0.0.1:54470: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:38:07,075 - INFO - WebSocket disconnected from 127.0.0.1:54460 while receiving: Code 1001
+2025-05-27 10:38:07,075 - INFO - Receiver task for 127.0.0.1:54460 finished.
+2025-05-27 10:38:07,102 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=42904)
+2025-05-27 10:38:07,103 - INFO - Adding connection: 127.0.0.1:42904. Total connections: 3
+2025-05-27 10:38:07,103 - INFO - Sent connection_ack to 127.0.0.1:42904
+2025-05-27 10:38:07,103 - INFO - Sender task started for 127.0.0.1:42904
+2025-05-27 10:38:07,103 - INFO - Receiver task started for 127.0.0.1:42904
+2025-05-27 10:38:07,112 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:42904
+2025-05-27 10:38:07,112 - INFO - Processed 1 messages
+2025-05-27 10:38:07,113 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=54460)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:38:17,563 - INFO - WebSocket disconnected from 127.0.0.1:42904 while receiving: Code 1001
+2025-05-27 10:38:17,563 - INFO - Receiver task for 127.0.0.1:42904 finished.
+2025-05-27 10:38:17,591 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=50104)
+2025-05-27 10:38:17,591 - INFO - Adding connection: 127.0.0.1:50104. Total connections: 4
+2025-05-27 10:38:17,591 - INFO - Sent connection_ack to 127.0.0.1:50104
+2025-05-27 10:38:17,591 - INFO - Sender task started for 127.0.0.1:50104
+2025-05-27 10:38:17,592 - INFO - Receiver task started for 127.0.0.1:50104
+2025-05-27 10:38:17,602 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:50104
+2025-05-27 10:38:17,602 - INFO - Processed 1 messages
+2025-05-27 10:38:17,602 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=42904)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:38:20,155 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:50104
+2025-05-27 10:38:22,955 - INFO - WebSocket disconnected from 127.0.0.1:50104 while receiving: Code 1001
+2025-05-27 10:38:22,955 - INFO - Receiver task for 127.0.0.1:50104 finished.
+2025-05-27 10:38:22,978 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=60616)
+2025-05-27 10:38:22,978 - INFO - Adding connection: 127.0.0.1:60616. Total connections: 5
+2025-05-27 10:38:22,979 - INFO - Sent connection_ack to 127.0.0.1:60616
+2025-05-27 10:38:22,979 - INFO - Sender task started for 127.0.0.1:60616
+2025-05-27 10:38:22,979 - INFO - Receiver task started for 127.0.0.1:60616
+2025-05-27 10:38:22,982 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:60616
+2025-05-27 10:38:22,982 - INFO - Processed 2 messages
+2025-05-27 10:38:22,982 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=50104)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:38:31,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54470
+2025-05-27 10:38:31,339 - ERROR - Error processing received message from 127.0.0.1:54470: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:38:31,340 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=36938)
+2025-05-27 10:38:31,340 - INFO - Adding connection: 127.0.0.1:36938. Total connections: 6
+2025-05-27 10:38:31,340 - INFO - Sent connection_ack to 127.0.0.1:36938
+2025-05-27 10:38:31,341 - ERROR - Failed to send error message to 127.0.0.1:54470: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:38:31,341 - INFO - Sender task started for 127.0.0.1:36938
+2025-05-27 10:38:31,341 - INFO - Receiver task started for 127.0.0.1:36938
+2025-05-27 10:38:31,341 - INFO - WebSocket disconnected from 127.0.0.1:54470 while receiving: Code 1005
+2025-05-27 10:38:31,342 - INFO - Receiver task for 127.0.0.1:54470 finished.
+2025-05-27 10:38:31,342 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:36938
+2025-05-27 10:38:31,342 - INFO - Processed 1 messages
+2025-05-27 10:38:31,342 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=54470)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:38:47,982 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:60616
+2025-05-27 10:38:47,982 - ERROR - Error processing received message from 127.0.0.1:60616: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:38:57,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:36938
+2025-05-27 10:38:57,339 - ERROR - Error processing received message from 127.0.0.1:36938: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:39:12,982 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:60616
+2025-05-27 10:39:12,983 - ERROR - Error processing received message from 127.0.0.1:60616: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:39:12,985 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54794)
+2025-05-27 10:39:12,985 - INFO - Adding connection: 127.0.0.1:54794. Total connections: 7
+2025-05-27 10:39:12,986 - INFO - Sent connection_ack to 127.0.0.1:54794
+2025-05-27 10:39:12,986 - ERROR - Failed to send error message to 127.0.0.1:60616: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:39:12,987 - INFO - Sender task started for 127.0.0.1:54794
+2025-05-27 10:39:12,987 - INFO - Receiver task started for 127.0.0.1:54794
+2025-05-27 10:39:12,987 - INFO - WebSocket disconnected from 127.0.0.1:60616 while receiving: Code 1005
+2025-05-27 10:39:12,987 - INFO - Receiver task for 127.0.0.1:60616 finished.
+2025-05-27 10:39:12,987 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54794
+2025-05-27 10:39:12,988 - INFO - Processed 1 messages
+2025-05-27 10:39:12,988 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=60616)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:39:22,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:36938
+2025-05-27 10:39:22,339 - ERROR - Error processing received message from 127.0.0.1:36938: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:39:22,340 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=59152)
+2025-05-27 10:39:22,341 - INFO - Adding connection: 127.0.0.1:59152. Total connections: 8
+2025-05-27 10:39:22,341 - INFO - Sent connection_ack to 127.0.0.1:59152
+2025-05-27 10:39:22,342 - ERROR - Failed to send error message to 127.0.0.1:36938: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:39:22,342 - INFO - Sender task started for 127.0.0.1:59152
+2025-05-27 10:39:22,342 - INFO - Receiver task started for 127.0.0.1:59152
+2025-05-27 10:39:22,343 - INFO - WebSocket disconnected from 127.0.0.1:36938 while receiving: Code 1005
+2025-05-27 10:39:22,343 - INFO - Receiver task for 127.0.0.1:36938 finished.
+2025-05-27 10:39:22,343 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:59152
+2025-05-27 10:39:22,343 - INFO - Processed 1 messages
+2025-05-27 10:39:22,344 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=36938)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:39:37,988 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54794
+2025-05-27 10:39:37,988 - ERROR - Error processing received message from 127.0.0.1:54794: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:39:48,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:59152
+2025-05-27 10:39:48,338 - ERROR - Error processing received message from 127.0.0.1:59152: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:02,988 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:54794
+2025-05-27 10:40:02,988 - ERROR - Error processing received message from 127.0.0.1:54794: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:02,990 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41828)
+2025-05-27 10:40:02,990 - INFO - Adding connection: 127.0.0.1:41828. Total connections: 9
+2025-05-27 10:40:02,991 - INFO - Sent connection_ack to 127.0.0.1:41828
+2025-05-27 10:40:02,991 - ERROR - Failed to send error message to 127.0.0.1:54794: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:40:02,992 - INFO - Sender task started for 127.0.0.1:41828
+2025-05-27 10:40:02,992 - INFO - Receiver task started for 127.0.0.1:41828
+2025-05-27 10:40:02,992 - INFO - WebSocket disconnected from 127.0.0.1:54794 while receiving: Code 1005
+2025-05-27 10:40:02,992 - INFO - Receiver task for 127.0.0.1:54794 finished.
+2025-05-27 10:40:02,993 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:41828
+2025-05-27 10:40:02,993 - INFO - Processed 1 messages
+2025-05-27 10:40:02,994 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=54794)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:40:13,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:59152
+2025-05-27 10:40:13,339 - ERROR - Error processing received message from 127.0.0.1:59152: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:13,340 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=33804)
+2025-05-27 10:40:13,340 - INFO - Adding connection: 127.0.0.1:33804. Total connections: 10
+2025-05-27 10:40:13,341 - INFO - Sent connection_ack to 127.0.0.1:33804
+2025-05-27 10:40:13,341 - ERROR - Failed to send error message to 127.0.0.1:59152: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:40:13,342 - INFO - Sender task started for 127.0.0.1:33804
+2025-05-27 10:40:13,342 - INFO - Receiver task started for 127.0.0.1:33804
+2025-05-27 10:40:13,342 - INFO - WebSocket disconnected from 127.0.0.1:59152 while receiving: Code 1005
+2025-05-27 10:40:13,342 - INFO - Receiver task for 127.0.0.1:59152 finished.
+2025-05-27 10:40:13,343 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:33804
+2025-05-27 10:40:13,343 - INFO - Processed 1 messages
+2025-05-27 10:40:13,344 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=59152)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:40:27,993 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:41828
+2025-05-27 10:40:27,994 - ERROR - Error processing received message from 127.0.0.1:41828: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:39,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:33804
+2025-05-27 10:40:39,338 - ERROR - Error processing received message from 127.0.0.1:33804: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:52,994 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:41828
+2025-05-27 10:40:52,994 - ERROR - Error processing received message from 127.0.0.1:41828: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:40:52,996 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=45424)
+2025-05-27 10:40:52,996 - INFO - Adding connection: 127.0.0.1:45424. Total connections: 11
+2025-05-27 10:40:52,997 - INFO - Sent connection_ack to 127.0.0.1:45424
+2025-05-27 10:40:52,997 - ERROR - Failed to send error message to 127.0.0.1:41828: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:40:52,998 - INFO - Sender task started for 127.0.0.1:45424
+2025-05-27 10:40:52,998 - INFO - Receiver task started for 127.0.0.1:45424
+2025-05-27 10:40:52,998 - INFO - WebSocket disconnected from 127.0.0.1:41828 while receiving: Code 1005
+2025-05-27 10:40:52,998 - INFO - Receiver task for 127.0.0.1:41828 finished.
+2025-05-27 10:40:52,999 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:45424
+2025-05-27 10:40:52,999 - INFO - Processed 1 messages
+2025-05-27 10:40:53,000 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=41828)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:41:04,338 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:33804
+2025-05-27 10:41:04,338 - ERROR - Error processing received message from 127.0.0.1:33804: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:41:04,340 - ERROR - Failed to send error message to 127.0.0.1:33804: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 332, in _send_error
+    await websocket.send_text(error_ws_message.json())
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 327, in asgi_send
+    await self.send(data)  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 635, in send
+    await self.ensure_open()
+  File "/home/Leo/.local/lib/python3.12/site-packages/websockets/legacy/protocol.py", line 944, in ensure_open
+    raise self.connection_closed_exc()
+websockets.exceptions.ConnectionClosedOK: received 1005 (no status code [internal]); then sent 1005 (no status code [internal])
+2025-05-27 10:41:04,343 - INFO - WebSocket disconnected from 127.0.0.1:33804 while receiving: Code 1005
+2025-05-27 10:41:04,343 - INFO - Receiver task for 127.0.0.1:33804 finished.
+2025-05-27 10:41:04,343 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=54882)
+2025-05-27 10:41:04,343 - INFO - Adding connection: 127.0.0.1:54882. Total connections: 12
+2025-05-27 10:41:04,344 - INFO - Sent connection_ack to 127.0.0.1:54882
+2025-05-27 10:41:04,344 - INFO - Sender task started for 127.0.0.1:54882
+2025-05-27 10:41:04,344 - INFO - Receiver task started for 127.0.0.1:54882
+2025-05-27 10:41:04,346 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:54882
+2025-05-27 10:41:04,347 - INFO - Processed 1 messages
+2025-05-27 10:41:04,347 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=33804)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 10:41:17,999 - INFO - Enqueuing valid message of type 'ping' from 127.0.0.1:45424
+2025-05-27 10:41:18,000 - ERROR - Error processing received message from 127.0.0.1:45424: Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 238, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 10:41:21,648 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:45424
+2025-05-27 10:41:21,648 - INFO - Processed 1 messages
+2025-05-27 10:41:23,712 - INFO - WebSocket disconnected from 127.0.0.1:45424 while receiving: Code 1001
+2025-05-27 10:41:23,712 - INFO - Receiver task for 127.0.0.1:45424 finished.
+2025-05-27 10:41:24,983 - INFO - WebSocket disconnected from 127.0.0.1:54882 while receiving: Code 1001
+2025-05-27 10:41:24,983 - INFO - Receiver task for 127.0.0.1:54882 finished.
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:54470 was cancelled normally
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:54470 finished
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:45424 was cancelled normally
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:45424 finished
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:41828 was cancelled normally
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:41828 finished
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:60616 was cancelled normally
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:60616 finished
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:33804 was cancelled normally
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:33804 finished
+2025-05-27 10:41:27,737 - INFO - Sender task for 127.0.0.1:54460 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:54460 finished
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:54794 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:54794 finished
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:50104 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:50104 finished
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:36938 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:36938 finished
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:42904 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:42904 finished
+2025-05-27 10:41:27,738 - INFO - Message forwarding task for Address(host='127.0.0.1', port=54882) cancelled.
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:54882 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:54882 finished
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:59152 was cancelled normally
+2025-05-27 10:41:27,738 - INFO - Sender task for 127.0.0.1:59152 finished
+2025-05-27 10:41:27,738 - INFO - Message forwarding task for Address(host='127.0.0.1', port=45424) cancelled.
+2025-05-27 10:41:27,738 - INFO - Application shutdown event triggered.
+2025-05-27 10:41:27,738 - INFO - Stopping MessageProcessor...
+2025-05-27 10:41:27,738 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 10:41:27,738 - INFO - All WebSocket connections attempted to close.
+2025-05-27 10:41:27,738 - INFO - Application shutdown complete.
+2025-05-27 10:41:27,739 - INFO - Initiating cleanup for connection: 127.0.0.1:54470
+2025-05-27 10:41:27,739 - INFO - Starting cleanup for 127.0.0.1:54470
+2025-05-27 10:41:27,739 - INFO - Connection cleanup completed for 127.0.0.1:54470. Remaining connections: 11
+2025-05-27 10:41:27,739 - INFO - Cleanup finished for connection: 127.0.0.1:54470. Total connections: 11
+2025-05-27 10:41:27,739 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54470) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,740 - INFO - Initiating cleanup for connection: 127.0.0.1:45424
+2025-05-27 10:41:27,741 - INFO - Starting cleanup for 127.0.0.1:45424
+2025-05-27 10:41:27,741 - INFO - Connection cleanup completed for 127.0.0.1:45424. Remaining connections: 10
+2025-05-27 10:41:27,741 - INFO - Cleanup finished for connection: 127.0.0.1:45424. Total connections: 10
+2025-05-27 10:41:27,741 - INFO - Cleanup finished for Address(host='127.0.0.1', port=45424) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,741 - INFO - Initiating cleanup for connection: 127.0.0.1:41828
+2025-05-27 10:41:27,741 - INFO - Starting cleanup for 127.0.0.1:41828
+2025-05-27 10:41:27,741 - INFO - Connection cleanup completed for 127.0.0.1:41828. Remaining connections: 9
+2025-05-27 10:41:27,742 - INFO - Cleanup finished for connection: 127.0.0.1:41828. Total connections: 9
+2025-05-27 10:41:27,742 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41828) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,742 - INFO - Initiating cleanup for connection: 127.0.0.1:60616
+2025-05-27 10:41:27,742 - INFO - Starting cleanup for 127.0.0.1:60616
+2025-05-27 10:41:27,743 - INFO - Connection cleanup completed for 127.0.0.1:60616. Remaining connections: 8
+2025-05-27 10:41:27,743 - INFO - Cleanup finished for connection: 127.0.0.1:60616. Total connections: 8
+2025-05-27 10:41:27,743 - INFO - Cleanup finished for Address(host='127.0.0.1', port=60616) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,743 - INFO - Initiating cleanup for connection: 127.0.0.1:33804
+2025-05-27 10:41:27,743 - INFO - Starting cleanup for 127.0.0.1:33804
+2025-05-27 10:41:27,744 - INFO - Connection cleanup completed for 127.0.0.1:33804. Remaining connections: 7
+2025-05-27 10:41:27,744 - INFO - Cleanup finished for connection: 127.0.0.1:33804. Total connections: 7
+2025-05-27 10:41:27,744 - INFO - Cleanup finished for Address(host='127.0.0.1', port=33804) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,744 - INFO - Initiating cleanup for connection: 127.0.0.1:54460
+2025-05-27 10:41:27,744 - INFO - Starting cleanup for 127.0.0.1:54460
+2025-05-27 10:41:27,744 - INFO - Connection cleanup completed for 127.0.0.1:54460. Remaining connections: 6
+2025-05-27 10:41:27,745 - INFO - Cleanup finished for connection: 127.0.0.1:54460. Total connections: 6
+2025-05-27 10:41:27,745 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54460) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,745 - INFO - Initiating cleanup for connection: 127.0.0.1:54794
+2025-05-27 10:41:27,746 - INFO - Starting cleanup for 127.0.0.1:54794
+2025-05-27 10:41:27,746 - INFO - Connection cleanup completed for 127.0.0.1:54794. Remaining connections: 5
+2025-05-27 10:41:27,746 - INFO - Cleanup finished for connection: 127.0.0.1:54794. Total connections: 5
+2025-05-27 10:41:27,746 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54794) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,747 - INFO - Initiating cleanup for connection: 127.0.0.1:50104
+2025-05-27 10:41:27,747 - INFO - Starting cleanup for 127.0.0.1:50104
+2025-05-27 10:41:27,747 - INFO - Connection cleanup completed for 127.0.0.1:50104. Remaining connections: 4
+2025-05-27 10:41:27,747 - INFO - Cleanup finished for connection: 127.0.0.1:50104. Total connections: 4
+2025-05-27 10:41:27,747 - INFO - Cleanup finished for Address(host='127.0.0.1', port=50104) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,748 - INFO - Initiating cleanup for connection: 127.0.0.1:36938
+2025-05-27 10:41:27,748 - INFO - Starting cleanup for 127.0.0.1:36938
+2025-05-27 10:41:27,748 - INFO - Connection cleanup completed for 127.0.0.1:36938. Remaining connections: 3
+2025-05-27 10:41:27,748 - INFO - Cleanup finished for connection: 127.0.0.1:36938. Total connections: 3
+2025-05-27 10:41:27,748 - INFO - Cleanup finished for Address(host='127.0.0.1', port=36938) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,749 - INFO - Initiating cleanup for connection: 127.0.0.1:42904
+2025-05-27 10:41:27,749 - INFO - Starting cleanup for 127.0.0.1:42904
+2025-05-27 10:41:27,749 - INFO - Connection cleanup completed for 127.0.0.1:42904. Remaining connections: 2
+2025-05-27 10:41:27,749 - INFO - Cleanup finished for connection: 127.0.0.1:42904. Total connections: 2
+2025-05-27 10:41:27,749 - INFO - Cleanup finished for Address(host='127.0.0.1', port=42904) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,750 - INFO - Initiating cleanup for connection: 127.0.0.1:54882
+2025-05-27 10:41:27,750 - INFO - Starting cleanup for 127.0.0.1:54882
+2025-05-27 10:41:27,750 - INFO - Connection cleanup completed for 127.0.0.1:54882. Remaining connections: 1
+2025-05-27 10:41:27,750 - INFO - Cleanup finished for connection: 127.0.0.1:54882. Total connections: 1
+2025-05-27 10:41:27,750 - INFO - Cleanup finished for Address(host='127.0.0.1', port=54882) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 10:41:27,751 - INFO - Initiating cleanup for connection: 127.0.0.1:59152
+2025-05-27 10:41:27,751 - INFO - Starting cleanup for 127.0.0.1:59152
+2025-05-27 10:41:27,751 - INFO - Connection cleanup completed for 127.0.0.1:59152. Remaining connections: 0
+2025-05-27 10:41:27,751 - INFO - Cleanup finished for connection: 127.0.0.1:59152. Total connections: 0
+2025-05-27 10:41:27,751 - INFO - Cleanup finished for Address(host='127.0.0.1', port=59152) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:04:18,614 - INFO - Application startup event triggered.
+2025-05-27 11:04:18,614 - INFO - Initializing all queues...
+2025-05-27 11:04:18,614 - INFO - All queues initialized on loop 22367776
+2025-05-27 11:04:18,614 - INFO - Shared queues initialized.
+2025-05-27 11:04:18,614 - INFO - Retrieved queue instances. Event loop ID: 22367776
+2025-05-27 11:04:18,614 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:04:18,614 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:04:18,614 - INFO - MessageProcessor queues verified
+2025-05-27 11:04:18,614 - INFO - MessageProcessor task started.
+2025-05-27 11:04:18,615 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:04:18,615 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:04:18,615 - INFO - QueueForwarder task started.
+2025-05-27 11:04:18,615 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:04:18,615 - INFO - Starting MessageProcessor
+2025-05-27 11:04:18,615 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:04:20,354 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=60278)
+2025-05-27 11:04:20,354 - INFO - Adding connection: 127.0.0.1:60278. Total connections: 1
+2025-05-27 11:04:20,355 - INFO - Sent connection_ack to 127.0.0.1:60278
+2025-05-27 11:04:20,355 - INFO - Sender task started for 127.0.0.1:60278
+2025-05-27 11:04:20,355 - INFO - Receiver task started for 127.0.0.1:60278
+2025-05-27 11:04:20,356 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:60278
+2025-05-27 11:04:21,943 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:60278
+2025-05-27 11:04:35,077 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:60278
+2025-05-27 11:04:35,078 - INFO - Processed 3 messages
+2025-05-27 11:04:38,529 - INFO - WebSocket disconnected from 127.0.0.1:60278 while receiving: Code 1001
+2025-05-27 11:04:38,529 - INFO - Receiver task for 127.0.0.1:60278 finished.
+2025-05-27 11:04:40,674 - INFO - Sender task for 127.0.0.1:60278 was cancelled normally
+2025-05-27 11:04:40,674 - INFO - Sender task for 127.0.0.1:60278 finished
+2025-05-27 11:04:40,674 - INFO - Application shutdown event triggered.
+2025-05-27 11:04:40,674 - INFO - Stopping MessageProcessor...
+2025-05-27 11:04:40,674 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:04:40,674 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:04:40,674 - INFO - Application shutdown complete.
+2025-05-27 11:04:40,676 - INFO - Message forwarding task for Address(host='127.0.0.1', port=60278) cancelled.
+2025-05-27 11:04:40,676 - INFO - Initiating cleanup for connection: 127.0.0.1:60278
+2025-05-27 11:04:40,676 - INFO - Starting cleanup for 127.0.0.1:60278
+2025-05-27 11:04:40,676 - INFO - Connection cleanup completed for 127.0.0.1:60278. Remaining connections: 0
+2025-05-27 11:04:40,676 - INFO - Cleanup finished for connection: 127.0.0.1:60278. Total connections: 0
+2025-05-27 11:04:40,676 - INFO - Cleanup finished for Address(host='127.0.0.1', port=60278) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:10:05,980 - INFO - Application startup event triggered.
+2025-05-27 11:10:05,980 - INFO - Initializing all queues...
+2025-05-27 11:10:05,980 - INFO - All queues initialized on loop 223616544
+2025-05-27 11:10:05,980 - INFO - Shared queues initialized.
+2025-05-27 11:10:05,980 - INFO - Retrieved queue instances. Event loop ID: 223616544
+2025-05-27 11:10:05,980 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:10:05,980 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:10:05,980 - INFO - MessageProcessor queues verified
+2025-05-27 11:10:05,980 - INFO - MessageProcessor task started.
+2025-05-27 11:10:05,980 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:10:05,980 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:10:05,980 - INFO - QueueForwarder task started.
+2025-05-27 11:10:05,980 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:10:05,980 - INFO - Starting MessageProcessor
+2025-05-27 11:10:05,980 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:10:07,716 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=60460)
+2025-05-27 11:10:07,716 - INFO - Adding connection: 127.0.0.1:60460. Total connections: 1
+2025-05-27 11:10:07,717 - INFO - Sent connection_ack to 127.0.0.1:60460
+2025-05-27 11:10:07,717 - INFO - Sender task started for 127.0.0.1:60460
+2025-05-27 11:10:07,717 - INFO - Receiver task started for 127.0.0.1:60460
+2025-05-27 11:10:07,726 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:60460
+2025-05-27 11:10:09,456 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:60460
+2025-05-27 11:10:23,269 - INFO - WebSocket disconnected from 127.0.0.1:60460 while receiving: Code 1001
+2025-05-27 11:10:23,269 - INFO - Receiver task for 127.0.0.1:60460 finished.
+2025-05-27 11:10:23,295 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37508)
+2025-05-27 11:10:23,295 - INFO - Adding connection: 127.0.0.1:37508. Total connections: 2
+2025-05-27 11:10:23,296 - INFO - Sent connection_ack to 127.0.0.1:37508
+2025-05-27 11:10:23,296 - INFO - Sender task started for 127.0.0.1:37508
+2025-05-27 11:10:23,296 - INFO - Receiver task started for 127.0.0.1:37508
+2025-05-27 11:10:23,302 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37508
+2025-05-27 11:10:23,302 - INFO - Processed 3 messages
+2025-05-27 11:10:23,302 - ERROR - Failed to send message from queue to websocket (Address(host='127.0.0.1', port=60460)): Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 49, in forward_messages_to_websocket
+    await websocket.send_text(json.dumps(message_to_send))
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 163, in send_text
+    await self.send({"type": "websocket.send", "text": data})
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 85, in send
+    await self._send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+    await send(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py", line 345, in asgi_send
+    raise RuntimeError(msg % message_type)
+RuntimeError: Unexpected ASGI message 'websocket.send', after sending 'websocket.close'.
+2025-05-27 11:10:23,303 - WARNING - WebSocket not connected for 127.0.0.1:60460, discarding message b9803958-0887-4b1b-8604-f777be5ff29b
+2025-05-27 11:10:23,303 - INFO - Sender task for 127.0.0.1:60460 finished
+2025-05-27 11:10:23,303 - INFO - Initiating cleanup for connection: 127.0.0.1:60460
+2025-05-27 11:10:23,303 - INFO - Starting cleanup for 127.0.0.1:60460
+2025-05-27 11:10:23,303 - INFO - Connection cleanup completed for 127.0.0.1:60460. Remaining connections: 1
+2025-05-27 11:10:23,303 - INFO - Cleanup finished for connection: 127.0.0.1:60460. Total connections: 1
+2025-05-27 11:10:23,303 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=60460): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 11:10:23,304 - INFO - Cleanup finished for Address(host='127.0.0.1', port=60460) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:10:26,128 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:37508
+2025-05-27 11:10:36,347 - INFO - WebSocket disconnected from 127.0.0.1:37508 while receiving: Code 1001
+2025-05-27 11:10:36,347 - INFO - Receiver task for 127.0.0.1:37508 finished.
+2025-05-27 11:10:40,478 - INFO - Sender task for 127.0.0.1:37508 was cancelled normally
+2025-05-27 11:10:40,478 - INFO - Sender task for 127.0.0.1:37508 finished
+2025-05-27 11:10:40,478 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37508) cancelled.
+2025-05-27 11:10:40,478 - INFO - Application shutdown event triggered.
+2025-05-27 11:10:40,479 - INFO - Stopping MessageProcessor...
+2025-05-27 11:10:40,479 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:10:40,479 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:10:40,479 - INFO - Application shutdown complete.
+2025-05-27 11:10:40,480 - INFO - Initiating cleanup for connection: 127.0.0.1:37508
+2025-05-27 11:10:40,480 - INFO - Starting cleanup for 127.0.0.1:37508
+2025-05-27 11:10:40,480 - INFO - Connection cleanup completed for 127.0.0.1:37508. Remaining connections: 0
+2025-05-27 11:10:40,480 - INFO - Cleanup finished for connection: 127.0.0.1:37508. Total connections: 0
+2025-05-27 11:10:40,480 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37508) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:13:01,730 - INFO - Application startup event triggered.
+2025-05-27 11:13:01,730 - INFO - Initializing all queues...
+2025-05-27 11:13:01,730 - INFO - All queues initialized on loop 386170400
+2025-05-27 11:13:01,730 - INFO - Shared queues initialized.
+2025-05-27 11:13:01,730 - INFO - Retrieved queue instances. Event loop ID: 386170400
+2025-05-27 11:13:01,730 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:13:01,730 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:13:01,730 - INFO - MessageProcessor queues verified
+2025-05-27 11:13:01,730 - INFO - MessageProcessor task started.
+2025-05-27 11:13:01,730 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:13:01,730 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:13:01,731 - INFO - QueueForwarder task started.
+2025-05-27 11:13:01,731 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:13:01,731 - INFO - Starting MessageProcessor
+2025-05-27 11:13:01,731 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:13:03,444 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=43376)
+2025-05-27 11:13:03,444 - INFO - Adding connection: 127.0.0.1:43376. Total connections: 1
+2025-05-27 11:13:03,445 - INFO - Sent connection_ack to 127.0.0.1:43376
+2025-05-27 11:13:03,445 - INFO - Sender task started for 127.0.0.1:43376
+2025-05-27 11:13:03,445 - INFO - Receiver task started for 127.0.0.1:43376
+2025-05-27 11:13:03,447 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:43376
+2025-05-27 11:13:07,082 - INFO - WebSocket disconnected from 127.0.0.1:43376 while receiving: Code 1001
+2025-05-27 11:13:07,082 - INFO - Receiver task for 127.0.0.1:43376 finished.
+2025-05-27 11:13:24,501 - INFO - Application shutdown event triggered.
+2025-05-27 11:13:24,501 - INFO - Stopping MessageProcessor...
+2025-05-27 11:13:24,502 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:13:24,502 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:13:24,502 - INFO - Application shutdown complete.
+2025-05-27 11:13:24,503 - INFO - Sender task for 127.0.0.1:43376 was cancelled normally
+2025-05-27 11:13:24,503 - INFO - Sender task for 127.0.0.1:43376 finished
+2025-05-27 11:13:24,503 - INFO - Message forwarding task for Address(host='127.0.0.1', port=43376) cancelled.
+2025-05-27 11:13:24,504 - INFO - Initiating cleanup for connection: 127.0.0.1:43376
+2025-05-27 11:13:24,504 - INFO - Starting cleanup for 127.0.0.1:43376
+2025-05-27 11:13:24,504 - INFO - Connection cleanup completed for 127.0.0.1:43376. Remaining connections: 0
+2025-05-27 11:13:24,504 - INFO - Cleanup finished for connection: 127.0.0.1:43376. Total connections: 0
+2025-05-27 11:13:24,504 - INFO - Cleanup finished for Address(host='127.0.0.1', port=43376) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:13:25,930 - INFO - Application startup event triggered.
+2025-05-27 11:13:25,930 - INFO - Initializing all queues...
+2025-05-27 11:13:25,930 - INFO - All queues initialized on loop 235286048
+2025-05-27 11:13:25,930 - INFO - Shared queues initialized.
+2025-05-27 11:13:25,930 - INFO - Retrieved queue instances. Event loop ID: 235286048
+2025-05-27 11:13:25,930 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:13:25,930 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:13:25,930 - INFO - MessageProcessor queues verified
+2025-05-27 11:13:25,930 - INFO - MessageProcessor task started.
+2025-05-27 11:13:25,930 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:13:25,930 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:13:25,930 - INFO - QueueForwarder task started.
+2025-05-27 11:13:25,930 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:13:25,930 - INFO - Starting MessageProcessor
+2025-05-27 11:13:25,930 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:13:27,656 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=53218)
+2025-05-27 11:13:27,656 - INFO - Adding connection: 127.0.0.1:53218. Total connections: 1
+2025-05-27 11:13:27,657 - INFO - Sent connection_ack to 127.0.0.1:53218
+2025-05-27 11:13:27,657 - INFO - Sender task started for 127.0.0.1:53218
+2025-05-27 11:13:27,657 - INFO - Receiver task started for 127.0.0.1:53218
+2025-05-27 11:13:27,658 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:53218
+2025-05-27 11:13:32,420 - INFO - WebSocket disconnected from 127.0.0.1:53218 while receiving: Code 1001
+2025-05-27 11:13:32,420 - INFO - Receiver task for 127.0.0.1:53218 finished.
+2025-05-27 11:33:00,989 - INFO - Sender task for 127.0.0.1:53218 was cancelled normally
+2025-05-27 11:33:00,989 - INFO - Sender task for 127.0.0.1:53218 finished
+2025-05-27 11:33:00,989 - INFO - Application shutdown event triggered.
+2025-05-27 11:33:00,989 - INFO - Stopping MessageProcessor...
+2025-05-27 11:33:00,989 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:33:00,989 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:33:00,989 - INFO - Application shutdown complete.
+2025-05-27 11:33:00,991 - INFO - Message forwarding task for Address(host='127.0.0.1', port=53218) cancelled.
+2025-05-27 11:33:00,991 - INFO - Initiating cleanup for connection: 127.0.0.1:53218
+2025-05-27 11:33:00,991 - INFO - Starting cleanup for 127.0.0.1:53218
+2025-05-27 11:33:00,991 - INFO - Connection cleanup completed for 127.0.0.1:53218. Remaining connections: 0
+2025-05-27 11:33:00,991 - INFO - Cleanup finished for connection: 127.0.0.1:53218. Total connections: 0
+2025-05-27 11:33:00,991 - INFO - Cleanup finished for Address(host='127.0.0.1', port=53218) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:33:03,876 - INFO - Application startup event triggered.
+2025-05-27 11:33:03,876 - INFO - Initializing all queues...
+2025-05-27 11:33:03,877 - INFO - All queues initialized on loop 517766688
+2025-05-27 11:33:03,877 - INFO - Shared queues initialized.
+2025-05-27 11:33:03,877 - INFO - Retrieved queue instances. Event loop ID: 517766688
+2025-05-27 11:33:03,877 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:33:03,877 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:33:03,877 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:35:09,162 - INFO - Application startup event triggered.
+2025-05-27 11:35:09,162 - INFO - Initializing all queues...
+2025-05-27 11:35:09,162 - INFO - All queues initialized on loop 570126544
+2025-05-27 11:35:09,162 - INFO - Shared queues initialized.
+2025-05-27 11:35:09,162 - INFO - Retrieved queue instances. Event loop ID: 570126544
+2025-05-27 11:35:09,162 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:35:09,163 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:35:09,163 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:35:09,163 - INFO - MessageProcessor task started.
+2025-05-27 11:35:09,163 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:35:09,163 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:35:09,163 - INFO - QueueForwarder task started.
+2025-05-27 11:35:09,163 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:35:09,163 - INFO - MessageProcessor main loop started.
+2025-05-27 11:35:09,163 - INFO - MessageProcessor main loop stopped.
+2025-05-27 11:35:09,163 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:35:09,966 - INFO - Application shutdown event triggered.
+2025-05-27 11:35:09,966 - INFO - Stopping MessageProcessor...
+2025-05-27 11:35:09,966 - INFO - MessageProcessor was not running.
+2025-05-27 11:35:09,967 - INFO - QueueForwarder task cancelled.
+2025-05-27 11:35:09,967 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:35:09,967 - INFO - Application shutdown complete.
+2025-05-27 11:35:10,809 - INFO - Application startup event triggered.
+2025-05-27 11:35:10,809 - INFO - Initializing all queues...
+2025-05-27 11:35:10,809 - INFO - All queues initialized on loop 315916496
+2025-05-27 11:35:10,809 - INFO - Shared queues initialized.
+2025-05-27 11:35:10,809 - INFO - Retrieved queue instances. Event loop ID: 315916496
+2025-05-27 11:35:10,809 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:35:10,810 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:35:10,810 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:35:10,810 - INFO - MessageProcessor task started.
+2025-05-27 11:35:10,810 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:35:10,810 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:35:10,810 - INFO - QueueForwarder task started.
+2025-05-27 11:35:10,810 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:35:10,810 - INFO - MessageProcessor main loop started.
+2025-05-27 11:35:10,810 - INFO - MessageProcessor main loop stopped.
+2025-05-27 11:35:10,810 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:35:18,342 - INFO - Application shutdown event triggered.
+2025-05-27 11:35:18,342 - INFO - Stopping MessageProcessor...
+2025-05-27 11:35:18,342 - INFO - MessageProcessor was not running.
+2025-05-27 11:35:18,342 - INFO - QueueForwarder task cancelled.
+2025-05-27 11:35:18,342 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:35:18,342 - INFO - Application shutdown complete.
+2025-05-27 11:35:21,312 - INFO - Application startup event triggered.
+2025-05-27 11:35:21,312 - INFO - Initializing all queues...
+2025-05-27 11:35:21,312 - INFO - All queues initialized on loop 271019552
+2025-05-27 11:35:21,313 - INFO - Shared queues initialized.
+2025-05-27 11:35:21,313 - INFO - Retrieved queue instances. Event loop ID: 271019552
+2025-05-27 11:35:21,313 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:35:21,313 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:35:21,313 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:35:21,313 - INFO - MessageProcessor task started.
+2025-05-27 11:35:21,313 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:35:21,313 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:35:21,314 - INFO - QueueForwarder task started.
+2025-05-27 11:35:21,314 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:35:21,314 - INFO - MessageProcessor main loop started.
+2025-05-27 11:35:21,314 - INFO - MessageProcessor main loop stopped.
+2025-05-27 11:35:21,314 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:35:22,770 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37880)
+2025-05-27 11:35:22,770 - INFO - Adding connection: 127.0.0.1:37880. Total connections: 1
+2025-05-27 11:35:22,772 - INFO - Sent connection_ack to 127.0.0.1:37880
+2025-05-27 11:35:22,772 - INFO - Sender task started for 127.0.0.1:37880
+2025-05-27 11:35:22,773 - INFO - Receiver task started for 127.0.0.1:37880
+2025-05-27 11:35:22,778 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37880
+2025-05-27 11:35:24,566 - INFO - WebSocket disconnected from 127.0.0.1:37880 while receiving: Code 1001
+2025-05-27 11:35:24,567 - INFO - Receiver task for 127.0.0.1:37880 finished.
+2025-05-27 11:35:24,629 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37882)
+2025-05-27 11:35:24,629 - INFO - Adding connection: 127.0.0.1:37882. Total connections: 2
+2025-05-27 11:35:24,631 - INFO - Sent connection_ack to 127.0.0.1:37882
+2025-05-27 11:35:24,632 - INFO - Sender task started for 127.0.0.1:37882
+2025-05-27 11:35:24,632 - INFO - Receiver task started for 127.0.0.1:37882
+2025-05-27 11:35:24,635 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37882
+2025-05-27 11:35:28,560 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:37882
+2025-05-27 11:35:29,071 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37894)
+2025-05-27 11:35:29,072 - INFO - Adding connection: 127.0.0.1:37894. Total connections: 3
+2025-05-27 11:35:29,073 - INFO - Sent connection_ack to 127.0.0.1:37894
+2025-05-27 11:35:29,073 - INFO - Sender task started for 127.0.0.1:37894
+2025-05-27 11:35:29,074 - INFO - Receiver task started for 127.0.0.1:37894
+2025-05-27 11:35:29,094 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37894
+2025-05-27 11:35:32,607 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:37882
+2025-05-27 11:35:38,497 - INFO - WebSocket disconnected from 127.0.0.1:37882 while receiving: Code 1001
+2025-05-27 11:35:38,497 - INFO - Receiver task for 127.0.0.1:37882 finished.
+2025-05-27 11:35:39,249 - INFO - WebSocket disconnected from 127.0.0.1:37894 while receiving: Code 1001
+2025-05-27 11:35:39,249 - INFO - Receiver task for 127.0.0.1:37894 finished.
+2025-05-27 11:35:51,233 - INFO - Sender task for 127.0.0.1:37882 was cancelled normally.
+2025-05-27 11:35:51,234 - INFO - Sender task for 127.0.0.1:37882 finished.
+2025-05-27 11:35:51,234 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37894) cancelled.
+2025-05-27 11:35:51,234 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37882) cancelled.
+2025-05-27 11:35:51,234 - INFO - Sender task for 127.0.0.1:37880 was cancelled normally.
+2025-05-27 11:35:51,234 - INFO - Sender task for 127.0.0.1:37880 finished.
+2025-05-27 11:35:51,234 - INFO - Application shutdown event triggered.
+2025-05-27 11:35:51,234 - INFO - Stopping MessageProcessor...
+2025-05-27 11:35:51,234 - INFO - MessageProcessor was not running.
+2025-05-27 11:35:51,234 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:35:51,235 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:35:51,235 - INFO - Application shutdown complete.
+2025-05-27 11:35:51,236 - INFO - Sender task for 127.0.0.1:37894 was cancelled normally.
+2025-05-27 11:35:51,236 - INFO - Sender task for 127.0.0.1:37894 finished.
+2025-05-27 11:35:51,236 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37880) cancelled.
+2025-05-27 11:35:51,236 - INFO - Initiating cleanup for connection: 127.0.0.1:37882
+2025-05-27 11:35:51,236 - INFO - Starting cleanup for 127.0.0.1:37882
+2025-05-27 11:35:51,236 - INFO - Connection cleanup completed for 127.0.0.1:37882. Remaining connections: 2
+2025-05-27 11:35:51,236 - INFO - Cleanup finished for connection: 127.0.0.1:37882. Total connections: 2
+2025-05-27 11:35:51,236 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37882) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:35:51,239 - INFO - Initiating cleanup for connection: 127.0.0.1:37880
+2025-05-27 11:35:51,239 - INFO - Starting cleanup for 127.0.0.1:37880
+2025-05-27 11:35:51,239 - INFO - Connection cleanup completed for 127.0.0.1:37880. Remaining connections: 1
+2025-05-27 11:35:51,239 - INFO - Cleanup finished for connection: 127.0.0.1:37880. Total connections: 1
+2025-05-27 11:35:51,239 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37880) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:35:51,240 - INFO - Initiating cleanup for connection: 127.0.0.1:37894
+2025-05-27 11:35:51,240 - INFO - Starting cleanup for 127.0.0.1:37894
+2025-05-27 11:35:51,240 - INFO - Connection cleanup completed for 127.0.0.1:37894. Remaining connections: 0
+2025-05-27 11:35:51,241 - INFO - Cleanup finished for connection: 127.0.0.1:37894. Total connections: 0
+2025-05-27 11:35:51,241 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37894) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:35:54,124 - INFO - Application startup event triggered.
+2025-05-27 11:35:54,124 - INFO - Initializing all queues...
+2025-05-27 11:35:54,124 - INFO - All queues initialized on loop 522673696
+2025-05-27 11:35:54,124 - INFO - Shared queues initialized.
+2025-05-27 11:35:54,124 - INFO - Retrieved queue instances. Event loop ID: 522673696
+2025-05-27 11:35:54,124 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:35:54,124 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:35:54,124 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:35:54,124 - INFO - MessageProcessor task started.
+2025-05-27 11:35:54,124 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:35:54,125 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:35:54,125 - INFO - QueueForwarder task started.
+2025-05-27 11:35:54,125 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:35:54,125 - INFO - MessageProcessor main loop started.
+2025-05-27 11:35:54,125 - INFO - MessageProcessor main loop stopped.
+2025-05-27 11:35:54,125 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:35:55,532 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47970)
+2025-05-27 11:35:55,533 - INFO - Adding connection: 127.0.0.1:47970. Total connections: 1
+2025-05-27 11:35:55,534 - INFO - Sent connection_ack to 127.0.0.1:47970
+2025-05-27 11:35:55,534 - INFO - Sender task started for 127.0.0.1:47970
+2025-05-27 11:35:55,534 - INFO - Receiver task started for 127.0.0.1:47970
+2025-05-27 11:35:55,540 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:47970
+2025-05-27 11:35:58,079 - INFO - WebSocket disconnected from 127.0.0.1:47970 while receiving: Code 1001
+2025-05-27 11:35:58,079 - INFO - Receiver task for 127.0.0.1:47970 finished.
+2025-05-27 11:38:35,277 - INFO - Application shutdown event triggered.
+2025-05-27 11:38:35,278 - INFO - Stopping MessageProcessor...
+2025-05-27 11:38:35,278 - INFO - MessageProcessor was not running.
+2025-05-27 11:38:35,278 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:38:35,278 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:38:35,278 - INFO - Application shutdown complete.
+2025-05-27 11:38:35,280 - INFO - Sender task for 127.0.0.1:47970 was cancelled normally.
+2025-05-27 11:38:35,280 - INFO - Sender task for 127.0.0.1:47970 finished.
+2025-05-27 11:38:35,280 - INFO - Message forwarding task for Address(host='127.0.0.1', port=47970) cancelled.
+2025-05-27 11:38:35,280 - INFO - Initiating cleanup for connection: 127.0.0.1:47970
+2025-05-27 11:38:35,280 - INFO - Starting cleanup for 127.0.0.1:47970
+2025-05-27 11:38:35,280 - INFO - Connection cleanup completed for 127.0.0.1:47970. Remaining connections: 0
+2025-05-27 11:38:35,280 - INFO - Cleanup finished for connection: 127.0.0.1:47970. Total connections: 0
+2025-05-27 11:38:35,280 - INFO - Cleanup finished for Address(host='127.0.0.1', port=47970) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:38:37,871 - INFO - Application startup event triggered.
+2025-05-27 11:38:37,871 - INFO - Initializing all queues...
+2025-05-27 11:38:37,872 - INFO - All queues initialized on loop 373591584
+2025-05-27 11:38:37,872 - INFO - Shared queues initialized.
+2025-05-27 11:38:37,872 - INFO - Retrieved queue instances. Event loop ID: 373591584
+2025-05-27 11:38:37,872 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:38:37,872 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:38:37,872 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:38:37,872 - INFO - MessageProcessor task started.
+2025-05-27 11:38:37,872 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:38:37,872 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:38:37,872 - INFO - QueueForwarder task started.
+2025-05-27 11:38:37,872 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:38:37,872 - INFO - MessageProcessor main loop started.
+2025-05-27 11:38:37,872 - INFO - MessageProcessor main loop stopped.
+2025-05-27 11:38:37,873 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:38:39,295 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=34390)
+2025-05-27 11:38:39,295 - INFO - Adding connection: 127.0.0.1:34390. Total connections: 1
+2025-05-27 11:38:39,297 - INFO - Sent connection_ack to 127.0.0.1:34390
+2025-05-27 11:38:39,297 - INFO - Sender task started for 127.0.0.1:34390
+2025-05-27 11:38:39,297 - INFO - Receiver task started for 127.0.0.1:34390
+2025-05-27 11:38:39,301 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:34390
+2025-05-27 11:38:47,047 - INFO - WebSocket disconnected from 127.0.0.1:34390 while receiving: Code 1001
+2025-05-27 11:38:47,047 - INFO - Receiver task for 127.0.0.1:34390 finished.
+2025-05-27 11:38:47,122 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=43134)
+2025-05-27 11:38:47,122 - INFO - Adding connection: 127.0.0.1:43134. Total connections: 2
+2025-05-27 11:38:47,123 - INFO - Sent connection_ack to 127.0.0.1:43134
+2025-05-27 11:38:47,124 - INFO - Sender task started for 127.0.0.1:43134
+2025-05-27 11:38:47,124 - INFO - Receiver task started for 127.0.0.1:43134
+2025-05-27 11:38:47,126 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:43134
+2025-05-27 11:38:47,699 - INFO - WebSocket disconnected from 127.0.0.1:43134 while receiving: Code 1001
+2025-05-27 11:38:47,700 - INFO - Receiver task for 127.0.0.1:43134 finished.
+2025-05-27 11:38:47,762 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=43146)
+2025-05-27 11:38:47,762 - INFO - Adding connection: 127.0.0.1:43146. Total connections: 3
+2025-05-27 11:38:47,764 - INFO - Sent connection_ack to 127.0.0.1:43146
+2025-05-27 11:38:47,765 - INFO - Sender task started for 127.0.0.1:43146
+2025-05-27 11:38:47,765 - INFO - Receiver task started for 127.0.0.1:43146
+2025-05-27 11:38:47,770 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:43146
+2025-05-27 11:38:52,840 - INFO - WebSocket disconnected from 127.0.0.1:43146 while receiving: Code 1001
+2025-05-27 11:38:52,840 - INFO - Receiver task for 127.0.0.1:43146 finished.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:43146 was cancelled normally.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:43146 finished.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:43134 was cancelled normally.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:43134 finished.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:34390 was cancelled normally.
+2025-05-27 11:38:58,053 - INFO - Sender task for 127.0.0.1:34390 finished.
+2025-05-27 11:38:58,053 - INFO - Application shutdown event triggered.
+2025-05-27 11:38:58,053 - INFO - Stopping MessageProcessor...
+2025-05-27 11:38:58,054 - INFO - MessageProcessor was not running.
+2025-05-27 11:38:58,054 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:38:58,054 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:38:58,054 - INFO - Application shutdown complete.
+2025-05-27 11:38:58,055 - INFO - Message forwarding task for Address(host='127.0.0.1', port=43134) cancelled.
+2025-05-27 11:38:58,055 - INFO - Message forwarding task for Address(host='127.0.0.1', port=43146) cancelled.
+2025-05-27 11:38:58,055 - INFO - Message forwarding task for Address(host='127.0.0.1', port=34390) cancelled.
+2025-05-27 11:38:58,056 - INFO - Initiating cleanup for connection: 127.0.0.1:43146
+2025-05-27 11:38:58,056 - INFO - Starting cleanup for 127.0.0.1:43146
+2025-05-27 11:38:58,056 - INFO - Connection cleanup completed for 127.0.0.1:43146. Remaining connections: 2
+2025-05-27 11:38:58,056 - INFO - Cleanup finished for connection: 127.0.0.1:43146. Total connections: 2
+2025-05-27 11:38:58,056 - INFO - Cleanup finished for Address(host='127.0.0.1', port=43146) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:38:58,058 - INFO - Initiating cleanup for connection: 127.0.0.1:43134
+2025-05-27 11:38:58,058 - INFO - Starting cleanup for 127.0.0.1:43134
+2025-05-27 11:38:58,058 - INFO - Connection cleanup completed for 127.0.0.1:43134. Remaining connections: 1
+2025-05-27 11:38:58,058 - INFO - Cleanup finished for connection: 127.0.0.1:43134. Total connections: 1
+2025-05-27 11:38:58,059 - INFO - Cleanup finished for Address(host='127.0.0.1', port=43134) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:38:58,061 - INFO - Initiating cleanup for connection: 127.0.0.1:34390
+2025-05-27 11:38:58,061 - INFO - Starting cleanup for 127.0.0.1:34390
+2025-05-27 11:38:58,061 - INFO - Connection cleanup completed for 127.0.0.1:34390. Remaining connections: 0
+2025-05-27 11:38:58,061 - INFO - Cleanup finished for connection: 127.0.0.1:34390. Total connections: 0
+2025-05-27 11:38:58,061 - INFO - Cleanup finished for Address(host='127.0.0.1', port=34390) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:49:52,820 - INFO - Application startup event triggered.
+2025-05-27 11:49:52,820 - INFO - Initializing all queues...
+2025-05-27 11:49:52,821 - INFO - All queues initialized on loop 251883040
+2025-05-27 11:49:52,821 - INFO - Shared queues initialized.
+2025-05-27 11:49:52,821 - INFO - Retrieved queue instances. Event loop ID: 251883040
+2025-05-27 11:49:52,821 - INFO - SimulationManager ready state set to: True
+2025-05-27 11:49:52,821 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 11:49:52,821 - INFO - MessageProcessor queues verified and initialized.
+2025-05-27 11:49:52,821 - INFO - MessageProcessor task started.
+2025-05-27 11:49:52,822 - INFO - QueueForwarder initialized with all queues
+2025-05-27 11:49:52,822 - INFO - QueueForwarder queues already initialized
+2025-05-27 11:49:52,822 - INFO - QueueForwarder task started.
+2025-05-27 11:49:52,822 - INFO - Application startup complete. All core services initialized.
+2025-05-27 11:49:52,822 - INFO - Starting MessageProcessor main loop
+2025-05-27 11:49:52,822 - INFO - MessageProcessor main loop ended
+2025-05-27 11:49:52,822 - INFO - Starting QueueForwarder with input=from_frontend, output=to_backend
+2025-05-27 11:49:54,230 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=55404)
+2025-05-27 11:49:54,230 - INFO - Adding connection: 127.0.0.1:55404. Total connections: 1
+2025-05-27 11:49:54,232 - INFO - Sent connection_ack to 127.0.0.1:55404
+2025-05-27 11:49:54,232 - INFO - Sender task started for 127.0.0.1:55404
+2025-05-27 11:49:54,232 - INFO - Receiver task started for 127.0.0.1:55404
+2025-05-27 11:49:54,263 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:55404
+2025-05-27 11:49:58,282 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:55404
+2025-05-27 11:50:02,343 - INFO - WebSocket disconnected from 127.0.0.1:55404 while receiving: Code 1001
+2025-05-27 11:50:02,343 - INFO - Receiver task for 127.0.0.1:55404 finished.
+2025-05-27 11:50:02,401 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37956)
+2025-05-27 11:50:02,401 - INFO - Adding connection: 127.0.0.1:37956. Total connections: 2
+2025-05-27 11:50:02,402 - INFO - Sent connection_ack to 127.0.0.1:37956
+2025-05-27 11:50:02,403 - INFO - Sender task started for 127.0.0.1:37956
+2025-05-27 11:50:02,403 - INFO - Receiver task started for 127.0.0.1:37956
+2025-05-27 11:50:02,409 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37956
+2025-05-27 11:50:02,780 - INFO - WebSocket disconnected from 127.0.0.1:37956 while receiving: Code 1001
+2025-05-27 11:50:02,780 - INFO - Receiver task for 127.0.0.1:37956 finished.
+2025-05-27 11:50:02,839 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=37972)
+2025-05-27 11:50:02,839 - INFO - Adding connection: 127.0.0.1:37972. Total connections: 3
+2025-05-27 11:50:02,841 - INFO - Sent connection_ack to 127.0.0.1:37972
+2025-05-27 11:50:02,842 - INFO - Sender task started for 127.0.0.1:37972
+2025-05-27 11:50:02,842 - INFO - Receiver task started for 127.0.0.1:37972
+2025-05-27 11:50:02,846 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from 127.0.0.1:37972
+2025-05-27 11:50:04,277 - INFO - Enqueuing valid message of type 'command' from 127.0.0.1:37972
+2025-05-27 11:50:26,537 - INFO - WebSocket disconnected from 127.0.0.1:37972 while receiving: Code 1012
+2025-05-27 11:50:26,537 - INFO - Receiver task for 127.0.0.1:37972 finished.
+2025-05-27 11:50:26,637 - INFO - Sender task for 127.0.0.1:37956 was cancelled normally.
+2025-05-27 11:50:26,637 - INFO - Sender task for 127.0.0.1:37956 finished.
+2025-05-27 11:50:26,637 - INFO - Sender task for 127.0.0.1:55404 was cancelled normally.
+2025-05-27 11:50:26,637 - INFO - Sender task for 127.0.0.1:55404 finished.
+2025-05-27 11:50:26,638 - INFO - Application shutdown event triggered.
+2025-05-27 11:50:26,638 - INFO - Stopping MessageProcessor...
+2025-05-27 11:50:26,638 - INFO - MessageProcessor was not running.
+2025-05-27 11:50:26,638 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 11:50:26,638 - INFO - All WebSocket connections attempted to close.
+2025-05-27 11:50:26,638 - INFO - Application shutdown complete.
+2025-05-27 11:50:26,639 - INFO - Sender task for 127.0.0.1:37972 was cancelled normally.
+2025-05-27 11:50:26,640 - INFO - Sender task for 127.0.0.1:37972 finished.
+2025-05-27 11:50:26,640 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37956) cancelled.
+2025-05-27 11:50:26,640 - INFO - Message forwarding task for Address(host='127.0.0.1', port=55404) cancelled.
+2025-05-27 11:50:26,640 - INFO - Message forwarding task for Address(host='127.0.0.1', port=37972) cancelled.
+2025-05-27 11:50:26,640 - INFO - Initiating cleanup for connection: 127.0.0.1:37956
+2025-05-27 11:50:26,640 - INFO - Starting cleanup for 127.0.0.1:37956
+2025-05-27 11:50:26,640 - INFO - Connection cleanup completed for 127.0.0.1:37956. Remaining connections: 2
+2025-05-27 11:50:26,641 - INFO - Cleanup finished for connection: 127.0.0.1:37956. Total connections: 2
+2025-05-27 11:50:26,641 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37956) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:50:26,643 - INFO - Initiating cleanup for connection: 127.0.0.1:55404
+2025-05-27 11:50:26,643 - INFO - Starting cleanup for 127.0.0.1:55404
+2025-05-27 11:50:26,643 - INFO - Connection cleanup completed for 127.0.0.1:55404. Remaining connections: 1
+2025-05-27 11:50:26,644 - INFO - Cleanup finished for connection: 127.0.0.1:55404. Total connections: 1
+2025-05-27 11:50:26,644 - INFO - Cleanup finished for Address(host='127.0.0.1', port=55404) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 11:50:26,645 - INFO - Initiating cleanup for connection: 127.0.0.1:37972
+2025-05-27 11:50:26,645 - INFO - Starting cleanup for 127.0.0.1:37972
+2025-05-27 11:50:26,645 - INFO - Connection cleanup completed for 127.0.0.1:37972. Remaining connections: 0
+2025-05-27 11:50:26,645 - INFO - Cleanup finished for connection: 127.0.0.1:37972. Total connections: 0
+2025-05-27 11:50:26,645 - INFO - Cleanup finished for Address(host='127.0.0.1', port=37972) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.

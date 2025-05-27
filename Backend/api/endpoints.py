@@ -211,7 +211,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     message_from_client = json.loads(data)
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from {websocket.client}: {data}")
-                    await ws_manager._send_error(websocket, f"Invalid JSON format: {data[:50]}...")
+                    await ws_manager.send_error(websocket, "invalid_json_format", f"Invalid JSON format: {data[:50]}...")
                     continue
 
                 if message_from_client.get('type') == 'ping':
@@ -224,7 +224,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     ws_message.client_id = ws_message.client_id or str(websocket.client)
                 except Exception as e:
                     logger.error(f"Validation error for incoming WebSocket message: {e}", exc_info=True)
-                    await ws_manager._send_error(websocket, f"Invalid message structure: {str(e)}")
+                    await ws_manager.send_error(websocket,  "invalid_message_structure",f"Invalid message structure: {str(e)}")
                     continue
 
 
@@ -245,7 +245,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         )
                     else:
                         logger.warning(f"Unknown command received: {command} from {ws_message.client_id}")
-                        await ws_manager._send_error(websocket, f"Unknown command: {command}")
+                        await ws_manager.send_error(websocket, "unknown_command", f"Unknown command: {command}")
                 else:
                     await ws_manager.handle_message(websocket, data)
 
