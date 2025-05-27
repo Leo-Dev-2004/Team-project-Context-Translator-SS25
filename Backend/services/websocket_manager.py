@@ -24,29 +24,41 @@ class WebSocketManager:
 
     # Helper function to create a standardized message for the internal queue
     def _create_queue_message(self, message: WebSocketMessage, source: str, status: str) -> Dict[str, Any]:
-        """Constructs a dictionary formatted for internal MessageQueue usage.
-        Ensures all required fields for queue validation are present.
-        """
-        # Convert Pydantic model to dict first
-        message_dict = message.dict(exclude_unset=True)
+        """Constructs a dictionary formatted for internal MessageQueue usage."""
         
-        # Ensure message.id is a string or generate a new one
-        message_id = str(message_dict.get('id', uuid.uuid4()))
-        
-        # Ensure client_id is always a string
-        client_id_str = message_dict.get('client_id', 'unknown')
+        # Safely convert the WebSocketMessage Pydantic model to a dictionary
+        message_as_dict = message.dict(exclude_unset=True)
 
-        # Get trace data from the converted dict
-        trace_data = message_dict.get('_trace', {})
-        
+        # Ensure message_id is a string or generate a new one
+        message_id = message_as_dict.get('id')
+        if message_id is None:
+            message_id = str(message.id) if hasattr(message, 'id') and message.id else str(uuid.uuid4())
+        else:
+            message_id = str(message_id)
+
+        # Safely get client_id
+        client_id_str = message_as_dict.get('client_id', 'unknown')
+        if client_id_str is None:
+            client_id_str = 'unknown'
+
+        # Get paths directly from message
+        processing_path = message_as_dict.get('processing_path', [])
+        forwarding_path = message_as_dict.get('forwarding_path', [])
+
+        # Ensure these are lists
+        if not isinstance(processing_path, list):
+            processing_path = []
+        if not isinstance(forwarding_path, list):
+            forwarding_path = []
+
         return {
             'id': message_id,
-            'type': message_dict['type'],
-            'data': message_dict['data'],
-            'timestamp': message_dict.get('timestamp', time.time()),
+            'type': message_as_dict['type'],
+            'data': message_as_dict['data'],
+            'timestamp': message_as_dict.get('timestamp', time.time()),
             'client_id': client_id_str,
-            'processing_path': trace_data.get('processing_path', []),
-            'forwarding_path': trace_data.get('forwarding_path', []),
+            'processing_path': processing_path,
+            'forwarding_path': forwarding_path,
             'source': source,
             'status': status
         }

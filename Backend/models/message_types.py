@@ -68,14 +68,19 @@ class WebSocketMessage(BaseModel):
         examples=["client_123", "another_client_id"]
     )
     
-    # Internal tracing/routing information
-    processing_path: List[Dict[str, Any]] = Field(
+    # Message routing and processing tracking
+    processing_path: List[str] = Field(
         default_factory=list,
-        description="Tracking of processing steps the message has gone through"
+        description="Tracking of processing steps (e.g. ['message_processor', 'queue_forwarder'])"
     )
-    forwarding_path: List[Dict[str, Any]] = Field(
+    forwarding_path: List[str] = Field(
         default_factory=list,
-        description="Tracking of queue forwarding steps the message has taken"
+        description="Tracking of queue forwarding steps (e.g. ['from_frontend', 'to_backend'])"
+    )
+    _trace: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Internal tracing metadata",
+        exclude=True  # Don't include in dict() by default
     )
 
     class Config:
