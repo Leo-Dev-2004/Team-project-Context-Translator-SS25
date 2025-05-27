@@ -1,9 +1,11 @@
-// MessageQueue.js
+// frontend/src/modules/MessageQueue.js
 class MessageQueue {
-    constructor() {
+    constructor(name = "default") {
+        this.name = name;
         this.queue = [];
-        this.pending = [];
+        this.waitingResolvers = []; // Renamed from 'pending' for clarity
         this._listeners = new Set();
+        console.log(`MessageQueue '${this.name}' initialized.`);
     }
 
     enqueue(message) {
@@ -12,29 +14,49 @@ class MessageQueue {
         }
         this.queue.push(message);
         this._listeners.forEach(cb => cb(this.queue));
-        while (this.pending.length > 0 && this.queue.length > 0) {
-            const resolve = this.pending.shift();
-            resolve(this.queue.shift());
+
+        // If there are consumers waiting, resolve one immediately with the oldest item
+        if (this.waitingResolvers.length > 0 && this.queue.length > 0) {
+            const resolve = this.waitingResolvers.shift();
+            // We enqueue first, then resolve with the *oldest* item from the queue,
+            // effectively allowing the waiting dequeue to take the newly available item.
+            // This behavior was somewhat ambiguous in the previous version's enqueue.
+            // The dequeue method directly shifts, which is correct.
+            // Here, we just need to signal availability to a waiting dequeue.
+            // The `dequeue` method itself will shift the item.
+            resolve(this.queue[0]); // Indicate availability, dequeue will consume the actual item
         }
     }
 
+    // Dequeue a message (asynchronous, blocking/waiting)
     async dequeue() {
         if (this.queue.length > 0) {
-            return this.queue.shift();
+            const item = this.queue.shift(); // Truly remove the item
+            console.log(`Dequeued item from '${this.name}':`, item);
+            this._listeners.forEach(cb => cb(this.queue)); // Notify listeners
+            return item;
+        } else {
+            return new Promise(resolve => {
+                this.waitingResolvers.push(resolve);
+            });
         }
-        return new Promise(resolve => this.pending.push(resolve));
     }
 
     size() {
         return this.queue.length;
     }
 
+    getCurrentItemsForDisplay() { // Used for displaying without removing
+        return [...this.queue]; // Return a shallow copy
+    }
+
+    // Add peekAll and getAll aliases for backward compatibility if other code uses them
     peekAll() {
-        return [...this.queue]; // Return a copy without modifying queue
+        return this.getCurrentItemsForDisplay();
     }
 
     getAll() {
-        return this.peekAll(); // Alias for backwards compatibility
+        return this.getCurrentItemsForDisplay();
     }
 
     addListener(callback) {
@@ -47,13 +69,12 @@ class MessageQueue {
 
     clear() {
         this.queue = [];
+        this.waitingResolvers = []; // Also clear waiting resolvers
         this._listeners.forEach(cb => cb(this.queue));
+        console.log(`Queue '${this.name}' cleared.`);
     }
 }
 
-// Export the queue instances and the class
-export const toBackendQueue = new MessageQueue();
-export const fromBackendQueue = new MessageQueue();
-export const toFrontendQueue = new MessageQueue();
-export const fromFrontendQueue = new MessageQueue();
-export { MessageQueue }; // Export the class itself if needed elsewhere
+// Export the class itself as a DEFAULT export, as originally intended in app.js.
+// This is critical for `import MessageQueue from './modules/MessageQueue.js';` to work.
+export default MessageQueue;

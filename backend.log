@@ -6125,3 +6125,955 @@ starlette.websockets.WebSocketDisconnect: 1001
 2025-05-27 01:57:12,785 - INFO - Cleanup finished for connection: 127.0.0.1:39584. Total connections: 0
 2025-05-27 01:57:12,785 - INFO - Starting cleanup for Address(host='127.0.0.1', port=39584)
 2025-05-27 01:57:12,785 - INFO - Connection cleanup completed for Address(host='127.0.0.1', port=39584). Remaining connections: 0
+2025-05-27 01:59:57,355 - INFO - Application startup event triggered.
+2025-05-27 01:59:57,355 - INFO - Initializing all queues...
+2025-05-27 01:59:57,356 - INFO - All queues initialized on loop 431746592
+2025-05-27 01:59:57,356 - INFO - Shared queues initialized.
+2025-05-27 01:59:57,356 - INFO - Retrieved queue instances. Event loop ID: 431746592
+2025-05-27 01:59:57,356 - INFO - SimulationManager ready state set to: True
+2025-05-27 01:59:57,356 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 01:59:57,356 - INFO - MessageProcessor queues verified
+2025-05-27 01:59:57,356 - INFO - MessageProcessor task started.
+2025-05-27 01:59:57,356 - INFO - QueueForwarder queues verified
+2025-05-27 01:59:57,356 - INFO - QueueForwarder task started.
+2025-05-27 01:59:57,356 - INFO - Application startup complete. All core services initialized.
+2025-05-27 01:59:57,356 - INFO - Starting MessageProcessor
+2025-05-27 01:59:57,357 - INFO - Starting QueueForwarder
+2025-05-27 01:59:58,813 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=38100)
+2025-05-27 01:59:58,813 - INFO - Adding connection: 127.0.0.1:38100. Total connections: 1
+2025-05-27 01:59:58,814 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=38100)
+2025-05-27 01:59:58,815 - INFO - Sender task started for Address(host='127.0.0.1', port=38100)
+2025-05-27 01:59:58,815 - INFO - Receiver task started for Address(host='127.0.0.1', port=38100)
+2025-05-27 01:59:58,823 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=38100)
+2025-05-27 01:59:58,824 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=38100): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 01:59:58,826 - INFO - Sender task for Address(host='127.0.0.1', port=38100) finished.
+2025-05-27 02:00:00,290 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=38100)
+2025-05-27 02:00:10,125 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=38100): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:00:10,126 - INFO - Receiver task for Address(host='127.0.0.1', port=38100) finished.
+2025-05-27 02:00:10,126 - INFO - Initiating cleanup for connection: 127.0.0.1:38100
+2025-05-27 02:00:10,126 - INFO - Starting cleanup for 127.0.0.1:38100
+2025-05-27 02:00:10,126 - INFO - Connection cleanup completed for 127.0.0.1:38100. Remaining connections: 0
+2025-05-27 02:00:10,127 - INFO - Cleanup finished for connection: 127.0.0.1:38100. Total connections: 0
+2025-05-27 02:00:10,127 - ERROR - WebSocket receive error: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:00:10,127 - INFO - Starting cleanup for Address(host='127.0.0.1', port=38100)
+2025-05-27 02:00:10,127 - INFO - Connection cleanup completed for Address(host='127.0.0.1', port=38100). Remaining connections: 0
+2025-05-27 02:00:14,516 - INFO - Application shutdown event triggered.
+2025-05-27 02:00:14,516 - INFO - Stopping MessageProcessor...
+2025-05-27 02:00:14,516 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:00:14,516 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:00:14,516 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:00:14,516 - INFO - Application shutdown complete.
+2025-05-27 02:02:21,137 - INFO - Application startup event triggered.
+2025-05-27 02:02:21,138 - INFO - Initializing all queues...
+2025-05-27 02:02:21,138 - INFO - All queues initialized on loop 750247456
+2025-05-27 02:02:21,138 - INFO - Shared queues initialized.
+2025-05-27 02:02:21,138 - INFO - Retrieved queue instances. Event loop ID: 750247456
+2025-05-27 02:02:21,138 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:02:21,138 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:02:21,138 - INFO - MessageProcessor queues verified
+2025-05-27 02:02:21,138 - INFO - MessageProcessor task started.
+2025-05-27 02:02:21,138 - INFO - QueueForwarder queues verified
+2025-05-27 02:02:21,138 - INFO - QueueForwarder task started.
+2025-05-27 02:02:21,139 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:02:21,139 - INFO - Starting MessageProcessor
+2025-05-27 02:02:21,139 - INFO - Starting QueueForwarder
+2025-05-27 02:02:22,606 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:22,606 - INFO - Adding connection: 127.0.0.1:56122. Total connections: 1
+2025-05-27 02:02:22,607 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:22,607 - INFO - Sender task started for Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:22,608 - INFO - Receiver task started for Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:22,614 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:22,616 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=56122): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:02:22,617 - INFO - Sender task for Address(host='127.0.0.1', port=56122) finished.
+2025-05-27 02:02:23,904 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:28,481 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=56122)
+2025-05-27 02:02:28,482 - INFO - Processed 3 messages
+2025-05-27 02:02:39,104 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=56122): 1012
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1012
+2025-05-27 02:02:39,105 - INFO - Receiver task for Address(host='127.0.0.1', port=56122) finished.
+2025-05-27 02:02:39,105 - INFO - Initiating cleanup for connection: 127.0.0.1:56122
+2025-05-27 02:02:39,106 - INFO - Starting cleanup for 127.0.0.1:56122
+2025-05-27 02:02:39,106 - INFO - Connection cleanup completed for 127.0.0.1:56122. Remaining connections: 0
+2025-05-27 02:02:39,106 - INFO - Cleanup finished for connection: 127.0.0.1:56122. Total connections: 0
+2025-05-27 02:02:39,106 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=56122): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:02:39,107 - INFO - Message forwarding task for Address(host='127.0.0.1', port=56122) cancelled.
+2025-05-27 02:02:39,107 - INFO - Cleanup finished for Address(host='127.0.0.1', port=56122) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:02:39,205 - INFO - Application shutdown event triggered.
+2025-05-27 02:02:39,205 - INFO - Stopping MessageProcessor...
+2025-05-27 02:02:39,205 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:02:39,205 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:02:39,205 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:02:39,206 - INFO - Application shutdown complete.
+2025-05-27 02:03:10,512 - INFO - Application startup event triggered.
+2025-05-27 02:03:10,512 - INFO - Initializing all queues...
+2025-05-27 02:03:10,512 - INFO - All queues initialized on loop 152763936
+2025-05-27 02:03:10,513 - INFO - Shared queues initialized.
+2025-05-27 02:03:10,513 - INFO - Retrieved queue instances. Event loop ID: 152763936
+2025-05-27 02:03:10,513 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:03:10,513 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:03:10,513 - INFO - MessageProcessor queues verified
+2025-05-27 02:03:10,514 - INFO - MessageProcessor task started.
+2025-05-27 02:03:10,514 - INFO - QueueForwarder queues verified
+2025-05-27 02:03:10,514 - INFO - QueueForwarder task started.
+2025-05-27 02:03:10,514 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:03:10,514 - INFO - Starting MessageProcessor
+2025-05-27 02:03:10,514 - INFO - Starting QueueForwarder
+2025-05-27 02:03:11,944 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=57110)
+2025-05-27 02:03:11,944 - INFO - Adding connection: 127.0.0.1:57110. Total connections: 1
+2025-05-27 02:03:11,945 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=57110)
+2025-05-27 02:03:11,946 - INFO - Sender task started for Address(host='127.0.0.1', port=57110)
+2025-05-27 02:03:11,946 - INFO - Receiver task started for Address(host='127.0.0.1', port=57110)
+2025-05-27 02:03:11,952 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=57110)
+2025-05-27 02:03:11,954 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=57110): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:03:11,955 - INFO - Sender task for Address(host='127.0.0.1', port=57110) finished.
+2025-05-27 02:03:12,327 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=55104)
+2025-05-27 02:03:12,327 - INFO - Adding connection: 127.0.0.1:55104. Total connections: 2
+2025-05-27 02:03:12,328 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=55104)
+2025-05-27 02:03:12,328 - INFO - Sender task started for Address(host='127.0.0.1', port=55104)
+2025-05-27 02:03:12,329 - INFO - Receiver task started for Address(host='127.0.0.1', port=55104)
+2025-05-27 02:03:12,334 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=55104)
+2025-05-27 02:03:14,111 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=57110): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:03:14,112 - INFO - Receiver task for Address(host='127.0.0.1', port=57110) finished.
+2025-05-27 02:03:14,113 - INFO - Initiating cleanup for connection: 127.0.0.1:57110
+2025-05-27 02:03:14,113 - INFO - Starting cleanup for 127.0.0.1:57110
+2025-05-27 02:03:14,113 - INFO - Connection cleanup completed for 127.0.0.1:57110. Remaining connections: 1
+2025-05-27 02:03:14,113 - INFO - Cleanup finished for connection: 127.0.0.1:57110. Total connections: 1
+2025-05-27 02:03:14,113 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=57110): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:03:14,114 - INFO - Message forwarding task for Address(host='127.0.0.1', port=57110) cancelled.
+2025-05-27 02:03:14,115 - INFO - Cleanup finished for Address(host='127.0.0.1', port=57110) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:03:14,180 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:14,180 - INFO - Adding connection: 127.0.0.1:55112. Total connections: 2
+2025-05-27 02:03:14,181 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:14,182 - INFO - Sender task started for Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:14,182 - INFO - Receiver task started for Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:14,187 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:14,188 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=55104): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:03:14,189 - INFO - Sender task for Address(host='127.0.0.1', port=55104) finished.
+2025-05-27 02:03:16,481 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:16,482 - INFO - Processed 4 messages
+2025-05-27 02:03:16,482 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=55112): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:03:16,483 - INFO - Sender task for Address(host='127.0.0.1', port=55112) finished.
+2025-05-27 02:03:17,762 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=55112)
+2025-05-27 02:03:29,012 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=55112): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:03:29,013 - INFO - Receiver task for Address(host='127.0.0.1', port=55112) finished.
+2025-05-27 02:03:29,013 - INFO - Initiating cleanup for connection: 127.0.0.1:55112
+2025-05-27 02:03:29,013 - INFO - Starting cleanup for 127.0.0.1:55112
+2025-05-27 02:03:29,013 - INFO - Connection cleanup completed for 127.0.0.1:55112. Remaining connections: 1
+2025-05-27 02:03:29,013 - INFO - Cleanup finished for connection: 127.0.0.1:55112. Total connections: 1
+2025-05-27 02:03:29,014 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=55112): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:03:29,014 - INFO - Message forwarding task for Address(host='127.0.0.1', port=55112) cancelled.
+2025-05-27 02:03:29,015 - INFO - Cleanup finished for Address(host='127.0.0.1', port=55112) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:03:30,623 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=55104): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:03:30,624 - INFO - Receiver task for Address(host='127.0.0.1', port=55104) finished.
+2025-05-27 02:03:30,624 - INFO - Initiating cleanup for connection: 127.0.0.1:55104
+2025-05-27 02:03:30,624 - INFO - Starting cleanup for 127.0.0.1:55104
+2025-05-27 02:03:30,624 - INFO - Connection cleanup completed for 127.0.0.1:55104. Remaining connections: 0
+2025-05-27 02:03:30,624 - INFO - Cleanup finished for connection: 127.0.0.1:55104. Total connections: 0
+2025-05-27 02:03:30,624 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=55104): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:03:30,625 - INFO - Message forwarding task for Address(host='127.0.0.1', port=55104) cancelled.
+2025-05-27 02:03:30,625 - INFO - Cleanup finished for Address(host='127.0.0.1', port=55104) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:04:57,269 - INFO - Application shutdown event triggered.
+2025-05-27 02:04:57,269 - INFO - Stopping MessageProcessor...
+2025-05-27 02:04:57,269 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:04:57,269 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:04:57,269 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:04:57,269 - INFO - Application shutdown complete.
+2025-05-27 02:04:58,087 - INFO - Application startup event triggered.
+2025-05-27 02:04:58,087 - INFO - Initializing all queues...
+2025-05-27 02:04:58,087 - INFO - All queues initialized on loop 514072784
+2025-05-27 02:04:58,087 - INFO - Shared queues initialized.
+2025-05-27 02:04:58,087 - INFO - Retrieved queue instances. Event loop ID: 514072784
+2025-05-27 02:04:58,087 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:04:58,087 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:04:58,087 - INFO - MessageProcessor queues verified
+2025-05-27 02:04:58,087 - INFO - MessageProcessor task started.
+2025-05-27 02:04:58,087 - INFO - QueueForwarder queues verified
+2025-05-27 02:04:58,088 - INFO - QueueForwarder task started.
+2025-05-27 02:04:58,088 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:04:58,088 - INFO - Starting MessageProcessor
+2025-05-27 02:04:58,088 - INFO - Starting QueueForwarder
+2025-05-27 02:07:58,076 - INFO - Application shutdown event triggered.
+2025-05-27 02:07:58,077 - INFO - Stopping MessageProcessor...
+2025-05-27 02:07:58,077 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 02:07:58,077 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:07:58,077 - INFO - Application shutdown complete.
+2025-05-27 02:08:01,435 - INFO - Application startup event triggered.
+2025-05-27 02:08:01,435 - INFO - Initializing all queues...
+2025-05-27 02:08:01,435 - INFO - All queues initialized on loop 897904160
+2025-05-27 02:08:01,436 - INFO - Shared queues initialized.
+2025-05-27 02:08:01,436 - INFO - Retrieved queue instances. Event loop ID: 897904160
+2025-05-27 02:08:01,436 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:08:01,436 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:08:01,436 - INFO - MessageProcessor queues verified
+2025-05-27 02:08:01,436 - INFO - MessageProcessor task started.
+2025-05-27 02:08:01,436 - INFO - QueueForwarder queues verified
+2025-05-27 02:08:01,436 - INFO - QueueForwarder task started.
+2025-05-27 02:08:01,436 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:08:01,437 - INFO - Starting MessageProcessor
+2025-05-27 02:08:01,437 - INFO - Starting QueueForwarder
+2025-05-27 02:08:02,892 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:02,892 - INFO - Adding connection: 127.0.0.1:39350. Total connections: 1
+2025-05-27 02:08:02,893 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:02,894 - INFO - Sender task started for Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:02,894 - INFO - Receiver task started for Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:02,902 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:02,903 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=39350): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:08:02,905 - INFO - Sender task for Address(host='127.0.0.1', port=39350) finished.
+2025-05-27 02:08:03,856 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:06,926 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:06,927 - INFO - Processed 3 messages
+2025-05-27 02:08:20,819 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:20,819 - INFO - Processed 1 messages
+2025-05-27 02:08:27,903 - INFO - Enqueuing valid message of type 'ping' from Address(host='127.0.0.1', port=39350)
+2025-05-27 02:08:27,903 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=39350): Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 173, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 02:08:27,904 - INFO - Receiver task for Address(host='127.0.0.1', port=39350) finished.
+2025-05-27 02:08:27,904 - INFO - Initiating cleanup for connection: 127.0.0.1:39350
+2025-05-27 02:08:27,904 - INFO - Starting cleanup for 127.0.0.1:39350
+2025-05-27 02:08:27,905 - INFO - Closed WebSocket connection for 127.0.0.1:39350
+2025-05-27 02:08:27,905 - INFO - Connection cleanup completed for 127.0.0.1:39350. Remaining connections: 0
+2025-05-27 02:08:27,905 - INFO - Cleanup finished for connection: 127.0.0.1:39350. Total connections: 0
+2025-05-27 02:08:27,905 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=39350): WebSocket is not connected. Need to call "accept" first.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 109, in receive_text
+    raise RuntimeError(
+RuntimeError: WebSocket is not connected. Need to call "accept" first.
+2025-05-27 02:08:27,907 - INFO - Message forwarding task for Address(host='127.0.0.1', port=39350) cancelled.
+2025-05-27 02:08:27,907 - INFO - Cleanup finished for Address(host='127.0.0.1', port=39350) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:08:36,464 - INFO - Application shutdown event triggered.
+2025-05-27 02:08:36,464 - INFO - Stopping MessageProcessor...
+2025-05-27 02:08:36,464 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:08:36,464 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:08:36,464 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:08:36,464 - INFO - Application shutdown complete.
+2025-05-27 02:10:55,818 - INFO - Application startup event triggered.
+2025-05-27 02:10:55,818 - INFO - Initializing all queues...
+2025-05-27 02:10:55,818 - INFO - All queues initialized on loop 791113248
+2025-05-27 02:10:55,818 - INFO - Shared queues initialized.
+2025-05-27 02:10:55,818 - INFO - Retrieved queue instances. Event loop ID: 791113248
+2025-05-27 02:10:55,818 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:10:55,819 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:10:55,819 - INFO - MessageProcessor queues verified
+2025-05-27 02:10:55,819 - INFO - MessageProcessor task started.
+2025-05-27 02:10:55,819 - INFO - QueueForwarder queues verified
+2025-05-27 02:10:55,819 - INFO - QueueForwarder task started.
+2025-05-27 02:10:55,819 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:10:55,819 - INFO - Starting MessageProcessor
+2025-05-27 02:10:55,819 - INFO - Starting QueueForwarder
+2025-05-27 02:10:57,264 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=50162)
+2025-05-27 02:10:57,265 - INFO - Adding connection: 127.0.0.1:50162. Total connections: 1
+2025-05-27 02:10:57,266 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=50162)
+2025-05-27 02:10:57,266 - INFO - Sender task started for Address(host='127.0.0.1', port=50162)
+2025-05-27 02:10:57,266 - INFO - Receiver task started for Address(host='127.0.0.1', port=50162)
+2025-05-27 02:10:57,275 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=50162)
+2025-05-27 02:10:57,276 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=50162): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:10:57,277 - INFO - Sender task for Address(host='127.0.0.1', port=50162) finished.
+2025-05-27 02:10:58,457 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=50162)
+2025-05-27 02:11:02,384 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=50162)
+2025-05-27 02:11:02,384 - INFO - Processed 3 messages
+2025-05-27 02:11:08,303 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=50162): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:11:08,304 - INFO - Receiver task for Address(host='127.0.0.1', port=50162) finished.
+2025-05-27 02:11:08,304 - INFO - Initiating cleanup for connection: 127.0.0.1:50162
+2025-05-27 02:11:08,305 - INFO - Starting cleanup for 127.0.0.1:50162
+2025-05-27 02:11:08,305 - INFO - Connection cleanup completed for 127.0.0.1:50162. Remaining connections: 0
+2025-05-27 02:11:08,305 - INFO - Cleanup finished for connection: 127.0.0.1:50162. Total connections: 0
+2025-05-27 02:11:08,305 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=50162): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:11:08,306 - INFO - Message forwarding task for Address(host='127.0.0.1', port=50162) cancelled.
+2025-05-27 02:11:08,306 - INFO - Cleanup finished for Address(host='127.0.0.1', port=50162) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:11:09,468 - INFO - Application shutdown event triggered.
+2025-05-27 02:11:09,468 - INFO - Stopping MessageProcessor...
+2025-05-27 02:11:09,468 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:11:09,469 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:11:09,469 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:11:09,469 - INFO - Application shutdown complete.
+2025-05-27 02:11:39,243 - INFO - Application startup event triggered.
+2025-05-27 02:11:39,243 - INFO - Initializing all queues...
+2025-05-27 02:11:39,243 - INFO - All queues initialized on loop 597954080
+2025-05-27 02:11:39,243 - INFO - Shared queues initialized.
+2025-05-27 02:11:39,244 - INFO - Retrieved queue instances. Event loop ID: 597954080
+2025-05-27 02:11:39,244 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:11:39,244 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:11:39,244 - INFO - MessageProcessor queues verified
+2025-05-27 02:11:39,244 - INFO - MessageProcessor task started.
+2025-05-27 02:11:39,244 - INFO - QueueForwarder queues verified
+2025-05-27 02:11:39,244 - INFO - QueueForwarder task started.
+2025-05-27 02:11:39,244 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:11:39,245 - INFO - Starting MessageProcessor
+2025-05-27 02:11:39,245 - INFO - Starting QueueForwarder
+2025-05-27 02:11:40,669 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41480)
+2025-05-27 02:11:40,669 - INFO - Adding connection: 127.0.0.1:41480. Total connections: 1
+2025-05-27 02:11:40,671 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=41480)
+2025-05-27 02:11:40,671 - INFO - Sender task started for Address(host='127.0.0.1', port=41480)
+2025-05-27 02:11:40,671 - INFO - Receiver task started for Address(host='127.0.0.1', port=41480)
+2025-05-27 02:11:40,678 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=41480)
+2025-05-27 02:11:40,679 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=41480): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:11:40,681 - INFO - Sender task for Address(host='127.0.0.1', port=41480) finished.
+2025-05-27 02:11:41,448 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=41480): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:11:41,449 - INFO - Receiver task for Address(host='127.0.0.1', port=41480) finished.
+2025-05-27 02:11:41,449 - INFO - Initiating cleanup for connection: 127.0.0.1:41480
+2025-05-27 02:11:41,449 - INFO - Starting cleanup for 127.0.0.1:41480
+2025-05-27 02:11:41,449 - INFO - Connection cleanup completed for 127.0.0.1:41480. Remaining connections: 0
+2025-05-27 02:11:41,449 - INFO - Cleanup finished for connection: 127.0.0.1:41480. Total connections: 0
+2025-05-27 02:11:41,449 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=41480): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:11:41,450 - INFO - Message forwarding task for Address(host='127.0.0.1', port=41480) cancelled.
+2025-05-27 02:11:41,451 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41480) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:11:41,517 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41490)
+2025-05-27 02:11:41,518 - INFO - Adding connection: 127.0.0.1:41490. Total connections: 1
+2025-05-27 02:11:41,519 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=41490)
+2025-05-27 02:11:41,519 - INFO - Sender task started for Address(host='127.0.0.1', port=41490)
+2025-05-27 02:11:41,519 - INFO - Receiver task started for Address(host='127.0.0.1', port=41490)
+2025-05-27 02:11:41,524 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=41490)
+2025-05-27 02:11:41,525 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=41490): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:11:41,526 - INFO - Sender task for Address(host='127.0.0.1', port=41490) finished.
+2025-05-27 02:11:42,219 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=41490): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:11:42,220 - INFO - Receiver task for Address(host='127.0.0.1', port=41490) finished.
+2025-05-27 02:11:42,221 - INFO - Initiating cleanup for connection: 127.0.0.1:41490
+2025-05-27 02:11:42,221 - INFO - Starting cleanup for 127.0.0.1:41490
+2025-05-27 02:11:42,221 - INFO - Connection cleanup completed for 127.0.0.1:41490. Remaining connections: 0
+2025-05-27 02:11:42,221 - INFO - Cleanup finished for connection: 127.0.0.1:41490. Total connections: 0
+2025-05-27 02:11:42,221 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=41490): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:11:42,221 - INFO - Message forwarding task for Address(host='127.0.0.1', port=41490) cancelled.
+2025-05-27 02:11:42,222 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41490) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:11:42,280 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:42,280 - INFO - Adding connection: 127.0.0.1:47318. Total connections: 1
+2025-05-27 02:11:42,281 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:42,281 - INFO - Sender task started for Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:42,281 - INFO - Receiver task started for Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:42,284 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:42,285 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=47318): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:11:42,286 - INFO - Sender task for Address(host='127.0.0.1', port=47318) finished.
+2025-05-27 02:11:43,859 - INFO - Enqueuing valid message of type 'test_message' from Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:47,335 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=47318)
+2025-05-27 02:11:47,335 - INFO - Processed 5 messages
+2025-05-27 02:12:07,321 - INFO - Enqueuing valid message of type 'ping' from Address(host='127.0.0.1', port=47318)
+2025-05-27 02:12:07,321 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=47318): Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 173, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 02:12:07,322 - INFO - Receiver task for Address(host='127.0.0.1', port=47318) finished.
+2025-05-27 02:12:07,322 - INFO - Initiating cleanup for connection: 127.0.0.1:47318
+2025-05-27 02:12:07,323 - INFO - Starting cleanup for 127.0.0.1:47318
+2025-05-27 02:12:07,324 - INFO - Closed WebSocket connection for 127.0.0.1:47318
+2025-05-27 02:12:07,324 - INFO - Connection cleanup completed for 127.0.0.1:47318. Remaining connections: 0
+2025-05-27 02:12:07,324 - INFO - Cleanup finished for connection: 127.0.0.1:47318. Total connections: 0
+2025-05-27 02:12:07,324 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=47318): WebSocket is not connected. Need to call "accept" first.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 109, in receive_text
+    raise RuntimeError(
+RuntimeError: WebSocket is not connected. Need to call "accept" first.
+2025-05-27 02:12:07,325 - INFO - Message forwarding task for Address(host='127.0.0.1', port=47318) cancelled.
+2025-05-27 02:12:07,325 - INFO - Cleanup finished for Address(host='127.0.0.1', port=47318) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:21:35,292 - INFO - Application shutdown event triggered.
+2025-05-27 02:21:35,292 - INFO - Stopping MessageProcessor...
+2025-05-27 02:21:35,293 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:21:35,293 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:21:35,293 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:21:35,293 - INFO - Application shutdown complete.
+2025-05-27 02:21:36,133 - INFO - Application startup event triggered.
+2025-05-27 02:21:36,133 - INFO - Initializing all queues...
+2025-05-27 02:21:36,133 - INFO - All queues initialized on loop 385089744
+2025-05-27 02:21:36,133 - INFO - Shared queues initialized.
+2025-05-27 02:21:36,133 - INFO - Retrieved queue instances. Event loop ID: 385089744
+2025-05-27 02:21:36,134 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:21:36,134 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:21:36,134 - INFO - MessageProcessor queues verified
+2025-05-27 02:21:36,134 - INFO - MessageProcessor task started.
+2025-05-27 02:21:36,134 - INFO - QueueForwarder queues verified
+2025-05-27 02:21:36,134 - INFO - QueueForwarder task started.
+2025-05-27 02:21:36,134 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:21:36,134 - INFO - Starting MessageProcessor
+2025-05-27 02:21:36,134 - INFO - Starting QueueForwarder
+2025-05-27 02:21:36,336 - INFO - Application shutdown event triggered.
+2025-05-27 02:21:36,336 - INFO - Stopping MessageProcessor...
+2025-05-27 02:21:36,336 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:21:36,337 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:21:36,337 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:21:36,337 - INFO - Application shutdown complete.
+2025-05-27 02:21:37,181 - INFO - Application startup event triggered.
+2025-05-27 02:21:37,181 - INFO - Initializing all queues...
+2025-05-27 02:21:37,181 - INFO - All queues initialized on loop 690745552
+2025-05-27 02:21:37,182 - INFO - Shared queues initialized.
+2025-05-27 02:21:37,182 - INFO - Retrieved queue instances. Event loop ID: 690745552
+2025-05-27 02:21:37,182 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:21:37,182 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:21:37,182 - INFO - MessageProcessor queues verified
+2025-05-27 02:21:37,182 - INFO - MessageProcessor task started.
+2025-05-27 02:21:37,182 - INFO - QueueForwarder queues verified
+2025-05-27 02:21:37,182 - INFO - QueueForwarder task started.
+2025-05-27 02:21:37,182 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:21:37,182 - INFO - Starting MessageProcessor
+2025-05-27 02:21:37,182 - INFO - Starting QueueForwarder
+2025-05-27 02:21:39,390 - INFO - Application shutdown event triggered.
+2025-05-27 02:21:39,391 - INFO - Stopping MessageProcessor...
+2025-05-27 02:21:39,391 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:21:39,391 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:21:39,392 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:21:39,392 - INFO - Application shutdown complete.
+2025-05-27 02:21:42,448 - INFO - Application startup event triggered.
+2025-05-27 02:21:42,448 - INFO - Initializing all queues...
+2025-05-27 02:21:42,448 - INFO - All queues initialized on loop 645787168
+2025-05-27 02:21:42,448 - INFO - Shared queues initialized.
+2025-05-27 02:21:42,448 - INFO - Retrieved queue instances. Event loop ID: 645787168
+2025-05-27 02:21:42,448 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:21:42,449 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:21:42,449 - INFO - MessageProcessor queues verified
+2025-05-27 02:21:42,449 - INFO - MessageProcessor task started.
+2025-05-27 02:21:42,449 - INFO - QueueForwarder queues verified
+2025-05-27 02:21:42,449 - INFO - QueueForwarder task started.
+2025-05-27 02:21:42,449 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:21:42,449 - INFO - Starting MessageProcessor
+2025-05-27 02:21:42,450 - INFO - Starting QueueForwarder
+2025-05-27 02:24:04,215 - INFO - Application shutdown event triggered.
+2025-05-27 02:24:04,215 - INFO - Stopping MessageProcessor...
+2025-05-27 02:24:04,216 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:24:04,216 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:24:04,216 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:24:04,216 - INFO - Application shutdown complete.
+2025-05-27 02:24:08,898 - INFO - Application startup event triggered.
+2025-05-27 02:24:08,898 - INFO - Initializing all queues...
+2025-05-27 02:24:08,898 - INFO - All queues initialized on loop 262966816
+2025-05-27 02:24:08,898 - INFO - Shared queues initialized.
+2025-05-27 02:24:08,899 - INFO - Retrieved queue instances. Event loop ID: 262966816
+2025-05-27 02:24:08,899 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:24:08,899 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:24:08,899 - INFO - MessageProcessor queues verified
+2025-05-27 02:24:08,899 - INFO - MessageProcessor task started.
+2025-05-27 02:24:08,899 - INFO - QueueForwarder queues verified
+2025-05-27 02:24:08,899 - INFO - QueueForwarder task started.
+2025-05-27 02:24:08,900 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:24:08,900 - INFO - Starting MessageProcessor
+2025-05-27 02:24:08,900 - INFO - Starting QueueForwarder
+2025-05-27 02:24:10,244 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=51830)
+2025-05-27 02:24:10,244 - INFO - Adding connection: 127.0.0.1:51830. Total connections: 1
+2025-05-27 02:24:10,245 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=51830)
+2025-05-27 02:24:10,245 - INFO - Sender task started for Address(host='127.0.0.1', port=51830)
+2025-05-27 02:24:10,246 - INFO - Receiver task started for Address(host='127.0.0.1', port=51830)
+2025-05-27 02:24:10,250 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=51830)
+2025-05-27 02:24:10,251 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=51830): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:24:10,253 - INFO - Sender task for Address(host='127.0.0.1', port=51830) finished.
+2025-05-27 02:24:14,109 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=51830): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:24:14,110 - INFO - Receiver task for Address(host='127.0.0.1', port=51830) finished.
+2025-05-27 02:24:14,111 - INFO - Initiating cleanup for connection: 127.0.0.1:51830
+2025-05-27 02:24:14,111 - INFO - Starting cleanup for 127.0.0.1:51830
+2025-05-27 02:24:14,111 - INFO - Connection cleanup completed for 127.0.0.1:51830. Remaining connections: 0
+2025-05-27 02:24:14,111 - INFO - Cleanup finished for connection: 127.0.0.1:51830. Total connections: 0
+2025-05-27 02:24:14,111 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=51830): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:24:14,112 - INFO - Message forwarding task for Address(host='127.0.0.1', port=51830) cancelled.
+2025-05-27 02:24:14,113 - INFO - Cleanup finished for Address(host='127.0.0.1', port=51830) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:24:14,170 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:14,171 - INFO - Adding connection: 127.0.0.1:59972. Total connections: 1
+2025-05-27 02:24:14,172 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:14,173 - INFO - Sender task started for Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:14,173 - INFO - Receiver task started for Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:14,175 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:14,176 - INFO - Processed 2 messages
+2025-05-27 02:24:14,176 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=59972): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:24:14,177 - INFO - Sender task for Address(host='127.0.0.1', port=59972) finished.
+2025-05-27 02:24:16,364 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=59972)
+2025-05-27 02:24:27,652 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=59972): 1001
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 133, in _receiver
+    data = await websocket.receive_text()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 113, in receive_text
+    self._raise_on_disconnect(message)
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 105, in _raise_on_disconnect
+    raise WebSocketDisconnect(message["code"])
+starlette.websockets.WebSocketDisconnect: 1001
+2025-05-27 02:24:27,653 - INFO - Receiver task for Address(host='127.0.0.1', port=59972) finished.
+2025-05-27 02:24:27,653 - INFO - Initiating cleanup for connection: 127.0.0.1:59972
+2025-05-27 02:24:27,653 - INFO - Starting cleanup for 127.0.0.1:59972
+2025-05-27 02:24:27,654 - INFO - Connection cleanup completed for 127.0.0.1:59972. Remaining connections: 0
+2025-05-27 02:24:27,654 - INFO - Cleanup finished for connection: 127.0.0.1:59972. Total connections: 0
+2025-05-27 02:24:27,654 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=59972): Cannot call "receive" once a disconnect message has been received.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 112, in receive_text
+    message = await self.receive()
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 56, in receive
+    raise RuntimeError(
+RuntimeError: Cannot call "receive" once a disconnect message has been received.
+2025-05-27 02:24:27,655 - INFO - Message forwarding task for Address(host='127.0.0.1', port=59972) cancelled.
+2025-05-27 02:24:27,655 - INFO - Cleanup finished for Address(host='127.0.0.1', port=59972) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:24:31,680 - INFO - Application shutdown event triggered.
+2025-05-27 02:24:31,680 - INFO - Stopping MessageProcessor...
+2025-05-27 02:24:31,680 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:24:31,680 - WARNING - QueueForwarder instance or task not available for graceful shutdown.
+2025-05-27 02:24:31,680 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:24:31,680 - INFO - Application shutdown complete.
+2025-05-27 02:26:46,481 - INFO - Application startup event triggered.
+2025-05-27 02:26:46,481 - INFO - Initializing all queues...
+2025-05-27 02:26:46,481 - INFO - All queues initialized on loop 177729056
+2025-05-27 02:26:46,481 - INFO - Shared queues initialized.
+2025-05-27 02:26:46,481 - INFO - Retrieved queue instances. Event loop ID: 177729056
+2025-05-27 02:26:46,482 - INFO - SimulationManager ready state set to: True
+2025-05-27 02:26:46,482 - INFO - SimulationManager initialized and stored in dependencies.
+2025-05-27 02:26:46,482 - INFO - MessageProcessor queues verified
+2025-05-27 02:26:46,482 - INFO - MessageProcessor task started.
+2025-05-27 02:26:46,482 - INFO - QueueForwarder queues verified
+2025-05-27 02:26:46,482 - INFO - QueueForwarder task started.
+2025-05-27 02:26:46,483 - INFO - Application startup complete. All core services initialized.
+2025-05-27 02:26:46,483 - INFO - Starting MessageProcessor
+2025-05-27 02:26:46,483 - INFO - Starting QueueForwarder
+2025-05-27 02:26:47,929 - INFO - WebSocket connection established from Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:47,929 - INFO - Adding connection: 127.0.0.1:41438. Total connections: 1
+2025-05-27 02:26:47,930 - INFO - Sent connection_ack to Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:47,930 - INFO - Sender task started for Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:47,931 - INFO - Receiver task started for Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:47,936 - INFO - Enqueuing valid message of type 'frontend_ready_ack' from Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:47,937 - ERROR - Unexpected error during WebSocket send to Address(host='127.0.0.1', port=41438): Object of type WebSocketMessage is not JSON serializable
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 108, in _sender
+    await websocket.send_text(json.dumps(ws_msg))
+                              ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type WebSocketMessage is not JSON serializable
+2025-05-27 02:26:47,939 - INFO - Sender task for Address(host='127.0.0.1', port=41438) finished.
+2025-05-27 02:26:49,763 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:59,262 - INFO - Enqueuing valid message of type 'command' from Address(host='127.0.0.1', port=41438)
+2025-05-27 02:26:59,263 - INFO - Processed 3 messages
+2025-05-27 02:27:12,937 - INFO - Enqueuing valid message of type 'ping' from Address(host='127.0.0.1', port=41438)
+2025-05-27 02:27:12,938 - ERROR - Receive/processing error for Address(host='127.0.0.1', port=41438): Invalid message format for queue from_frontend
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/services/websocket_manager.py", line 173, in _receiver
+    await get_from_frontend_queue().enqueue(queue_msg)
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/queues/shared_queue.py", line 33, in enqueue
+    raise ValueError(f"Invalid message format for queue {self._name}")
+ValueError: Invalid message format for queue from_frontend
+2025-05-27 02:27:12,939 - INFO - Receiver task for Address(host='127.0.0.1', port=41438) finished.
+2025-05-27 02:27:12,939 - INFO - Initiating cleanup for connection: 127.0.0.1:41438
+2025-05-27 02:27:12,939 - INFO - Starting cleanup for 127.0.0.1:41438
+2025-05-27 02:27:12,940 - INFO - Closed WebSocket connection for 127.0.0.1:41438
+2025-05-27 02:27:12,940 - INFO - Connection cleanup completed for 127.0.0.1:41438. Remaining connections: 0
+2025-05-27 02:27:12,940 - INFO - Cleanup finished for connection: 127.0.0.1:41438. Total connections: 0
+2025-05-27 02:27:12,940 - ERROR - WebSocket receive/process error for Address(host='127.0.0.1', port=41438): WebSocket is not connected. Need to call "accept" first.
+Traceback (most recent call last):
+  File "/home/Leo/Documents/Coding/Teamprojekt Context Translator/Backend/api/endpoints.py", line 205, in websocket_endpoint
+    data = await asyncio.wait_for(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/home/Leo/.local/lib/python3.12/site-packages/starlette/websockets.py", line 109, in receive_text
+    raise RuntimeError(
+RuntimeError: WebSocket is not connected. Need to call "accept" first.
+2025-05-27 02:27:12,942 - INFO - Message forwarding task for Address(host='127.0.0.1', port=41438) cancelled.
+2025-05-27 02:27:12,942 - INFO - Cleanup finished for Address(host='127.0.0.1', port=41438) at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-05-27 02:27:15,487 - INFO - Application shutdown event triggered.
+2025-05-27 02:27:15,488 - INFO - Stopping MessageProcessor...
+2025-05-27 02:27:15,488 - WARNING - MessageProcessor didn't stop cleanly
+2025-05-27 02:27:15,488 - INFO - QueueForwarder task cancelled.
+2025-05-27 02:27:15,488 - INFO - All WebSocket connections attempted to close.
+2025-05-27 02:27:15,488 - INFO - Application shutdown complete.

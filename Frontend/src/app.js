@@ -1,70 +1,64 @@
 // frontend/src/app.js
 
-import { MessageQueue } from './modules/MessageQueue.js';
+import MessageQueue from './modules/MessageQueue.js'; // This now works with the default export
 import { WebSocketManager } from './modules/WebSocketManager.js';
-import { initializeEventListeners, processBackendMessages } from './modules/EventListeners.js';
-import { updateAllQueueDisplays } from './modules/QueueDisplay.js';
+import { initializeEventListeners, setQueuesAndManager as setEventListenersQueuesAndManager } from './modules/EventListeners.js';
+import { updateAllQueueDisplays, updateSystemLog, setQueues as setQueueDisplayQueues } from './modules/QueueDisplay.js';
 
-// --- 1. Define Message Queues for inter-module communication and display ---
-// These are the actual JavaScript MessageQueue instances living in your frontend.
 
-// Messages representing actions or data originating from the frontend (frontend's local outbox)
-export const frontendActionQueue = new MessageQueue('frontendAction'); // Renamed from fromFrontendQueue
+// Global Queue Instances - CREATED HERE AND ONLY HERE
+const frontendDisplayQueue = new MessageQueue('frontendDisplayQueue');
+const frontendActionQueue = new MessageQueue('frontendActionQueue');
+const toBackendQueue = new MessageQueue('toBackendQueue');
+const fromBackendQueue = new MessageQueue('fromBackendQueue');
 
-// Messages leaving the frontend to the backend (frontend's outbound buffer to server)
-export const toBackendQueue = new MessageQueue('toBackend'); // Name remains the same
+// No need to export individual queues from app.js now, as they are passed by reference.
+// If another module needs direct access for some reason without a setter, you could export,
+// but passing via setters is generally preferred for clarity.
 
-// Messages arriving at the frontend from the backend (frontend's inbound buffer from server)
-export const fromBackendQueue = new MessageQueue('fromBackend'); // Name remains the same
-
-// Messages processed from backend, destined for specific frontend display/UI components (frontend's display inbox)
-export const frontendDisplayQueue = new MessageQueue('frontendDisplay'); // Renamed from toFrontendQueue
-
-// --- 2. Main Application Initialization ---
-
-// Event listener for when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("app.js: DOMContentLoaded");
-    initialize();
+    console.log('app.js: DOMContentLoaded');
+    initializeApplication();
 });
 
-// Asynchronous initialization function
-async function initialize() {
-    console.log("app.js: Initializing...");
+function initializeApplication() {
+    console.log('app.js: Initializing...');
 
-    // 2.1 Set up WebSocketManager with the queues it needs
-    // Pass the queues in the order WebSocketManager.setQueues expects:
-    // (toBackend, fromBackend, frontendAction, frontendDisplay)
-    //WebSocketManager.setQueues(toBackendQueue, fromBackendQueue, frontendActionQueue, frontendDisplayQueue);
-    // NEW WAY (in app.js -> initialize function):
-    WebSocketManager.setQueues({
-        toBackendQueue: toBackendQueue,
-        fromBackendQueue: fromBackendQueue,
-        frontendActionQueue: frontendActionQueue,
-        frontendDisplayQueue: frontendDisplayQueue
-    });
-    
-    console.log("app.js: Queues passed to WebSocketManager.");
+    // Instantiate WebSocketManager (it's already a singleton via export)
+    const webSocketManager = WebSocketManager;
 
-    // 2.2 Initialize all event listeners for UI interactions
+    // Collect all queue instances into an object to pass around
+    const queues = {
+        frontendDisplayQueue,
+        frontendActionQueue,
+        toBackendQueue,
+        fromBackendQueue
+    };
+
+    // Pass queues to WebSocketManager
+    webSocketManager.setQueues(queues);
+    console.log('app.js: Queues passed to WebSocketManager.');
+
+    // Pass queues and WebSocketManager to EventListeners module
+    setEventListenersQueuesAndManager(queues, webSocketManager);
+    console.log('app.js: Queues and WebSocketManager passed to EventListeners.');
+
+    // Pass queues to QueueDisplay module
+    setQueueDisplayQueues(queues);
+    console.log('app.js: Queues passed to QueueDisplay.');
+
+
+    // Initialize event listeners (buttons, custom events etc.)
     initializeEventListeners();
-    console.log("app.js: Event listeners initialized.");
+    console.log('app.js: Event listeners initialized.');
 
-    // 2.3 Start the WebSocket connection
-    WebSocketManager.connect();
-    console.log("app.js: WebSocket connection initiated.");
+    // Connect to WebSocket
+    webSocketManager.connect();
+    console.log('app.js: WebSocket connection initiated.');
 
-    // 2.4 Start the continuous message processing loop for messages from the backend
-    // This will run in the background, dequeuing messages from fromBackendQueue
-    // and routing them to update functions or frontendDisplayQueue.
-    processBackendMessages(); // This is an async function that runs indefinitely
+    // Initial display update
+    updateAllQueueDisplays();
 
-    // 2.5 Start periodic UI updates for queue displays
-    // requestAnimationFrame(updateAllQueueDisplays); // This will be called via setInterval/setTimeout in QueueDisplay
-    updateAllQueueDisplays(); // Start the first update cycle immediately
-
-    console.log("app.js: Initialization complete.");
+    console.log('app.js: Initialization complete.');
+    updateSystemLog('Application initialized successfully.');
 }
-
-// Any other global functions or exports (e.g., for direct debugging in console)
-// (None defined explicitly in previous steps, but can be added if needed)
