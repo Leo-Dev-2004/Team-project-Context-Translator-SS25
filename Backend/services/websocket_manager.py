@@ -192,9 +192,9 @@ class WebSocketManager:
                     logger.debug(f"Received raw WebSocket data from {websocket.client}: {data}")
                     
                     try:
-                        # Parse and validate using Pydantic model
-                        message = WebSocketMessage.model_validate_json(data)
-                        message_dict = message.model_dump()
+                        # Parse and validate using Pydantic model (compatible with both v1 and v2)
+                        message = WebSocketMessage.parse_raw(data)
+                        message_dict = message.dict()
                         
                         # Ensure data is always a dict
                         if not isinstance(message_dict.get('data'), dict):
