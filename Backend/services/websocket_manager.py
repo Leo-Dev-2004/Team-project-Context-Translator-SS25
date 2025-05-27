@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import uuid
+from pydantic import ValidationError
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
@@ -21,6 +22,7 @@ class WebSocketManager:
         self.connections = set()
         self.ack_status = {}
         self.active_tasks = {} # maps websocket_id to (sender_task, receiver_task)
+        self._running = True  # Flag for graceful shutdown
 
     # Helper function to create a standardized message for the internal queue
     def _create_queue_message(self, message: WebSocketMessage, source: str, status: str) -> Dict[str, Any]:
@@ -107,15 +109,22 @@ class WebSocketManager:
             while True:
                 try:
                     # Get message from queue with timeout
-                    message = await asyncio.wait_for(
-                        get_to_frontend_queue().dequeue(),
-                        timeout=1.0
-                    )
-                except asyncio.TimeoutError:
-                    # Check if we should still be running
-                    if not self._running:
+                    try:
+                        message = await asyncio.wait_for(
+                            get_to_frontend_queue().dequeue(),
+                            timeout=1.0
+                        )
+                    except asyncio.TimeoutError:
+                        # Timeout occurred, check if we should continue
+                        continue
+                    except Exception as e:
+                        logger.error(f"Error dequeuing message: {str(e)}")
+                        await asyncio.sleep(1)
+                        continue
+
+                    if message is None:
+                        logger.warning("Received None message from queue, stopping sender")
                         break
-                    continue
                 except Exception as e:
                     logger.error(f"Error dequeuing message: {str(e)}")
                     await asyncio.sleep(1)
@@ -182,14 +191,13 @@ class WebSocketManager:
                     logger.debug(f"Received raw WebSocket data from {websocket.client}: {data}")
                     
                     try:
-                        message_dict = json.loads(data)
-                    except json.JSONDecodeError as e:
-                        await self._send_error(websocket, f"Invalid JSON: {str(e)}")
-                        continue
-
-                    if not isinstance(message_dict, dict):
-                        await self._send_error(websocket, "Message must be a JSON object")
-                        continue
+                        # Parse and validate using Pydantic model
+                        message = WebSocketMessage.model_validate_json(data)
+                        message_dict = message.model_dump()
+                        
+                        # Ensure data is always a dict
+                        if not isinstance(message_dict.get('data'), dict):
+                            message_dict['data'] = {}
                         
                     required_fields = ['type', 'data']
                     missing_fields = [field for field in required_fields if field not in message_dict]
