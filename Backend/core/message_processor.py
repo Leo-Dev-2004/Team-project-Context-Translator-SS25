@@ -161,10 +161,13 @@ class MessageProcessor:
                     await self._output_queue.enqueue(started_msg.dict())
 
             # Handle other message types...
-        """Nachrichtenverarbeitungslogik für eine einzelne Nachricht"""
-        response_message_dict = None # Initialize response to None
-
-        try:
+        except Exception as e:
+            logger.error(f"Error processing message: {e}", exc_info=True)
+            await self._dead_letter_queue.enqueue({
+                'error': str(e),
+                'original': message,
+                'timestamp': time.time()
+            })
             if not isinstance(message, dict):
                 logger.error(f"Invalid message format received by MessageProcessor: Not a dictionary. Message: {message}")
                 await self._safe_enqueue(self._dead_letter_queue, {
