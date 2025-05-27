@@ -21,13 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApplication();
 });
 
-function initializeApplication() {
+export function initializeApplication(observer = null) {
     console.log('app.js: Initializing...');
 
-    // Instantiate WebSocketManager (it's already a singleton via export)
+    // Get WebSocketManager instance
     const webSocketManager = WebSocketManager;
 
-    // Collect all queue instances into an object to pass around
+    // Set observer if provided
+    if (observer) {
+        webSocketManager.setObserver(observer);
+    }
+
+    // Initialize queues
     const queues = {
         frontendDisplayQueue,
         frontendActionQueue,

@@ -17,9 +17,10 @@ class WebSocketManager {
         this.reconnectTimer = null;
         this.pingInterval = null;
         this.lastPongTime = null;
-        this.maxReconnectAttempts = 10; // Define max reconnect attempts
+        this.maxReconnectAttempts = 10;
+        this.observer = null;
 
-        // Initialize queue references with null. They will be set externally.
+        // Initialize queue references
         this._frontendDisplayQueue = null;
         this._frontendActionQueue = null;
         this._toBackendQueue = null;
@@ -41,6 +42,11 @@ class WebSocketManager {
      * @param {MessageQueue} queues.toBackendQueue - The queue for messages to be sent to the backend.
      * @param {MessageQueue} queues.fromBackendQueue - The queue for messages received from the backend.
      */
+    setObserver(observer) {
+        this.observer = observer;
+        return this; // For method chaining
+    }
+
     setQueues({ frontendDisplayQueue, frontendActionQueue, toBackendQueue, fromBackendQueue }) {
         this._frontendDisplayQueue = frontendDisplayQueue;
         this._frontendActionQueue = frontendActionQueue;
@@ -128,11 +134,15 @@ class WebSocketManager {
             console.log('WebSocket MESSAGE event received:', event.data);
 
             try {
-                // Parse the JSON string into a JavaScript object ONCE
                 const message = JSON.parse(event.data);
-
+                
                 if (!message.type) {
                     throw new Error('Message type is missing');
+                }
+
+                // Notify observer if available
+                if (this.observer) {
+                    this.observer.handleMessage(message);
                 }
 
                 // Handle pong messages
