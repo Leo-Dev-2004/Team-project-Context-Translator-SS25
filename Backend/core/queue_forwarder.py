@@ -26,7 +26,8 @@ class QueueForwarder:
 
     async def initialize(self):
         """Bestätigt die Queue-Initialisierung (keine erneute Initialisierung mehr nötig)"""
-        logger.info("QueueForwarder queues already initialized")
+        try:
+            logger.info("QueueForwarder queues already initialized")
         except Exception as e:
             logger.error(f"Failed to initialize QueueForwarder: {str(e)}")
             raise
