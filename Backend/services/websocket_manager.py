@@ -33,7 +33,7 @@ class WebSocketManager:
 
         # Ensure all fields have proper types
         return {
-            'id': str(message_as_dict.get('id')) if message_as_dict.get('id') else str(uuid.uuid4()),
+            'id': str(message_as_dict.get('id', uuid.uuid4())),
             'type': str(message_as_dict['type']),
             'data': message_as_dict['data'] if isinstance(message_as_dict.get('data'), dict) else {},
             'timestamp': float(message_as_dict.get('timestamp', time.time())),
