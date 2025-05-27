@@ -171,12 +171,6 @@ class WebSocketManager:
             logger.error(f"Sender task crashed: {str(e)}", exc_info=True)
         finally:
             logger.info(f"Sender task for {websocket.client} finished")
-        except asyncio.CancelledError:
-            logger.info(f"Sender task for {websocket.client} was cancelled.")
-        except Exception as e:
-            logger.error(f"Critical error in sender task for {websocket.client}: {e}", exc_info=True)
-        finally:
-            pass
 
     async def _receiver(self, websocket: WebSocket):
         """Receive messages from client and add to from_frontend_queue"""
