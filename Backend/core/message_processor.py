@@ -2,6 +2,7 @@ import asyncio
 import logging
 import time
 import uuid
+import copy
 from typing import Optional, Dict, List, Any
 from ..queues.shared_queue import (
     get_to_backend_queue,
@@ -108,49 +109,59 @@ class MessageProcessor:
         """Nachrichtenverarbeitungslogik mit vollständiger Pfadverfolgung"""
         try:
             if not isinstance(message, dict):
+                logger.error(f"Invalid message format: Expected dict, got {type(message)}")
                 raise ValueError("Invalid message format")
 
+            # Create a deep copy to work with
+            processed_msg = copy.deepcopy(message)
+
             # Ensure required fields exist
-            message.setdefault('id', str(uuid.uuid4()))
-            message.setdefault('client_id', 'unknown')
-            message.setdefault('processing_path', [])
-            message.setdefault('forwarding_path', [])
+            processed_msg.setdefault('id', str(uuid.uuid4()))
+            processed_msg.setdefault('client_id', 'unknown')
+            processed_msg.setdefault('processing_path', [])
+            processed_msg.setdefault('forwarding_path', [])
+
+            # Ensure data is a dict
+            if not isinstance(processed_msg.get('data'), dict):
+                logger.warning(f"Message data is not a dict: {processed_msg.get('data')}")
+                processed_msg['data'] = {}
 
             # Ensure processing_path exists and is a list
-            if 'processing_path' not in message or not isinstance(message['processing_path'], list):
-                message['processing_path'] = []
+            if not isinstance(processed_msg.get('processing_path'), list):
+                processed_msg['processing_path'] = []
             
             # Add current processing step
-            message['processing_path'].append('message_processor')
+            processed_msg['processing_path'].append({
+                'processor': 'message_processor',
+                'timestamp': time.time(),
+                'status': 'processing'
+            })
 
             # Add processing metadata
-            message['status'] = 'processed'
-            message['processed_at'] = time.time()
+            processed_msg['status'] = 'processed'
+            processed_msg['processed_at'] = time.time()
 
             # Update processing path with completion
-            message['processing_path'][-1]['status'] = 'completed'
-            message['processing_path'][-1]['completed_at'] = time.time()
+            processed_msg['processing_path'][-1]['status'] = 'completed'
+            processed_msg['processing_path'][-1]['completed_at'] = time.time()
 
-            # Create comprehensive frontend notification
+            # Create frontend notification
             frontend_msg = {
                 'type': 'status_update',
                 'data': {
-                    'original_id': message.get('id'),
-                    'original_type': message.get('type'),
+                    'original_id': processed_msg['id'],
+                    'original_type': processed_msg['type'],
                     'status': 'processed',
-                    'processing_path': message.get('processing_path', []),
-                    'forwarding_path': message.get('forwarding_path', []),
-                    'timestamp': time.time()
+                    'processing_time': time.time() - processed_msg['processed_at']
                 },
                 'id': str(uuid.uuid4()),
-                'client_id': message.get('client_id'),
-                'processing_path': [],
-                'forwarding_path': []
+                'client_id': processed_msg['client_id'],
+                'processing_path': processed_msg['processing_path'],
+                'forwarding_path': processed_msg['forwarding_path']
             }
 
-            # Forward both the processed message and notification
             await self._safe_enqueue(self._frontend_queue, frontend_msg)
-            return message
+            return processed_msg
         except Exception as e:
             logger.error(f"Message processing failed: {str(e)}")
             return None
