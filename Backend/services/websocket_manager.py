@@ -209,32 +209,23 @@ class WebSocketManager:
                     logger.debug(f"Received raw WebSocket data from {client_info}: {data}")
                     
                     try:
-                        raw_message_dict = json.loads(data)
+                        # Parse raw JSON data
+                        parsed_data = json.loads(data)
+                        
+                        # Validate and enrich using WebSocketMessage model
+                        websocket_msg = WebSocketMessage(
+                            **parsed_data,
+                            client_id=client_info  # Use the already formatted client_info
+                        )
+                        
+                        # Convert to dict for queue
+                        queue_msg = websocket_msg.dict()
+                        
+                        # Ensure data is always a dict
+                        if not isinstance(queue_msg.get('data'), dict):
+                            queue_msg['data'] = {}
 
-                        # --- CRUCIAL FIX FOR CLIENT_ID ---
-                        # Ensure client_id in the raw message is the desired string format
-                        # before Pydantic validation.
-                        if 'client_id' in raw_message_dict:
-                            if isinstance(raw_message_dict['client_id'], (list, tuple)):
-                                raw_message_dict['client_id'] = f"{raw_message_dict['client_id'][0]}:{raw_message_dict['client_id'][1]}"
-                            elif not isinstance(raw_message_dict['client_id'], str):
-                                # If it's something else, force it to string, or use the connection's client_info
-                                raw_message_dict['client_id'] = str(raw_message_dict['client_id'])
-                        else:
-                            # If client_id is missing from the frontend message, use the connection's client_info
-                            raw_message_dict['client_id'] = client_info
-                        # --- END CRUCIAL FIX ---
-
-                        # Parse and validate using Pydantic model
-                        message = WebSocketMessage.parse_obj(raw_message_dict)
-                        
-                        # At this point, message.client_id should be a string in 'host:port' format or 'unknown'.
-                        logger.info(f"Enqueuing valid message of type '{message.type}' from {message.client_id}")
-                        
-                        # Use the helper to create the queue message, with source='websocket'
-                        # The client_id in 'message' is already properly formatted.
-                        queue_msg = self._create_queue_message(message, source='websocket', status='pending')
-                        
+                        logger.info(f"Enqueuing valid message of type '{queue_msg['type']}' from {client_info}")
                         await get_from_frontend_queue().enqueue(queue_msg)
 
                     except ValidationError as e:
