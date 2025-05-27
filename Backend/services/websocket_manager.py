@@ -105,7 +105,7 @@ class WebSocketManager:
 
                 # Wrap send operation in a try-except to catch disconnects
                 try:
-                    await websocket.send_text(json.dumps(ws_msg))
+                    await websocket.send_text(ws_msg.json())
                     logger.debug(f"Sent WebSocket message: {message['type']} to {websocket.client}")
                 except RuntimeError as e: # This catches errors if the socket is already closed
                     logger.warning(f"Failed to send message to {websocket.client}, connection likely closed: {e}")
@@ -322,7 +322,9 @@ class WebSocketManager:
                     'type': msg.type,
                     'data': msg.data,
                     'timestamp': msg.timestamp,
-                    'client_id': msg.client_id
+                    'client_id': msg.client_id,
+                    'processing_path': message_dict.get('processing_path', []),
+                    'forwarding_path': message_dict.get('forwarding_path', [])
                 })
             else:
                 logger.warning(f"Unknown message type received: {msg.type} from {msg.client_id}. Enqueuing to from_frontend_queue.")
