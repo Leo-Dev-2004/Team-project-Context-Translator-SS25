@@ -17,16 +17,8 @@ class MessageQueue:
         self._not_full = asyncio.Condition(self._lock)
 
     def _validate_message(self, message: Dict) -> bool:
-        """Validate message structure and content"""
-        if not isinstance(message, dict):
-            return False
-        if not message.get('type'):
-            return False
-        if not message.get('data'):
-            return False
-        if not isinstance(message['data'], dict):
-            return False
-        return True
+        """Basic message validation - assumes Pydantic validation already happened"""
+        return isinstance(message, dict) and 'type' in message
 
     async def enqueue(self, message: Dict) -> None:
         if not self._validate_message(message):
