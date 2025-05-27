@@ -31,36 +31,15 @@ class WebSocketManager:
         # Safely convert the WebSocketMessage Pydantic model to a dictionary
         message_as_dict = message.dict(exclude_unset=True)
 
-        # Ensure message_id is a string or generate a new one
-        message_id = message_as_dict.get('id')
-        if message_id is None:
-            message_id = str(message.id) if hasattr(message, 'id') and message.id else str(uuid.uuid4())
-        else:
-            message_id = str(message_id)
-
-        # Safely get client_id
-        client_id_str = message_as_dict.get('client_id', 'unknown')
-        if client_id_str is None:
-            client_id_str = 'unknown'
-
-        # Get paths directly from message
-        processing_path = message_as_dict.get('processing_path', [])
-        forwarding_path = message_as_dict.get('forwarding_path', [])
-
-        # Ensure these are lists
-        if not isinstance(processing_path, list):
-            processing_path = []
-        if not isinstance(forwarding_path, list):
-            forwarding_path = []
-
+        # Ensure all fields have proper types
         return {
-            'id': message_id,
-            'type': message_as_dict['type'],
-            'data': message_as_dict['data'],
-            'timestamp': message_as_dict.get('timestamp', time.time()),
-            'client_id': client_id_str,
-            'processing_path': processing_path,
-            'forwarding_path': forwarding_path,
+            'id': str(message_as_dict.get('id') if message_as_dict.get('id') else str(uuid.uuid4()),
+            'type': str(message_as_dict['type']),
+            'data': message_as_dict['data'] if isinstance(message_as_dict.get('data'), dict) else {},
+            'timestamp': float(message_as_dict.get('timestamp', time.time())),
+            'client_id': str(message_as_dict.get('client_id', 'unknown')),
+            'processing_path': list(message_as_dict.get('processing_path', [])),
+            'forwarding_path': list(message_as_dict.get('forwarding_path', [])),
             'source': source,
             'status': status
         }
@@ -219,8 +198,19 @@ class WebSocketManager:
                         # Use the helper to create the queue message, with source='websocket'
                         queue_msg = self._create_queue_message(message, source='websocket', status='pending')
                         
-                        logger.info(f"Enqueuing valid message of type '{message.type}' from {websocket.client}")
-                        await get_from_frontend_queue().enqueue(queue_msg)
+                        # Additional validation before enqueueing
+                        if not isinstance(queue_msg, dict):
+                            logger.error(f"Queue message is not a dictionary: {queue_msg}")
+                            continue
+                        if 'type' not in queue_msg or not queue_msg['type']:
+                            logger.error(f"Message missing type field: {queue_msg}")
+                            continue
+                        
+                        try:
+                            await get_from_frontend_queue().enqueue(queue_msg)
+                            logger.info(f"Enqueuing valid message of type '{message.type}' from {websocket.client}")
+                        except Exception as e:
+                            logger.error(f"Failed to enqueue message: {e}\nMessage: {queue_msg}")
                     except Exception as e:
                         logger.error(f"Error processing received message: {e}", exc_info=True)
                         await self._send_error(websocket, "Error processing message")
