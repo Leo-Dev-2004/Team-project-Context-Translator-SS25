@@ -333,12 +333,18 @@ class WebSocketManager:
             else:
                 logger.warning(f"Unknown message type received: {msg.type} from {msg.client_id}. Enqueuing to from_frontend_queue.")
                 # Enqueue unknown types to from_frontend_queue for general processing
-                await get_from_frontend_queue().enqueue({
+                queue_msg = {
                     'type': msg.type,
                     'data': msg.data,
                     'timestamp': msg.timestamp,
-                    'client_id': msg.client_id
-                })
+                    'client_id': msg.client_id,
+                    'id': str(msg.id) if hasattr(msg, 'id') else str(uuid.uuid4()),
+                    'processing_path': getattr(msg, '_trace', {}).get('processing_path', []),
+                    'forwarding_path': getattr(msg, '_trace', {}).get('forwarding_path', []),
+                    'source': 'websocket',
+                    'status': 'pending'
+                }
+                await get_from_frontend_queue().enqueue(queue_msg)
 
         except Exception as e:
             logger.error(f"Top-level message handling error for {websocket.client}: {e}", exc_info=True)
