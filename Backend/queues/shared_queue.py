@@ -32,9 +32,6 @@ class MessageQueue:
         if not self._validate_message(message):
             raise ValueError(f"Invalid message format for queue {self._name}")
 
-        if not (isinstance(message, dict) and 'type' in message and 'data' in message and 'id' in message):
-            raise ValueError(f"Invalid message format for queue {self._name}")
-
         # Generate message ID if missing
         if 'id' not in message:
             message['id'] = str(uuid.uuid4())
@@ -51,7 +48,7 @@ class MessageQueue:
             # Add enhanced tracing metadata
             enriched_msg = {
                 **message,
-                '_trace': {
+                'trace': {
                     'queue': self._name,
                     'enqueue_time': time.time(),
                     'source': message.get('source', 'unknown'),
