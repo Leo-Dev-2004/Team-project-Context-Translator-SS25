@@ -101,7 +101,7 @@ class WebSocketManager {
                 if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                     this.sendMessage({
                         type: 'ping',
-                        data: {}, // Ensure data field exists
+                        data: { ping: true }, // More meaningful ping data
                         timestamp: Date.now()
                     });
 
@@ -121,9 +121,11 @@ class WebSocketManager {
                 data: {
                     message: 'Frontend ready to receive',
                     version: '1.0',
-                    status: 'ready'
+                    status: 'ready',
+                    capabilities: ['ping-pong'] // Additional metadata
                 },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                id: `frontend-init-${Date.now()}` // Explicit ID
             });
 
             document.dispatchEvent(new CustomEvent('websocket-ack'));
