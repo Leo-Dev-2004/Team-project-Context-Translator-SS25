@@ -104,6 +104,15 @@ class MessageQueue(asyncio.Queue):
         )
         return item
 
+    async def clear(self) -> None:
+        """Clear all items from the queue"""
+        while not self.empty():
+            try:
+                self.get_nowait()
+                self.task_done()
+            except asyncio.QueueEmpty:
+                break
+
     async def drain(self, timeout: Optional[float] = None) -> None:
         """
         Drains the queue by getting all currently available items.

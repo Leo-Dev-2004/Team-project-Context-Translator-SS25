@@ -213,7 +213,7 @@ class SimulationManager:
                 timestamp=time.time(),
                 processing_path=[],
                 forwarding_path=[]
-            ).dict()
+            )
             logger.debug(f"Created system message: {system_init_msg}")
             await self._to_backend_queue.enqueue(system_init_msg)
             logger.info("System message enqueued to backend queue")

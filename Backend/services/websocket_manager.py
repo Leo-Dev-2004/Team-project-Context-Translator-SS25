@@ -374,7 +374,16 @@ class WebSocketManager:
                     # --- Enqueueing the Validated Pydantic Message ---
                     try:
                         logger.debug(f"[{client_id}] [Receiver {msg_counter}] Enqueueing message {message_for_queue.id} of type '{message_for_queue.type}' to from_frontend_queue.")
-                        await self.from_frontend_queue.enqueue(message_for_queue)
+                        try:
+                            await self.from_frontend_queue.enqueue(message_for_queue)
+                        except ValueError as e:
+                            logger.error(f"Failed to enqueue message: {e}")
+                            await self._send_to_dead_letter_queue(
+                                original_message=message_for_queue,
+                                client_id=client_id,
+                                error_type="QueueValidationError",
+                                error_details=str(e)
+                            )
                     except Exception as e:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Failed to enqueue message {message_for_queue.id} to from_frontend_queue: {e}", exc_info=True)
                         await self.send_error(websocket, "queue_enqueue_failed", f"Failed to process message internally.")
