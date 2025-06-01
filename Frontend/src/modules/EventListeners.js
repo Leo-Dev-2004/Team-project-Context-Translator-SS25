@@ -96,14 +96,22 @@ export function initializeEventListeners() {
         startSimButton.addEventListener('click', () => {
             console.log('EventListeners: startSim button clicked.');
             if (isWebSocketReady) {
-                updateSystemLog('User clicked: Start Simulation');
+                const commandId = `cmd_${Date.now()}`;
+                updateSystemLog(`Sending start_simulation command (ID: ${commandId})`);
+                
                 webSocketManagerInstance.sendMessage({
                     type: 'command',
+                    id: commandId,
                     data: {
-                        command: 'start_simulation'
+                        command: 'start_simulation',
+                        parameters: {} // Can add parameters here
                     },
                     timestamp: Date.now()
                 });
+                
+                // Disable button until response received
+                startSimButton.disabled = true;
+                startSimButton.textContent = 'Starting...';
                 console.log('EventListeners: startSim button clicked, command sent.');
             } else {
                 console.warn('EventListeners: WebSocket not open. Command not sent: start_simulation');

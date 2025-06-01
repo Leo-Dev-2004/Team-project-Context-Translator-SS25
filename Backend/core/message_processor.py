@@ -156,61 +156,54 @@ class MessageProcessor:
                 command_name = msg.data.get('command')
                 logger.info(f"MessageProcessor: Processing command '{command_name}' from {effective_client_id}")
 
-                sim_manager = get_simulation_manager()
+                try:
+                    sim_manager = get_simulation_manager(require_ready=True)
+                    
+                    # Prepare base response data
+                    response_data = {
+                        "original_command": command_name,
+                        "original_id": msg.id,
+                        "client_id": effective_client_id
+                    }
 
-                if command_name == 'start_simulation':
-                    if sim_manager:
-                        # Pass the guaranteed string client_id
+                    if command_name == 'start_simulation':
                         await sim_manager.start(client_id=effective_client_id, background_tasks=None)
-                        response_message_dict = WebSocketMessage(
-                            type="status",
-                            data={"status": "simulation_initiated", "message": "Simulation start requested.", "command": command_name},
-                            client_id=effective_client_id, # Use effective_client_id
-                            processing_path=msg.processing_path,
-                            forwarding_path=msg.forwarding_path
-                        ).model_dump()
-                        logger.info(f"MessageProcessor: Generated 'status: simulation_initiated' response for {effective_client_id}.")
-                    else:
-                        logger.error("SimulationManager not available for start_simulation command.")
-                        response_message_dict = WebSocketMessage(
-                            type="error",
-                            data={"error": "simulation_manager_unavailable", "message": "Simulation service not ready."},
-                            client_id=effective_client_id, # Use effective_client_id
-                            processing_path=msg.processing_path,
-                            forwarding_path=msg.forwarding_path
-                        ).model_dump()
-
-                elif command_name == 'stop_simulation':
-                    if sim_manager:
-                        # Pass the guaranteed string client_id
+                        response_data.update({
+                            "status": "simulation_started",
+                            "message": "Simulation successfully started",
+                            "progress": 0  # Initial progress
+                        })
+                        response_type = "status"
+                    
+                    elif command_name == 'stop_simulation':
                         await sim_manager.stop(client_id=effective_client_id)
-                        response_message_dict = WebSocketMessage(
-                            type="status",
-                            data={"status": "simulation_stopped", "message": "Simulation termination requested.", "command": command_name},
-                            client_id=effective_client_id, # Use effective_client_id
-                            processing_path=msg.processing_path,
-                            forwarding_path=msg.forwarding_path
-                        ).model_dump()
-                        logger.info(f"MessageProcessor: Generated 'status: simulation_stopped' response for {effective_client_id}.")
+                        response_data.update({
+                            "status": "simulation_stopped", 
+                            "message": "Simulation successfully stopped"
+                        })
+                        response_type = "status"
+                    
                     else:
-                        logger.error("SimulationManager not available for stop_simulation command.")
-                        response_message_dict = WebSocketMessage(
-                            type="error",
-                            data={"error": "simulation_manager_unavailable", "message": "Simulation service not ready."},
-                            client_id=effective_client_id, # Use effective_client_id
-                            processing_path=msg.processing_path,
-                            forwarding_path=msg.forwarding_path
-                        ).model_dump()
+                        raise ValueError(f"Unknown command: {command_name}")
 
-                else:
-                    logger.warning(f"MessageProcessor: Unknown command '{command_name}' from {effective_client_id}. Sending error response.")
+                except Exception as e:
+                    logger.error(f"Command processing error: {str(e)}", exc_info=True)
+                    response_type = "error"
+                    response_data.update({
+                        "error": type(e).__name__,
+                        "message": str(e),
+                        "status": "failed"
+                    })
+
+                finally:
                     response_message_dict = WebSocketMessage(
-                        type="error",
-                        data={"error": "unknown_command", "command": command_name, "message": "Command not recognized."},
-                        client_id=effective_client_id, # Use effective_client_id
+                        type=response_type,
+                        data=response_data,
+                        client_id=effective_client_id,
                         processing_path=msg.processing_path,
                         forwarding_path=msg.forwarding_path
                     ).model_dump()
+                    logger.info(f"Generated {response_type} response for command '{command_name}'")
 
             elif msg.type == 'frontend_ready_ack':
                 logger.info(f"MessageProcessor: Frontend ready ACK received from {effective_client_id}. Status: {msg.data.get('message')}")

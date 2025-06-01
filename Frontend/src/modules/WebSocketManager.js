@@ -267,17 +267,24 @@ class WebSocketManager {
      */
     handleIncomingMessage(message) {
         try {
-            // message is already a parsed JavaScript object here. NO JSON.parse() needed.
             if (!message.type) {
                 throw new Error('Message type is missing');
             }
 
-            if (this._fromBackendQueue) {
-                this._fromBackendQueue.enqueue(message);
-                updateAllQueueDisplays(); // Trigger display update immediately after enqueuing
-            } else {
-                console.error('WebSocketManager: _fromBackendQueue is not set. Cannot enqueue incoming message.');
-                updateSystemLog('Error: _fromBackendQueue not ready. Incoming message dropped.');
+            // Directly handle certain message types
+            switch(message.type) {
+                case 'status':
+                    this._handleStatusMessage(message);
+                    break;
+                case 'error':
+                    this._handleErrorMessage(message);
+                    break;
+                default:
+                    // Enqueue other messages for processing
+                    if (this._fromBackendQueue) {
+                        this._fromBackendQueue.enqueue(message);
+                        updateAllQueueDisplays();
+                    }
             }
             // The MessageProcessor in EventListeners.js will dequeue and process this.
             // It runs in a separate, continuous loop, so no need to call it here.
@@ -286,6 +293,52 @@ class WebSocketManager {
             // This catch block is for errors within handleIncomingMessage *after* initial parse
             console.error('WebSocketManager: Error processing incoming message:', e, message); // Log the object directly
             updateSystemLog(`Error processing incoming message: ${e.message}. Data: ${JSON.stringify(message || {}).substring(0, 50)}...`);
+        }
+    }
+
+    _handleStatusMessage(message) {
+        const statusElement = document.getElementById('simulationStatus');
+        const logElement = document.getElementById('statusLog');
+        
+        if (statusElement) {
+            statusElement.textContent = message.data.status || 'Status updated';
+            statusElement.className = `status-${message.data.status?.toLowerCase() || 'info'}`;
+        }
+        
+        if (logElement) {
+            const entry = document.createElement('p');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message.data.message}`;
+            logElement.prepend(entry);
+            
+            // Limit log size
+            if (logElement.children.length > 50) {
+                logElement.removeChild(logElement.lastChild);
+            }
+        }
+        
+        // Also enqueue for general processing
+        if (this._fromBackendQueue) {
+            this._fromBackendQueue.enqueue(message);
+        }
+    }
+
+    _handleErrorMessage(message) {
+        updateSystemLog(`ERROR: ${message.data.error} - ${message.data.message}`);
+        
+        const errorElement = document.getElementById('errorDisplay');
+        if (errorElement) {
+            errorElement.textContent = `${message.data.error}: ${message.data.message}`;
+            errorElement.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Also enqueue for general processing
+        if (this._fromBackendQueue) {
+            this._fromBackendQueue.enqueue(message);
         }
     }
 
