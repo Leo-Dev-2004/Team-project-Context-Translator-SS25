@@ -108,7 +108,7 @@ class MessageProcessor:
         try:
             msg: WebSocketMessage
             try:
-                msg = WebSocketMessage.model_validate(message)
+                msg = WebSocketMessage.parse_obj(message)
             except ValidationError as e:
                 logger.error(f"Validation error for incoming WebSocket message: {e}", exc_info=True)
                 await self.safe_enqueue(self._dead_letter_queue, {

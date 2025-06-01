@@ -38,7 +38,7 @@ class WebSocketManager:
         # Safely convert the WebSocketMessage Pydantic model to a dictionary
         # Use model_dump for Pydantic v2, or dict() for Pydantic v1
         try:
-            message_as_dict = message.model_dump(exclude_unset=True) # Pydantic v2
+            message_as_dict = message.dict(exclude_unset=True) # Pydantic v1
         except AttributeError:
             message_as_dict = message.dict(exclude_unset=True) # Pydantic v1
 
@@ -165,7 +165,7 @@ class WebSocketManager:
                     if websocket.client_state == WebSocketState.CONNECTED:
                         try:
                             # Using model_dump_json for Pydantic v2, json() for v1
-                            json_data = ws_msg.model_dump_json()
+                            json_data = ws_msg.json()
                         except AttributeError:
                             json_data = ws_msg.json()
                             
@@ -332,7 +332,7 @@ class WebSocketManager:
             error_ws_message = WebSocketMessage.parse_obj(error_response)
             if websocket.client_state == WebSocketState.CONNECTED:
                 try:
-                    await websocket.send_text(error_ws_message.model_dump_json())
+                    await websocket.send_text(error_ws_message.json())
                 except AttributeError:
                     await websocket.send_text(error_ws_message.json())
             else:
