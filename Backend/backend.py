@@ -12,7 +12,8 @@ from Backend.queues.shared_queue import (
     get_from_backend_queue,
     get_to_frontend_queue,
     get_from_frontend_queue,
-    get_dead_letter_queue
+    get_dead_letter_queue,
+    monitor_dead_letter_queue
 )
 
 # Import the SimulationManager class (for type hinting and instantiation)

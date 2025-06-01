@@ -11,7 +11,7 @@ from ..queues.shared_queue import (
     get_to_frontend_queue,
     get_dead_letter_queue
 )
-from ..models.message_types import ProcessingPathEntry, WebSocketMessage # Ensure WebSocketMessage is imported
+from ..models.message_types import ProcessingPathEntry, WebSocketMessage, ErrorTypes
 from ..dependencies import get_simulation_manager
 
 logger = logging.getLogger(__name__)
