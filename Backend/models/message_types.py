@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 import time
@@ -34,10 +34,11 @@ class QueueMessage(BaseModel):
     processing_path: List[ProcessingPathEntry] = Field(default_factory=list)
     forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list)
     
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.timestamp()
         }
+    )
 
 # --- BaseMessage and derivatives (Kept as is, no changes needed here for the current problem) ---
 class BaseMessage(BaseModel):
@@ -105,11 +106,11 @@ class WebSocketMessage(BaseModel):
     )
     # >>>>>>>>>>>>>>>>>> END OF CHANGE <<<<<<<<<<<<<<<<<<<<
 
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.timestamp()
-        }
-        schema_extra = {
+        },
+        json_schema_extra={
             "examples": [
                 {
                     "type": "command",
@@ -125,3 +126,4 @@ class WebSocketMessage(BaseModel):
                 }
             ]
         }
+    )
