@@ -193,7 +193,52 @@ class MessageProcessor:
             ))
 
             if msg.type == 'ping':
-                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. (Pong handled by WebSocketManager)")
+                logger.info(f"MessageProcessor: Received ping from {effective_client_id}")
+                try:
+                    # Create pong response
+                    pong_data = {
+                        "timestamp": msg.data.get('timestamp', time.time())
+                    }
+                    pong_message = WebSocketMessage(
+                        id=str(uuid.uuid4()),
+                        type="pong",
+                        data=pong_data,
+                        client_id=effective_client_id,
+                        processing_path=msg.processing_path,
+                        forwarding_path=msg.forwarding_path
+                    )
+                    
+                    # Enqueue the pong response
+                    await self.safe_enqueue(
+                        self._output_queue,
+                        pong_message.model_dump()
+                    )
+                    logger.info(f"Enqueued pong response for ping from {effective_client_id}")
+                    
+                except ValidationError as e:
+                    logger.error(f"Failed to validate pong message: {e}", exc_info=True)
+                    await self.safe_enqueue(
+                        self._dead_letter_queue,
+                        {
+                            'original_message': message,
+                            'error': 'pong_validation_failed',
+                            'details': str(e),
+                            'timestamp': time.time(),
+                            'client_id': effective_client_id
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Unexpected error handling ping: {e}", exc_info=True)
+                    await self.safe_enqueue(
+                        self._dead_letter_queue,
+                        {
+                            'original_message': message,
+                            'error': 'ping_processing_error',
+                            'details': str(e),
+                            'timestamp': time.time(),
+                            'client_id': effective_client_id
+                        }
+                    )
                 return  # Skip further processing for ping messages
 
             elif msg.type == 'command':
