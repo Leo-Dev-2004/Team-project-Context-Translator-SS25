@@ -33,10 +33,25 @@ class QueueForwarder:
             raise
 
     async def forward(self):
-        """Hauptweiterleitungsschleife mit robustem Error-Handling"""
+        """Forwarding loop with enhanced monitoring"""
         self._running = True
-        logger.info("Starting QueueForwarder with input=%s, output=%s",
-                  self._input_queue._name, self._output_queue._name)
+        forward_count = 0
+        last_log_time = time.time()
+        
+        logger.info(f"Starting QueueForwarder {self._name} with input={self._input_queue._name}, output={self._output_queue._name}")
+
+        while self._running:
+            # Log throughput every 5 seconds
+            current_time = time.time()
+            if current_time - last_log_time > 5:
+                logger.info(
+                    f"QueueForwarder {self._name} stats - "
+                    f"Forwarded: {forward_count}, "
+                    f"Input Q: {self._input_queue.size()}, "
+                    f"Output Q: {self._output_queue.size()}"
+                )
+                forward_count = 0
+                last_log_time = current_time
 
         while self._running:
             try:

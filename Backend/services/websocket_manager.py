@@ -219,8 +219,22 @@ class WebSocketManager:
                         
                         # Use _create_queue_message to standardize for internal queue
                         queue_msg = self._create_queue_message(message, source='websocket_receiver', status='received')
-                        
+                        msg_counter += 1
+                    
+                        logger.debug(
+                            f"Receiver #{msg_counter} for {client_info} - "
+                            f"Enqueuing {message['type']} (ID: {message.get('id')})"
+                        )
+                    
+                        start_time = time.time()
                         await get_from_frontend_queue().enqueue(queue_msg)
+                        enqueue_time = time.time() - start_time
+                    
+                        if enqueue_time > 0.1:
+                            logger.warning(
+                                f"Slow enqueue took {enqueue_time:.3f}s for "
+                                f"{message['type']} (ID: {message.get('id')})"
+                            )
 
                     except ValidationError as e:
                         error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])

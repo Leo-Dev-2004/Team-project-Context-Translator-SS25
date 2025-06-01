@@ -31,7 +31,7 @@ from Backend.dependencies import set_simulation_manager_instance, get_simulation
 
 # --- APPLICATION-WIDE LOGGING CONFIGURATION ---
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
