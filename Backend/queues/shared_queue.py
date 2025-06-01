@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import time
-from typing import Any, Dict, Optional, Union # Removed TypeVar, as it's not needed here
+from typing import Dict, Optional, Union, Any # Added Any to the import
 from typing import cast # Import cast for explicit type hinting if needed
+from collections import deque
 
 # Assuming Backend/models/message.py contains these Pydantic models
 from Backend.models.message_types import QueueMessage, DeadLetterMessage, ForwardingPathEntry
@@ -13,10 +14,17 @@ logger = logging.getLogger(__name__)
 # Pylance prefers direct Union if TypeVar is only used once in a signature.
 
 class MessageQueue(asyncio.Queue):
+    _queue: deque
     """
     A custom message queue inheriting from asyncio.Queue to handle Pydantic message objects.
     It adds a name for logging and ensures type validation for enqueued items.
     """
+
+    def get_items_snapshot(self) -> list[Dict[str, Any]]:
+        """ Returns a snapshot (list) of all messages currently in the queue without removing them."""
+        # Access the internal deque managed by asyncio.Queue
+        return list(self._queue)
+
     def __init__(self, maxsize: int = 0, name: str = "default"):
         super().__init__(maxsize=maxsize)
         self._name = name
@@ -104,15 +112,6 @@ class MessageQueue(asyncio.Queue):
         )
         return item
 
-    async def clear(self) -> None:
-        """Clear all items from the queue"""
-        while not self.empty():
-            try:
-                self.get_nowait()
-                self.task_done()
-            except asyncio.QueueEmpty:
-                break
-
     async def drain(self, timeout: Optional[float] = None) -> None:
         """
         Drains the queue by getting all currently available items.
@@ -131,10 +130,7 @@ class MessageQueue(asyncio.Queue):
                 logger.error(f"Error during draining queue '{self.name}': {e}", exc_info=True)
         logger.info(f"Queue '{self.name}' drained. Final size: {self.qsize()}.")
 
-        def get_items_snapshot(self) -> list[Dict[str, Any]]:
-            """ Returns a snapshot (list) of all messages currently in the queue without removing them."""
-            # Access the internal deque managed by asyncio.Queue
-            return list(self._queue)
+
 
 # Global dictionary to hold initialized queues
 _initialized_queues: Dict[str, MessageQueue] = {}

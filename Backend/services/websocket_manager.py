@@ -323,22 +323,28 @@ class WebSocketManager:
                         raw_message_dict = json.loads(data)
                         logger.debug(f"[{client_id}] [Receiver {msg_counter}] Parsed JSON: {json.dumps(raw_message_dict, indent=2)[:500]}...")
 
-                        # IMPORTANT: Convert the raw dictionary to a Pydantic QueueMessage here
-                        # This enforces the schema and allows dot notation access later.
-                        # It also handles default values and validation.
+                        # --- NEW CRITICAL STEP: Validate raw_message_dict as a WebSocketMessage ---
+                        parsed_websocket_message = WebSocketMessage.model_validate(raw_message_dict)
+                        logger.debug(f"[{client_id}] Validated Pydantic WebSocketMessage (ID: {parsed_websocket_message.id}, Type: {parsed_websocket_message.type}) from client.")
+
+
+                        # Now, create the QueueMessage using the VALIDATED WebSocketMessage object
                         message_for_queue = QueueMessage(
-                            id=raw_message_dict.get('id', str(uuid4())), # Ensure ID exists
-                            type=raw_message_dict.get('type', 'unkown_type'),
-                            data=raw_message_dict.get('data', {}),
-                            timestamp=raw_message_dict.get('timestamp', time.time()),
-                            client_id=client_id # Always set client_id from connection if not present or different
+                            id=parsed_websocket_message.id, # Get ID from the validated WebSocketMessage
+                            data=parsed_websocket_message.model_dump(), # Pass as dict, not as Pydantic object
+                            client_id=parsed_websocket_message.client_id, # Get client_id from validated WebSocketMessage
+                            timestamp=parsed_websocket_message.timestamp, # Get timestamp from validated WebSocketMessage                        )
+                            type=parsed_websocket_message.type # Get type from validated WebSocketMessage
                         )
                         # The client_id in the message should match the connection's client_id
+                        # This check is now redundant if client_id is validated in WebSocketMessage,
+                        # but keeping it for safety/logging if needed.
                         if message_for_queue.client_id != client_id:
-                            logger.warning(f"[{client_id}] Incoming message ID ({message_for_queue.client_id}) does not match connection ID ({client_id}). Overriding.")
+                            logger.warning(f"[{client_id}] Incoming message client_id ({message_for_queue.client_id}) does not match connection ID ({client_id}). Overriding in QueueMessage.")
                             message_for_queue.client_id = client_id
 
-                        logger.debug(f"[{client_id}] Validated Pydantic message (ID: {message_for_queue.id}, Type: {message_for_queue.type}) from client.")
+                        logger.debug(f"[{client_id}] Created Pydantic QueueMessage (ID: {message_for_queue.id}, Type: {message_for_queue.data['type']}) for queue.")
+
 
                     except json.JSONDecodeError as e:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Invalid JSON received: {e}\nRaw data: {data[:200]}...", exc_info=True)
@@ -351,12 +357,13 @@ class WebSocketManager:
                         )
                         continue # Skip to next receive loop if JSON is bad
                     except ValidationError as e:
-                        logger.error(f"[{client_id}] [Receiver {msg_counter}] Pydantic validation error for incoming message: {e.errors()}\nRaw dict: {raw_message_dict}", exc_info=True)
+                        # THIS IS WHERE THE ERROR WILL NOW BE CAUGHT IF THE FRONTEND SENDS BAD DATA
+                        logger.error(f"[{client_id}] [Receiver {msg_counter}] Pydantic validation error for incoming message (WebSocketMessage schema): {e.errors()}\nRaw dict: {raw_message_dict}", exc_info=True)
                         await self.send_error(websocket, "message_validation_failed", f"Invalid message format: {str(e.errors())}")
                         await self._send_to_dead_letter_queue(
                             original_message=raw_message_dict, # Pass the dictionary that failed validation
                             client_id=client_id,
-                            error_type="PydanticValidationError",
+                            error_type="PydanticValidationError_WebSocketMessage", # More specific error type
                             error_details=str(e)
                         )
                         continue # Skip to next receive loop if message is malformed
@@ -373,17 +380,8 @@ class WebSocketManager:
 
                     # --- Enqueueing the Validated Pydantic Message ---
                     try:
-                        logger.debug(f"[{client_id}] [Receiver {msg_counter}] Enqueueing message {message_for_queue.id} of type '{message_for_queue.type}' to from_frontend_queue.")
-                        try:
-                            await self.from_frontend_queue.enqueue(message_for_queue)
-                        except ValueError as e:
-                            logger.error(f"Failed to enqueue message: {e}")
-                            await self._send_to_dead_letter_queue(
-                                original_message=message_for_queue,
-                                client_id=client_id,
-                                error_type="QueueValidationError",
-                                error_details=str(e)
-                            )
+                        logger.debug(f"[{client_id}] [Receiver {msg_counter}] Enqueueing message {message_for_queue.id} of type '{message_for_queue.data['type']}' to from_frontend_queue.")
+                        await self.from_frontend_queue.enqueue(message_for_queue)
                     except Exception as e:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Failed to enqueue message {message_for_queue.id} to from_frontend_queue: {e}", exc_info=True)
                         await self.send_error(websocket, "queue_enqueue_failed", f"Failed to process message internally.")
@@ -393,8 +391,6 @@ class WebSocketManager:
                             error_type="QueueEnqueueError",
                             error_details=str(e)
                         )
-                        # Optionally, if queue is full or persistent error, consider breaking
-                        # For now, continue to next receive attempt
                         await asyncio.sleep(0.1)
 
         except asyncio.CancelledError:
@@ -404,6 +400,8 @@ class WebSocketManager:
             raise # Re-raise critical exceptions to signal a fatal error
         finally:
             logger.info(f"[{client_id}] Receiver task finished.")
+
+
 
     async def shutdown(self):
         """Gracefully shuts down the WebSocket manager and closes all connections."""
@@ -467,7 +465,7 @@ class WebSocketManager:
             """Sends a message directly to a specific client by its client_id (host:port).
             Returns True on successful send, False otherwise.
             """
-            logger.info(f"Attempting to send direct message to client: {client_id} (type: {message_data.get('type')})")
+            logger.info(f"Attempting to send direct message to client: {client_id} (type: {getattr(message_data, 'type', 'N/A')})")
             target_websocket: Optional[WebSocket] = None
 
             # Iterate through connections to find the target WebSocket
@@ -479,13 +477,20 @@ class WebSocketManager:
 
             if target_websocket:
                 try:
-                    # Add default values if not present
-                    message_data.setdefault('id', str(uuid4()))
-                    message_data.setdefault('timestamp', time.time())
-                    message_data.setdefault('client_id', client_id) 
-
-                    # Validate the message against the Pydantic model
-                    ws_msg = WebSocketMessage.parse_obj(message_data)
+                    # Add default values if not present (handle both dict and Pydantic model cases)
+                    if isinstance(message_data, dict):
+                        message_data.setdefault('id', str(uuid4()))
+                        message_data.setdefault('timestamp', time.time())
+                        message_data.setdefault('client_id', client_id)
+                        ws_msg = WebSocketMessage.parse_obj(message_data)
+                    else:
+                        if not getattr(message_data, 'id', None):
+                            message_data.id = str(uuid4())
+                        if not getattr(message_data, 'timestamp', None):
+                            message_data.timestamp = time.time()
+                        if not getattr(message_data, 'client_id', None):
+                            message_data.client_id = client_id
+                        ws_msg = WebSocketMessage.model_validate(message_data)
 
                     if target_websocket.client_state == WebSocketState.CONNECTED:
                         try:

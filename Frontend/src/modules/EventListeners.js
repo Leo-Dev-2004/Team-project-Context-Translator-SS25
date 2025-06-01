@@ -5,7 +5,6 @@ import {
     updateSystemLog,
     updateStatusLog,
     updateTestLog,
-    updateAllQueueDisplays,
     updateSimulationLog // Ensure this is imported for transcription results
 } from './QueueDisplay.js';
 

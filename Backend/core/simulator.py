@@ -72,19 +72,20 @@ class SimulationManager:
     async def start(self, client_id: str, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
         if self.running:
-            status_msg = {
-                "type": "status_update",
-                "data": {"id": "simulation_status", "status": "already_running"},
-                "client_id": client_id,
-                "timestamp": time.time(),
-                "id": str(uuid.uuid4()),
-                "processing_path": [], "forwarding_path": []
-            }
+            status_msg = QueueMessage(
+                type="status_update",
+                data={"id": "simulation_status", "status": "already_running"},
+                client_id=client_id,
+                timestamp=time.time(),
+                id=str(uuid.uuid4()),
+                processing_path=[],
+                forwarding_path=[]
+            )
             await self._to_frontend_queue.enqueue(status_msg)
             return {"status": "already running"}
 
-        await self._to_backend_queue.clear()
-        await self._to_frontend_queue.clear()
+        await self._to_backend_queue.drain()
+        await self._to_frontend_queue.drain()
 
         self.running = True
         if background_tasks:
@@ -94,17 +95,19 @@ class SimulationManager:
             # FIX: Pass client_id when creating the task directly
             self.task = asyncio.create_task(self._run_simulation(client_id))
             
-        system_msg = {
-            "type": "system",
-            "data": {
+        system_msg = QueueMessage(
+            type="system",
+            data={
                 "id": "sys_start",
                 "message": "Simulation started via API",
                 "status": "info"
             },
-            "timestamp": time.time(),
-            "client_id": client_id,
-            "id": str(uuid.uuid4())
-        }
+            timestamp=time.time(),
+            client_id=client_id,
+            id=str(uuid.uuid4()),
+            processing_path=[],
+            forwarding_path=[]
+        )
         await self._to_frontend_queue.enqueue(system_msg)
         
         return {
@@ -143,14 +146,15 @@ class SimulationManager:
         if not self.running:
             logger.info("Simulation is not running. No action needed.")
             if client_id:
-                status_msg = {
-                    "type": "status_update",
-                    "data": {"id": "sys_stop_failed", "message": "Simulation not running", "status": "info"},
-                    "client_id": client_id,
-                    "timestamp": time.time(),
-                    "id": str(uuid.uuid4()),
-                    "processing_path": [], "forwarding_path": []
-                }
+                status_msg = QueueMessage(
+                    type="status_update",
+                    data={"id": "sys_stop_failed", "message": "Simulation not running", "status": "info"},
+                    client_id=client_id,
+                    timestamp=time.time(),
+                    id=str(uuid.uuid4()),
+                    processing_path=[],
+                    forwarding_path=[]
+                )
                 await self._to_frontend_queue.enqueue(status_msg)
             return {"status": "not running"}
 
@@ -165,18 +169,19 @@ class SimulationManager:
                 logger.error(f"Error while cancelling simulation task: {e}", exc_info=True)
 
         logger.info(f"Simulation stopped. Sending final status to client: {client_id if client_id else 'broadcast'}")
-        system_msg_stopped = {
-            "type": "status_update",
-            "data": {
+        system_msg_stopped = QueueMessage(
+            type="status_update",
+            data={
                 "id": "sys_stop",
                 "message": "Simulation stopped via API",
                 "status": "stopped"
             },
-            "timestamp": time.time(),
-            "client_id": client_id if client_id else 'broadcast',
-            "id": str(uuid.uuid4()),
-            "processing_path": [], "forwarding_path": []
-        }
+            timestamp=time.time(),
+            client_id=client_id if client_id else 'broadcast',
+            id=str(uuid.uuid4()),
+            processing_path=[],
+            forwarding_path=[]
+        )
         await self._to_frontend_queue.enqueue(system_msg_stopped)
 
         return {"status": "stopped"}
@@ -188,10 +193,10 @@ class SimulationManager:
             "counter": self.counter,
             "timestamp": time.time(),
             "queues": {
-                "to_frontend": self._to_frontend_queue.size(),
-                "from_frontend": self._from_frontend_queue.size(),
-                "to_backend": self._to_backend_queue.size(),
-                "from_backend": self._from_backend_queue.size()
+                "to_frontend": self._to_frontend_queue.qsize(),
+                "from_frontend": self._from_frontend_queue.qsize(),
+                "to_backend": self._to_backend_queue.qsize(),
+                "from_backend": self._from_backend_queue.qsize()
             }
         }
 
@@ -238,22 +243,24 @@ class SimulationManager:
                 timestamp=time.time(),
                 processing_path=[],
                 forwarding_path=[]
-            ).dict()
+            )
             
             await self._to_backend_queue.enqueue(sim_msg)
             
-            frontend_msg = {
-                "type": "simulation_status",
-                "data": {
+            frontend_msg = QueueMessage(
+                type="simulation_status",
+                data={
                     "id": f"sim_{self.counter}",
                     "status": "running",
                     "progress": self.counter,
-                    "client_id": client_id, # client_id is now correctly in scope
+                    "client_id": client_id,
                     "timestamp": time.time()
                 },
-                "id": str(uuid.uuid4()),
-                "processing_path": [], "forwarding_path": []
-            }
+                id=str(uuid.uuid4()),
+                timestamp=time.time(),
+                processing_path=[],
+                forwarding_path=[]
+            )
             await self._to_frontend_queue.enqueue(frontend_msg)
             
             await asyncio.sleep(0.5 + 1.5 * random.random())
@@ -263,27 +270,28 @@ class SimulationManager:
         
         logger.info(f"Simulation stopped for client: {client_id}")
 
-        final_status_msg = {
-            "type": "status_update",
-            "data": {
+        final_status_msg = QueueMessage(
+            type="status_update",
+            data={
                 "id": "sys_final",
                 "message": "Simulation loop finished",
                 "status": "finished"
             },
-            "timestamp": time.time(),
-            "client_id": client_id,
-            "id": str(uuid.uuid4()),
-            "processing_path": [], "forwarding_path": []
-        }
+            timestamp=time.time(),
+            client_id=client_id,
+            id=str(uuid.uuid4()),
+            processing_path=[],
+            forwarding_path=[]
+        )
         await self._to_frontend_queue.enqueue(final_status_msg)
 
     def _monitor_queues(self):
         """Monitor queue health"""
-        to_backend_size = self._to_backend_queue.size()
-        from_backend_size = self._from_backend_queue.size()
-        to_frontend_size = self._to_frontend_queue.size()
-        from_frontend_size = self._from_frontend_queue.size()
-        dead_letter_size = self._dead_letter_queue.size()
+        to_backend_size = self._to_backend_queue.qsize()
+        from_backend_size = self._from_backend_queue.qsize()
+        to_frontend_size = self._to_frontend_queue.qsize()
+        from_frontend_size = self._from_frontend_queue.qsize()
+        dead_letter_size = self._dead_letter_queue.qsize()
 
         logger.debug(f"Queue sizes: To-B: {to_backend_size}, From-B: {from_backend_size}, To-F: {to_frontend_size}, From-F: {from_frontend_size}, DLQ: {dead_letter_size}")
 

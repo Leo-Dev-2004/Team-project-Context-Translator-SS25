@@ -3,28 +3,25 @@ class MessageQueue {
     constructor(name = "default") {
         this.name = name;
         this.queue = [];
-        this.waitingResolvers = []; // Renamed from 'pending' for clarity
-        this._listeners = new Set();
+        this.waitingResolvers = []; // Promises waiting for an item
+        this._listeners = new Set(); // For UI updates
         console.log(`MessageQueue '${this.name}' initialized.`);
     }
 
     enqueue(message) {
         if (!message.timestamp) {
-            message.timestamp = Date.now() / 1000;
+            message.timestamp = Date.now(); // Use milliseconds for JS consistency
         }
         this.queue.push(message);
-        this._listeners.forEach(cb => cb(this.queue));
+        console.log(`MessageQueue: Enqueued message to '${this.name}'. Current size: ${this.queue.length}`);
+        this.notifyListeners(); // Notify all UI listeners about the change
 
-        // If there are consumers waiting, resolve one immediately with the oldest item
-        if (this.waitingResolvers.length > 0 && this.queue.length > 0) {
-            const resolve = this.waitingResolvers.shift();
-            // We enqueue first, then resolve with the *oldest* item from the queue,
-            // effectively allowing the waiting dequeue to take the newly available item.
-            // This behavior was somewhat ambiguous in the previous version's enqueue.
-            // The dequeue method directly shifts, which is correct.
-            // Here, we just need to signal availability to a waiting dequeue.
-            // The `dequeue` method itself will shift the item.
-            resolve(this.queue[0]); // Indicate availability, dequeue will consume the actual item
+        // If there are consumers waiting, resolve the *oldest* waiting promise
+        // with the *newly available* item.
+        if (this.waitingResolvers.length > 0) {
+            const resolve = this.waitingResolvers.shift(); // Get the oldest resolver
+            resolve(this.queue[this.queue.length - 1]); // Resolve with the *newly added* message
+                                                         // The dequeue will then shift it.
         }
     }
 
@@ -32,10 +29,12 @@ class MessageQueue {
     async dequeue() {
         if (this.queue.length > 0) {
             const item = this.queue.shift(); // Truly remove the item
-            console.log(`Dequeued item from '${this.name}':`, item);
-            this._listeners.forEach(cb => cb(this.queue)); // Notify listeners
+            console.log(`MessageQueue: Dequeued item from '${this.name}'. Current size: ${this.queue.length}`);
+            this.notifyListeners(); // Notify listeners after removal
             return item;
         } else {
+            // If the queue is empty, return a Promise that will be resolved
+            // when a new item is enqueued.
             return new Promise(resolve => {
                 this.waitingResolvers.push(resolve);
             });
@@ -46,35 +45,55 @@ class MessageQueue {
         return this.queue.length;
     }
 
-    getCurrentItemsForDisplay() { // Used for displaying without removing
-        return [...this.queue]; // Return a shallow copy
+    // Used for displaying without removing
+    // Returns a shallow copy to prevent external modification of the queue
+    getCurrentItemsForDisplay() {
+        return [...this.queue];
     }
 
-    // Add peekAll and getAll aliases for backward compatibility if other code uses them
+    // Alias for backward compatibility
     peekAll() {
         return this.getCurrentItemsForDisplay();
     }
 
+    // Alias for backward compatibility
     getAll() {
         return this.getCurrentItemsForDisplay();
     }
 
-    addListener(callback) {
+    // Method to subscribe UI components to queue changes
+    subscribe(callback) {
         this._listeners.add(callback);
+        // Optionally, immediately notify the new subscriber with the current state
+        callback(this.name, this.queue.length, this.getCurrentItemsForDisplay());
     }
 
-    removeListener(callback) {
+    // Method to unsubscribe UI components
+    unsubscribe(callback) {
         this._listeners.delete(callback);
     }
 
+    // Internal method to notify all subscribed listeners
+    notifyListeners() {
+        // Prepare items for display, ensuring they have necessary properties
+        const itemsForDisplay = this.queue.map(msg => ({
+            id: msg.id,
+            type: msg.type,
+            // Assuming 'status' could be part of msg.data, default to 'pending'
+            status: msg.data && msg.data.status ? msg.data.status : 'pending',
+            timestamp: msg.timestamp
+        }));
+        this._listeners.forEach(callback => callback(this.name, this.queue.length, itemsForDisplay));
+    }
+
+
     clear() {
         this.queue = [];
-        this.waitingResolvers = []; // Also clear waiting resolvers
-        this._listeners.forEach(cb => cb(this.queue));
+        this.waitingResolvers.forEach(resolve => resolve(null)); // Resolve all pending with null/undefined
+        this.waitingResolvers = []; // Clear all waiting resolvers
+        this.notifyListeners(); // Notify listeners after clearing
         console.log(`Queue '${this.name}' cleared.`);
     }
 }
 
-// Export the class itself as a DEFAULT export, as originally intended in app.js.
-// This is critical for `import MessageQueue from './modules/MessageQueue.js';` to work.
 export default MessageQueue;

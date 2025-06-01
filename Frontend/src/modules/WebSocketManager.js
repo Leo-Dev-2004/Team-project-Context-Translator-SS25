@@ -3,90 +3,107 @@
 import {
     updateSystemLog,
     updateStatusLog,
-    updateTestLog,
-    updateAllQueueDisplays,
-    setQueues as setQueueDisplayQueues // Alias to avoid name conflict with WebSocketManager's setQueues
-} from './QueueDisplay.js';
-
-import { processBackendMessages } from './EventListeners.js'; // Import the message processor
+    updateTestLog, // Assuming this is for generic test logs
+    updateQueueDisplay // This is the crucial function we'll use for all queue updates
+} from './QueueDisplay.js'; // Assuming QueueDisplay handles rendering specific queue HTML elements
 
 class WebSocketManager {
-    constructor() {
-        this.ws = null;
-        this.reconnectAttempts = 0;
-        this.reconnectTimer = null;
-        this.pingInterval = null;
-        this.lastPongTime = null;
-        this.maxReconnectAttempts = 10;
-        this.observer = null;
+    // --- ALL METHODS ARE DEFINED HERE, BEFORE THE CONSTRUCTOR ---
 
-        // Initialize queue references
-        this._frontendDisplayQueue = null;
-        this._frontendActionQueue = null;
-        this._toBackendQueue = null;
-        this._fromBackendQueue = null;
+    setClientId(id) {
+        if (typeof id === 'string' && id.trim() !== '') {
+            this.clientId = id;
+            console.log(`WebSocketManager: Client ID set to '${this.clientId}'.`);
+        } else {
+            console.error('WebSocketManager: Invalid client ID provided.');
+            updateSystemLog('ERROR: Invalid client ID for WebSocket.');
+        }
+        return this;
+    }
 
-        // Bind methods to maintain 'this' context.
-        this.setQueues = this.setQueues.bind(this);
-        this.connect = this.connect.bind(this);
-        this.sendMessage = this.sendMessage.bind(this);
-        this.handleIncomingMessage = this.handleIncomingMessage.bind(this);
+    /**
+     * Sets a general observer for WebSocket messages.
+     * @param {Object} observer - An object with a `handleMessage` method.
+     * @returns {WebSocketManager} For method chaining.
+     */
+    setObserver(observer) {
+        this.observer = observer;
+        return this;
     }
 
     /**
      * Method to set the queue instances from app.js.
-     * Expects an object with the queue names as keys.
+     * These are the *frontend's* queues.
+     * Also subscribes to changes on these queues to update their display.
      * @param {Object} queues - Object containing references to the MessageQueue instances.
-     * @param {MessageQueue} queues.frontendDisplayQueue - The queue for messages processed for frontend display.
-     * @param {MessageQueue} queues.frontendActionQueue - The queue for messages representing frontend actions.
-     * @param {MessageQueue} queues.toBackendQueue - The queue for messages to be sent to the backend.
-     * @param {MessageQueue} queues.fromBackendQueue - The queue for messages received from the backend.
      */
-    setObserver(observer) {
-        this.observer = observer;
-        return this; // For method chaining
-    }
-
     setQueues({ frontendDisplayQueue, frontendActionQueue, toBackendQueue, fromBackendQueue }) {
         this._frontendDisplayQueue = frontendDisplayQueue;
         this._frontendActionQueue = frontendActionQueue;
         this._toBackendQueue = toBackendQueue;
         this._fromBackendQueue = fromBackendQueue;
-        console.log('WebSocketManager: Queues set via setQueues method.');
-        updateSystemLog('WebSocketManager: Queues initialized.'); // Log for UI
 
-        // Also pass queues to QueueDisplay module
-        setQueueDisplayQueues({ frontendDisplayQueue, frontendActionQueue, toBackendQueue, fromBackendQueue });
+        console.log('WebSocketManager: Frontend queues set.');
+        updateSystemLog('WebSocketManager: Frontend queues initialized and linked.');
 
-        return this; // Allow method chaining
+        // Subscribe to changes on frontend's *outgoing* queue for display purposes
+        if (this._toBackendQueue) {
+            this._toBackendQueue.subscribe((queueName, size, items) => {
+                // Map the frontend's 'toBackendQueue' to the backend's 'from_frontend' visual display
+                // as that's where it conceptually goes first.
+                updateQueueDisplay(queueName, size, items); // This should be for what's about to be sent
+            });
+        }
+        // Subscribe to changes on frontend's *incoming* queue for display purposes
+        if (this._fromBackendQueue) {
+            this._fromBackendQueue.subscribe((queueName, size, items) => {
+                updateQueueDisplay(queueName, size, items); // This is for what's received from backend
+            });
+        }
+
+        return this;
     }
 
-    connect(url = 'ws://localhost:8000/ws') {
+
+    /**
+     * Establishes a WebSocket connection.
+     * It now dynamically constructs the URL using the stored clientId.
+     * @param {string} [baseUrl='ws://localhost:8000/ws'] - The base WebSocket URL, without the client_id.
+     */
+    connect(baseUrl = 'ws://localhost:8000/ws') { // baseUrl is now just the static part
         console.group('WebSocketManager: Connect');
 
-        // Clear any pending reconnection attempt
+        if (!this.clientId) { // Ensure client ID is set before connecting
+            console.error('WebSocketManager: Cannot connect. Client ID is not set.');
+            updateSystemLog('ERROR: WebSocket connection failed. Client ID is missing.');
+            return;
+        }
+
+        // --- Dynamically construct the full URL ---
+        const url = `${baseUrl}/${this.clientId}`;
+        // ------------------------------------------
+
+        // Clear any pending reconnection attempt and ping interval to prevent duplicates
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = null;
         }
-
-        // Clear any existing ping interval
         if (this.pingInterval) {
             clearInterval(this.pingInterval);
             this.pingInterval = null;
         }
 
-        console.log(`Attempting to connect to WebSocket at ${url}...`);
         updateSystemLog(`Attempting to connect to WebSocket at ${url}...`);
 
         // Close existing connection if it exists and is open/connecting
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-            this.ws.onclose = null; // Remove previous handler to prevent recursive reconnects
+            this.ws.onclose = null;
             this.ws.close();
             console.log('WebSocketManager: Closing existing connection before re-connecting.');
+            updateSystemLog('Closing previous WebSocket connection.');
         }
 
-        this.ws = new WebSocket(url);
+        this.ws = new WebSocket(url); // Connect using the new URL with client_id
 
         this.ws.onopen = (event) => {
             console.log('WebSocket OPEN event received:', event);
@@ -96,36 +113,42 @@ class WebSocketManager {
             document.getElementById('connectionStatus').style.color = 'green';
             updateSystemLog('WebSocket connection opened. Sending initial acknowledgment.');
 
-            // Start ping interval (every 25 seconds)
+            const reconnectElement = document.getElementById('reconnectStatus');
+            if (reconnectElement) {
+                reconnectElement.textContent = '';
+                reconnectElement.style.display = 'none';
+            }
+
+            // Start ping interval
             this.pingInterval = setInterval(() => {
                 if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    this.sendMessage({
+                    const pingMessage = {
+                        id: `ping-${Date.now()}`,
                         type: 'ping',
-                        data: { ping: true }, // More meaningful ping data
+                        data: { timestamp: Date.now() },
                         timestamp: Date.now()
-                    });
+                    };
+                    this.sendMessage(pingMessage);
 
-                    // Check if we got a pong response
-                    // Give server some buffer, e.g., ping every 25s, expect pong within 40s
-                    if (this.lastPongTime && (Date.now() - this.lastPongTime) > 40000) {
-                        console.warn('WebSocketManager: No pong received in 40 seconds, reconnecting...');
-                        updateSystemLog('No pong received. Forcing reconnect...');
-                        this.connect(url);
+                    if (this.lastPongTime && (Date.now() - this.lastPongTime) > 7500) {
+                        console.warn('WebSocketManager: No pong received in 7.5 seconds, connection might be stale. Forcing reconnect.');
+                        updateSystemLog('No pong received. Attempting to re-establish connection...');
+                        this.connect(baseUrl); // Pass baseUrl to reconnect, it will use stored clientId
                     }
                 }
-            }, 25000);
+            }, 2500);
 
-            // Send initial ack
+            // Send initial frontend_ready_ack (you might want to include client_id here too)
             this.sendMessage({
                 type: 'frontend_ready_ack',
+                id: `frontend-init-${Date.now()}`, // Use clientId as the message ID
+                client_id: this.clientId,
                 data: {
                     message: 'Frontend ready to receive',
                     version: '1.0',
                     status: 'ready',
-                    capabilities: ['ping-pong'] // Additional metadata
-                },
+                    capabilities: ['ping-pong']                },
                 timestamp: Date.now(),
-                id: `frontend-init-${Date.now()}` // Explicit ID
             });
 
             document.dispatchEvent(new CustomEvent('websocket-ack'));
@@ -134,39 +157,48 @@ class WebSocketManager {
 
         this.ws.onmessage = (event) => {
             console.log('WebSocket MESSAGE event received:', event.data);
-
+            let message;
             try {
-                const message = JSON.parse(event.data);
-                
-                if (!message.type) {
-                    throw new Error('Message type is missing');
+                message = JSON.parse(event.data);
+                if (!message || typeof message.type === 'undefined') {
+                    throw new Error('Message is null, not an object, or missing type property.');
                 }
-
-                // Notify observer if available
-                if (this.observer) {
-                    this.observer.handleMessage(message);
-                }
-
-                // Handle pong messages
-                if (message.type === 'pong') {
-                    this.lastPongTime = Date.now();
-                    console.debug('WebSocketManager: Received pong from server');
-                    updateStatusLog('Received pong from server.');
-                    return; // Don't pass pong to handleIncomingMessage or other queues
-                }
-
-                // Pass the ALREADY PARSED object to handleIncomingMessage
-                this.handleIncomingMessage(message);
-
             } catch (e) {
-                // This catch block is for parsing errors on the initial raw event.data
-                console.error('WebSocketManager: Failed to parse WebSocket message:', e, event.data);
-                updateSystemLog(`WebSocket error: Failed to parse message - ${e.message}. Data: ${String(event.data).substring(0, 50)}...`);
-                const errorElement = document.getElementById('wsErrors');
-                if (errorElement) {
-                    errorElement.textContent = `WebSocket error: ${e.message}`;
-                }
+                console.error('WebSocketManager: Failed to parse or validate WebSocket message:', e, event.data);
+                updateSystemLog(`WebSocket parsing error: ${e.message}. Data: ${String(event.data).substring(0, 100)}...`);
+                return;
             }
+
+            if (this.observer) {
+                this.observer.handleMessage(message);
+            }
+
+            if (message.type === 'queue_status_update') {
+                const { queue_name, size, items } = message.data;
+                let displayId;
+                switch (queue_name) {
+                    case 'from_frontend': displayId = 'fromFrontendQueueDisplay'; break;
+                    case 'to_backend':    displayId = 'toBackendQueueDisplay';    break;
+                    case 'from_backend':  displayId = 'fromBackendQueueDisplay';  break;
+                    case 'to_frontend':   displayId = 'toFrontendQueueDisplay';   break;
+                    case 'dead_letter':   displayId = 'deadLetterQueueDisplay';   break;
+                    default:
+                        console.warn(`WebSocketManager: Unknown backend queue name in status update: ${queue_name}`);
+                        return;
+                }
+                updateQueueDisplay(displayId, size, items);
+                updateStatusLog(`Backend Queue '${queue_name}' updated: Size ${size}.`);
+                return;
+            }
+
+            if (message.type === 'pong') {
+                this.lastPongTime = Date.now();
+                console.debug('WebSocketManager: Received pong from server');
+                updateStatusLog('Received pong from server.');
+                return;
+            }
+
+            this.handleIncomingMessage(message);
         };
 
         this.ws.onclose = (event) => {
@@ -174,38 +206,46 @@ class WebSocketManager {
             const statusElement = document.getElementById('connectionStatus');
             statusElement.textContent = 'Disconnected';
             statusElement.style.color = 'red';
-            
-            // Show reconnect status
+
             const reconnectElement = document.getElementById('reconnectStatus');
             if (reconnectElement) {
-                reconnectElement.textContent = `Reconnecting in ${Math.round(delay/1000)}s...`;
                 reconnectElement.style.display = 'block';
             }
             updateSystemLog(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason || 'N/A'}`);
 
-            // Always attempt to reconnect unless it was a normal closure (1000) or going away (1001)
+            if (this.pingInterval) {
+                clearInterval(this.pingInterval);
+                this.pingInterval = null;
+            }
+
             if (event.code !== 1000 && event.code !== 1001) {
                 this.reconnectAttempts++;
                 const baseDelay = 1000;
                 const maxDelay = 30000;
-                // Exponential backoff with jitter (adding random factor)
-                const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempts) + Math.random() * 500, maxDelay);
+                const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempts - 1) + Math.random() * 500, maxDelay);
+
+                if (reconnectElement) {
+                    reconnectElement.textContent = `Reconnecting in ${Math.round(delay / 1000)}s... (Attempt ${this.reconnectAttempts})`;
+                }
 
                 console.log(`WebSocketManager: Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${this.reconnectAttempts})`);
-                updateSystemLog(`Attempting reconnect in ${Math.round(delay/1000)}s... (Attempt ${this.reconnectAttempts})`);
+                updateSystemLog(`Attempting reconnect in ${Math.round(delay / 1000)}s... (Attempt ${this.reconnectAttempts})`);
 
-                // Clear any existing reconnect timer to avoid multiple timers
                 if (this.reconnectTimer) {
                     clearTimeout(this.reconnectTimer);
                 }
-
+                // FIXED LINE BELOW: Removed the stray dot
                 this.reconnectTimer = setTimeout(() => {
                     console.log('WebSocketManager: Executing reconnect attempt...');
-                    this.connect(url);
+                    this.connect(baseUrl); // Pass baseUrl for reconnect
                 }, delay);
             } else {
                 console.log('WebSocketManager: Closed normally, not reconnecting.');
-                updateSystemLog('WebSocket closed normally.');
+                updateSystemLog('WebSocket closed normally. No reconnection needed.');
+                if (reconnectElement) {
+                    reconnectElement.textContent = 'Disconnected.';
+                    reconnectElement.style.display = 'block';
+                }
             }
             console.groupEnd();
         };
@@ -216,55 +256,50 @@ class WebSocketManager {
             document.getElementById('connectionStatus').style.color = 'orange';
             updateSystemLog(`WebSocket connection error: ${error.message || 'Unknown error'}`);
 
-            // Clear any existing reconnect timer to avoid multiple timers
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
             }
-            // Trigger immediate reconnect attempt on error if not max attempts reached
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
                 this.reconnectAttempts++;
-                const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-                this.reconnectTimer = setTimeout(() => this.connect(url), delay);
+                const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 30000);
+                updateSystemLog(`WebSocket error, attempting reconnect in ${Math.round(delay/1000)}s...`);
+                this.reconnectTimer = setTimeout(() => this.connect(baseUrl), delay); // Pass baseUrl for reconnect
             } else {
-                 console.error('WebSocketManager: Max reconnect attempts reached after error. Giving up.');
-                 updateSystemLog('Max reconnect attempts reached after error. Please refresh page.');
+                console.error('WebSocketManager: Max reconnect attempts reached after error. Giving up.');
+                updateSystemLog('Max reconnect attempts reached after error. Please refresh page.');
             }
-
             console.groupEnd();
         };
     }
 
     /**
      * Sends a message to the backend via WebSocket.
-     * Enqueues the message to the internal _toBackendQueue for display *before* sending,
-     * then sends it over the WebSocket.
+     * Enqueues the message to the internal _toBackendQueue for display *before* sending.
      * @param {Object} message - The message object to send.
      */
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log('WebSocketManager: Sending message:', message);
+            if (!message.id) {
+                message.id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+            }
+            if (!message.timestamp) {
+                message.timestamp = Date.now();
+            }
 
-            // Enqueue to _toBackendQueue immediately for display/tracking that it's being sent
+            console.log('WebSocketManager: Sending message:', message);
+            updateSystemLog(`Sending: ${message.type} (ID: ${message.id.substring(0,8)})`);
+
             if (this._toBackendQueue) {
                 this._toBackendQueue.enqueue(message);
-                updateAllQueueDisplays(); // Update display to show it's queued for sending
             } else {
                 console.warn('WebSocketManager: _toBackendQueue is not set. Outgoing message display ignored.');
             }
 
-            // Actual send operation
             this.ws.send(JSON.stringify(message));
 
-            // NOTE: The message is considered "sent" once ws.send() is called.
-            // Removal from _toBackendQueue (display) would typically happen on backend ACK
-            // or if you want immediate visual feedback, you could dequeue it here
-            // (but that implies it's no longer "pending send").
-            // For now, it stays in _toBackendQueue until manually cleared or handled by
-            // a sophisticated "sent" status in the UI. The backend response will be handled
-            // by _fromBackendQueue.
         } else {
             console.warn('WebSocketManager: WebSocket not open. Message not sent:', message);
-            updateSystemLog('WebSocket not open. Message not sent.');
+            updateSystemLog('WebSocket not open. Message not sent. Please connect first.');
         }
     }
 
@@ -275,11 +310,6 @@ class WebSocketManager {
      */
     handleIncomingMessage(message) {
         try {
-            if (!message.type) {
-                throw new Error('Message type is missing');
-            }
-
-            // Directly handle certain message types
             switch(message.type) {
                 case 'status':
                     this._handleStatusMessage(message);
@@ -291,122 +321,137 @@ class WebSocketManager {
                     this._handleDataMessage(message);
                     break;
                 default:
-                    // Enqueue other messages for processing
                     if (this._fromBackendQueue) {
                         this._fromBackendQueue.enqueue(message);
-                        updateAllQueueDisplays();
+                        updateSystemLog(`Received & enqueued: ${message.type} (ID: ${message.id ? message.id.substring(0,8) : 'N/A'})`);
+                    } else {
+                        console.warn('WebSocketManager: _fromBackendQueue is not set. Incoming message ignored:', message);
+                        updateSystemLog('Frontend inbound queue not set. Message ignored.');
                     }
             }
-            // The MessageProcessor in EventListeners.js will dequeue and process this.
-            // It runs in a separate, continuous loop, so no need to call it here.
-
         } catch (e) {
-            // This catch block is for errors within handleIncomingMessage *after* initial parse
-            console.error('WebSocketManager: Error processing incoming message:', e, message); // Log the object directly
-            updateSystemLog(`Error processing incoming message: ${e.message}. Data: ${JSON.stringify(message || {}).substring(0, 50)}...`);
+            console.error('WebSocketManager: Error processing incoming message (in handleIncomingMessage):', e, message);
+            updateSystemLog(`Error processing incoming message: ${e.message}. Data: ${JSON.stringify(message || {}).substring(0, 100)}...`);
         }
     }
 
+    // --- Private Handlers for Specific Message Types ---
     _handleStatusMessage(message) {
-        const statusElement = document.getElementById('simulationStatus');
-        const logElement = document.getElementById('statusLog');
-        
-        if (statusElement) {
-            statusElement.textContent = message.data.status || 'Status updated';
-            statusElement.className = `status-${message.data.status?.toLowerCase() || 'info'}`;
+        const simulationStatusElement = document.getElementById('simulationStatus');
+        if (simulationStatusElement) {
+            simulationStatusElement.textContent = message.data.status || 'Status updated';
+            simulationStatusElement.className = `status-${(message.data.status || 'info').toLowerCase()}`;
         }
-        
-        if (logElement) {
-            const entry = document.createElement('p');
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message.data.message}`;
-            logElement.prepend(entry);
-            
-            // Limit log size
-            if (logElement.children.length > 50) {
-                logElement.removeChild(logElement.lastChild);
-            }
-        }
-        
-        // Also enqueue for general processing
-        if (this._fromBackendQueue) {
-            this._fromBackendQueue.enqueue(message);
-        }
+        updateStatusLog(`Status: ${message.data.message || message.data.status}`);
     }
 
     _handleDataMessage(message) {
-        const resultElement = document.getElementById('translationResult');
-        if (resultElement) {
-            // Handle different data formats
-            if (message.data.text) {
-                resultElement.textContent = message.data.text;
-            } else if (message.data.result) {
-                resultElement.textContent = JSON.stringify(message.data.result, null, 2);
-            } else {
-                resultElement.textContent = JSON.stringify(message.data, null, 2);
+        const translationOutput = document.getElementById('translationOutput');
+        if (translationOutput) {
+            translationOutput.textContent = message.data.translated_text || JSON.stringify(message.data, null, 2);
+            const translationLoading = document.getElementById('translationLoading');
+            if (translationLoading) {
+                translationLoading.classList.add('hidden');
             }
         }
-        
-        // Also enqueue for general processing/logging
-        if (this._fromBackendQueue) {
-            this._fromBackendQueue.enqueue(message);
-        }
+        updateSystemLog(`Data Received: ${message.type} (ID: ${message.id ? message.id.substring(0,8) : 'N/A'})`);
     }
 
     _handleErrorMessage(message) {
-        updateSystemLog(`ERROR: ${message.data.error} - ${message.data.message}`);
-        
-        const errorElement = document.getElementById('errorDisplay');
-        if (errorElement) {
-            errorElement.textContent = `${message.data.error}: ${message.data.message}`;
-            errorElement.style.display = 'block';
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                errorElement.style.display = 'none';
-            }, 5000);
-        }
-        
-        // Also enqueue for general processing
-        if (this._fromBackendQueue) {
-            this._fromBackendQueue.enqueue(message);
+        updateSystemLog(`ERROR from Backend: ${message.data.error_type || 'Unknown Error'} - ${message.data.message || 'No message provided'}`);
+        const errorDisplayElement = document.getElementById('errorDisplay');
+        if (errorDisplayElement) {
+            errorDisplayElement.textContent = `Backend Error: ${message.data.message || 'An error occurred'}`;
+            errorDisplayElement.style.display = 'block';
+            setTimeout(() => errorDisplayElement.style.display = 'none', 5000);
         }
     }
 
-    checkConnection() {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            console.log('WebSocketManager: Connection lost, attempting to reconnect...');
-            updateSystemLog('WebSocket connection lost, attempting reconnect...');
-            this.connect();
+    /**
+     * Checks the WebSocket connection status and attempts to reconnect if necessary.
+     * This can be called periodically (e.g., from a health check loop).
+     */
+    checkConnection(baseUrl = 'ws://localhost:8000/ws') { // Pass baseUrl here too
+        if (!this.clientId) {
+            console.warn('WebSocketManager: Cannot check connection. Client ID is not set.');
+            return false;
+        }
+        if (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CONNECTING) {
+            console.log('WebSocketManager: Connection is closed or closing, attempting to connect...');
+            updateSystemLog('WebSocket connection state is closed/closing. Attempting reconnect...');
+            this.connect(baseUrl); // Pass baseUrl
             return false;
         }
 
-        if (this.lastPongTime && (Date.now() - this.lastPongTime) > 60000) {
+        if (this.ws.readyState === WebSocket.OPEN && this.lastPongTime && (Date.now() - this.lastPongTime) > 7500) {
             console.warn('WebSocketManager: No recent pong response in checkConnection, forcing reconnect...');
             updateSystemLog('No recent pong, forcing reconnect.');
-            this.connect();
+            this.connect(baseUrl); // Pass baseUrl
             return false;
         }
 
         return true;
     }
 
+    /**
+     * Disconnects the WebSocket connection gracefully.
+     */
     disconnect() {
         if (this.ws) {
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = null;
             }
-
             if (this.pingInterval) {
                 clearInterval(this.pingInterval);
                 this.pingInterval = null;
             }
 
             if (this.ws.readyState === WebSocket.OPEN) {
-                this.ws.close(1000, 'Client initiated disconnect');
+                this.ws.close(1000, 'Client initiated disconnect'); // 1000 is normal closure
                 updateSystemLog('WebSocket disconnected by client.');
             }
         }
+        document.getElementById('connectionStatus').textContent = 'Disconnected';
+        document.getElementById('connectionStatus').style.color = 'red';
+        const reconnectElement = document.getElementById('reconnectStatus');
+        if (reconnectElement) {
+            reconnectElement.textContent = 'Disconnected.';
+            reconnectElement.style.display = 'block';
+        }
+    }
+
+    // --- END OF ALL METHODS DEFINED BEFORE THE CONSTRUCTOR ---
+
+
+    constructor() {
+        this.ws = null;
+        this.reconnectAttempts = 0;
+        this.reconnectTimer = null;
+        this.pingInterval = null;
+        this.lastPongTime = null;
+        this.maxReconnectAttempts = 10;
+        this.observer = null;
+
+        this.clientId = null;
+
+        this._frontendDisplayQueue = null;
+        this._frontendActionQueue = null;
+        this._toBackendQueue = null;
+        this._fromBackendQueue = null;
+
+        // Bind all methods AFTER they have been defined
+        this.setClientId = this.setClientId.bind(this);
+        this.setObserver = this.setObserver.bind(this);
+        this.setQueues = this.setQueues.bind(this);
+        this.connect = this.connect.bind(this);
+        this.sendMessage = this.sendMessage.bind(this);
+        this.handleIncomingMessage = this.handleIncomingMessage.bind(this);
+        this._handleStatusMessage = this._handleStatusMessage.bind(this);
+        this._handleDataMessage = this._handleDataMessage.bind(this);
+        this._handleErrorMessage = this._handleErrorMessage.bind(this);
+        this.checkConnection = this.checkConnection.bind(this);
+        this.disconnect = this.disconnect.bind(this);
     }
 }
 

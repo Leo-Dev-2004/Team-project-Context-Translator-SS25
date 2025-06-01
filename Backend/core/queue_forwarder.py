@@ -4,7 +4,7 @@ import time
 from typing import Optional, Dict, Any, Union
 
 # Import the Pydantic message models
-from Backend.models.message import QueueMessage, DeadLetterMessage, ForwardingPathEntry, WebSocketMessage # Added WebSocketMessage for potential type in ws_manager.send_message_to_client
+from Backend.models.message_types import QueueMessage, DeadLetterMessage, ForwardingPathEntry, WebSocketMessage # Added WebSocketMessage for potential type in ws_manager.send_message_to_client
 from ..queues.shared_queue import (
     get_to_frontend_queue,   # <-- Input queue for this forwarder
     get_dead_letter_queue

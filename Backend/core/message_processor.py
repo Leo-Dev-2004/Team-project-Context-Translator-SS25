@@ -139,240 +139,79 @@ class MessageProcessor:
                 await asyncio.sleep(5)
         logger.info("Dead Letter Queue monitor task stopped.")
 
-    async def _process_single_message(self, message: Union[QueueMessage, DeadLetterMessage, WebSocketMessage]) -> None:
-        """Process messages with detailed tracing and response generation."""
-        # Small sleep to yield control, if necessary
-        await asyncio.sleep(0.01) 
-        
-        # 'message' is already a Pydantic model from dequeue.
-        # Access attributes directly, and ensure it's a WebSocketMessage for core logic.
-        
-        msg_id = getattr(message, 'id', 'unknown')
-        msg_type = getattr(message, 'type', 'unknown')
-        client_id = getattr(message, 'client_id', 'unknown')
-        
-        logger.debug(f"Processing message {msg_id} (type: {msg_type}, client: {client_id})")
-        
-        response_message_dict: Optional[Dict[str, Any]] = None
+   
+    async def _process_single_message(self, message: Union[QueueMessage, WebSocketMessage]) -> None:
+        """
+        Processes a single message from the queue, dispatching it based on its type.
+        This function handles messages that are either direct WebSocketMessages
+        or QueueMessages that contain a WebSocketMessage in their 'data' field.
+        """
+        msg: Optional[WebSocketMessage] = None # This variable will hold the actual WebSocketMessage instance
+        msg_id: str = "unknown"
 
-        # Wrap the main processing logic in a single try-except block
         try:
-            msg: WebSocketMessage
-            if isinstance(message, WebSocketMessage):
-                msg = message
-            elif isinstance(message, QueueMessage) and hasattr(message, 'data') and isinstance(message.data, dict):
-                # If QueueMessage is used as a wrapper for WebSocketMessage payload
-                msg = WebSocketMessage.model_validate(message.payload)
-            else:
-                # If message is not a WebSocketMessage or a QueueMessage with a valid payload,
-                # it's an unexpected type for _process_single_message.
-                raise ValidationError(f"Received unexpected message type for processing: {type(message).__name__}. Expected WebSocketMessage or QueueMessage.")
-
-            logger.debug(f"Processing {msg.type} message from {msg.client_id}")
-
-            effective_client_id: str
-            if msg.client_id is None:
-                logger.warning(f"Message {msg.id} has no client_id. Using 'unknown_client'.")
-                effective_client_id = "unknown_client"
-            else:
-                effective_client_id = msg.client_id
-
-            msg.processing_path.append(ProcessingPathEntry(
-                processor="MessageProcessor",
-                timestamp=time.time(),
-                status='processed',
-                completed_at=time.time()
-            ))
-
-            if msg.type == 'ping':
-                logger.info(f"MessageProcessor: Received ping from {effective_client_id}")
-                pong_data = {
-                    "timestamp": msg.data.get('timestamp', time.time())
-                }
-                pong_message = WebSocketMessage(
-                    id=str(uuid.uuid4()),
-                    type="pong",
-                    data=pong_data,
-                    client_id=effective_client_id,
-                    processing_path=msg.processing_path,
-                    forwarding_path=msg.forwarding_path
-                )
-                
-                # Enqueue the pong response (pass Pydantic model directly)
-                await self.safe_enqueue(
-                    self._output_queue,
-                    pong_message
-                )
-                logger.info(f"Enqueued pong response for ping from {effective_client_id}")
-                return  # Skip further processing for ping messages
-
-            elif msg.type == 'command':
-                command_name = msg.data.get('command')
-                logger.info(f"MessageProcessor: Processing command '{command_name}' from {effective_client_id}")
-
-                response_type: str = "error"
-                response_data: Dict[str, Any] = {
-                    "original_command": command_name,
-                    "original_id": msg.id,
-                    "client_id": effective_client_id,
-                    "status": "failed",
-                    "error": ErrorTypes.INTERNAL,
-                    "message": "An unhandled error occurred during command processing."
-                }
-
-                try:
-                    from Backend.dependencies import get_simulation_manager
-                    sim_manager =  get_simulation_manager(require_ready=True)
-
-                    if command_name == 'start_simulation':
-                        await sim_manager.start(client_id=effective_client_id, background_tasks=None)
-                        response_data.update({
-                            "status": "simulation_started",
-                            "message": "Simulation successfully started",
-                            "progress": 0
-                        })
-                        response_type = "status"
-
-                    elif command_name == 'stop_simulation':
-                        await sim_manager.stop(client_id=effective_client_id)
-                        response_data.update({
-                            "status": "simulation_stopped",
-                            "message": "Simulation successfully stopped"
-                        })
-                        response_type = "status"
-
-                    elif command_name == 'set_translation_settings':
-                        mode = msg.data.get('mode')
-                        context_level = msg.data.get('context_level')
-
-                        if mode is None or context_level is None:
-                            raise ValueError("Missing 'mode' or 'context_level' for set_translation_settings command.")
-                        
-                        await sim_manager.set_translation_settings(mode=mode, context_level=context_level, client_id=effective_client_id)
-                        
-                        response_data.update({
-                            "status": "success",
-                            "message": f"Translation settings updated: mode='{mode}', context_level={context_level}",
-                            "mode": mode,
-                            "context_level": context_level
-                        })
-                        response_type = "status"
-
-                    else:
-                        response_type = "error"
-                        response_data.update({
-                            "error": ErrorTypes.COMMAND_NOT_FOUND,
-                            "message": f"Command not recognized: {command_name}",
-                            "status": "failed"
-                        })
-
-                except ValidationError as e:
-                    logger.error(f"Command validation error: {str(e)}", exc_info=True)
-                    response_type = "error"
-                    response_data.update({
-                        "error": ErrorTypes.VALIDATION,
-                        "message": "Invalid command format",
-                        "details": str(e),
-                        "status": "failed"
-                    })
-                except ValueError as e:
-                    logger.error(f"Invalid settings for command '{command_name}': {str(e)}", exc_info=True)
-                    response_type = "error"
-                    response_data.update({
-                        "error": ErrorTypes.VALIDATION,
-                        "message": f"Invalid or missing data for command '{command_name}': {str(e)}",
-                        "status": "failed"
-                    })
-                except KeyError as e:
-                    logger.error(f"Missing data for command or command not found: {str(e)}", exc_info=True)
-                    response_type = "error"
-                    response_data.update({
-                        "error": ErrorTypes.COMMAND_NOT_FOUND,
-                        "message": f"Missing required data for command '{command_name}' or command not found in data: {str(e)}",
-                        "status": "failed"
-                    })
-                except Exception as e:
-                    logger.error(f"Command processing error: {str(e)}", exc_info=True)
-                    response_data.update({
-                        "message": f"Internal server error during command processing: {str(e)}"
-                    })
-                    response_type = "error"
-
-                finally:
-                    # Create response message as a Pydantic model, then dump for dict
-                    response_message_dict = WebSocketMessage(
-                        type=response_type,
-                        data=response_data,
-                        client_id=effective_client_id,
-                        processing_path=msg.processing_path,
-                        forwarding_path=msg.forwarding_path
-                    ).model_dump()
-                    logger.info(f"Generated {response_type} response for command '{command_name}'")
-
-            elif msg.type == 'frontend_ready_ack':
-                logger.info(f"MessageProcessor: Frontend ready ACK received from {effective_client_id}. Status: {msg.data.get('message')}")
-                pass # No response needed for ACK
-
-            elif msg.type == 'data':
-                logger.info(f"MessageProcessor: Forwarding data message from {effective_client_id}")
-                # Create data message as a Pydantic model, then dump for dict
-                response_message_dict = WebSocketMessage(
-                    type="data",
-                    data=msg.data,
-                    client_id=effective_client_id,
-                    processing_path=msg.processing_path,
-                    forwarding_path=msg.forwarding_path
-                ).model_dump()
-
-            else:
-                logger.warning(f"MessageProcessor: Unhandled message type: '{msg.type}' from {effective_client_id}. Sending to Dead Letter Queue.")
-                await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage( # Instantiate DeadLetterMessage
-                    original_message=msg.model_dump(), # Original message as dict
-                    error='unhandled_message_type',
-                    timestamp=time.time(),
-                    client_id=effective_client_id,
-                    reason='unhandled_message_type'
-                ))
-                return # Exit processing for unhandled types
-
-            if response_message_dict:
-                # The response_message_dict is a dict, validate it into a Pydantic model for enqueue
-                response_msg_instance = WebSocketMessage.model_validate(response_message_dict)
-                if not await self.safe_enqueue(self._output_queue, response_msg_instance): # Pass Pydantic model
-                    logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {effective_client_id}. Sending to DLQ.")
-                    await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage( # Instantiate DeadLetterMessage
-                        original_message=response_message_dict, # Pass the dict representation
-                        error='response_enqueue_failed',
-                        timestamp=time.time(),
-                        client_id=effective_client_id,
-                        reason='response_enqueue_failed'
-                    ))
+            if isinstance(message, QueueMessage):
+                # The actual WebSocketMessage is already stored in the 'data' field of the QueueMessage
+                if isinstance(message.data, WebSocketMessage):
+                    msg = message.data # Use it directly if it's already a WebSocketMessage
+                elif isinstance(message.data, dict):
+                    # If for some reason message.data is a dict (e.g., from direct FastAPI endpoint),
+                    # then validate it into a WebSocketMessage
+                    msg = WebSocketMessage.model_validate(message.data)
                 else:
-                    logger.info(f"Enqueued response type '{response_message_dict.get('type')}' to to_frontend_queue for client {effective_client_id}.")
+                    # This case should be rare, but handles unexpected types in QueueMessage.data
+                    raise TypeError(f"Unexpected type in QueueMessage.data: {type(message.data).__name__}. Expected WebSocketMessage or dict.")
+            elif isinstance(message, WebSocketMessage):
+                # If the message is already a WebSocketMessage, use it directly
+                msg = message
+            else:
+                # This should ideally not happen if types are strictly enforced upstream
+                raise TypeError(f"Received unsupported message type for processing: {type(message).__name__}. Expected QueueMessage or WebSocketMessage.")
+
+            msg_id = msg.id if msg.id is not None else "unknown"  # Ensure msg_id is always a string
+
+            logger.info(f"Processing message ID: {msg_id}, Type: {msg.type}, Client ID: {msg.client_id}")
+
+            # --- Your existing message processing logic goes here, using 'msg' ---
+            # Example:
+            if msg.type == "frontend_init":
+                logger.info(f"Frontend initialized by client {msg.client_id} with message: {msg.data.get('message')}")
+                # You can now access msg.data for the specific content of this message type
+                # For frontend_init, msg.data might be something like {"message": "Frontend ready acknowledged"}
+                # You should not try to re-validate msg.data as a WebSocketMessage
+            elif msg.type == "user_input":
+                logger.info(f"Received user input from {msg.client_id}: {msg.data.get('text')}")
+                # Process user input
+            elif msg.type == "start_simulation":
+                logger.info(f"Starting simulation for client {msg.client_id}")
+                # Start simulation
+            else:
+                logger.warning(f"Unknown WebSocket message type: {msg.type} from client {msg.client_id}")
+                # Potentially send to DLQ if unknown types are errors, or handle gracefully
 
         except ValidationError as e:
             # This catches validation errors during initial message parsing or within command logic
-            logger.error(f"Validation error during single message processing for message {msg_id}: {e}", exc_info=True)
-            dlq_client_id = getattr(message, 'client_id', 'unknown_client_error')
+            logger.error(f"Validation error during single message processing for message {msg_id}: {e}")
+            dlq_client_id = getattr(msg, 'client_id', 'unknown_client_error') if 'msg' in locals() else 'unknown_client_error'
             await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
-                original_message=message.model_dump() if hasattr(message, 'model_dump') else {"raw_message": str(message)}, # Capture original message state
+                original_message=msg.model_dump() if msg is not None and hasattr(msg, 'model_dump') else (message.model_dump() if hasattr(message, 'model_dump') else {"raw_message": str(message)}),
                 error='message_validation_failed',
                 details=str(e),
                 timestamp=time.time(),
                 client_id=dlq_client_id,
-                reason='message_validation_failed'
+                reason='validation_failed_during_single_message_processing'
             ))
         except Exception as e:
             # This catches any other unexpected errors during single message processing
             logger.error(f"Critical error during single message processing for message {msg_id}: {str(e)}", exc_info=True)
-            dlq_client_id = getattr(message, 'client_id', 'unknown_client_error')
+            dlq_client_id = getattr(msg, 'client_id', 'unknown_client_error') if 'msg' in locals() else 'unknown_client_error'
             await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
-                original_message=message.model_dump() if hasattr(message, 'model_dump') else {"raw_message": str(message)}, # Capture original message state
+                original_message=msg.model_dump() if msg is not None and 'msg' in locals() and hasattr(msg, 'model_dump') else (message.model_dump() if hasattr(message, 'model_dump') else {"raw_message": str(message)}),
                 error='message_processing_exception',
                 details=str(e),
                 timestamp=time.time(),
                 client_id=dlq_client_id,
-                reason='message_processing_exception'
+                reason='critical_error_during_single_message_processing'
             ))
 
 

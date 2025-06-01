@@ -5,50 +5,31 @@ from datetime import datetime
 import time
 import uuid
 
-# --- REVISED: PathEntry and its derivatives to match the expected dictionary structure ---
+# --- PathEntry Models for structured path tracking ---
 class ProcessingPathEntry(BaseModel):
     """Model for entries in the processing_path list."""
-    # 'processor' is the key used in your MessageProcessor
     processor: str
     timestamp: float = Field(default_factory=time.time)
     status: Optional[str] = None
-    completed_at: Optional[float] = None # This was in your log output for processed messages
-    # 'details' could be added here if you need more structured custom data beyond status/completed_at
+    completed_at: Optional[float] = None
+    details: Optional[Dict[str, Any]] = None # Added for more flexibility
 
 class ForwardingPathEntry(BaseModel):
     """Model for entries in the forwarding_path list."""
-    # 'processor' is likely the key you'll use in QueueForwarder (or a similar descriptive name)
     processor: str
     timestamp: float = Field(default_factory=time.time)
     status: Optional[str] = None
-    from_queue: Optional[str] = None # Matches the 'from_queue' key from your log
-    to_queue: Optional[str] = None   # Matches the 'to_queue' key from your log
+    from_queue: Optional[str] = None
+    to_queue: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None # Added for more flexibility
 
-# --- END REVISED PathEntry Models ---
-
-class QueueMessage(BaseModel):
-    """Model for messages passing through internal queues"""
-    type: str
-    data: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: float = Field(default_factory=time.time)
-    # UPDATED: Use the specific PathEntry models
-    processing_path: List[ProcessingPathEntry] = Field(default_factory=list)
-    forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list)
-    
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.timestamp()
-        }
-    )
-
-# --- BaseMessage and derivatives (Kept as is, no changes needed here for the current problem) ---
+# --- Base Message Models ---
 class BaseMessage(BaseModel):
     type: str
     timestamp: float = Field(default_factory=time.time)
     status: str = "pending"
-    # Keeping these as List[Dict[str, Any]] for BaseMessage if you need that flexibility for inherited models
-    # However, for specific types like WebSocketMessage and QueueMessage, it's better to use the defined Pydantic models.
-    processing_path: List[Dict[str, Any]] = Field(default_factory=list) 
+    # These base fields are kept flexible for inherited models if they need varied dict/Pydantic types
+    processing_path: List[Dict[str, Any]] = Field(default_factory=list)
     forwarding_path: List[Dict[str, Any]] = Field(default_factory=list)
 
 class SystemMessage(BaseMessage):
@@ -64,10 +45,60 @@ class BackendProcessedMessage(BaseMessage):
     data: Dict[str, Any]
     progress: Optional[int] = None
 
-# --- Your primary WebSocket Message Model ---
+# --- Internal Queue Message Model ---
+class QueueMessage(BaseModel):
+    """Model for messages passing through internal queues."""
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str
+    data: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: float = Field(default_factory=time.time)
+    processing_path: List[ProcessingPathEntry] = Field(default_factory=list) # Specific Pydantic model
+    forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list) # Specific Pydantic model
+    client_id: Optional[str] = None # Added as QueueMessage might carry client_id for routing
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.timestamp()
+        }
+    )
+
+# --- Dead Letter Message Model ---
+class DeadLetterMessage(QueueMessage): # Inherit from QueueMessage
+    """Model for messages sent to the Dead Letter Queue."""
+    original_message: Dict[str, Any]  # The raw dictionary of the message that failed
+    reason: Optional[str]                       # Why it failed
+    dlq_timestamp: float = Field(default_factory=time.time) # When it entered the DLQ
+    error_details: Optional[Dict[str, Any]] = None # Additional details about the error
+
+    # Custom __init__ to set default fields for QueueMessage and manage original_message
+    def __init__(self, original_message: Dict[str, Any], reason: str, **data):
+        # Set default type for DLQ entries
+        # Populate base data with summary info, keeping full original_message separate
+        super().__init__(
+            type="dead_letter_entry",
+            data={
+                "reason": reason,
+                "original_message_type": original_message.get("type", "unknown"),
+                "original_message_id": original_message.get("id", "unknown_id"),
+                "original_message_summary": original_message.get("data", {}).get("command", original_message.get("data", {}).get("message", "N/A_summary")) # Small summary
+            },
+            # Pass through any other fields provided in **data that QueueMessage expects
+            **{k: v for k, v in data.items() if k in ['id', 'timestamp', 'client_id', 'processing_path', 'forwarding_path']}
+        )
+        self.original_message = original_message
+        self.reason = reason
+        self.dlq_timestamp = data.get("dlq_timestamp", time.time())
+        self.error_details = data.get("error_details", None)
+
+        # Ensure ID is always set, even if base class somehow didn't set it (e.g., if 'id' was None in data)
+        if not self.id:
+            self.id = str(uuid.uuid4())
+
+
+# --- WebSocket Message Model ---
 class ErrorTypes(str, Enum):
     VALIDATION = "error_validation"
-    COMMAND_NOT_FOUND = "error_command_not_found" 
+    COMMAND_NOT_FOUND = "error_command_not_found"
     SIMULATION_FAILED = "error_simulation_failed"
     QUEUE_FULL = "error_queue_full"
     INTERNAL = "error_internal"
@@ -97,23 +128,19 @@ class WebSocketMessage(BaseModel):
         description="Optional client identifier",
         examples=["client_123", "another_client_id"]
     )
-    
-    # UPDATED: Use the specific PathEntry models for WebSocketMessage
-    processing_path: List[Union[ProcessingPathEntry, Dict[str, Any]]] = Field(
+    processing_path: List[Union[ProcessingPathEntry, Dict[str, Any]]] = Field( # Allow dicts for flexibility on ingress
         default_factory=list,
         description="Tracking of processing steps"
     )
-    forwarding_path: List[Union[ForwardingPathEntry, Dict[str, Any]]] = Field(
+    forwarding_path: List[Union[ForwardingPathEntry, Dict[str, Any]]] = Field( # Allow dicts for flexibility on ingress
         default_factory=list,
         description="Tracking of queue forwarding steps"
     )
-    # >>>>>>>>>>>>>>>>>> THIS IS THE CHANGE <<<<<<<<<<<<<<<<<<<<
-    trace: Optional[Dict[str, Any]] = Field(  # Renamed from _trace to trace
+    trace: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Internal tracing metadata",
-        exclude=True  # Don't include in dict() by default
+        exclude=True
     )
-    # >>>>>>>>>>>>>>>>>> END OF CHANGE <<<<<<<<<<<<<<<<<<<<
 
     model_config = ConfigDict(
         json_encoders={
