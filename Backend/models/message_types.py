@@ -97,11 +97,13 @@ class WebSocketMessage(BaseModel):
         default_factory=list,
         description="Tracking of queue forwarding steps"
     )
-    _trace: Optional[Dict[str, Any]] = Field(
+    # >>>>>>>>>>>>>>>>>> THIS IS THE CHANGE <<<<<<<<<<<<<<<<<<<<
+    trace: Optional[Dict[str, Any]] = Field(  # Renamed from _trace to trace
         default_factory=dict,
         description="Internal tracing metadata",
         exclude=True  # Don't include in dict() by default
     )
+    # >>>>>>>>>>>>>>>>>> END OF CHANGE <<<<<<<<<<<<<<<<<<<<
 
     class Config:
         json_encoders = {
