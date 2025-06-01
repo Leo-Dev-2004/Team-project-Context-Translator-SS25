@@ -25,7 +25,7 @@
 
         /* User's existing button styles */
         button {
-            padding: 8px 16px;
+            padding: 10px 20px; /* Made buttons slightly larger */
             margin-right: 10px;
             background-color: #0d6efd;
             color: white;
@@ -33,6 +33,7 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.2s ease; /* Added transition */
+            font-size: 0.95rem; /* Increased button font size */
         }
         button:hover {
             background-color: #0b5ed7;
@@ -42,18 +43,17 @@
         .queue-box {
             flex: 1;
             background-color: #f8f9fa;
-            padding: 15px;
+            padding: 20px; /* Increased padding */
             border: 2px solid #0d6efd;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 250px;
+            min-width: 280px; /* Increased min-width for more content space */
             height: auto; /* Changed to auto to allow content to define height */
             display: flex;
             flex-direction: column;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            /* Merged from my version */
             align-items: center;
             justify-content: center;
             text-align: center;
@@ -85,27 +85,29 @@
             color: #0d6efd;
             border-bottom: 2px solid #e0e0e0;
             width: 100%; /* Ensure it spans full width */
+            font-size: 1.35rem; /* Slightly larger heading for readability */
         }
 
         /* User's existing queue-count */
         .queue-count {
             background: #0d6efd;
             color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
+            padding: 4px 10px; /* Increased padding */
+            border-radius: 12px; /* Slightly larger border-radius */
+            font-size: 0.9em; /* Slightly larger font */
         }
         
         /* User's existing log-entry and its sub-styles */
         .log-entry {
             border-left: 4px solid #ddd;
-            padding: 12px;
-            margin: 6px 0;
+            padding: 15px; /* Increased padding */
+            margin: 8px 0; /* Increased margin */
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
             border-radius: 6px;
             position: relative;
+            font-size: 0.95rem; /* Increased font size for readability */
         }
         .log-entry::before {
             content: '';
@@ -127,24 +129,25 @@
         }
         .message-header {
             display: flex;
-            gap: 8px;
-            margin-bottom: 4px;
+            flex-wrap: wrap; /* Allow header items to wrap */
+            gap: 10px; /* Increased gap */
+            margin-bottom: 6px; /* Increased margin */
         }
         .message-id {
             font-weight: bold;
             color: #333;
         }
         .message-type {
-            padding: 2px 6px;
+            padding: 3px 8px; /* Increased padding */
             border-radius: 4px;
-            font-size: 0.8em;
+            font-size: 0.85em; /* Adjusted font size */
         }
         .message-type.message { background: #e6f7ff; }
         .message-type.alert { background: #ffebee; }
         .message-priority {
-            padding: 2px 6px;
+            padding: 3px 8px; /* Increased padding */
             border-radius: 4px;
-            font-size: 0.8em;
+            font-size: 0.85em; /* Adjusted font size */
             background: #f5f5f5;
         }
         .priority-1 { background: #e8f5e9 !important; }
@@ -152,12 +155,13 @@
         .priority-3 { background: #a5d6a7 !important; }
         .priority-4 { background: #81c784 !important; }
         .message-content {
-            margin: 4px 0;
+            margin: 6px 0; /* Increased margin */
+            word-break: break-word; /* Ensure long words break */
         }
         .message-footer {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8em;
+            font-size: 0.85em; /* Adjusted font size */
             color: #666;
         }
         .message-status {
@@ -175,36 +179,50 @@
         }
         
         /* User's existing queue-log and log-content */
-        .queue-log, .log-content, pre {
+        .queue-log, .log-content { /* Removed pre from this selector */
             flex-grow: 1;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
             background-color: white;
-            padding: 8px;
+            padding: 10px; /* Increased padding */
             border: 1px solid #e0e0e0;
             margin-top: 10px;
-            max-height: 400px;
-            min-height: 200px;
+            max-height: 500px; /* Increased max-height */
+            min-height: 250px; /* Increased min-height */
             border-radius: 4px;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
             scrollbar-width: thin;
             scrollbar-color: #0d6efd #f0f0f0;
             white-space: pre-wrap; /* Changed from pre to pre-wrap for better wrapping */
-            overflow-wrap: break-word;
+            overflow-wrap: break-word; /* Ensure long words break */
             display: flex;
             flex-direction: column;
+            font-size: 0.95rem; /* Increased base font size */
         }
+        pre.log-content { /* Specific style for pre elements used as log content */
+            white-space: pre-wrap;
+            word-break: break-all; /* Break words rather than overflow */
+            font-size: 0.95rem;
+        }
+
 
         .log-box {
             background-color: #f8f9fa;
-            padding: 15px;
+            padding: 20px; /* Increased padding */
             border: 1px solid #dee2e6;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        .log-box h3 {
+            font-size: 1.5rem; /* Larger headings for log boxes */
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+
 
         #logsContainer {
-            margin-top: 30px;
+            margin-top: 40px; /* Increased margin-top */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Better responsiveness */
         }
 
         .queue-log::-webkit-scrollbar {
@@ -234,10 +252,11 @@
         .queue-header {
             display: flex;
             font-weight: bold;
-            padding: 5px;
+            padding: 8px; /* Increased padding */
             background: #f0f0f0;
             border-bottom: 1px solid #ddd;
             flex-shrink: 0; /* Prevent shrinking */
+            font-size: 0.9rem; /* Adjusted for headers */
         }
         .queue-header span {
             flex: 1;
@@ -249,8 +268,10 @@
         }
         .queue-item {
             display: flex;
-            padding: 5px;
+            padding: 8px; /* Increased padding */
             border-bottom: 1px solid #eee;
+            margin-bottom: 4px; /* Added spacing between items */
+            font-size: 0.95rem; /* Increased font size for item content */
         }
         .queue-item span {
             flex: 1;
@@ -261,57 +282,59 @@
         }
         #queueDisplay .last-message {
             background-color: #e9ecef;
-            padding: 8px;
+            padding: 10px; /* Increased padding */
             border-radius: 4px;
             margin-top: 10px;
+            font-size: 0.95rem; /* Increased font size */
         }
 
         /* My new styles (merged and adapted) */
         .container-card {
             background-color: #fff;
-            padding: 2rem;
+            padding: 2.5rem; /* Increased overall padding */
             border-radius: 1rem;
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
         }
         /* Adjusted queue-box h3 for clarity and to fit with tailwind/user styles */
         .queue-box h3 {
-            font-size: 1.25rem;
+            font-size: 1.4rem; /* Adjusted for better visibility */
             font-weight: 600;
             color: #1f2937; /* Adjusted color for better contrast */
         }
         .queue-box p.description {
-            font-size: 0.875rem;
+            font-size: 0.9rem; /* Slightly larger description text */
             color: #4b5563;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem; /* Adjusted margin */
+            line-height: 1.4; /* Improved line spacing */
         }
         .queue-box p.direction {
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-top: 0.25rem;
+            font-size: 1rem; /* Larger direction text */
+            font-weight: 600;
+            margin-top: 0.5rem; /* Adjusted margin */
         }
         .arrow-icon {
             color: #9ca3af;
-            font-size: 3rem;
+            font-size: 3.5rem; /* Larger arrows */
             font-weight: bold;
         }
         .section-title {
-            font-size: 2.25rem;
+            font-size: 2.5rem; /* Slightly larger main title */
             font-weight: 800;
             text-align: center;
             color: #111827;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem; /* Increased margin */
         }
         .subsection-title {
-            font-size: 1.5rem;
+            font-size: 1.6rem; /* Slightly larger subsection titles */
             font-weight: 700;
             color: #1f2937;
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem; /* Increased margin */
         }
         .message-log-item {
-            padding: 0.5rem;
+            padding: 0.75rem; /* Increased padding */
             border-radius: 0.375rem;
-            margin-bottom: 0.25rem;
-            font-size: 0.875rem;
+            margin-bottom: 0.35rem; /* Adjusted margin */
+            font-size: 0.9rem; /* Increased font size */
         }
         .message-log-item.sent {
             background-color: #dbeafe;
@@ -327,28 +350,31 @@
         }
         .flow-description {
             background-color: #f9fafb;
-            padding: 1.5rem;
+            padding: 2rem; /* Increased padding */
             border-radius: 0.75rem;
             box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) inset;
             border: 1px solid #e5e7eb;
+            font-size: 0.95rem; /* Base font size for description */
         }
         .flow-description h3 {
-            font-size: 1.25rem;
+            font-size: 1.4rem; /* Adjusted heading size */
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem; /* Adjusted margin */
         }
         .flow-description p {
             color: #374151;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem; /* Adjusted margin */
+            line-height: 1.5; /* Improved line spacing */
         }
         .flow-description ul {
             list-style-type: disc;
-            padding-left: 1.25rem;
-            margin-bottom: 0.5rem;
+            padding-left: 1.5rem; /* Increased padding */
+            margin-bottom: 0.75rem; /* Adjusted margin */
         }
         .flow-description li {
             color: #374151;
+            margin-bottom: 0.25rem; /* Spacing for list items */
         }
 
         /* Specific queue box colors */
@@ -360,57 +386,63 @@
         /* Layout for the main queue flow */
         #queuesFlowContainer {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            grid-template-rows: auto auto auto;
+            /* Defined 4 columns explicitly for alignment */
+            grid-template-columns: 1fr 0.1fr 1fr 1fr; /* col1 (queue), col2 (connector), col3 (queue), col4 (deadletter) */
+            /* Defined 3 rows explicitly for better control */
+            grid-template-rows: auto auto auto auto; /* Row 1: fromFrontend, toBackend, DeadLetter Top; Row 2: fromBackend, Connector; Row 3: toFrontend, Connector; Row 4: DeadLetter Bottom Connector (optional) */
             gap: 20px;
             align-items: stretch;
+            justify-items: center; /* Center grid items horizontally */
         }
 
-        .queue-box {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
+        /* Explicit grid placement for each item to ensure alignment */
+        .queue-box.from-frontend-q { grid-column: 1; grid-row: 1; }
+        .flow-connector.frontend-to-backend { grid-column: 2; grid-row: 1; }
+        .queue-box.to-backend-q { grid-column: 3; grid-row: 1; }
 
-        .flow-connector {
-            min-height: 60px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+        .queue-box.from-backend-q { grid-column: 1; grid-row: 3; } /* Moved to row 3 for better visual flow under fromFrontend */
+        .flow-connector.to-backend-to-message-processor { grid-column: 3; grid-row: 2; } /* Connector below toBackend */
+        .queue-box.to-frontend-q { grid-column: 3; grid-row: 3; } /* Aligned with fromBackend */
+
+        .flow-connector.from-backend-to-frontend { grid-column: 2; grid-row: 3; } /* Connector between fromBackend and toFrontend */
+
+        .queue-box.dead-letter-q { grid-column: 4; grid-row: 1 / span 3; } /* Dead Letter spans rows 1, 2, and 3 */
+
         .flow-connector {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            min-height: 100px; /* Ensure space for arrows/text */
-            margin-top: 20px; /* Space between rows */
-            margin-bottom: 20px;
+            min-height: 80px; /* Ensure space for arrows/text */
+            color: #666;
+            font-size: 0.9em;
         }
         .flow-connector span.arrow-icon {
             margin-bottom: 5px;
         }
         .flow-connector p {
-            font-size: 0.9em;
+            font-size: 0.95em; /* Slightly larger text in connectors */
             color: #666;
             font-weight: 500;
+            line-height: 1.3;
         }
 
         /* Ensure queue-box content (queue-log) fills space */
         .queue-box .queue-log {
             width: 100%;
             flex-grow: 1;
-            min-height: 50px; /* Ensure it has some height even if empty */
+            min-height: 200px; /* Ensure it has ample height even if empty */
             box-sizing: border-box; /* Include padding in width/height calculation */
         }
+        
         /* Override Tailwind's default button styles to keep user's specific ones */
-        #startSim, #stopSim, #testButton {
-            /* These apply a baseline style that the user's specific button style overrides. */
-            padding: 0.5rem 1rem; /* px-4 py-2 */
+        #startSim, #stopSim, #sendTestMessage, #sendTranscription {
+            padding: 0.75rem 1.25rem; /* px-5 py-3 for larger buttons */
             border-radius: 0.5rem; /* rounded-lg */
             box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); /* shadow-md */
             transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+            font-size: 1rem; /* Make button text readable */
         }
         #startSim {
             background-color: #2563eb; /* bg-blue-600 */
@@ -426,12 +458,50 @@
         #stopSim:hover {
             background-color: #b91c1c; /* hover:bg-red-700 */
         }
-        #testButton {
+        #sendTestMessage {
             background-color: #16a34a; /* bg-green-600 */
             color: #fff; /* text-white */
         }
-        #testButton:hover {
+        #sendTestMessage:hover {
             background-color: #15803d; /* hover:bg-green-700 */
+        }
+        #sendTranscription {
+            background-color: #9333ea; /* A new purple for transcription */
+            color: #fff;
+        }
+        #sendTranscription:hover {
+            background-color: #7e22ce;
+        }
+
+        /* Input field adjustments */
+        #transcriptionInput {
+            font-size: 1rem;
+            padding: 0.6rem 0.8rem;
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 1024px) {
+            #queuesFlowContainer {
+                grid-template-columns: 1fr; /* Stack columns on smaller screens */
+                grid-template-rows: auto;
+            }
+
+            .queue-box, .flow-connector {
+                grid-column: 1 / -1 !important; /* Make them span full width */
+                grid-row: auto !important; /* Auto-arrange rows */
+            }
+
+            /* Adjust vertical spacing for stacked layout */
+            .queue-box {
+                margin-bottom: 20px;
+            }
+            .flow-connector {
+                margin-top: 0;
+                margin-bottom: 0; /* Connectors directly between boxes */
+            }
+            .flow-connector.from-backend-to-frontend {
+                transform: rotate(90deg); /* Keep arrow horizontal but rotate connector for vertical flow */
+            }
         }
     </style>
 </head>
@@ -446,7 +516,14 @@
                 <div class="mt-4 flex flex-wrap justify-center gap-2">
                     <button id="startSim">Start Simulation</button>
                     <button id="stopSim">Stop Simulation</button>
-                    <button id="testButton">Send Test Message</button>
+                    <button id="sendTestMessage">Send Test Message</button>
+                </div>
+                <div class="mt-4">
+                    <label for="transcriptionInput" class="block text-gray-700 text-sm font-bold mb-2">Send Transcription:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="transcriptionInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter transcription text">
+                        <button id="sendTranscription" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed">Send</button>
+                    </div>
                 </div>
             </div>
 
@@ -475,7 +552,7 @@
         <div class="flex flex-col items-center mt-12 mb-12">
             <h2 class="subsection-title">Backend Internal Queue Flow</h2>
             <div id="queuesFlowContainer" class="w-full">
-                <div class="queue-box frontend-origin col-start-1 row-start-1">
+                <div class="queue-box frontend-origin from-frontend-q">
                     <h3>From Frontend Queue <span id="fromFrontendCount" class="queue-count">0</span></h3>
                     <p class="direction text-blue-700">📥 Inbound from Frontend</p>
                     <p class="description">Messages received from clients via WebSocket, awaiting initial processing.</p>
@@ -490,12 +567,12 @@
                     </div>
                 </div>
 
-                <div class="flow-connector col-start-2 row-start-1">
+                <div class="flow-connector frontend-to-backend">
                     <span class="arrow-icon">→</span>
                     <p>QueueForwarder</p>
                 </div>
 
-                <div class="queue-box backend-inbound col-start-3 row-start-1">
+                <div class="queue-box backend-inbound to-backend-q">
                     <h3>To Backend Queue <span id="toBackendCount" class="queue-count">0</span></h3>
                     <p class="direction text-yellow-700">➡️ Internal Processing</p>
                     <p class="description">Messages forwarded for core backend logic (e.g., commands, data).</p>
@@ -510,7 +587,7 @@
                     </div>
                 </div>
 
-                <div class="queue-box dead-letter col-start-4 row-start-1 row-span-2 flex flex-col justify-center items-center">
+                <div class="queue-box dead-letter dead-letter-q flex flex-col justify-center items-center">
                     <h3>Dead Letter Queue <span id="deadLetterCount" class="queue-count bg-red-600">0</span></h3>
                     <p class="direction text-red-700">🗑️ Error Handling</p>
                     <p class="description">Malformed or unprocessable messages are stored here for audit.</p>
@@ -519,7 +596,16 @@
                     <div id="deadLetterQueueDisplay" class="queue-log"></div>
                 </div>
 
-                <div class="queue-box backend-outbound col-start-1 row-start-2">
+                <div class="flow-connector col-start-1 row-start-2">
+                    <span class="arrow-icon">↓</span>
+                    <p>Processed by Backend</p>
+                </div>
+                <div class="flow-connector to-backend-to-message-processor">
+                    <span class="arrow-icon">↓</span>
+                    <p>MessageProcessor</p>
+                </div>
+
+                <div class="queue-box backend-outbound from-backend-q">
                     <h3>From Backend Queue <span id="fromBackendCount" class="queue-count">0</span></h3>
                     <p class="direction text-green-700">⬅️ Inbound from Backend Services</p>
                     <p class="description">Messages from internal backend services, often responses or data for processing.</p>
@@ -534,12 +620,12 @@
                     </div>
                 </div>
 
-                <div class="flow-connector col-start-3 row-start-2">
-                    <span class="arrow-icon">↓</span>
-                    <p>MessageProcessor</p>
+                <div class="flow-connector from-backend-to-frontend">
+                    <span class="arrow-icon">→</span>
+                    <p>Processed for Display</p>
                 </div>
 
-                <div class="queue-box backend-outbound col-start-3 row-start-3">
+                <div class="queue-box backend-outbound to-frontend-q">
                     <h3>To Frontend Queue <span id="toFrontendCount" class="queue-count">0</span></h3>
                     <p class="direction text-green-700">📤 Outbound to Frontend</p>
                     <p class="description">Responses and updates ready to be sent back to clients.</p>
@@ -552,11 +638,6 @@
                         </div>
                         <div class="queue-items"></div>
                     </div>
-                </div>
-
-                <div class="flow-connector col-start-2 row-start-3">
-                    <span class="arrow-icon">↔</span>
-                    <p>WebSocket Communication</p>
                 </div>
             </div>
         </div>
@@ -577,6 +658,10 @@
             <div class="log-box">
                 <h3>Test Log</h3>
                 <pre id="test_log" class="log-content"></pre>
+            </div>
+             <div class="log-box">
+                <h3>Transcription Log</h3>
+                <pre id="transcription_display" class="log-content"></pre>
             </div>
         </div>
 
@@ -612,72 +697,37 @@
     </div>
 
     <script>
-        // Add this to your frontend.js later
+        // These global variables are for the simple counter update script in HTML.
+        // The actual queues are managed internally by the modules.
+        // This is a quick fix to avoid 'undefined' errors if these aren't directly exposed.
+        let toFrontendQueue, fromFrontendQueue, toBackendQueue, fromBackendQueue, deadLetterQueue;
+
         function updateQueueCounters() {
-            // These global variables are assumed to be defined in app.js or another linked script
-            // and represent instances of your queue data structures on the frontend.
-            if (typeof toFrontendQueue !== 'undefined' && toFrontendQueue.size) {
-                document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
+            // Check if the queues are defined before trying to access their size
+            // This is safer as they are managed by the app.js and EventListeners modules.
+            if (window.appQueues && window.appQueues.toFrontendQueue) {
+                document.getElementById('toFrontendCount').textContent = window.appQueues.toFrontendQueue.size();
             }
-            if (typeof fromFrontendQueue !== 'undefined' && fromFrontendQueue.size) {
-                document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
+            if (window.appQueues && window.appQueues.fromFrontendQueue) {
+                document.getElementById('fromFrontendCount').textContent = window.appQueues.fromFrontendQueue.size();
             }
-            if (typeof toBackendQueue !== 'undefined' && toBackendQueue.size) {
-                document.getElementById('toBackendCount').textContent = toBackendQueue.size();
+            if (window.appQueues && window.appQueues.toBackendQueue) {
+                document.getElementById('toBackendCount').textContent = window.appQueues.toBackendQueue.size();
             }
-            // Corrected: fromBackendQueueDisplay will now be found
-            if (typeof fromBackendQueue !== 'undefined' && fromBackendQueue.size) {
-                document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
+            if (window.appQueues && window.appQueues.fromBackendQueue) {
+                document.getElementById('fromBackendCount').textContent = window.appQueues.fromBackendQueue.size();
             }
-            // Assuming a deadLetterQueue is also exposed for debugging purposes
-            if (typeof deadLetterQueue !== 'undefined' && deadLetterQueue.size) {
-                 document.getElementById('deadLetterCount').textContent = deadLetterQueue.size();
+            if (window.appQueues && window.appQueues.deadLetterQueue) {
+                document.getElementById('deadLetterCount').textContent = window.appQueues.deadLetterQueue.size();
             }
+            // Request the next animation frame for smooth updates
+            requestAnimationFrame(updateQueueCounters);
         }
+        // Start the queue counter update loop
+        // It will initially run, then check for window.appQueues once they are set by app.js
+        requestAnimationFrame(updateQueueCounters);
     </script>
     
-    <script type="module">
-        import { initializeApplication } from './src/app.js';
-        
-        // Extended WebSocket handling
-        class SimulationObserver {
-            constructor() {
-                this.messageHandlers = {
-                    'connection_ack': this.handleConnectionAck,
-                    'status': this.handleStatusUpdate,
-                    'pong': this.handlePong,
-                    'error': this.handleError
-                };
-            }
-
-            handleMessage(message) {
-                const handler = this.messageHandlers[message.type];
-                if (handler) {
-                    handler(message);
-                } else {
-                    console.warn('Unhandled message type:', message.type);
-                }
-            }
-
-            handleConnectionAck(msg) {
-                document.getElementById('connectionStatus').textContent = 'Connected';
-                document.getElementById('connectionStatus').className = 'font-semibold text-green-600';
-                console.log('Connection established:', msg.data);
-            }
-
-            handleStatusUpdate(msg) {
-                if (msg.data.status === 'running') {
-                    document.getElementById('simulationStatus').textContent = 'Running';
-                    document.getElementById('simulationStatus').className = 'font-semibold text-green-600';
-                }
-                updateSimulationLog(msg);
-            }
-
-            // Other handler methods...
-        }
-
-        // Initialize with enhanced observer
-        initializeApplication(new SimulationObserver());
-    </script>
+    <script type="module" src="./src/app.js"></script>
 </body>
 </html>
