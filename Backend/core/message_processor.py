@@ -193,9 +193,8 @@ class MessageProcessor:
             ))
 
             if msg.type == 'ping':
-                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. (Pong response handled by WebSocketManager)")
-                # WebSocketManager handles pong responses directly
-                return
+                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. (Pong handled by WebSocketManager)")
+                return  # Skip further processing for ping messages
 
             elif msg.type == 'command':
                 command_name = msg.data.get('command')
