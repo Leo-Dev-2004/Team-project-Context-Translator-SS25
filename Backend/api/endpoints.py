@@ -20,17 +20,24 @@ from ..queues.shared_queue import (
     get_from_frontend_queue,
     get_dead_letter_queue
 )
-from ..services.websocket_manager import WebSocketManager
+# REMOVED: direct import and instantiation of WebSocketManager here
+# from ..services.websocket_manager import WebSocketManager # No longer directly instantiated here
 from ..models.message_types import WebSocketMessage
 
-# IMPORT THE GETTER FROM YOUR DEPENDENCIES.PY FILE
-from ..dependencies import get_simulation_manager
+# IMPORT THE GETTER FOR SIMULATION MANAGER AND THE NEW GETTER FOR WEBSOCKET MANAGER
+from ..dependencies import get_simulation_manager, get_websocket_manager_instance # ADDED get_websocket_manager_instance
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-ws_manager = WebSocketManager()
+
+# REMOVED: This line is problematic because it creates a *new* instance
+# ws_manager = WebSocketManager() # This creates a *separate* instance, not the global one.
 
 # --- FIX: Move forward_messages_to_websocket definition here, BEFORE websocket_endpoint ---
+# This function is now **redundant** if QueueForwarder fully handles to_frontend_queue.
+# If you still want to run it *in addition* to QueueForwarder (e.g., for direct client-specific forwarding tasks),
+# ensure its logic doesn't conflict with QueueForwarder.
+# For now, I'm keeping it as you provided, but be aware of potential redundancies.
 async def forward_messages_to_websocket(websocket: WebSocket, queue):
     """Continuously forward messages from queue to websocket."""
     try:
@@ -45,12 +52,15 @@ async def forward_messages_to_websocket(websocket: WebSocket, queue):
                     else:
                         logger.error(f"Cannot serialize message of type {type(message)} from queue for WebSocket: {message}")
                         continue
-                    
+
+                    # Direct send from this endpoint's task
                     await websocket.send_text(json.dumps(message_to_send))
                     logger.debug(f"Forwarded message from queue to client: {message_to_send.get('type')}")
                 except Exception as e:
                     logger.error(f"Failed to send message from queue to websocket ({websocket.client}): {e}", exc_info=True)
+                    # Break the loop if sending to this specific websocket fails
                     break
+            # Small sleep to prevent busy-waiting when queue is empty
             await asyncio.sleep(0.01)
     except asyncio.CancelledError:
         logger.info(f"Message forwarding task for {websocket.client} cancelled.")
@@ -69,7 +79,9 @@ async def health_check():
 
 @router.get("/metrics")
 async def get_metrics():
-    return ws_manager.get_metrics()
+    # MODIFIED: Get the global WebSocketManager instance for metrics
+    ws_manager_instance = get_websocket_manager_instance()
+    return ws_manager_instance.get_metrics()
 
 async def start_simulation_helper(
     client_id: str,
@@ -109,7 +121,6 @@ async def stop_simulation_helper(
 ):
     """Internal function to stop simulation, now called from WebSocket handler or API endpoint."""
     logger.info(f"Received stop simulation command for client: {client_id}")
-    # This call relies on manager.stop being updated in Backend/core/simulator.py
     return await manager.stop(client_id=client_id)
 
 
@@ -184,88 +195,37 @@ async def debug_queues():
         }
     }
 
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """Handle WebSocket connections with proper error handling and cleanup."""
-    forwarder_task = None
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    ws_manager_instance = None
     try:
-        await websocket.accept()
-        # --- FIX: forward_messages_to_websocket is now defined above ---
-        forwarder_task = asyncio.create_task(
-            forward_messages_to_websocket(websocket, get_to_frontend_queue())
-        )
-        logger.info(f"WebSocket connection established from {websocket.client}")
+        ws_manager_instance = get_websocket_manager_instance()
+    except RuntimeError as e:
+        logger.error(f"WebSocketManager not initialized in endpoint: {e}")
+        await websocket.close(code=1011) # Internal Error
+        return
 
-        await ws_manager.handle_connection(websocket)
+    try:
+        # ws_manager_instance.handle_connection handles the accept and receive loop
+        # The while True loop for receiving messages is now handled by ws_manager_instance.handle_connection
+        # So, you should NOT have another while True loop here.
+        # This endpoint just sets up the connection and delegates the handling.
 
-        manager = get_simulation_manager(require_ready=False)
+        # The `handle_connection` method itself contains the `while True` loop
+        # for receiving messages and should enqueue them.
+        # So, the `while True` loop that was here previously for receiving messages
+        # should be removed from `websocket_endpoint`.
 
-        while True:
-            try:
-                data = await asyncio.wait_for(
-                    websocket.receive_text(),
-                    timeout=30.0
-                )
+        await ws_manager_instance.handle_connection(websocket, client_id)
 
-                try:
-                    message_from_client = json.loads(data)
-                except json.JSONDecodeError:
-                    logger.error(f"Invalid JSON received from {websocket.client}: {data}")
-                    await ws_manager.send_error(websocket, "invalid_json_format", f"Invalid JSON format: {data[:50]}...")
-                    continue
-
-                if message_from_client.get('type') == 'ping':
-                    await websocket.send_text(json.dumps({"type": "pong", "timestamp": time.time()}))
-                    logger.debug(f"Responded with pong to {websocket.client}.")
-                    continue
-
-                try:
-                    ws_message = WebSocketMessage.parse_obj(message_from_client)
-                    ws_message.client_id = ws_message.client_id or str(websocket.client)
-                except Exception as e:
-                    logger.error(f"Validation error for incoming WebSocket message: {e}", exc_info=True)
-                    await ws_manager.send_error(websocket,  "invalid_message_structure",f"Invalid message structure: {str(e)}")
-                    continue
-
-
-                if ws_message.type == 'command':
-                    command = ws_message.data.get('command')
-                    if command == 'start_simulation':
-                        logger.info(f"Received start_simulation command via WebSocket from {ws_message.client_id}")
-                        await start_simulation_helper(
-                            client_id=ws_message.client_id,
-                            background_tasks=None,
-                            manager=manager
-                        )
-                    elif command == 'stop_simulation':
-                        logger.info(f"Received stop_simulation command via WebSocket from {ws_message.client_id}")
-                        await stop_simulation_helper(
-                            manager=manager,
-                            client_id=ws_message.client_id
-                        )
-                    else:
-                        logger.warning(f"Unknown command received: {command} from {ws_message.client_id}")
-                        await ws_manager.send_error(websocket, "unknown_command", f"Unknown command: {command}")
-                else:
-                    await ws_manager.handle_message(websocket, data)
-
-            except asyncio.TimeoutError:
-                logger.debug(f"No message from {websocket.client} for 30s (client inactivity timeout).")
-                continue
-
-            except Exception as e:
-                logger.error(f"WebSocket receive/process error for {websocket.client}: {e}", exc_info=True)
-                break
+        # After handle_connection finishes (i.e., websocket disconnects or errors)
+        # the control flow will reach here.
 
     except WebSocketDisconnect:
-        logger.info(f"Client {websocket.client} disconnected normally from /ws endpoint")
+        logger.info(f"Client {client_id} disconnected normally from /ws endpoint.")
     except Exception as e:
-        logger.error(f"Unexpected WebSocket error for {websocket.client} in /ws endpoint: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected WebSocket error for {client_id} in /ws endpoint: {str(e)}", exc_info=True)
+        if websocket.client_state == WebSocketState.CONNECTING or websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close(code=1011) # Internal Error
     finally:
-        if forwarder_task and not forwarder_task.done():
-            forwarder_task.cancel()
-            try:
-                await forwarder_task
-            except asyncio.CancelledError:
-                pass
-        logger.info(f"Cleanup finished for {websocket.client} at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.")
+        logger.info(f"Cleanup finished for {client_id} at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.")
