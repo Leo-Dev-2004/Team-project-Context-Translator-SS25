@@ -279,6 +279,9 @@ class WebSocketManager {
                 case 'error':
                     this._handleErrorMessage(message);
                     break;
+                case 'data':
+                    this._handleDataMessage(message);
+                    break;
                 default:
                     // Enqueue other messages for processing
                     if (this._fromBackendQueue) {
@@ -317,6 +320,25 @@ class WebSocketManager {
         }
         
         // Also enqueue for general processing
+        if (this._fromBackendQueue) {
+            this._fromBackendQueue.enqueue(message);
+        }
+    }
+
+    _handleDataMessage(message) {
+        const resultElement = document.getElementById('translationResult');
+        if (resultElement) {
+            // Handle different data formats
+            if (message.data.text) {
+                resultElement.textContent = message.data.text;
+            } else if (message.data.result) {
+                resultElement.textContent = JSON.stringify(message.data.result, null, 2);
+            } else {
+                resultElement.textContent = JSON.stringify(message.data, null, 2);
+            }
+        }
+        
+        // Also enqueue for general processing/logging
         if (this._fromBackendQueue) {
             this._fromBackendQueue.enqueue(message);
         }

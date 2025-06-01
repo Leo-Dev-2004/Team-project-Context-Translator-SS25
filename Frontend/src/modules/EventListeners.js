@@ -301,11 +301,10 @@ export async function processBackendMessages() {
                         updateSystemLog(`Backend: Frontend ready acknowledged.`);
                         break;
                     case 'transcription_result':
-                        console.log('MessageProcessor: Transcription result received:', message.data);
-                        // Enqueue to frontendDisplayQueue if it's meant for displaying general messages
-                        // or call a specific update function like updateTranscriptionLog
-                        updateTranscriptionLog(message.data); // Assuming this exists in QueueDisplay.js
-                        frontendDisplayQueue.enqueue(message); // Keep if you want it in the display queue
+                    case 'data':
+                        console.log('MessageProcessor: Data/result received:', message.data);
+                        updateDataLog(message.data);
+                        frontendDisplayQueue.enqueue(message);
                         break;
                     default:
                         console.warn('MessageProcessor: Unknown message type:', message.type, message);

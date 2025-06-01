@@ -209,6 +209,17 @@ class MessageProcessor:
                 logger.info(f"MessageProcessor: Frontend ready ACK received from {effective_client_id}. Status: {msg.data.get('message')}")
                 pass # Do nothing, just acknowledge
 
+            elif msg.type == 'data':
+                # Forward data messages directly to frontend
+                logger.info(f"MessageProcessor: Forwarding data message from {effective_client_id}")
+                response_message_dict = WebSocketMessage(
+                    type="data",
+                    data=msg.data,
+                    client_id=effective_client_id,
+                    processing_path=msg.processing_path,
+                    forwarding_path=msg.forwarding_path
+                ).model_dump()
+
             else:
                 logger.warning(f"MessageProcessor: Unhandled message type: '{msg.type}' from {effective_client_id}. Sending to Dead Letter Queue.")
                 await self.safe_enqueue(self._dead_letter_queue, {

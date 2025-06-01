@@ -194,6 +194,25 @@ export function updateStatusLog(message) {
     }
 }
 
+export function updateDataLog(data) {
+    const logElement = document.getElementById('dataLog');
+    if (logElement) {
+        const entry = document.createElement('div');
+        entry.className = 'data-entry';
+        
+        if (data.text) {
+            entry.textContent = data.text;
+        } else {
+            entry.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        logElement.prepend(entry);
+        if (logElement.children.length > 50) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
 export function updateTestLog(message) {
     const logElement = document.getElementById('testLog'); // Corrected ID to 'testLog'
     if (logElement) {
