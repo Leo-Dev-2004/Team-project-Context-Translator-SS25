@@ -303,3 +303,16 @@ class SimulationManager:
         if (from_backend_size > 5 and # Corrected variable name from 'from_backend_queue' to 'from_backend_size'
             to_frontend_size < 2):
             logger.warning("Messages not being forwarded to frontend")
+
+    async def set_translation_settings(self, mode: str, context_level: int, client_id: str):
+        """
+        Sets the translation settings for the simulation.
+        :param mode: The translation mode (e.g., "formal", "informal").
+        :param context_level: The level of context to consider (e.g., 1, 2, 3).
+        :param client_id: The ID of the client requesting the change.
+        """
+        self._translation_mode = mode
+        self._context_level = context_level
+        logger.info(f"Translation settings updated for client {client_id}: Mode='{mode}', Context Level={context_level}")
+        # Here you would add logic to apply these settings to your translation components
+        pass
