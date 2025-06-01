@@ -13,8 +13,8 @@ from Backend.queues.shared_queue import (
     get_to_frontend_queue,
     get_from_frontend_queue,
     get_dead_letter_queue,
-    monitor_dead_letter_queue
 )
+
 
 # Import the SimulationManager class (for type hinting and instantiation)
 from Backend.core.simulator import SimulationManager
@@ -22,7 +22,6 @@ from Backend.core.simulator import SimulationManager
 # Import MessageProcessor and QueueForwarder
 from Backend.core.message_processor import MessageProcessor
 from Backend.core.queue_forwarder import QueueForwarder
-from Backend.services.dlq_monitor import DLQMonitor
 
 # Import the API router (ensure this is from the correct relative path)
 from .api import endpoints # Corrected to a relative import
@@ -142,14 +141,43 @@ async def startup_event():
     # simulation_manager_task = asyncio.create_task(simulation_manager_instance.run())
     # logger.info("SimulationManager background task started.")
 
-    # Initialize and start DLQ Monitor
-    dlq_monitor_instance = DLQMonitor()
-    await dlq_monitor_instance.start()
-    dlq_monitor_task = dlq_monitor_instance._task
-    logger.info("DLQ Monitor started.")
 
-    logger.info("Application startup complete. All core services initialized.")
+    # DLQ manual method - may be moved to a separate module later
+    # Backend/services/dlq_monitor.py
+    async def monitor_dead_letter_queue_task():
+        dlq = get_dead_letter_queue() # This function *must* be correctly imported above
+        if dlq is None:
+            logger.error("Dead Letter Queue not initialized. Cannot start DLQ monitor task.")
+            return
 
+        logger.info("Starting Dead Letter Queue monitor task.")
+        while True:
+            try:
+                # Attempt to dequeue a message with a timeout.
+                # This prevents the task from blocking indefinitely if the queue is empty.
+                message = await asyncio.wait_for(dlq.dequeue(), timeout=5.0)
+                if message:
+                    logger.warning(f"DLQ Message Detected: {message}")
+                    # TODO: Add more sophisticated handling here if needed:
+                    # - Persist to a database for later review
+                    # - Send alerts (e.g., email, Slack)
+                    # - Consider retry mechanisms (with careful circuit breakers)
+                # If no message after timeout, just loop again
+            except asyncio.TimeoutError:
+                pass # Expected when no messages are in the queue
+            except asyncio.CancelledError:
+                logger.info("Dead Letter Queue monitor task cancelled gracefully.")
+                break
+            except Exception as e:
+                logger.error(f"Error in Dead Letter Queue monitor task: {str(e)}", exc_info=True)
+                # Short backoff to prevent a tight error loop
+                await asyncio.sleep(1)
+
+        logger.info("Dead Letter Queue monitor task stopped.")
+
+    # Start the DLQ monitor task
+    asyncio.create_task(monitor_dead_letter_queue_task())
+    logger.info("Background task 'monitor_dead_letter_queue_task' launched.")
 
 # --- FASTAPI APPLICATION SHUTDOWN EVENT ---
 @app.on_event("shutdown")
@@ -220,14 +248,6 @@ async def shutdown_event():
             logger.error(f"Error stopping QueueForwarder: {str(e)}", exc_info=True)
     else:
         logger.warning("QueueForwarder instance not available or not initialized for graceful shutdown.")
-
-    # Stop DLQ Monitor
-    if dlq_monitor_instance and isinstance(dlq_monitor_instance, DLQMonitor):
-        logger.info("Stopping DLQ Monitor...")
-        try:
-            await dlq_monitor_instance.stop()
-        except Exception as e:
-            logger.error(f"Error stopping DLQ Monitor: {e}")
 
     if simulation_manager_instance and isinstance(simulation_manager_instance, SimulationManager):
         logger.info("Calling SimulationManager instance stop method...")
