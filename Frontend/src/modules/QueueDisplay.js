@@ -96,7 +96,14 @@ function updateQueueDisplay(queue, elementId) {
 }
 
 function getStatusClass(status) {
-    switch (status.toLowerCase()) {
+    if (!status) return '';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower.startsWith('error_')) {
+        return 'status-error';
+    }
+    
+    switch (statusLower) {
         case 'pending': return 'status-pending';
         case 'pending_frontend': return 'status-pending-frontend';
         case 'urgent': return 'status-urgent';
@@ -193,6 +200,25 @@ export function updateStatusLog(message) {
         }
     }
 }
+
+// Add to existing CSS classes
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+    .status-error {
+        color: #ff0000;
+        font-weight: bold;
+    }
+    #reconnectStatus {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: #ffcc00;
+        padding: 5px 10px;
+        border-radius: 5px;
+        display: none;
+    }
+`;
+document.head.appendChild(styleElement);
 
 export function updateDataLog(data) {
     const logElement = document.getElementById('dataLog');

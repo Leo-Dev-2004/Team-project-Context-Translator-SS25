@@ -186,12 +186,30 @@ class MessageProcessor:
                     else:
                         raise ValueError(f"Unknown command: {command_name}")
 
+                except ValidationError as e:
+                    logger.error(f"Command validation error: {str(e)}", exc_info=True)
+                    response_type = "error"
+                    response_data.update({
+                        "error": ErrorTypes.VALIDATION,
+                        "message": "Invalid command format",
+                        "details": str(e),
+                        "status": "failed"
+                    })
+                except KeyError as e:
+                    logger.error(f"Command not found: {str(e)}", exc_info=True)
+                    response_type = "error"
+                    response_data.update({
+                        "error": ErrorTypes.COMMAND_NOT_FOUND,
+                        "message": f"Command not recognized: {command_name}",
+                        "status": "failed"
+                    })
                 except Exception as e:
                     logger.error(f"Command processing error: {str(e)}", exc_info=True)
                     response_type = "error"
                     response_data.update({
-                        "error": type(e).__name__,
-                        "message": str(e),
+                        "error": ErrorTypes.INTERNAL,
+                        "message": "Internal server error",
+                        "details": str(e),
                         "status": "failed"
                     })
 

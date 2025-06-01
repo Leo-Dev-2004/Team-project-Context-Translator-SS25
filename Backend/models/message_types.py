@@ -64,6 +64,14 @@ class BackendProcessedMessage(BaseMessage):
     progress: Optional[int] = None
 
 # --- Your primary WebSocket Message Model ---
+class ErrorTypes(str, Enum):
+    VALIDATION = "error_validation"
+    COMMAND_NOT_FOUND = "error_command_not_found" 
+    SIMULATION_FAILED = "error_simulation_failed"
+    QUEUE_FULL = "error_queue_full"
+    INTERNAL = "error_internal"
+    CONNECTION = "error_connection"
+
 class WebSocketMessage(BaseModel):
     id: Optional[str] = Field(
         default_factory=lambda: str(uuid.uuid4()),

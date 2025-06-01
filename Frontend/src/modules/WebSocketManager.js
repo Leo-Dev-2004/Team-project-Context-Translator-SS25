@@ -171,8 +171,16 @@ class WebSocketManager {
 
         this.ws.onclose = (event) => {
             console.warn('WebSocketManager: CLOSE event received:', event);
-            document.getElementById('connectionStatus').textContent = 'Disconnected';
-            document.getElementById('connectionStatus').style.color = 'red';
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = 'Disconnected';
+            statusElement.style.color = 'red';
+            
+            // Show reconnect status
+            const reconnectElement = document.getElementById('reconnectStatus');
+            if (reconnectElement) {
+                reconnectElement.textContent = `Reconnecting in ${Math.round(delay/1000)}s...`;
+                reconnectElement.style.display = 'block';
+            }
             updateSystemLog(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason || 'N/A'}`);
 
             // Always attempt to reconnect unless it was a normal closure (1000) or going away (1001)

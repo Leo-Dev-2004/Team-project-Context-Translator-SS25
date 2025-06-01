@@ -120,5 +120,21 @@ def get_to_backend_queue() -> MessageQueue:
 def get_from_backend_queue() -> MessageQueue:
     return get_queue("from_backend")
 
+async def monitor_dead_letter_queue(interval: int = 60):
+    """Background task to monitor and log DLQ contents"""
+    logger = logging.getLogger("DLQMonitor")
+    while True:
+        try:
+            dlq = get_dead_letter_queue()
+            items = dlq.get_current_items_for_debug()
+            if items:
+                logger.warning(f"DLQ contains {len(items)} messages:")
+                for idx, item in enumerate(items[-10:], 1):  # Show last 10
+                    logger.warning(f"DLQ Item {idx}: {item.get('error', 'Unknown error')} - {item.get('details', 'No details')}")
+            await asyncio.sleep(interval)
+        except Exception as e:
+            logger.error(f"DLQ monitoring error: {e}", exc_info=True)
+            await asyncio.sleep(min(interval * 2, 300))  # Backoff
+
 def get_dead_letter_queue() -> MessageQueue:
     return get_queue("dead_letter")

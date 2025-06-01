@@ -140,6 +140,8 @@ async def startup_event():
     # simulation_manager_task = asyncio.create_task(simulation_manager_instance.run())
     # logger.info("SimulationManager background task started.")
 
+    # Start DLQ monitoring
+    asyncio.create_task(monitor_dead_letter_queue())
     logger.info("Application startup complete. All core services initialized.")
 
 
