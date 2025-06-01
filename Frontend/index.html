@@ -511,18 +511,51 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mb-12">
             <div class="queue-box frontend-origin h-auto p-6">
-                <h2 class="text-2xl font-semibold text-blue-800">Frontend (Browser UI)</h2>
-                <p class="text-gray-600 mt-2">Your web interface for user interaction.</p>
-                <div class="mt-4 flex flex-wrap justify-center gap-2">
-                    <button id="startSim">Start Simulation</button>
-                    <button id="stopSim">Stop Simulation</button>
-                    <button id="sendTestMessage">Send Test Message</button>
-                </div>
+                <h2 class="text-2xl font-semibold text-blue-800">Context Translator</h2>
+                <p class="text-gray-600 mt-2">Text input and translation processing</p>
+                
+                <!-- Source Text Input -->
                 <div class="mt-4">
-                    <label for="transcriptionInput" class="block text-gray-700 text-sm font-bold mb-2">Send Transcription:</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="transcriptionInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter transcription text">
-                        <button id="sendTranscription" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed">Send</button>
+                    <label for="sourceText" class="block text-gray-700 text-sm font-bold mb-2">Source Text:</label>
+                    <textarea id="sourceText" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter text to translate..."></textarea>
+                    <div class="mt-2 flex justify-between">
+                        <button id="clearText" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Clear</button>
+                        <button id="translateText" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded disabled:opacity-50">Translate</button>
+                    </div>
+                </div>
+
+                <!-- Translation Output -->
+                <div class="mt-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Translation Result:</label>
+                    <div id="translationOutput" class="min-h-32 p-3 bg-gray-50 border rounded overflow-auto"></div>
+                    <div id="translationLoading" class="hidden mt-2 text-center">
+                        <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span class="ml-2 text-gray-600">Processing...</span>
+                    </div>
+                </div>
+
+                <!-- Settings Panel -->
+                <div class="mt-6 border-t pt-4">
+                    <h3 class="font-semibold text-gray-700 mb-2">Translation Settings</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Mode:</label>
+                            <select id="translationMode" class="w-full border rounded p-2">
+                                <option value="formal">Formal</option>
+                                <option value="informal">Informal</option>
+                                <option value="technical">Technical</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Context Level:</label>
+                            <input id="contextLevel" type="range" min="1" max="5" value="3" class="w-full">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Min</span>
+                                <span>Medium</span>
+                                <span>Max</span>
+                            </div>
+                        </div>
+                        <button id="saveSettings" class="w-full bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">Save Settings</button>
                     </div>
                 </div>
             </div>

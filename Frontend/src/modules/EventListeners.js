@@ -82,11 +82,77 @@ export function setWebSocketReadyState(state) {
 export function initializeEventListeners() {
     console.log('EventListeners: Initializing...');
 
-    // Assign button references FIRST
-    startSimButton = document.getElementById('startSim');
-    stopSimButton = document.getElementById('stopSim');
-    sendTestMessageButton = document.getElementById('sendTestMessage'); // Corrected ID
-    sendTranscriptionButton = document.getElementById('sendTranscription');
+    // Assign button references
+    const translateButton = document.getElementById('translateText');
+    const clearButton = document.getElementById('clearText');
+    const saveSettingsButton = document.getElementById('saveSettings');
+    const sourceTextArea = document.getElementById('sourceText');
+    const translationModeSelect = document.getElementById('translationMode');
+    const contextLevelSlider = document.getElementById('contextLevel');
+
+    // Translation handler
+    if (translateButton) {
+        translateButton.addEventListener('click', () => {
+            const text = sourceTextArea.value.trim();
+            if (!text) {
+                updateSystemLog('Error: No text to translate');
+                return;
+            }
+
+            if (!isWebSocketReady) {
+                updateSystemLog('Error: WebSocket not ready');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('translationLoading').classList.remove('hidden');
+            translateButton.disabled = true;
+
+            const translationId = `trans_${Date.now()}`;
+            const mode = translationModeSelect.value;
+            const contextLevel = contextLevelSlider.value;
+
+            webSocketManagerInstance.sendMessage({
+                type: 'translation_request',
+                id: translationId,
+                data: {
+                    text,
+                    mode,
+                    context_level: parseInt(contextLevel),
+                    timestamp: new Date().toISOString()
+                }
+            });
+
+            updateSystemLog(`Sent translation request (ID: ${translationId})`);
+        });
+    }
+
+    // Clear text handler
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            sourceTextArea.value = '';
+            document.getElementById('translationOutput').textContent = '';
+        });
+    }
+
+    // Settings handler
+    if (saveSettingsButton) {
+        saveSettingsButton.addEventListener('click', () => {
+            const mode = translationModeSelect.value;
+            const contextLevel = contextLevelSlider.value;
+
+            webSocketManagerInstance.sendMessage({
+                type: 'command',
+                data: {
+                    command: 'set_translation_settings',
+                    mode,
+                    context_level: parseInt(contextLevel)
+                }
+            });
+
+            updateSystemLog(`Updated translation settings: Mode=${mode}, Context=${contextLevel}`);
+        });
+    }
 
     // Initially disable all action buttons (this ensures they are disabled immediately on page load)
     disableActionButtons();

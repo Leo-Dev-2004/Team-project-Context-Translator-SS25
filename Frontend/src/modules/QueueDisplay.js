@@ -221,6 +221,31 @@ styleElement.textContent = `
 document.head.appendChild(styleElement);
 
 export function updateDataLog(data) {
+    // Handle translation results
+    if (data.type === 'translation_result') {
+        const outputElement = document.getElementById('translationOutput');
+        const loadingElement = document.getElementById('translationLoading');
+        
+        if (outputElement) {
+            outputElement.textContent = data.result.text;
+            if (data.result.context) {
+                const contextDiv = document.createElement('div');
+                contextDiv.className = 'mt-4 p-2 bg-blue-50 rounded';
+                contextDiv.innerHTML = `<strong>Context:</strong> ${data.result.context}`;
+                outputElement.appendChild(contextDiv);
+            }
+        }
+        
+        if (loadingElement) {
+            loadingElement.classList.add('hidden');
+            document.getElementById('translateText').disabled = false;
+        }
+        
+        updateSystemLog(`Translation completed: ${data.id}`);
+        return;
+    }
+
+    // Default data log handling
     const logElement = document.getElementById('dataLog');
     if (logElement) {
         const entry = document.createElement('div');
