@@ -101,7 +101,7 @@ class MessageProcessor:
                 # Directly use the 'message' variable (which is a Pydantic model)
                 dlq_client_id = getattr(message, 'client_id', 'unknown_client_error') if message else 'unknown_client_error'
                 await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage( # Instantiate DeadLetterMessage
-                    original_message=message.model_dump() if message and hasattr(message, 'model_dump') else {}, # Ensure it's always a dict
+                    original_message=message.model_dump() if message and hasattr(message, 'model_dump') else {"raw_message": str(message)}, # Ensure it's always a dict
                     error='processing_exception',
                     details=str(e),
                     timestamp=time.time(),
