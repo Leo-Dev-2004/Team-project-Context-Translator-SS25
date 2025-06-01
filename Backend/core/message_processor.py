@@ -1,3 +1,5 @@
+# backend/src/modules/MessageProcessor.py
+
 import asyncio
 import copy
 import logging
@@ -7,7 +9,8 @@ from typing import Optional, Dict, Any, cast
 from pydantic import ValidationError
 
 from ..queues.shared_queue import (
-    get_to_backend_queue,
+    get_from_frontend_queue,
+    get_to_backend_queue, # This queue is not used in MessageProcessor based on your code
     get_to_frontend_queue,
     get_dead_letter_queue
 )
@@ -23,11 +26,16 @@ class MessageProcessor:
         self._input_queue: Optional[Any] = None
         self._output_queue: Optional[Any] = None
         self._dead_letter_queue: Optional[Any] = None
+        # You previously used self.qm.dead_letter_queue in monitor_dead_letter_queue_task
+        # If your MessageProcessor expects a queue manager, you should pass it
+        # Otherwise, the 'qm' attribute will not exist.
+        # For now, let's assume direct queue access via self._dead_letter_queue is intended.
+        # So, the 'self.qm' part in monitor_dead_letter_queue_task would need to be changed to 'self'.
 
     async def initialize(self):
         """Sichere Initialisierung mit Queue-Validierung"""
         try:
-            self._input_queue = get_to_backend_queue()
+            self._input_queue = get_from_frontend_queue()
             self._output_queue = get_to_frontend_queue()
             self._dead_letter_queue = get_dead_letter_queue()
 
@@ -51,7 +59,9 @@ class MessageProcessor:
             self._running = True
             logger.info("Starting MessageProcessor task.")
             self._processing_task = asyncio.create_task(self._process_messages())
-            logger.info("MessageProcessor task created and running in background.")
+            # Start the dead letter queue monitor task here as well
+            self._dlq_monitor_task = asyncio.create_task(self.monitor_dead_letter_queue_task())
+            logger.info("MessageProcessor and Dead Letter Queue monitor tasks created and running in background.")
         else:
             logger.info("MessageProcessor already running.")
 
@@ -90,11 +100,51 @@ class MessageProcessor:
                 break
             except Exception as e:
                 logger.error(f"Error during MessageProcessor main loop: {str(e)}", exc_info=True)
+                message_to_dlq = locals().get('message', {'id': 'N/A', 'type': 'unknown'})
+                await self.safe_enqueue(self._dead_letter_queue, {
+                    'original_message': message_to_dlq,
+                    'error': 'processing_exception',
+                    'details': str(e),
+                    'timestamp': time.time(),
+                    'client_id': message_to_dlq.get('client_id', 'unknown_client_error')
+                })
                 await asyncio.sleep(1)
 
         logger.info("MessageProcessor main loop stopped.")
 
+    # --- THIS IS THE CORRECTED INDENTATION ---
+    async def monitor_dead_letter_queue_task(self):
+        """
+        Background task to monitor the dead_letter_queue for unprocessable messages.
+        """
+        logger.info("Starting Dead Letter Queue monitor task.")
+        # Make sure to use self._dead_letter_queue here, not self.qm.dead_letter_queue
+        # as self.qm is not defined in this MessageProcessor's __init__
+        if self._dead_letter_queue is None:
+            logger.error("Dead Letter Queue is not initialized. Cannot monitor.")
+            return # Exit if queue not ready
+
+        while self._running: # Use the existing running flag of the MessageProcessor
+            try:
+                message = await self._dead_letter_queue.dequeue()
+                
+                if message:
+                    logger.warning(f"Dead Letter Queue received message: {message.get('id', 'N/A')} of type {message.get('type', 'N/A')}. Content: {message}")
+                    # Hier könntest du weitere Logik hinzufügen
+                else:
+                    logger.debug("Queue 'dead_letter' empty, waiting to dequeue...")
+
+            except asyncio.CancelledError:
+                logger.info("Dead Letter Queue monitor task cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"Error in Dead Letter Queue monitor task: {e}", exc_info=True)
+                await asyncio.sleep(5)
+        logger.info("Dead Letter Queue monitor task stopped.")
+    # --- END OF CORRECTED INDENTATION ---
+
     async def _process_single_message(self, message: Dict) -> None:
+        await asyncio.sleep(1)
         """Process messages with detailed tracing and response generation."""
         msg_id = message.get('id', 'unknown')
         msg_type = message.get('type', 'unknown')
@@ -102,16 +152,14 @@ class MessageProcessor:
         
         logger.debug(f"Processing message {msg_id} (type: {msg_type}, client: {client_id})")
         
-        try:
-            # Validate message structure
-            if not isinstance(message, dict):
-                raise ValueError("Message must be a dictionary")
-            if 'type' not in message:
-                raise ValueError("Message missing 'type' field")
-            if 'data' not in message:
-                raise ValueError("Message missing 'data' field")
+        if not isinstance(message, dict):
+            raise ValueError("Message must be a dictionary")
+        if 'type' not in message:
+            raise ValueError("Message missing 'type' field")
+        if 'data' not in message:
+            raise ValueError("Message missing 'data' field")
 
-            response_message_dict: Optional[Dict[str, Any]] = None
+        response_message_dict: Optional[Dict[str, Any]] = None
 
         try:
             msg: WebSocketMessage
@@ -144,7 +192,6 @@ class MessageProcessor:
                 completed_at=time.time()
             ))
 
-            # --- Core Message Processing Logic based on 'type' ---
             if msg.type == 'ping':
                 logger.info(f"MessageProcessor: Received ping from {effective_client_id}. Responding with pong.")
                 response_message_dict = WebSocketMessage(
@@ -161,15 +208,13 @@ class MessageProcessor:
                 command_name = msg.data.get('command')
                 logger.info(f"MessageProcessor: Processing command '{command_name}' from {effective_client_id}")
 
-                # Initialize response_type and response_data with default error values
-                # This ensures they are always bound before the 'finally' block
                 response_type: str = "error"
                 response_data: Dict[str, Any] = {
                     "original_command": command_name,
                     "original_id": msg.id,
                     "client_id": effective_client_id,
                     "status": "failed",
-                    "error": ErrorTypes.INTERNAL, # Default to internal error
+                    "error": ErrorTypes.INTERNAL,
                     "message": "An unhandled error occurred during command processing."
                 }
 
@@ -193,8 +238,24 @@ class MessageProcessor:
                         })
                         response_type = "status"
 
+                    elif command_name == 'set_translation_settings':
+                        mode = msg.data.get('mode')
+                        context_level = msg.data.get('context_level')
+
+                        if mode is None or context_level is None:
+                            raise ValueError("Missing 'mode' or 'context_level' for set_translation_settings command.")
+                        
+                        await sim_manager.set_translation_settings(mode=mode, context_level=context_level, client_id=effective_client_id)
+                        
+                        response_data.update({
+                            "status": "success",
+                            "message": f"Translation settings updated: mode='{mode}', context_level={context_level}",
+                            "mode": mode,
+                            "context_level": context_level
+                        })
+                        response_type = "status"
+
                     else:
-                        # For unknown commands, set specific error message
                         response_type = "error"
                         response_data.update({
                             "error": ErrorTypes.COMMAND_NOT_FOUND,
@@ -211,25 +272,30 @@ class MessageProcessor:
                         "details": str(e),
                         "status": "failed"
                     })
-                except KeyError as e: # This likely covers cases like command_name not being found in msg.data
+                except ValueError as e:
+                    logger.error(f"Invalid settings for command '{command_name}': {str(e)}", exc_info=True)
+                    response_type = "error"
+                    response_data.update({
+                        "error": ErrorTypes.VALIDATION,
+                        "message": f"Invalid or missing data for command '{command_name}': {str(e)}",
+                        "status": "failed"
+                    })
+                except KeyError as e:
                     logger.error(f"Missing data for command or command not found: {str(e)}", exc_info=True)
                     response_type = "error"
                     response_data.update({
-                        "error": ErrorTypes.COMMAND_NOT_FOUND, # Changed from BAD_REQUEST as KeyError implies missing data
+                        "error": ErrorTypes.COMMAND_NOT_FOUND,
                         "message": f"Missing required data for command '{command_name}' or command not found in data: {str(e)}",
                         "status": "failed"
                     })
                 except Exception as e:
                     logger.error(f"Command processing error: {str(e)}", exc_info=True)
-                    # The default `response_data` already handles a generic internal error.
-                    # Just update message if needed.
                     response_data.update({
                         "message": f"Internal server error during command processing: {str(e)}"
                     })
-                    response_type = "error" # Ensure type is error
+                    response_type = "error"
 
                 finally:
-                    # response_type and response_data are now guaranteed to be bound
                     response_message_dict = WebSocketMessage(
                         type=response_type,
                         data=response_data,
@@ -239,10 +305,9 @@ class MessageProcessor:
                     ).model_dump()
                     logger.info(f"Generated {response_type} response for command '{command_name}'")
 
-
             elif msg.type == 'frontend_ready_ack':
                 logger.info(f"MessageProcessor: Frontend ready ACK received from {effective_client_id}. Status: {msg.data.get('message')}")
-                pass # Do nothing, just acknowledge
+                pass
 
             elif msg.type == 'data':
                 logger.info(f"MessageProcessor: Forwarding data message from {effective_client_id}")
@@ -263,7 +328,6 @@ class MessageProcessor:
                     'client_id': effective_client_id
                 })
 
-            # Enqueue response if generated
             if response_message_dict:
                 if not await self.safe_enqueue(self._output_queue, response_message_dict):
                     logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {effective_client_id}. Sending to DLQ.")
@@ -314,6 +378,13 @@ class MessageProcessor:
                 self._processing_task.cancel()
                 try:
                     await self._processing_task
+                except asyncio.CancelledError:
+                    pass
+            # Also cancel the DLQ monitor task
+            if hasattr(self, '_dlq_monitor_task') and self._dlq_monitor_task:
+                self._dlq_monitor_task.cancel()
+                try:
+                    await self._dlq_monitor_task
                 except asyncio.CancelledError:
                     pass
             logger.info("MessageProcessor shutdown complete.")
