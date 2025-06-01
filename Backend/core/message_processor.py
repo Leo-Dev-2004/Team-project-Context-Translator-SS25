@@ -1,37 +1,35 @@
-# Backend/services/message_processor.py
-
 import asyncio
 import copy
 import logging
 import time
-import uuid # Needed for generating IDs for new messages
-from typing import Optional, Dict, Any
-from pydantic import ValidationError # Needed for Pydantic model validation
+import uuid
+from typing import Optional, Dict, Any, cast # Added 'cast'
+from pydantic import ValidationError # Ensure this is imported
+
 from ..queues.shared_queue import (
-    get_to_backend_queue, # Correct input queue for MessageProcessor
-    get_to_frontend_queue, # Output queue for responses to frontend
-    get_dead_letter_queue # For handling unprocessable messages
+    get_to_backend_queue,
+    get_to_frontend_queue,
+    get_dead_letter_queue
 )
 from ..models.message_types import ProcessingPathEntry, WebSocketMessage # Ensure WebSocketMessage is imported
-from ..dependencies import get_simulation_manager # Assuming this dependency is used for commands
+from ..dependencies import get_simulation_manager
 
 logger = logging.getLogger(__name__)
 
 class MessageProcessor:
     def __init__(self):
         self._running = False
-        self._processing_task = None # To store the running task
-        self._input_queue = None
-        self._output_queue = None
-        self._dead_letter_queue = None
+        self._processing_task: Optional[asyncio.Task] = None # Type hint for the task
+        self._input_queue: Optional[Any] = None
+        self._output_queue: Optional[Any] = None
+        self._dead_letter_queue: Optional[Any] = None
 
     async def initialize(self):
         """Sichere Initialisierung mit Queue-Validierung"""
         try:
-            # Correct queue assignments based on the overall flow
-            self._input_queue = get_to_backend_queue() # Messages from QueueForwarder come here
-            self._output_queue = get_to_frontend_queue() # Responses go to WebSocketManager from here
-            self._dead_letter_queue = get_dead_letter_queue() # For errors
+            self._input_queue = get_to_backend_queue()
+            self._output_queue = get_to_frontend_queue()
+            self._dead_letter_queue = get_dead_letter_queue()
 
             if None in (self._input_queue, self._output_queue, self._dead_letter_queue):
                 raise RuntimeError("One or more MessageProcessor queues not initialized correctly")
@@ -41,7 +39,7 @@ class MessageProcessor:
             logger.error(f"Failed to initialize MessageProcessor: {str(e)}", exc_info=True)
             raise
 
-    def _get_input_queue_size(self):
+    def _get_input_queue_size(self) -> int: # Added return type hint
         """Returns the size of the input queue."""
         if self._input_queue:
             return self._input_queue.size()
@@ -52,43 +50,42 @@ class MessageProcessor:
         if not self._running:
             self._running = True
             logger.info("Starting MessageProcessor task.")
-            self._processing_task = asyncio.create_task(self._process_messages()) # Renamed to _process_messages
+            # Store the task in an attribute for later cancellation/awaiting
+            self._processing_task = asyncio.create_task(self._process_messages())
             logger.info("MessageProcessor task created and running in background.")
         else:
             logger.info("MessageProcessor already running.")
 
-    async def _process_messages(self): # Renamed from 'process'
+    async def _process_messages(self):
         """Main processing loop with robust error handling"""
         logger.info("MessageProcessor main loop started.")
-        
+
         processed_count = 0
         last_log_time = time.time()
-        
+
         while self._running:
             try:
-                if self._input_queue is None:
-                    logger.error("MessageProcessor input queue not initialized. Cannot process messages. message_processor; L64")
+                # Ensure queues are initialized before trying to use them
+                if self._input_queue is None or self._output_queue is None or self._dead_letter_queue is None:
+                    logger.error("MessageProcessor queues are not initialized. Cannot process messages.")
                     await asyncio.sleep(1)
                     continue
 
                 message = await self._input_queue.dequeue()
-                # --- ADDED 1-SECOND DELAY ---
-                await asyncio.sleep(1) # 1-second delay after dequeuing
-                logger.debug(f"MessageProcessor dequeued message {message.get('id', 'N/A')} of type '{message.get('type', 'N/A')}'. Delaying for 1s.")
-                # --- END ADDED DELAY ---
+                # Do NOT delay immediately after dequeuing, process first.
+                # Delay can be strategic *after* processing to control rate if needed.
+                # await asyncio.sleep(1) # Removed as it was causing a 1s delay per message
+                logger.debug(f"MessageProcessor dequeued message {message.get('id', 'N/A')} of type '{message.get('type', 'N/A')}'.")
 
                 if message is None:
-                    await asyncio.sleep(0.1) # Small sleep if queue is empty
+                    await asyncio.sleep(0.1) # Small sleep if queue was empty
                     continue
 
                 # Process message and get potential response
-                processed_and_response_msg = await self._process_single_message(message) # Delegate to new helper
-
-                # If _process_single_message generated a response, it would have enqueued it.
-                # This loop just continues to the next message.
+                await self._process_single_message(message)
 
                 processed_count += 1
-                
+
                 # Periodic logging
                 if time.time() - last_log_time > 5:
                     logger.info(f"Processed {processed_count} messages in the last 5 seconds.")
@@ -97,201 +94,161 @@ class MessageProcessor:
 
             except asyncio.CancelledError:
                 logger.info("MessageProcessor task was cancelled gracefully.")
-                break # Exit the loop on cancellation
+                break
             except Exception as e:
                 logger.error(f"Error during MessageProcessor main loop: {str(e)}", exc_info=True)
-                await asyncio.sleep(1)  # Backoff on errors
+                await asyncio.sleep(1) # Backoff on error
 
         logger.info("MessageProcessor main loop stopped.")
 
     async def _process_single_message(self, message: Dict) -> None:
-        """Process messages with simulation flow tracking"""
+        """Process messages with simulation flow tracking and response generation."""
+        response_message_dict: Optional[Dict[str, Any]] = None
+
         try:
-            msg = WebSocketMessage.parse_obj(message)
+            msg: WebSocketMessage
+            try:
+                msg = WebSocketMessage.model_validate(message)
+            except ValidationError as e:
+                logger.error(f"Validation error for incoming WebSocket message: {e}", exc_info=True)
+                await self.safe_enqueue(self._dead_letter_queue, {
+                    'original_message': message,
+                    'error': 'invalid_message_format',
+                    'details': str(e),
+                    'timestamp': time.time(),
+                    'client_id': message.get('client_id', 'unknown_client') # Fallback for client_id
+                })
+                return
+
             logger.debug(f"Processing {msg.type} message from {msg.client_id}")
 
-            # Track processing path
-            msg.processing_path.append("MessageProcessor")
-            
-            if msg.type == "ping":
-                response = WebSocketMessage(
+            # Ensure client_id is always a string for subsequent operations
+            # if msg.client_id is Optional[str]
+            effective_client_id: str
+            if msg.client_id is None:
+                logger.warning(f"Message {msg.id} has no client_id. Using 'unknown_client'.")
+                effective_client_id = "unknown_client"
+            else:
+                effective_client_id = msg.client_id
+
+            # Track processing path using Pydantic model
+            msg.processing_path.append(ProcessingPathEntry(
+                processor="MessageProcessor",
+                timestamp=time.time(),
+                status='processed',
+                completed_at=time.time()
+            ))
+
+            # --- Core Message Processing Logic based on 'type' ---
+            if msg.type == 'ping':
+                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. Responding with pong.")
+                response_message_dict = WebSocketMessage(
                     id=str(uuid.uuid4()),
                     type="pong",
                     data={"original_id": msg.id},
                     timestamp=time.time(),
-                    client_id=msg.client_id,
+                    client_id=effective_client_id, # Use effective_client_id
                     processing_path=msg.processing_path,
-                    forwarding_path=[]
-                )
-                await self._output_queue.enqueue(response.dict())
+                    forwarding_path=msg.forwarding_path
+                ).model_dump()
 
-            elif msg.type == "command":
-                if msg.data.get("command") == "start_simulation":
-                    # Start simulation flow
-                    status_msg = WebSocketMessage(
-                        id=str(uuid.uuid4()),
-                        type="status",
-                        data={
-                            "status": "starting",
-                            "command": "start_simulation"
-                        },
-                        timestamp=time.time(),
-                        client_id=msg.client_id,
-                        processing_path=msg.processing_path,
-                        forwarding_path=[]
-                    )
-                    await self._output_queue.enqueue(status_msg.dict())
+            elif msg.type == 'command':
+                command_name = msg.data.get('command')
+                logger.info(f"MessageProcessor: Processing command '{command_name}' from {effective_client_id}")
 
-                    # Simulate processing delay
-                    await asyncio.sleep(1)
-                    
-                    # Send simulation started confirmation
-                    started_msg = WebSocketMessage(
-                        id=str(uuid.uuid4()),
-                        type="status",
-                        data={
-                            "status": "running",
-                            "progress": 0
-                        },
-                        timestamp=time.time(),
-                        client_id=msg.client_id,
-                        processing_path=msg.processing_path,
-                        forwarding_path=[]
-                    )
-                    await self._output_queue.enqueue(started_msg.dict())
-
-            # Handle other message types...
-        except Exception as e:
-            logger.error(f"Error processing message: {e}", exc_info=True)
-            await self._dead_letter_queue.enqueue({
-                'error': str(e),
-                'original': message,
-                'timestamp': time.time()
-            })
-            if not isinstance(message, dict):
-                logger.error(f"Invalid message format received by MessageProcessor: Not a dictionary. Message: {message}")
-                await self._safe_enqueue(self._dead_letter_queue, {
-                    'original_message': message,
-                    'error': 'invalid_format_not_dict',
-                    'timestamp': time.time()
-                })
-                return None # No response, message is invalid
-                
-            # Deep copy to avoid modifying the original message in queue
-            processed_message = copy.deepcopy(message)
-
-            # Ensure data field exists and is a dictionary
-            if 'data' not in processed_message or not isinstance(processed_message['data'], dict):
-                logger.warning(f"Message 'data' field missing or invalid for ID {processed_message.get('id')}. Initializing as empty dict.")
-                processed_message['data'] = {}
-
-            # Add processing metadata
-            if 'processing_path' not in processed_message or not isinstance(processed_message['processing_path'], list):
-                processed_message['processing_path'] = []
-            
-            new_path_entry_data = {
-                'processor': "MessageProcessor",
-                'timestamp': time.time(),
-                'status': 'completed',
-                'completed_at': time.time()
-            }
-            processed_message['processing_path'].append(new_path_entry_data)
-            logger.debug(f"Added processing path for message {processed_message.get('id')}: {new_path_entry_data}")
-
-            # --- Core Message Processing Logic based on 'type' ---
-            msg_type = processed_message.get('type')
-            client_id = processed_message.get('client_id', 'unknown_client') # Get client_id for responses
-
-            if msg_type == 'command':
-                command_name = processed_message['data'].get('command')
-                logger.info(f"MessageProcessor: Processing command '{command_name}' from {client_id}")
+                sim_manager = get_simulation_manager()
 
                 if command_name == 'start_simulation':
-                    # Call SimulationManager (assuming it has a start method that takes client_id)
-                    # if get_simulation_manager().is_ready(): # Example check
-                    #     await get_simulation_manager().start(client_id=client_id)
-                    # else:
-                    #     logger.warning("SimulationManager not ready to start simulation.")
-
-                    response_message_dict = WebSocketMessage(
-                        type="status",
-                        data={"status": "simulation_started", "message": "Simulation initiated.", "command": command_name},
-                        client_id=client_id,
-                        # Pass updated processing_path for full trace
-                        processing_path=processed_message.get('processing_path', []),
-                        forwarding_path=processed_message.get('forwarding_path', []) # Also include forwarding path
-                    ).model_dump()
-                    logger.info(f"MessageProcessor: Generated 'status: simulation_started' response for {client_id}.")
+                    if sim_manager:
+                        # Pass the guaranteed string client_id
+                        await sim_manager.start(client_id=effective_client_id, background_tasks=None)
+                        response_message_dict = WebSocketMessage(
+                            type="status",
+                            data={"status": "simulation_initiated", "message": "Simulation start requested.", "command": command_name},
+                            client_id=effective_client_id, # Use effective_client_id
+                            processing_path=msg.processing_path,
+                            forwarding_path=msg.forwarding_path
+                        ).model_dump()
+                        logger.info(f"MessageProcessor: Generated 'status: simulation_initiated' response for {effective_client_id}.")
+                    else:
+                        logger.error("SimulationManager not available for start_simulation command.")
+                        response_message_dict = WebSocketMessage(
+                            type="error",
+                            data={"error": "simulation_manager_unavailable", "message": "Simulation service not ready."},
+                            client_id=effective_client_id, # Use effective_client_id
+                            processing_path=msg.processing_path,
+                            forwarding_path=msg.forwarding_path
+                        ).model_dump()
 
                 elif command_name == 'stop_simulation':
-                    # await get_simulation_manager().stop(client_id=client_id)
-                    response_message_dict = WebSocketMessage(
-                        type="status",
-                        data={"status": "simulation_stopped", "message": "Simulation terminated.", "command": command_name},
-                        client_id=client_id,
-                        processing_path=processed_message.get('processing_path', []),
-                        forwarding_path=processed_message.get('forwarding_path', [])
-                    ).model_dump()
-                    logger.info(f"MessageProcessor: Generated 'status: simulation_stopped' response for {client_id}.")
+                    if sim_manager:
+                        # Pass the guaranteed string client_id
+                        await sim_manager.stop(client_id=effective_client_id)
+                        response_message_dict = WebSocketMessage(
+                            type="status",
+                            data={"status": "simulation_stopped", "message": "Simulation termination requested.", "command": command_name},
+                            client_id=effective_client_id, # Use effective_client_id
+                            processing_path=msg.processing_path,
+                            forwarding_path=msg.forwarding_path
+                        ).model_dump()
+                        logger.info(f"MessageProcessor: Generated 'status: simulation_stopped' response for {effective_client_id}.")
+                    else:
+                        logger.error("SimulationManager not available for stop_simulation command.")
+                        response_message_dict = WebSocketMessage(
+                            type="error",
+                            data={"error": "simulation_manager_unavailable", "message": "Simulation service not ready."},
+                            client_id=effective_client_id, # Use effective_client_id
+                            processing_path=msg.processing_path,
+                            forwarding_path=msg.forwarding_path
+                        ).model_dump()
 
                 else:
-                    logger.warning(f"MessageProcessor: Unknown command '{command_name}' from {client_id}. Sending error response.")
+                    logger.warning(f"MessageProcessor: Unknown command '{command_name}' from {effective_client_id}. Sending error response.")
                     response_message_dict = WebSocketMessage(
                         type="error",
                         data={"error": "unknown_command", "command": command_name, "message": "Command not recognized."},
-                        client_id=client_id,
-                        processing_path=processed_message.get('processing_path', []),
-                        forwarding_path=processed_message.get('forwarding_path', [])
+                        client_id=effective_client_id, # Use effective_client_id
+                        processing_path=msg.processing_path,
+                        forwarding_path=msg.forwarding_path
                     ).model_dump()
 
-            elif msg_type == 'ping':
-                logger.info(f"MessageProcessor: Received ping from {client_id}. Responding with pong.")
-                response_message_dict = WebSocketMessage(
-                    type="pong",
-                    data={"message": "pong", "original_timestamp": processed_message.get('timestamp')},
-                    client_id=client_id,
-                    processing_path=processed_message.get('processing_path', []),
-                    forwarding_path=processed_message.get('forwarding_path', [])
-                ).model_dump()
-
-            elif msg_type == 'frontend_ready_ack':
-                logger.info(f"MessageProcessor: Frontend ready ACK received from {client_id}. Status: {processed_message['data'].get('message')}")
-                # No direct response is typically needed for this ACK, but you could send a welcome message if desired.
-                # response_message_dict = WebSocketMessage(type="system_info", data={"message": "Welcome to the system!"}, client_id=client_id).model_dump()
+            elif msg.type == 'frontend_ready_ack':
+                logger.info(f"MessageProcessor: Frontend ready ACK received from {effective_client_id}. Status: {msg.data.get('message')}")
                 pass # Do nothing, just acknowledge
 
             else:
-                logger.warning(f"MessageProcessor: Unhandled message type: '{msg_type}' from {client_id}. Sending to Dead Letter Queue.")
-                await self._safe_enqueue(self._dead_letter_queue, {
-                    'original_message': processed_message,
+                logger.warning(f"MessageProcessor: Unhandled message type: '{msg.type}' from {effective_client_id}. Sending to Dead Letter Queue.")
+                await self.safe_enqueue(self._dead_letter_queue, {
+                    'original_message': message,
                     'error': 'unhandled_message_type',
                     'timestamp': time.time(),
-                    'client_id': client_id # Include client_id in DLQ message
+                    'client_id': effective_client_id # Use effective_client_id
                 })
-            
+
             # Enqueue response if generated
             if response_message_dict:
-                if not await self._safe_enqueue(self._output_queue, response_message_dict):
-                    logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {client_id}. Sending to DLQ.")
-                    await self._safe_enqueue(self._dead_letter_queue, {
+                if not await self.safe_enqueue(self._output_queue, response_message_dict):
+                    logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {effective_client_id}. Sending to DLQ.")
+                    await self.safe_enqueue(self._dead_letter_queue, {
                         'original_message': response_message_dict,
                         'error': 'response_enqueue_failed',
                         'timestamp': time.time(),
-                        'client_id': client_id
+                        'client_id': effective_client_id
                     })
                 else:
-                    logger.info(f"Enqueued response type '{response_message_dict.get('type')}' to to_frontend_queue for client {client_id}.")
+                    logger.info(f"Enqueued response type '{response_message_dict.get('type')}' to to_frontend_queue for client {effective_client_id}.")
 
-        except Exception as e:
-            logger.error(f"Error processing single message {message.get('id', 'N/A')}: {str(e)}", exc_info=True)
-            await self._safe_enqueue(self._dead_letter_queue, {
+        except Exception as e: # This is the outer catch-all for _process_single_message
+            logger.error(f"Critical error during message processing for message {message.get('id', 'N/A')}: {str(e)}", exc_info=True)
+            # Ensure client_id is available for the DLQ message
+            dlq_client_id = message.get('client_id', 'unknown_client_error')
+            await self.safe_enqueue(self._dead_letter_queue, {
                 'original_message': message,
                 'error': 'processing_exception',
                 'details': str(e),
                 'timestamp': time.time(),
-                'client_id': message.get('client_id', 'unknown_client')
+                'client_id': dlq_client_id # Use the fallback for client_id
             })
-        return None # This method doesn't return the message, it enqueues responses
 
     async def _safe_dequeue(self, queue) -> Optional[Dict]:
         """Thread-safe dequeue with error handling."""
@@ -301,7 +258,7 @@ class MessageProcessor:
             logger.warning(f"Safe Dequeue failed in MessageProcessor: {str(e)}")
             return None
 
-    async def _safe_enqueue(self, queue, message) -> bool:
+    async def safe_enqueue(self, queue, message) -> bool:
         """Thread-safe enqueue with error handling."""
         try:
             if queue:
@@ -319,7 +276,7 @@ class MessageProcessor:
             if self._processing_task:
                 self._processing_task.cancel()
                 try:
-                    await self._processing_task # Await for task to finish cancellation
+                    await self._processing_task
                 except asyncio.CancelledError:
                     pass
             logger.info("MessageProcessor shutdown complete.")
