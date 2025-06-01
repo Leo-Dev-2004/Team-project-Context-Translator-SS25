@@ -22,6 +22,7 @@ from Backend.core.simulator import SimulationManager
 # Import MessageProcessor and QueueForwarder
 from Backend.core.message_processor import MessageProcessor
 from Backend.core.queue_forwarder import QueueForwarder
+from Backend.services.dlq_monitor import DLQMonitor
 
 # Import the API router (ensure this is from the correct relative path)
 from .api import endpoints # Corrected to a relative import
@@ -141,8 +142,12 @@ async def startup_event():
     # simulation_manager_task = asyncio.create_task(simulation_manager_instance.run())
     # logger.info("SimulationManager background task started.")
 
-    # Start DLQ monitoring
-    asyncio.create_task(monitor_dead_letter_queue())
+    # Initialize and start DLQ Monitor
+    dlq_monitor_instance = DLQMonitor()
+    await dlq_monitor_instance.start()
+    dlq_monitor_task = dlq_monitor_instance._task
+    logger.info("DLQ Monitor started.")
+
     logger.info("Application startup complete. All core services initialized.")
 
 
@@ -215,6 +220,14 @@ async def shutdown_event():
             logger.error(f"Error stopping QueueForwarder: {str(e)}", exc_info=True)
     else:
         logger.warning("QueueForwarder instance not available or not initialized for graceful shutdown.")
+
+    # Stop DLQ Monitor
+    if dlq_monitor_instance and isinstance(dlq_monitor_instance, DLQMonitor):
+        logger.info("Stopping DLQ Monitor...")
+        try:
+            await dlq_monitor_instance.stop()
+        except Exception as e:
+            logger.error(f"Error stopping DLQ Monitor: {e}")
 
     if simulation_manager_instance and isinstance(simulation_manager_instance, SimulationManager):
         logger.info("Calling SimulationManager instance stop method...")
