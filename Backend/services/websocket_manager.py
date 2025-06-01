@@ -41,31 +41,32 @@ class WebSocketManager:
     # For now, I'll remove it, assuming QueueMessage is the standard.
     # If you need to convert a raw dict to QueueMessage, do QueueMessage(**raw_dict).
 
-    async def _send_to_dead_letter_queue(self, original_message: Union[Dict[str, Any], QueueMessage, DeadLetterMessage, WebSocketMessage], 
-                                         client_id: str, error_type: str, error_details: str):
-        """Helper to send messages to the Dead Letter Queue, ensuring it's a DeadLetterMessage object."""
+    async def _send_to_dead_letter_queue(self, original_message: Union[dict, QueueMessage, WebSocketMessage], 
+                                       reason: str, client_id: str):
+        """Helper to send messages to the Dead Letter Queue."""
         try:
-            # If original_message is already a Pydantic model, convert to dict for storage
-            if isinstance(original_message, BaseModel): # Check if it's a Pydantic BaseModel instance
+            # Convert original_message to dict if it's a Pydantic model
+            if isinstance(original_message, (QueueMessage, WebSocketMessage)):
                 original_message_dict = original_message.model_dump()
-            else: # Assume it's already a dictionary
+            elif isinstance(original_message, dict):
                 original_message_dict = original_message
+            else:
+                original_message_dict = {"raw_message": str(original_message)}
 
             dl_message = DeadLetterMessage(
                 original_message=original_message_dict,
-                reason=f"Processing error: {error_type}",
+                reason=reason,
                 error_details={
-                    "type": error_type,
-                    "message": error_details,
+                    "type": "websocket_error",
+                    "message": reason,
                     "component": "WebSocketManager",
                     "timestamp": time.time(),
                     "client_id": client_id
                 },
-                client_id=client_id,
-                # Add any other fields required by DeadLetterMessage
+                client_id=client_id
             )
             await self.dead_letter_queue.enqueue(dl_message)
-            logger.error(f"Message (ID: {original_message_dict.get('id', 'N/A')}) sent to DLQ due to {error_type}")
+            logger.error(f"Message sent to DLQ (reason: {reason})")
         except Exception as e:
             logger.critical(f"Failed to send message to Dead Letter Queue: {e}\nOriginal: {original_message}", exc_info=True)
 
@@ -461,57 +462,59 @@ class WebSocketManager:
 
  
  
-    async def send_message_to_client(self, client_id: str, message_data: Union[QueueMessage, DeadLetterMessage]) -> bool:
-            """Sends a message directly to a specific client by its client_id (host:port).
-            Returns True on successful send, False otherwise.
-            """
-            logger.info(f"Attempting to send direct message to client: {client_id} (type: {getattr(message_data, 'type', 'N/A')})")
-            target_websocket: Optional[WebSocket] = None
+    async def send_message_to_client(self, client_id: str, message_data: Union[dict, QueueMessage, WebSocketMessage]) -> bool:
+        """Sends a message to a specific client.
+        message_data can be a dict, a QueueMessage, or a WebSocketMessage.
+        Returns True on successful send, False otherwise.
+        """
+        logger.info(f"Attempting to send message to client: {client_id}")
 
-            # Iterate through connections to find the target WebSocket
-            target_websocket = None # Initialize target_websocket
-            for current_client_id, ws_obj in self.connections.items():
-                if current_client_id == client_id: # More efficient: directly compare client_id (key)
-                    target_websocket = ws_obj
-                    break
+        try:
+            # Convert message_data to WebSocketMessage
+            if isinstance(message_data, QueueMessage):
+                ws_msg = message_data.to_websocket_message()
+            elif isinstance(message_data, dict):
+                ws_msg = WebSocketMessage.model_validate(message_data)
+            elif isinstance(message_data, WebSocketMessage):
+                ws_msg = message_data
+            else:
+                error_msg = f"Invalid message_data type: {type(message_data)}"
+                logger.error(error_msg)
+                await self._send_to_dead_letter_queue(
+                    original_message=message_data,
+                    reason=error_msg,
+                    client_id=client_id
+                )
+                return False
 
-            if target_websocket:
-                try:
-                    # Add default values if not present (handle both dict and Pydantic model cases)
-                    if isinstance(message_data, dict):
-                        message_data.setdefault('id', str(uuid4()))
-                        message_data.setdefault('timestamp', time.time())
-                        message_data.setdefault('client_id', client_id)
-                        ws_msg = WebSocketMessage.parse_obj(message_data)
-                    else:
-                        if not getattr(message_data, 'id', None):
-                            message_data.id = str(uuid4())
-                        if not getattr(message_data, 'timestamp', None):
-                            message_data.timestamp = time.time()
-                        if not getattr(message_data, 'client_id', None):
-                            message_data.client_id = client_id
-                        ws_msg = WebSocketMessage.model_validate(message_data)
+            # Get target websocket
+            target_websocket = self.connections.get(client_id)
+            if not target_websocket:
+                logger.warning(f"Client {client_id} not found in active connections")
+                await self._send_to_dead_letter_queue(
+                    original_message=ws_msg.model_dump(),
+                    reason=f"Client {client_id} not found",
+                    client_id=client_id
+                )
+                return False
 
-                    if target_websocket.client_state == WebSocketState.CONNECTED:
-                        try:
-                            # Use model_dump_json() for Pydantic v2+, json() for Pydantic v1.
-                            # Using hasattr for robust compatibility.
-                            if hasattr(ws_msg, 'model_dump_json'):
-                                await target_websocket.send_text(ws_msg.model_dump_json())
-                            else:
-                                await target_websocket.send_text(ws_msg.json())
-                            
-                            logger.info(f"[{client_id}] Successfully sent direct message (type: {ws_msg.type}, ID: {ws_msg.id}).")
-                            return True # <--- Return True on successful send
-                        except Exception as e: # Catch any specific send errors
-                            logger.error(f"[{client_id}] Error sending message over WebSocket: {e}", exc_info=True)
-                            await self._send_to_dead_letter_queue(
-                                original_message=message_data,
-                                client_id=client_id,
-                                error_type="WebSocketSendError",
-                                error_details=str(e)
-                            )
-                            return False # <--- Return False on send failure
+            # Send message
+            if target_websocket.client_state == WebSocketState.CONNECTED:
+                await target_websocket.send_text(ws_msg.model_dump_json())
+                logger.info(f"Sent message to {client_id} (type: {ws_msg.type})")
+                return True
+            else:
+                logger.warning(f"WebSocket not connected for client {client_id}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to send message to {client_id}: {e}", exc_info=True)
+            await self._send_to_dead_letter_queue(
+                original_message=message_data,
+                reason=str(e),
+                client_id=client_id
+            )
+            return False
                     else:
                         logger.warning(f"[{client_id}] Target WebSocket not connected for direct send (State: {target_websocket.client_state}). Message not sent.")
                         await self._send_to_dead_letter_queue( # Log and DLQ on not connected state
