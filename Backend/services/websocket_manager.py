@@ -196,108 +196,111 @@ class WebSocketManager:
             logger.info(f"Sender task for {client_info} finished.")
 
     async def _receiver(self, websocket: WebSocket):
-        """Receive messages with detailed tracing"""
-        client_info = self._get_formatted_client_address(websocket) # Use the helper
+        """Receive messages with detailed tracing and robust error handling"""
+        client_info = self._get_formatted_client_address(websocket)
         msg_counter = 0
 
-        logger.info(f"Starting receiver for {client_info} with message tracing")
+        logger.info(f"Starting receiver for {client_info} with enhanced message tracing")
+        
         try:
             while True:
                 try:
-                    data = await websocket.receive_text()
-                    logger.debug(f"Received raw WebSocket data from {client_info}: {data}")
+                    # Log before receiving
+                    logger.debug(f"[Receiver {msg_counter}] Waiting for message from {client_info}...")
+                    
+                    try:
+                        data = await websocket.receive_text()
+                        logger.debug(f"[Receiver {msg_counter}] Received raw data from {client_info}: {data[:200]}...")  # Truncate long messages
+                        msg_counter += 1
+                    except Exception as recv_error:
+                        logger.error(f"Error receiving message from {client_info}: {str(recv_error)}", exc_info=True)
+                        await asyncio.sleep(1)  # Backoff to prevent tight loop
+                        continue
 
                     try:
-                        # Parse raw JSON data
+                        # Detailed parsing and validation logging
+                        logger.debug(f"[Receiver {msg_counter}] Parsing JSON from {client_info}")
                         raw_message_dict = json.loads(data)
-                        logger.debug(f"Successfully parsed JSON to dict: {raw_message_dict}")
+                        logger.debug(f"[Receiver {msg_counter}] Parsed JSON: {json.dumps(raw_message_dict, indent=2)}")
 
-                        # --- CRUCIAL FIX FOR CLIENT_ID IN RECEIVER ---
-                        # Ensure client_id is formatted correctly as host:port
+                        # Handle client_id formatting
                         if 'client_id' in raw_message_dict and isinstance(raw_message_dict['client_id'], (list, tuple)):
                             raw_message_dict['client_id'] = f"{raw_message_dict['client_id'][0]}:{raw_message_dict['client_id'][1]}"
-                        else: # If client_id is missing or not list/tuple, use the actual connection client_info
+                            logger.debug(f"Reformatted client_id to {raw_message_dict['client_id']}")
+                        else:
                             raw_message_dict['client_id'] = client_info
-                        # --- END CRUCIAL FIX ---
+                            logger.debug(f"Using connection client_id: {client_info}")
 
-                        # Validate and enrich using WebSocketMessage model
-                        # This also sets default 'id' and 'timestamp' if not present in raw_message_dict
+                        # Validate message structure
+                        logger.debug(f"[Receiver {msg_counter}] Validating message structure")
                         message = WebSocketMessage.parse_obj(raw_message_dict)
+                        logger.info(f"[Receiver {msg_counter}] Valid message type '{message.type}' from {message.client_id}")
 
-                        # --- FIXED LOGGING HERE: Use .type and .id for Pydantic object ---
-                        logger.info(f"Enqueuing valid message of type '{message.type}' from {message.client_id}")
-
-                        # Use _create_queue_message to standardize for internal queue
-                        queue_msg = self._create_queue_message(message, source='websocket_receiver', status='received')
-                        msg_counter += 1
-
-                        logger.debug(
-                            f"Receiver #{msg_counter} for {client_info} - "
-                            f"Enqueuing {message.type} (ID: {message.id})"
-                        )
-
+                        # Prepare for queue
+                        queue_msg = self._create_queue_message(message, 
+                            source='websocket_receiver', 
+                            status='received')
+                        
+                        # Detailed enqueue logging
+                        logger.debug(f"[Receiver {msg_counter}] Enqueuing to from_frontend_queue")
                         start_time = time.time()
                         await get_from_frontend_queue().enqueue(queue_msg)
                         enqueue_time = time.time() - start_time
 
                         if enqueue_time > 0.1:
-                            logger.warning(
-                                f"Slow enqueue took {enqueue_time:.3f}s for "
-                                f"{message.type} (ID: {message.id})"
-                            )
+                            logger.warning(f"Slow enqueue took {enqueue_time:.3f}s for message {message.id}")
+                        else:
+                            logger.debug(f"Enqueued in {enqueue_time:.3f}s")
 
-                    except ValidationError as e:
-                        error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-                        logger.error(f"Validation error for incoming WebSocket message from {client_info}: {error_details}. Raw data: {data}", exc_info=True) # Added exc_info
-                        await self.send_error(websocket, "client_message_validation_failed", f"Validation failed: {error_details}")
-                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on validation error
-                            'original_raw_data': data,
-                            'error': 'pydantic_validation_error',
-                            'details': e.errors(),
-                            'timestamp': time.time(),
-                            'client_id': client_info
-                        })
-                        continue # Continue loop, discard this message
                     except json.JSONDecodeError as jde:
-                        logger.error(f"JSON decode error for incoming WebSocket message from {client_info}: {jde}. Raw data: {data}", exc_info=True) # Added exc_info
-                        await self.send_error(websocket, "invalid_json_format", "Invalid JSON format")
-                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on JSON error
-                            'original_raw_data': data,
-                            'error': 'json_decode_error',
-                            'timestamp': time.time(),
-                            'client_id': client_info
-                        })
-                        continue # Continue loop, discard this message
-                    except TypeError as te: # Explicitly catch TypeError for Pydantic object access
-                        logger.critical(f"TypeError during message processing in receiver for {client_info}: {te}. This often means trying to access Pydantic object like a dict. Raw data: {data}", exc_info=True)
-                        await self.send_error(websocket, "internal_receiver_logic_error", "Internal logic error during message processing")
-                        await get_dead_letter_queue().enqueue({
-                            'original_raw_data': data,
-                            'error': 'type_error_in_receiver',
-                            'details': str(te),
-                            'timestamp': time.time(),
-                            'client_id': client_info
-                        })
+                        logger.error(f"Invalid JSON from {client_info}: {str(jde)}. Data: {data[:200]}...", exc_info=True)
+                        await self._handle_invalid_message(websocket, client_info, data, 'json_decode_error', str(jde))
                         continue
-                    except Exception as e:
-                        logger.error(f"Unhandled error processing received message from {client_info}: {e}", exc_info=True)
-                        await self.send_error(websocket, "internal_receiver_error", "Error processing message")
-                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on general error
-                            'original_raw_data': data, # Capture the data that caused the error
-                            'error': 'unhandled_receiver_error',
-                            'details': str(e),
-                            'timestamp': time.time(),
-                            'client_id': client_info
-                        })
-                        continue # Continue loop, discard this message
+                    except ValidationError as ve:
+                        error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in ve.errors()])
+                        logger.error(f"Validation failed for {client_info}: {error_details}. Data: {data[:200]}...", exc_info=True)
+                        await self._handle_invalid_message(websocket, client_info, data, 'validation_error', error_details)
+                        continue
+                    except Exception as parse_error:
+                        logger.error(f"Unexpected parsing error from {client_info}: {str(parse_error)}", exc_info=True)
+                        await self._handle_invalid_message(websocket, client_info, data, 'parse_error', str(parse_error))
+                        continue
 
                 except WebSocketDisconnect as e:
-                    logger.info(f"WebSocket disconnected from {client_info} while receiving: Code {e.code}")
-                    break # Exit loop on disconnect
-                except Exception as e: # Catch other potential receive errors (e.g., connection issues)
-                    logger.error(f"Receive error for {client_info}: {e}", exc_info=True)
-                    break # Exit loop on severe receive error
-            logger.info(f"Receiver task for {client_info} finished.")
+                    logger.info(f"WebSocket cleanly disconnected from {client_info} (code: {e.code})")
+                    break
+                except asyncio.CancelledError:
+                    logger.info(f"Receiver task for {client_info} cancelled normally")
+                    break
+                except Exception as e:
+                    logger.critical(f"CRITICAL ERROR in receiver for {client_info}: {str(e)}", exc_info=True)
+                    await asyncio.sleep(1)  # Prevent tight error loop
+                    continue
+
+        except Exception as outer_error:
+            logger.critical(f"Receiver task crashed for {client_info}: {str(outer_error)}", exc_info=True)
+        finally:
+            logger.info(f"Receiver task ended for {client_info}. Processed {msg_counter} messages")
+
+    async def _handle_invalid_message(self, websocket: WebSocket, client_info: str, raw_data: str, error_type: str, error_details: str):
+        """Centralized handling for invalid messages"""
+        try:
+            # Send error response to client
+            await self.send_error(websocket, "invalid_message", f"Message rejected: {error_type}")
+            
+            # Log to dead letter queue
+            dlq_entry = {
+                'original_raw_data': raw_data,
+                'error': error_type,
+                'details': error_details,
+                'timestamp': time.time(),
+                'client_id': client_info,
+                'component': 'WebSocketManager._receiver'
+            }
+            await get_dead_letter_queue().enqueue(dlq_entry)
+            logger.debug(f"Invalid message from {client_info} sent to DLQ")
+        except Exception as e:
+            logger.error(f"Failed to handle invalid message from {client_info}: {str(e)}", exc_info=True)
         except asyncio.CancelledError:
             logger.info(f"Receiver task for {client_info} was cancelled.")
         except Exception as e:
