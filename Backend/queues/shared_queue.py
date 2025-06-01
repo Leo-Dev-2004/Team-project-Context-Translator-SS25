@@ -74,6 +74,10 @@ class MessageQueue:
 
     def size(self) -> int:
         return len(self._queue)
+        
+    def get_current_items_for_debug(self, limit: int = 20) -> list:
+        """Returns recent items for debugging purposes"""
+        return list(self._queue)[-limit:] if self._queue else []
 
     async def clear(self) -> None:
         async with self._lock:
