@@ -528,12 +528,3 @@ class WebSocketManager:
                 client_id=client_id
             )
             return False
-            else:
-                logger.warning(f"Client {client_id} not found in active connections for direct message. Message not sent.")
-                await self._send_to_dead_letter_queue(
-                    original_message=message_data,
-                    client_id=client_id,
-                    error_type="DirectSendMessageClientNotFound",
-                    error_details=f"Client {client_id} not in active connections."
-                )
-                return False # <--- Return False if client not found
