@@ -190,9 +190,11 @@ class WebSocketManager:
             logger.info(f"Sender task for {client_info} finished.")
 
     async def _receiver(self, websocket: WebSocket):
-        """Receive messages from client and add to from_frontend_queue"""
+        """Receive messages with detailed tracing"""
         client_info = self._get_formatted_client_address(websocket) # Use the helper
-        logger.info(f"Receiver task started for {client_info}")
+        msg_counter = 0
+        
+        logger.info(f"Starting receiver for {client_info} with message tracing")
         try:
             while True:
                 try: 

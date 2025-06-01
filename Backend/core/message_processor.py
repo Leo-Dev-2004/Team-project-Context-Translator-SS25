@@ -95,8 +95,23 @@ class MessageProcessor:
         logger.info("MessageProcessor main loop stopped.")
 
     async def _process_single_message(self, message: Dict) -> None:
-        """Process messages with simulation flow tracking and response generation."""
-        response_message_dict: Optional[Dict[str, Any]] = None
+        """Process messages with detailed tracing and response generation."""
+        msg_id = message.get('id', 'unknown')
+        msg_type = message.get('type', 'unknown')
+        client_id = message.get('client_id', 'unknown')
+        
+        logger.debug(f"Processing message {msg_id} (type: {msg_type}, client: {client_id})")
+        
+        try:
+            # Validate message structure
+            if not isinstance(message, dict):
+                raise ValueError("Message must be a dictionary")
+            if 'type' not in message:
+                raise ValueError("Message missing 'type' field")
+            if 'data' not in message:
+                raise ValueError("Message missing 'data' field")
+
+            response_message_dict: Optional[Dict[str, Any]] = None
 
         try:
             msg: WebSocketMessage
