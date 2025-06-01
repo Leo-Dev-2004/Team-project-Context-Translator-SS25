@@ -505,8 +505,21 @@ class WebSocketManager:
                 return True
             else:
                 logger.warning(f"WebSocket not connected for client {client_id}")
+                await self._send_to_dead_letter_queue(
+                    original_message=message_data,
+                    reason=f"WebSocket not connected (State: {target_websocket.client_state})",
+                    client_id=client_id
+                )
                 return False
 
+        except ValidationError as e:
+            logger.error(f"[{client_id}] Validation error for direct message: {e.errors()}. Original data: {message_data}", exc_info=True)
+            await self._send_to_dead_letter_queue(
+                original_message=message_data.model_dump() if hasattr(message_data, "model_dump") else dict(message_data),
+                reason=f"Validation error: {str(e)}",
+                client_id=client_id
+            )
+            return False
         except Exception as e:
             logger.error(f"Failed to send message to {client_id}: {e}", exc_info=True)
             await self._send_to_dead_letter_queue(
@@ -515,29 +528,6 @@ class WebSocketManager:
                 client_id=client_id
             )
             return False
-                    else:
-                        logger.warning(f"[{client_id}] Target WebSocket not connected for direct send (State: {target_websocket.client_state}). Message not sent.")
-                        await self._send_to_dead_letter_queue( # Log and DLQ on not connected state
-                            original_message=message_data,
-                            client_id=client_id,
-                            error_type="DirectSendMessageNotConnected",
-                            error_details=f"WebSocket not connected (State: {target_websocket.client_state})."
-                        )
-                        return False # <--- Return False if not connected
-                except ValidationError as e:
-                    logger.error(f"[{client_id}] Validation error for direct message: {e.errors()}. Original data: {message_data}", exc_info=True)
-                    import json
-                    await self._send_to_dead_letter_queue(
-                        original_message=message_data.model_dump() if hasattr(message_data, "model_dump") else dict(message_data),
-                        client_id=client_id,
-                        error_type="DirectSendMessageValidationError",
-                        error_details=json.dumps({
-                            "type": "validation_error",
-                            "message": str(e),
-                            "timestamp": time.time()
-                        })
-                    )
-                    return False # <--- Return False on validation error
                 except Exception as e:
                     logger.critical(f"[{client_id}] CRITICAL: Unexpected error in send_message_to_client: {e}", exc_info=True)
                     await self._send_to_dead_letter_queue(
