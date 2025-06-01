@@ -528,15 +528,6 @@ class WebSocketManager:
                 client_id=client_id
             )
             return False
-                except Exception as e:
-                    logger.critical(f"[{client_id}] CRITICAL: Unexpected error in send_message_to_client: {e}", exc_info=True)
-                    await self._send_to_dead_letter_queue(
-                        original_message=message_data,
-                        client_id=client_id,
-                        error_type="DirectSendMessageUnexpectedError",
-                        error_details=str(e)
-                    )
-                    return False # <--- Return False on unexpected errors
             else:
                 logger.warning(f"Client {client_id} not found in active connections for direct message. Message not sent.")
                 await self._send_to_dead_letter_queue(
