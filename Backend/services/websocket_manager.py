@@ -524,10 +524,14 @@ class WebSocketManager:
                 except ValidationError as e:
                     logger.error(f"[{client_id}] Validation error for direct message: {e.errors()}. Original data: {message_data}", exc_info=True)
                     await self._send_to_dead_letter_queue(
-                        original_message=message_data,
-                        client_id=client_id,
-                        error_type="DirectSendMessageValidationError",
-                        error_details=str(e)
+                        original_message=message.model_dump(),
+                        reason="DirectSendMessageValidationError",
+                        error_details={
+                            "type": "validation_error",
+                            "message": str(e),
+                            "timestamp": time.time()
+                        },
+                        client_id=client_id
                     )
                     return False # <--- Return False on validation error
                 except Exception as e:

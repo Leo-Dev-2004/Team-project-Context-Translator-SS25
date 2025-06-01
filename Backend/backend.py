@@ -123,9 +123,9 @@ async def send_queue_status_to_frontend():
                 # also iterates keys, but let's be explicit and debug.
                 for client_id_str in websocket_manager_instance.connections:
                     try:
-                        # Convert dict to QueueMessage (import the correct class if needed)
-                        from Backend.queues.shared_queue import QueueMessage  # Adjust import path as needed
+                        # Convert dict to QueueMessage
                         queue_message = QueueMessage(**status_message)
+                        # Use the to_websocket_message() method for conversion
                         await websocket_manager_instance.send_message_to_client(client_id_str, queue_message)
                         logger.info(f"Sent queue_status to client {client_id_str}: {status_message['data']}")
                     except Exception as client_send_error:
