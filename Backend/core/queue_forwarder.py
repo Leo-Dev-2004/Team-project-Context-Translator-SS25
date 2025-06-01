@@ -77,11 +77,18 @@ class QueueForwarder:
                 # Nachrichtenvalidierung (validate message before sending)
                 if not self._validate_message(message):
                     logger.warning(f"Invalid message format for forwarding to WebSocket: {message}")
-                    await self._safe_enqueue(self._dead_letter_queue, {
-                        'original_message': message,
-                        'error': 'invalid_format_for_websocket_forwarding',
-                        'timestamp': time.time()
-                    })
+                    dead_letter_entry = {
+                        "original_message": message,
+                        "error_details": {
+                            "type": "invalid_format",
+                            "message": "Invalid message format for WebSocket forwarding",
+                            "component": "QueueForwarder",
+                            "timestamp": time.time()
+                        },
+                        "dlq_timestamp": time.time(),
+                        "reason": "Invalid message format"
+                    }
+                    await self._safe_enqueue(self._dead_letter_queue, dead_letter_entry)
                     continue
 
                 # Get client_id from the message to know where to send it
