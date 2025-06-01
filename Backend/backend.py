@@ -117,12 +117,22 @@ async def send_queue_status_to_frontend():
             }
 
             if websocket_manager_instance and websocket_manager_instance.connections:
-                # Iterate through all connected clients and send the status
-                for client_id in websocket_manager_instance.connections:
-                    await websocket_manager_instance.send_message_to_client(client_id, status_message)
-                    logger.info(f"Sent queue_status to client {client_id}: {status_message['data']}")
+                logger.info(f"Attempting to send queue_status. Active connections: {len(websocket_manager_instance.connections)}")
+                # CORRECTED ITERATION: Iterate over the dictionary's keys explicitly.
+                # The previous version 'for client_id in websocket_manager_instance.connections:'
+                # also iterates keys, but let's be explicit and debug.
+                for client_id_str in websocket_manager_instance.connections:
+                    try:
+                        # Convert dict to QueueMessage (import the correct class if needed)
+                        from Backend.queues.shared_queue import QueueMessage  # Adjust import path as needed
+                        queue_message = QueueMessage(**status_message)
+                        await websocket_manager_instance.send_message_to_client(client_id_str, queue_message)
+                        logger.info(f"Sent queue_status to client {client_id_str}: {status_message['data']}")
+                    except Exception as client_send_error:
+                        logger.error(f"Error sending queue_status to client {client_id_str}: {client_send_error}", exc_info=True)
             else:
                 logger.debug("No WebSocket connections to send queue_status to or WebSocketManager not ready.")
+
 
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)

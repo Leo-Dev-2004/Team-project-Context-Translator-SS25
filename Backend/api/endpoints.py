@@ -81,7 +81,12 @@ async def health_check():
 async def get_metrics():
     # MODIFIED: Get the global WebSocketManager instance for metrics
     ws_manager_instance = get_websocket_manager_instance()
-    return ws_manager_instance.get_metrics()
+    # Example: Return number of active connections if such an attribute exists
+    # Replace 'active_connections' with the actual attribute or method you want to expose
+    metrics = {
+        "active_connections": getattr(ws_manager_instance, "active_connections", "unknown")
+    }
+    return metrics
 
 async def start_simulation_helper(
     client_id: str,
@@ -178,20 +183,20 @@ async def debug_queues():
 
     return {
         "to_frontend_queue": {
-            "size": get_to_frontend_queue().size(),
-            "items": [format_queue_item_details(item) for item in get_to_frontend_queue().get_current_items_for_debug()]
+            "size": get_to_frontend_queue().qsize(),
+            "items": [format_queue_item_details(item) for item in list(get_to_frontend_queue().get_items_snapshot())]
         },
         "from_frontend_queue": {
-            "size": get_from_frontend_queue().size(),
-            "items": [format_queue_item_details(item) for item in get_from_frontend_queue().get_current_items_for_debug()]
+            "size": get_from_frontend_queue().qsize(),
+            "items": [format_queue_item_details(item) for item in list(get_from_frontend_queue().get_items_snapshot())]
         },
         "to_backend_queue": {
-            "size": get_to_backend_queue().size(),
-            "items": [format_queue_item_details(item) for item in get_to_backend_queue().get_current_items_for_debug()]
+            "size": get_to_backend_queue().qsize(),
+            "items": [format_queue_item_details(item) for item in list(get_to_backend_queue().get_items_snapshot())]
         },
         "from_backend_queue": {
-            "size": get_from_backend_queue().size(),
-            "items": [format_queue_item_details(item) for item in get_from_backend_queue().get_current_items_for_debug()]
+            "size": get_from_backend_queue().qsize(),
+            "items": [format_queue_item_details(item) for item in list(get_from_backend_queue().get_items_snapshot())]
         }
     }
 

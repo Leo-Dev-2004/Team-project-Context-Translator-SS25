@@ -19882,3 +19882,93 @@ reason
 2025-06-01 23:36:34,301 - INFO - Closed WebSocket for client client_17488137717366fs54d.
 2025-06-01 23:36:34,301 - INFO - Connection handling for 127.0.0.1:50158 finished.
 2025-06-01 23:36:34,302 - INFO - Cleanup finished for client_17488137717366fs54d at /ws endpoint's finally block. WebSocketManager handles core connection cleanup.
+2025-06-01 23:41:05,134 - INFO - Application shutdown event triggered.
+2025-06-01 23:41:05,134 - INFO - Attempting to stop simulation for client: N/A
+2025-06-01 23:41:05,134 - INFO - Simulation is not running. No action needed.
+2025-06-01 23:41:05,134 - INFO - SimulationManager stop method called.
+2025-06-01 23:41:05,134 - INFO - Stopping MessageProcessor...
+2025-06-01 23:41:05,134 - INFO - MessageProcessor task was cancelled gracefully.
+2025-06-01 23:41:05,134 - INFO - MessageProcessor main loop stopped.
+2025-06-01 23:41:05,134 - INFO - Dead Letter Queue monitor task cancelled.
+2025-06-01 23:41:05,135 - INFO - Dead Letter Queue monitor task stopped.
+2025-06-01 23:41:05,135 - INFO - MessageProcessor shutdown complete.
+2025-06-01 23:41:05,135 - INFO - Stopping QueueForwarder...
+2025-06-01 23:41:05,135 - INFO - QueueForwarder task cancelled.
+2025-06-01 23:41:05,135 - INFO - QueueForwarder stopped
+2025-06-01 23:41:05,135 - INFO - Calling SimulationManager instance stop method...
+2025-06-01 23:41:05,135 - INFO - Attempting to stop simulation for client: N/A
+2025-06-01 23:41:05,135 - INFO - Simulation is not running. No action needed.
+2025-06-01 23:41:05,136 - INFO - Shutting down WebSocketManager...
+2025-06-01 23:41:05,136 - INFO - Initiating WebSocketManager shutdown...
+2025-06-01 23:41:05,136 - INFO - WebSocketManager shutdown complete.
+2025-06-01 23:41:05,136 - INFO - WebSocketManager shutdown complete.
+2025-06-01 23:41:05,136 - INFO - All WebSocket connections attempted to close. Remaining: 0
+2025-06-01 23:41:05,136 - INFO - Application shutdown complete.
+2025-06-01 23:41:05,137 - INFO - Dead Letter Queue monitor task cancelled.
+2025-06-01 23:41:05,137 - INFO - Dead Letter Queue monitor task stopped.
+2025-06-01 23:41:06,560 - INFO - Application startup event triggered.
+2025-06-01 23:41:06,560 - INFO - Initializing all queues on event loop 190042320...
+2025-06-01 23:41:06,561 - INFO - All queues initialized: ['to_frontend', 'from_frontend', 'to_backend', 'from_backend', 'dead_letter']
+2025-06-01 23:41:06,561 - INFO - Shared queues initialized.
+2025-06-01 23:41:06,561 - INFO - Retrieved queue instances. Event loop ID: 190042320
+2025-06-01 23:41:06,561 - INFO - WebSocketManager initialized and stored in dependencies.
+2025-06-01 23:41:06,561 - INFO - SimulationManager ready state changed from False to True
+2025-06-01 23:41:06,561 - INFO - SimulationManager initialized and stored in dependencies.
+2025-06-01 23:41:06,561 - INFO - MessageProcessor queues verified and initialized.
+2025-06-01 23:41:06,562 - INFO - Starting MessageProcessor task.
+2025-06-01 23:41:06,562 - INFO - MessageProcessor and Dead Letter Queue monitor tasks created and running in background.
+2025-06-01 23:41:06,562 - INFO - MessageProcessor task started.
+2025-06-01 23:41:06,562 - INFO - QueueForwarder initialized with all queues and WebSocketManager.
+2025-06-01 23:41:06,562 - INFO - QueueForwarder queues already initialized
+2025-06-01 23:41:06,562 - INFO - QueueForwarder task started.
+2025-06-01 23:41:06,562 - INFO - Background task 'monitor_dead_letter_queue_task' launched.
+2025-06-01 23:41:06,563 - INFO - Background task 'send_queue_status_to_frontend' launched.
+2025-06-01 23:41:06,563 - INFO - MessageProcessor main loop started.
+2025-06-01 23:41:06,563 - INFO - Starting Dead Letter Queue monitor task.
+2025-06-01 23:41:06,563 - INFO - Starting QueueForwarder WebSocketResponseForwarder with input='to_frontend' (to WebSocket).
+2025-06-01 23:41:06,563 - INFO - Starting Dead Letter Queue monitor task.
+2025-06-01 23:41:11,079 - INFO - Application shutdown event triggered.
+2025-06-01 23:41:11,080 - INFO - Attempting to stop simulation for client: N/A
+2025-06-01 23:41:11,080 - INFO - Simulation is not running. No action needed.
+2025-06-01 23:41:11,080 - INFO - SimulationManager stop method called.
+2025-06-01 23:41:11,080 - INFO - Stopping MessageProcessor...
+2025-06-01 23:41:11,080 - INFO - MessageProcessor task was cancelled gracefully.
+2025-06-01 23:41:11,080 - INFO - MessageProcessor main loop stopped.
+2025-06-01 23:41:11,080 - INFO - Dead Letter Queue monitor task cancelled.
+2025-06-01 23:41:11,080 - INFO - Dead Letter Queue monitor task stopped.
+2025-06-01 23:41:11,080 - INFO - MessageProcessor shutdown complete.
+2025-06-01 23:41:11,080 - INFO - Stopping QueueForwarder...
+2025-06-01 23:41:11,081 - INFO - QueueForwarder task cancelled.
+2025-06-01 23:41:11,081 - INFO - QueueForwarder stopped
+2025-06-01 23:41:11,081 - INFO - Calling SimulationManager instance stop method...
+2025-06-01 23:41:11,081 - INFO - Attempting to stop simulation for client: N/A
+2025-06-01 23:41:11,081 - INFO - Simulation is not running. No action needed.
+2025-06-01 23:41:11,081 - INFO - Shutting down WebSocketManager...
+2025-06-01 23:41:11,081 - INFO - Initiating WebSocketManager shutdown...
+2025-06-01 23:41:11,081 - INFO - WebSocketManager shutdown complete.
+2025-06-01 23:41:11,081 - INFO - WebSocketManager shutdown complete.
+2025-06-01 23:41:11,081 - INFO - All WebSocket connections attempted to close. Remaining: 0
+2025-06-01 23:41:11,081 - INFO - Application shutdown complete.
+2025-06-01 23:41:11,082 - INFO - Dead Letter Queue monitor task cancelled.
+2025-06-01 23:41:11,082 - INFO - Dead Letter Queue monitor task stopped.
+2025-06-01 23:41:12,853 - INFO - Application startup event triggered.
+2025-06-01 23:41:12,853 - INFO - Initializing all queues on event loop 73011408...
+2025-06-01 23:41:12,854 - INFO - All queues initialized: ['to_frontend', 'from_frontend', 'to_backend', 'from_backend', 'dead_letter']
+2025-06-01 23:41:12,854 - INFO - Shared queues initialized.
+2025-06-01 23:41:12,854 - INFO - Retrieved queue instances. Event loop ID: 73011408
+2025-06-01 23:41:12,854 - INFO - WebSocketManager initialized and stored in dependencies.
+2025-06-01 23:41:12,854 - INFO - SimulationManager ready state changed from False to True
+2025-06-01 23:41:12,854 - INFO - SimulationManager initialized and stored in dependencies.
+2025-06-01 23:41:12,854 - INFO - MessageProcessor queues verified and initialized.
+2025-06-01 23:41:12,854 - INFO - Starting MessageProcessor task.
+2025-06-01 23:41:12,854 - INFO - MessageProcessor and Dead Letter Queue monitor tasks created and running in background.
+2025-06-01 23:41:12,854 - INFO - MessageProcessor task started.
+2025-06-01 23:41:12,854 - INFO - QueueForwarder initialized with all queues and WebSocketManager.
+2025-06-01 23:41:12,854 - INFO - QueueForwarder queues already initialized
+2025-06-01 23:41:12,855 - INFO - QueueForwarder task started.
+2025-06-01 23:41:12,855 - INFO - Background task 'monitor_dead_letter_queue_task' launched.
+2025-06-01 23:41:12,855 - INFO - Background task 'send_queue_status_to_frontend' launched.
+2025-06-01 23:41:12,855 - INFO - MessageProcessor main loop started.
+2025-06-01 23:41:12,855 - INFO - Starting Dead Letter Queue monitor task.
+2025-06-01 23:41:12,855 - INFO - Starting QueueForwarder WebSocketResponseForwarder with input='to_frontend' (to WebSocket).
+2025-06-01 23:41:12,855 - INFO - Starting Dead Letter Queue monitor task.
