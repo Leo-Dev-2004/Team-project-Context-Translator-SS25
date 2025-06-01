@@ -56,6 +56,18 @@ class QueueMessage(BaseModel):
     forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list) # Specific Pydantic model
     client_id: Optional[str] = None # Added as QueueMessage might carry client_id for routing
 
+    def to_websocket_message(self) -> 'WebSocketMessage':
+        """Converts a QueueMessage to a WebSocketMessage."""
+        return WebSocketMessage(
+            id=self.id,
+            type=self.type,
+            data=self.data,
+            timestamp=self.timestamp,
+            client_id=self.client_id,
+            processing_path=self.processing_path,
+            forwarding_path=self.forwarding_path
+        )
+
     model_config = ConfigDict(
         json_encoders={
             datetime: lambda v: v.timestamp()
