@@ -88,11 +88,17 @@ class QueueForwarder:
                 client_id = message.get("client_id")
                 if not client_id:
                     logger.warning(f"Message {message.get('id', 'N/A')} has no client_id. Cannot forward via WebSocket.")
-                    await self._safe_enqueue(self._dead_letter_queue, {
-                        'original_message': message,
-                        'error': 'missing_client_id_for_websocket',
-                        'timestamp': time.time()
-                    })
+                    dead_letter_entry = {
+                        "original_message": message,
+                        "error_details": {
+                            "type": "missing_client_id",
+                            "message": "Message could not be forwarded due to missing client_id",
+                            "component": "QueueForwarder"
+                        },
+                        "timestamp": time.time(),
+                        "reason": "Missing client ID for forwarding"
+                    }
+                    await self._safe_enqueue(self._dead_letter_queue, dead_letter_entry)
                     continue
 
                 # DIRECTLY SEND THE MESSAGE TO THE CLIENT VIA WEBSOCKETMANAGER
@@ -102,12 +108,18 @@ class QueueForwarder:
                     logger.debug(f"QueueForwarder: Successfully sent message type '{message.get('type')}' to client {client_id}.")
                 else:
                     logger.warning(f"QueueForwarder: Failed to send message type '{message.get('type')}' to client {client_id}. Sending to DLQ.")
-                    await self._safe_enqueue(self._dead_letter_queue, {
-                        'original_message': message,
-                        'error': 'websocket_send_failed',
-                        'timestamp': time.time(),
-                        'client_id': client_id
-                    })
+                    dead_letter_entry = {
+                        "original_message": message,
+                        "error_details": {
+                            "type": "send_failure",
+                            "message": "Failed to forward message to WebSocket client",
+                            "component": "QueueForwarder"
+                        },
+                        "timestamp": time.time(),
+                        "client_id": client_id,
+                        "reason": "WebSocket forwarding failed"
+                    }
+                    await self._safe_enqueue(self._dead_letter_queue, dead_letter_entry)
 
             except asyncio.CancelledError:
                 logger.info("QueueForwarder task cancelled.")

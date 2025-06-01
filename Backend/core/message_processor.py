@@ -193,16 +193,9 @@ class MessageProcessor:
             ))
 
             if msg.type == 'ping':
-                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. Responding with pong.")
-                response_message_dict = WebSocketMessage(
-                    id=str(uuid.uuid4()),
-                    type="pong",
-                    data={"original_id": msg.id},
-                    timestamp=time.time(),
-                    client_id=effective_client_id,
-                    processing_path=msg.processing_path,
-                    forwarding_path=msg.forwarding_path
-                ).model_dump()
+                logger.info(f"MessageProcessor: Received ping from {effective_client_id}. (Pong response handled by WebSocketManager)")
+                # WebSocketManager handles pong responses directly
+                continue
 
             elif msg.type == 'command':
                 command_name = msg.data.get('command')
