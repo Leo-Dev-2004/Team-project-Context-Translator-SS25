@@ -42,7 +42,8 @@ class WebSocketManager:
     # If you need to convert a raw dict to QueueMessage, do QueueMessage(**raw_dict).
 
     async def _send_to_dead_letter_queue(self, original_message: Union[dict, QueueMessage, WebSocketMessage], 
-                                       reason: str, client_id: str):
+                                       reason: str, client_id: str, error_type: Optional[str] = None,
+                                       error_details: Optional[Union[str, Dict[str, Any]]] = None):
         """Helper to send messages to the Dead Letter Queue."""
         try:
             # Convert original_message to dict if it's a Pydantic model
@@ -53,16 +54,21 @@ class WebSocketManager:
             else:
                 original_message_dict = {"raw_message": str(original_message)}
 
+            # Prepare error details
+            details = {
+                "type": error_type or "websocket_error",
+                "message": str(error_details) if isinstance(error_details, str) else reason,
+                "component": "WebSocketManager",
+                "timestamp": time.time(),
+                "client_id": client_id
+            }
+            if isinstance(error_details, dict):
+                details.update(error_details)
+
             dl_message = DeadLetterMessage(
                 original_message=original_message_dict,
                 reason=reason,
-                error_details={
-                    "type": "websocket_error",
-                    "message": reason,
-                    "component": "WebSocketManager",
-                    "timestamp": time.time(),
-                    "client_id": client_id
-                },
+                error_details=details,
                 client_id=client_id
             )
             await self.dead_letter_queue.enqueue(dl_message)
@@ -235,7 +241,8 @@ class WebSocketManager:
                     logger.error(f"[{client_id}] Invalid message format for sending from queue: {e.errors()}\nOriginal message: {message}", exc_info=True)
                     await self.send_error(websocket, "backend_message_validation_failed", f"Backend message invalid: {str(e.errors())}")
                     await self._send_to_dead_letter_queue(
-                        original_message=message, # Pass the Pydantic object directly
+                        original_message=message,
+                        reason="Sender validation error",
                         client_id=client_id,
                         error_type="SenderValidationError",
                         error_details=str(e)
@@ -244,7 +251,8 @@ class WebSocketManager:
                 except Exception as e:
                     logger.critical(f"[{client_id}] CRITICAL: Unexpected error preparing message in sender: {e}", exc_info=True)
                     await self._send_to_dead_letter_queue(
-                        original_message=message, # Pass the Pydantic object directly
+                        original_message=message,
+                        reason="Sender prepare error", 
                         client_id=client_id,
                         error_type="SenderPrepareError",
                         error_details=str(e)
@@ -269,7 +277,8 @@ class WebSocketManager:
                 except Exception as e:
                     logger.error(f"[{client_id}] Unexpected error sending message {ws_msg.id}: {e}", exc_info=True)
                     await self._send_to_dead_letter_queue(
-                        original_message=ws_msg, # Pass the Pydantic object directly
+                        original_message=ws_msg,
+                        reason="Sender send error",
                         client_id=client_id,
                         error_type="SenderSendError",
                         error_details=str(e)
@@ -352,6 +361,7 @@ class WebSocketManager:
                         await self.send_error(websocket, "invalid_json", f"Invalid JSON format: {str(e)}")
                         await self._send_to_dead_letter_queue(
                             original_message={"raw_data": data, "client_id": client_id},
+                            reason="JSON decode error",
                             client_id=client_id,
                             error_type="JSONDecodeError",
                             error_details=str(e)
@@ -362,10 +372,12 @@ class WebSocketManager:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Pydantic validation error for incoming message (WebSocketMessage schema): {e.errors()}\nRaw dict: {raw_message_dict}", exc_info=True)
                         await self.send_error(websocket, "message_validation_failed", f"Invalid message format: {str(e.errors())}")
                         await self._send_to_dead_letter_queue(
-                            original_message=raw_message_dict, # Pass the dictionary that failed validation
+                            original_message=raw_message_dict,
+                            reason="Pydantic validation error",
                             client_id=client_id,
-                            error_type="PydanticValidationError_WebSocketMessage", # More specific error type
+                            error_type="PydanticValidationError_WebSocketMessage",
                             error_details=str(e)
+                        )
                         )
                         continue # Skip to next receive loop if message is malformed
                     except Exception as e:
@@ -373,6 +385,7 @@ class WebSocketManager:
                         await self.send_error(websocket, "internal_parsing_error", f"Internal parsing error: {str(e)}")
                         await self._send_to_dead_letter_queue(
                             original_message={"raw_data": data, "client_id": client_id},
+                            reason="Receiver parsing error",
                             client_id=client_id,
                             error_type="ReceiverParsingError",
                             error_details=str(e)
@@ -387,7 +400,8 @@ class WebSocketManager:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Failed to enqueue message {message_for_queue.id} to from_frontend_queue: {e}", exc_info=True)
                         await self.send_error(websocket, "queue_enqueue_failed", f"Failed to process message internally.")
                         await self._send_to_dead_letter_queue(
-                            original_message=message_for_queue, # Pass the Pydantic object that failed enqueuing
+                            original_message=message_for_queue,
+                            reason="Queue enqueue error",
                             client_id=client_id,
                             error_type="QueueEnqueueError",
                             error_details=str(e)
