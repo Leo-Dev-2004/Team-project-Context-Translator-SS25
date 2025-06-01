@@ -369,7 +369,7 @@ class MessageProcessor:
                 try:
                     msg = WebSocketMessage.model_validate(response_message_dict)
                     if not await self.safe_enqueue(self._output_queue, msg):
-                    logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {effective_client_id}. Sending to DLQ.")
+                        logger.error(f"Failed to enqueue response message (type: {response_message_dict.get('type')}) to to_frontend_queue for client {effective_client_id}. Sending to DLQ.")
                     await self.safe_enqueue(self._dead_letter_queue, {
                         'original_message': response_message_dict,
                         'error': 'response_enqueue_failed',
