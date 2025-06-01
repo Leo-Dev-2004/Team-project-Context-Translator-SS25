@@ -162,7 +162,7 @@ class MessageProcessor:
                 msg = message
             elif isinstance(message, QueueMessage) and hasattr(message, 'data') and isinstance(message.data, dict):
                 # If QueueMessage is used as a wrapper for WebSocketMessage payload
-                msg = WebSocketMessage.model_validate(message.data)
+                msg = WebSocketMessage.model_validate(message.payload)
             else:
                 # If message is not a WebSocketMessage or a QueueMessage with a valid payload,
                 # it's an unexpected type for _process_single_message.

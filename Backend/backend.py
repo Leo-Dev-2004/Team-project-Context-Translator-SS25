@@ -98,9 +98,9 @@ async def send_queue_status_to_frontend():
             to_frontend_q = queues.get("to_frontend")
             dead_letter_q = queues.get("dead_letter") # Ensure this is also in your initialized_queues or accessible
 
-            from_frontend_q_size = from_frontend_q.size() if from_frontend_q else 0
-            to_frontend_q_size = to_frontend_q.size() if to_frontend_q else 0
-            dead_letter_q_size = dead_letter_q.size() if dead_letter_q else 0
+            from_frontend_q_size = from_frontend_q.qsize() if from_frontend_q else 0
+            to_frontend_q_size = to_frontend_q.qsize() if to_frontend_q else 0
+            dead_letter_q_size = dead_letter_q.qsize() if dead_letter_q else 0
 
             status_message = {
                 "id": str(uuid.uuid4()),
