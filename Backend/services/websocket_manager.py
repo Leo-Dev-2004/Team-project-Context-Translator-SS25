@@ -1,4 +1,4 @@
-# Backend/services/websocket_manager.py
+# Backend/services/websocket_manager.py (FIXED)
 
 import asyncio
 import json
@@ -8,21 +8,21 @@ import uuid
 from pydantic import ValidationError # Added import for Pydantic validation
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
-from typing import Dict, Any, Union 
+from typing import Dict, Any, Union
 from starlette.websockets import WebSocketDisconnect # Corrected placement, ensuring it's imported
 
 from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue, get_dead_letter_queue # Added import for dead_letter_queue
 from ..models.message_types import WebSocketMessage # Ensure WebSocketMessage is imported
-from ..dependencies import get_simulation_manager # Assuming this dependency is used for commands
 
 logger = logging.getLogger(__name__)
 
 class WebSocketManager:
-    def __init__(self):
+    def __init__(self, from_frontend_queue=None):
         self.connections = set()
         self.ack_status = {}
         self.active_tasks = {} # maps websocket_id to (sender_task, receiver_task)
         self._running = True  # Flag for graceful shutdown
+        self.from_frontend_queue = from_frontend_queue
 
     # Helper to get the formatted client address string
     def _get_formatted_client_address(self, websocket: WebSocket) -> str:
@@ -34,11 +34,12 @@ class WebSocketManager:
     # Helper function to create a standardized message for the internal queue
     def _create_queue_message(self, message: WebSocketMessage, source: str, status: str) -> Dict[str, Any]:
         """Constructs a dictionary formatted for internal MessageQueue usage."""
-        
+
         # Safely convert the WebSocketMessage Pydantic model to a dictionary
         # Use model_dump for Pydantic v2, or dict() for Pydantic v1
         try:
-            message_as_dict = message.dict(exclude_unset=True) # Pydantic v1
+            # Prefer model_dump for Pydantic v2, fallback to dict() for v1
+            message_as_dict = message.model_dump(exclude_unset=True) # Pydantic v2
         except AttributeError:
             message_as_dict = message.dict(exclude_unset=True) # Pydantic v1
 
@@ -77,16 +78,21 @@ class WebSocketManager:
             'status': status
         }
 
-    async def handle_connection(self, websocket: WebSocket):
+    async def handle_connection(self, websocket: WebSocket, client_id: str):
         """Handle new WebSocket connection"""
         client_info = self._get_formatted_client_address(websocket) # Use the helper
         websocket_id = id(websocket)
 
         try:
+            # --- CRITICAL FIX: ACCEPT THE WEBSOCKET CONNECTION ---
+            await websocket.accept()
+            logger.info(f"WebSocket connection accepted for {client_info}")
+            # --- END CRITICAL FIX ---
+
             self.connections.add(websocket)
             logger.info(f"Adding connection: {client_info}. Total connections: {len(self.connections)}")
 
-            await self.send_ack(websocket) # Changed from _send_ack
+            await self.send_ack(websocket)
 
             sender_task = asyncio.create_task(self._sender(websocket))
             receiver_task = asyncio.create_task(self._receiver(websocket))
@@ -108,8 +114,8 @@ class WebSocketManager:
                         except asyncio.CancelledError:
                             pass
                 del self.active_tasks[websocket_id]
-            
-            await self.cleanup_connection(websocket, client_info) # Changed from _cleanup_connection
+
+            await self.cleanup_connection(websocket, client_info)
             logger.info(f"Cleanup finished for connection: {client_info}. Total connections: {len(self.connections)}")
 
     async def _sender(self, websocket: WebSocket):
@@ -124,7 +130,7 @@ class WebSocketManager:
                         timeout=1.0
                     )
                     # --- ADDED 1-SECOND DELAY ---
-                    await asyncio.sleep(1) # 1-second delay after dequeuing
+                    # await asyncio.sleep(1) # 1-second delay after dequeuing
                     logger.debug(f"WebSocketManager sender dequeued message {message_dict.get('id', 'N/A')} of type '{message_dict.get('type', 'N/A')}'. Delaying for 1s.")
                     # --- END ADDED DELAY ---
                 except asyncio.TimeoutError:
@@ -154,7 +160,7 @@ class WebSocketManager:
                 except ValidationError as e:
                     logger.error(f"Invalid message format for sending from queue: {e.errors()}\nOriginal message: {message_dict}")
                     # Send an error message to the client, but discard the malformed one
-                    await self.send_error(websocket, "backend_message_validation_failed", f"Backend message invalid: {str(e.errors())}") # Changed from _send_error
+                    await self.send_error(websocket, "backend_message_validation_failed", f"Backend message invalid: {str(e.errors())}")
                     # Consider sending to dead letter queue if this is a critical message that needs audit
                     continue # Skip sending this malformed message
                 except Exception as e:
@@ -165,10 +171,10 @@ class WebSocketManager:
                     if websocket.client_state == WebSocketState.CONNECTED:
                         try:
                             # Using model_dump_json for Pydantic v2, json() for v1
-                            json_data = ws_msg.json()
+                            json_data = ws_msg.model_dump_json() # Pydantic v2
                         except AttributeError:
-                            json_data = ws_msg.json()
-                            
+                            json_data = ws_msg.json() # Pydantic v1
+
                         await websocket.send_text(json_data)
                         logger.debug(f"Sent message {ws_msg.id} (type: {ws_msg.type}) to {client_info}")
                     else:
@@ -193,18 +199,19 @@ class WebSocketManager:
         """Receive messages with detailed tracing"""
         client_info = self._get_formatted_client_address(websocket) # Use the helper
         msg_counter = 0
-        
+
         logger.info(f"Starting receiver for {client_info} with message tracing")
         try:
             while True:
-                try: 
+                try:
                     data = await websocket.receive_text()
                     logger.debug(f"Received raw WebSocket data from {client_info}: {data}")
-                    
+
                     try:
                         # Parse raw JSON data
                         raw_message_dict = json.loads(data)
-                        
+                        logger.debug(f"Successfully parsed JSON to dict: {raw_message_dict}")
+
                         # --- CRUCIAL FIX FOR CLIENT_ID IN RECEIVER ---
                         # Ensure client_id is formatted correctly as host:port
                         if 'client_id' in raw_message_dict and isinstance(raw_message_dict['client_id'], (list, tuple)):
@@ -215,33 +222,34 @@ class WebSocketManager:
 
                         # Validate and enrich using WebSocketMessage model
                         # This also sets default 'id' and 'timestamp' if not present in raw_message_dict
-                        message = WebSocketMessage.parse_obj(raw_message_dict) 
-                        
+                        message = WebSocketMessage.parse_obj(raw_message_dict)
+
+                        # --- FIXED LOGGING HERE: Use .type and .id for Pydantic object ---
                         logger.info(f"Enqueuing valid message of type '{message.type}' from {message.client_id}")
-                        
+
                         # Use _create_queue_message to standardize for internal queue
                         queue_msg = self._create_queue_message(message, source='websocket_receiver', status='received')
                         msg_counter += 1
-                    
+
                         logger.debug(
                             f"Receiver #{msg_counter} for {client_info} - "
-                            f"Enqueuing {message['type']} (ID: {message.get('id')})"
+                            f"Enqueuing {message.type} (ID: {message.id})"
                         )
-                    
+
                         start_time = time.time()
                         await get_from_frontend_queue().enqueue(queue_msg)
                         enqueue_time = time.time() - start_time
-                    
+
                         if enqueue_time > 0.1:
                             logger.warning(
                                 f"Slow enqueue took {enqueue_time:.3f}s for "
-                                f"{message['type']} (ID: {message.get('id')})"
+                                f"{message.type} (ID: {message.id})"
                             )
 
                     except ValidationError as e:
                         error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-                        logger.error(f"Validation error for incoming WebSocket message from {client_info}: {error_details}. Raw data: {data}")
-                        await self.send_error(websocket, "client_message_validation_failed", f"Validation failed: {error_details}") # Changed from _send_error
+                        logger.error(f"Validation error for incoming WebSocket message from {client_info}: {error_details}. Raw data: {data}", exc_info=True) # Added exc_info
+                        await self.send_error(websocket, "client_message_validation_failed", f"Validation failed: {error_details}")
                         await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on validation error
                             'original_raw_data': data,
                             'error': 'pydantic_validation_error',
@@ -250,9 +258,9 @@ class WebSocketManager:
                             'client_id': client_info
                         })
                         continue # Continue loop, discard this message
-                    except json.JSONDecodeError as jde: 
-                        logger.error(f"JSON decode error for incoming WebSocket message from {client_info}: {jde}. Raw data: {data}")
-                        await self.send_error(websocket, "invalid_json_format", "Invalid JSON format") # Changed from _send_error
+                    except json.JSONDecodeError as jde:
+                        logger.error(f"JSON decode error for incoming WebSocket message from {client_info}: {jde}. Raw data: {data}", exc_info=True) # Added exc_info
+                        await self.send_error(websocket, "invalid_json_format", "Invalid JSON format")
                         await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on JSON error
                             'original_raw_data': data,
                             'error': 'json_decode_error',
@@ -260,19 +268,30 @@ class WebSocketManager:
                             'client_id': client_info
                         })
                         continue # Continue loop, discard this message
-                    except Exception as e:
-                        logger.error(f"Error processing received message from {client_info}: {e}", exc_info=True) 
-                        await self.send_error(websocket, "internal_receiver_error", "Error processing message") # Changed from _send_error
-                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on general error
+                    except TypeError as te: # Explicitly catch TypeError for Pydantic object access
+                        logger.critical(f"TypeError during message processing in receiver for {client_info}: {te}. This often means trying to access Pydantic object like a dict. Raw data: {data}", exc_info=True)
+                        await self.send_error(websocket, "internal_receiver_logic_error", "Internal logic error during message processing")
+                        await get_dead_letter_queue().enqueue({
                             'original_raw_data': data,
+                            'error': 'type_error_in_receiver',
+                            'details': str(te),
+                            'timestamp': time.time(),
+                            'client_id': client_info
+                        })
+                        continue
+                    except Exception as e:
+                        logger.error(f"Unhandled error processing received message from {client_info}: {e}", exc_info=True)
+                        await self.send_error(websocket, "internal_receiver_error", "Error processing message")
+                        await get_dead_letter_queue().enqueue({ # Enqueue to DLQ on general error
+                            'original_raw_data': data, # Capture the data that caused the error
                             'error': 'unhandled_receiver_error',
                             'details': str(e),
                             'timestamp': time.time(),
                             'client_id': client_info
                         })
                         continue # Continue loop, discard this message
-                
-                except WebSocketDisconnect as e: 
+
+                except WebSocketDisconnect as e:
                     logger.info(f"WebSocket disconnected from {client_info} while receiving: Code {e.code}")
                     break # Exit loop on disconnect
                 except Exception as e: # Catch other potential receive errors (e.g., connection issues)
@@ -286,7 +305,7 @@ class WebSocketManager:
         finally:
             pass # No specific cleanup in receiver, handled by handle_connection finally block
 
-    async def send_ack(self, websocket: WebSocket): # Changed from _send_ack
+    async def send_ack(self, websocket: WebSocket):
         """Send connection acknowledgment"""
         client_info = self._get_formatted_client_address(websocket) # Use the helper
         ack = {
@@ -314,13 +333,13 @@ class WebSocketManager:
         except Exception as e:
             logger.error(f"Error sending connection_ack to {client_info}: {e}")
 
-    async def cleanup_connection(self, websocket: WebSocket, client_info: str): # Changed from _cleanup_connection
+    async def cleanup_connection(self, websocket: WebSocket, client_info: str):
         """Clean up connection resources"""
         logger.info(f"Starting cleanup for {client_info}")
-        
+
         self.connections.discard(websocket)
         self.ack_status.pop(websocket, None)
-        
+
         if websocket.client_state != WebSocketState.DISCONNECTED:
             try:
                 await websocket.close(code=1000)
@@ -334,7 +353,7 @@ class WebSocketManager:
 
         logger.info(f"Connection cleanup completed for {client_info}. Remaining connections: {len(self.connections)}")
 
-    async def send_error(self, websocket: WebSocket, error_type: str, error_msg: str): # Changed from _send_error
+    async def send_error(self, websocket: WebSocket, error_type: str, error_msg: str):
         """Send error response to client with a specific type."""
         client_info = self._get_formatted_client_address(websocket)
         try:
@@ -348,9 +367,9 @@ class WebSocketManager:
             error_ws_message = WebSocketMessage.parse_obj(error_response)
             if websocket.client_state == WebSocketState.CONNECTED:
                 try:
-                    await websocket.send_text(error_ws_message.json())
+                    await websocket.send_text(error_ws_message.model_dump_json()) # Pydantic v2
                 except AttributeError:
-                    await websocket.send_text(error_ws_message.json())
+                    await websocket.send_text(error_ws_message.json()) # Pydantic v1
             else:
                 logger.warning(f"Attempted to send error but WebSocket for {client_info} was not connected: {error_response}")
         except Exception as e:
@@ -378,7 +397,7 @@ class WebSocketManager:
                         except asyncio.CancelledError:
                             pass
                 del self.active_tasks[websocket_id]
-            await self.cleanup_connection(websocket, client_info) # Changed from _cleanup_connection
+            await self.cleanup_connection(websocket, client_info)
         logger.info("WebSocketManager shutdown complete.")
 
     async def handle_message(self, websocket: WebSocket, raw_data: str):
@@ -392,20 +411,20 @@ class WebSocketManager:
         try:
             message_dict = json.loads(raw_data)
         except json.JSONDecodeError:
-            await self.send_error(websocket, "invalid_json_format", "Invalid JSON format") # Changed from _send_error
+            await self.send_error(websocket, "invalid_json_format", "Invalid JSON format")
             return
 
         try:
             if not isinstance(message_dict, dict):
-                await self.send_error(websocket, "invalid_message_format", "Message must be a JSON object") # Changed from _send_error
+                await self.send_error(websocket, "invalid_message_format", "Message must be a JSON object")
                 return
-                
+
             required_fields = ['type', 'data']
             missing_fields = [field for field in required_fields if field not in message_dict]
             if missing_fields:
-                await self.send_error(websocket, "missing_fields", f"Missing required fields: {', '.join(missing_fields)}") # Changed from _send_error
+                await self.send_error(websocket, "missing_fields", f"Missing required fields: {', '.join(missing_fields)}")
                 return
-            
+
             # --- CRUCIAL FIX FOR CLIENT_ID in handle_message ---
             if 'client_id' in message_dict and isinstance(message_dict['client_id'], (list, tuple)):
                 message_dict['client_id'] = f"{message_dict['client_id'][0]}:{message_dict['client_id'][1]}"
@@ -418,7 +437,7 @@ class WebSocketManager:
                 msg = WebSocketMessage.parse_obj(message_dict)
             except ValidationError as e:
                 error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-                await self.send_error(websocket, "message_validation_failed", f"Validation failed: {error_details}") # Changed from _send_error
+                await self.send_error(websocket, "message_validation_failed", f"Validation failed: {error_details}")
                 # Enqueue to DLQ for messages received via handle_message (endpoint)
                 await get_dead_letter_queue().enqueue({
                     'original_raw_data': raw_data,
@@ -437,7 +456,7 @@ class WebSocketManager:
 
         except Exception as e:
             logger.error(f"Top-level message handling error for {client_info} in handle_message: {e}", exc_info=True)
-            await self.send_error(websocket, "internal_server_error", "Internal server error during message processing") # Changed from _send_error
+            await self.send_error(websocket, "internal_server_error", "Internal server error during message processing")
             await get_dead_letter_queue().enqueue({
                 'original_raw_data': raw_data,
                 'error': 'endpoint_processing_exception',
@@ -454,7 +473,7 @@ class WebSocketManager:
         If this is called, ensure MessageProcessor isn't also acting on them to avoid duplication.
         """
         command = msg.data.get('command')
-        
+
         # Ensure client_id is a string here, as per our expectation from _receiver/handle_message
         client_id_str: str = msg.client_id if isinstance(msg.client_id, str) else 'unknown'
 
@@ -479,7 +498,7 @@ class WebSocketManager:
         queue_msg = self._create_queue_message(msg, source='frontend_data', status='processed')
         await get_from_frontend_queue().enqueue(queue_msg)
 
-    async def send_personal_message(self, message_data: Dict[str, Any], client_id: str):
+    async def send_message_to_client(self, client_id: str, message_data: Dict[str, Any]):
         """Sends a message directly to a specific client by its client_id (host:port)."""
         logger.info(f"Attempting to send personal message to client: {client_id}")
         target_websocket = None
@@ -494,9 +513,9 @@ class WebSocketManager:
                 message_data.setdefault('id', str(uuid.uuid4()))
                 message_data.setdefault('timestamp', time.time())
                 message_data.setdefault('client_id', client_id) # Ensure client_id is set
-                
+
                 ws_msg = WebSocketMessage.parse_obj(message_data)
-                
+
                 if target_websocket.client_state == WebSocketState.CONNECTED:
                     try:
                         await target_websocket.send_text(ws_msg.model_dump_json())
