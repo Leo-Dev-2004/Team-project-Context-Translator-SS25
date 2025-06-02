@@ -12,7 +12,7 @@ from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -85,7 +85,10 @@ class SystemRunner:
         if not self.check_ports_available():
             sys.exit(1)
 
-        logger.info("Starting backend server...")
+        logger.info("Starting backend server with debug logging...")
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('websockets').setLevel(logging.INFO)
+        logging.getLogger('asyncio').setLevel(logging.INFO)
         # Use clean environment without PYTHONPATH override
         env = os.environ.copy()
 

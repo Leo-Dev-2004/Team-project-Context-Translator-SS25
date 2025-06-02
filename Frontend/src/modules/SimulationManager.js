@@ -1,19 +1,25 @@
 // frontend/src/modules/SimulationManager.js
 
-import WebSocketManager from './WebSocketManager.js';
+import { WebSocketManager } from './WebSocketManager.js';
 import { fromBackendQueue, toBackendQueue } from '../app.js'; // Import queues from app.js
 
 async function startSimulation() {
     console.group('startSimulation');
     console.log('TRACE: startSimulation called!');
     try {
-        // Clear queues before starting new simulation
-        toBackendQueue.clear();
-        fromBackendQueue.clear();
-        console.log('Queues cleared before simulation start');
+        // Clear all queues first (good practice for new sim run)
+        // It's good to ensure queues are clear for a new simulation,
+        // but the SimulationManager might not be the best place to clear *all* queues.
+        // Consider if this logic belongs elsewhere or needs to be more targeted.
 
-        const response = await fetch('/api/simulation/start', {
-            method: 'GET',
+        // Example of how you *would* get the last message from a queue if needed:
+        // const lastMessage = fromBackendQueue.getLastMessage(); // Assuming MessageQueue has this method
+        // console.log("Last message from backend queue:", lastMessage);
+
+        // debugger; // Keep this if you want to pause here
+
+        const response = await fetch('http://localhost:8000/simulation/start', {
+            method: 'POST', // Assuming it's a POST to start/stop
             mode: 'cors',
             credentials: 'include'
         });
@@ -25,17 +31,11 @@ async function startSimulation() {
 
         const result = await response.json();
         console.log('Simulation start response:', result);
-        document.getElementById('simulationStatus').textContent = 'Simulation started';
-        document.getElementById('simulationStatus').style.color = 'green';
+        // WebSocketManager.sendMessage({ type: 'simulation_started', content: result }); // Or handle via QueueForwarder
 
     } catch (error) {
         console.error('Failed to start simulation:', error);
-        let errorMsg = error.message;
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            errorMsg = 'Backend server not reachable. Is it running?';
-        }
-        document.getElementById('simulationStatus').textContent = `Failed to start: ${errorMsg}`;
-        document.getElementById('simulationStatus').style.color = 'red';
+        document.getElementById('simulationStatus').textContent = `Failed to start: ${error.message}`;
     }
     console.groupEnd();
 }
@@ -44,10 +44,9 @@ async function stopSimulation() {
     console.group('stopSimulation');
     console.log('TRACE: stopSimulation called!');
     try {
-        // First try graceful stop via API
-        const response = await fetch('/api/simulation/stop', {
-            method: 'GET',
-            mode: 'cors', 
+        const response = await fetch('http://localhost:8000/simulation/stop', {
+            method: 'POST', // Assuming it's a POST
+            mode: 'cors',
             credentials: 'include'
         });
 
@@ -58,8 +57,7 @@ async function stopSimulation() {
 
         const result = await response.json();
         console.log('Simulation stop response:', result);
-        document.getElementById('simulationStatus').textContent = 'Simulation stopped';
-        document.getElementById('simulationStatus').style.color = 'red';
+        // WebSocketManager.sendMessage({ type: 'simulation_stopped', content: result }); // Or handle via QueueForwarder
 
     } catch (error) {
         console.error('Failed to stop simulation:', error);
