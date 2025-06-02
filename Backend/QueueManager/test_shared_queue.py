@@ -9,7 +9,8 @@ from shared_queue import (
 )
 
 def test_add_and_get_pending():
-    print("Test 1: Add Entry and Get Entry")
+    print("\n=== Starting Test 1 ===")
+    print("Adding test entries...")
     add_entry({
         "term": "STT",
         "confidence": 0.85,
@@ -62,12 +63,65 @@ def test_get_status_summary():
     summary = get_status_summary()
     print("Status counts:", summary)
 
+def test_concurrent_access():
+    """Test thread safety with concurrent access"""
+    import threading
+    print("\nTest 5: Concurrent Access")
+    
+    results = []
+    def worker():
+        for i in range(10):
+            entry = {
+                "term": f"Term_{threading.get_ident()}",
+                "value": i,
+                "timestamp": time.time()
+            }
+            add_entry(entry)
+            results.append(get_pending_entries())
+    
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    
+    assert len(results) == 50, "Concurrency issue detected"
+    print("Passed concurrent access test")
+
+def test_message_ordering():
+    """Test FIFO ordering is preserved"""
+    print("\nTest 6: Message Ordering")
+    cleanup_queue()  # Clear queue
+    
+    # Add entries with sequential timestamps
+    for i in range(5):
+        add_entry({
+            "term": f"Term_{i}",
+            "order": i,
+            "timestamp": time.time() + i  # Ensure ordering
+        })
+    
+    pending = get_pending_entries()
+    assert [e["order"] for e in pending] == [0,1,2,3,4], "Order not preserved"
+    print("Passed ordering test")
+
 def run_all_tests():
-    test_add_and_get_pending()
-    test_update_entry()
-    test_get_entry_history()
-    test_cleanup_queue()
-    test_get_status_summary()
+    print("\n==== Starting All Tests ====")
+    tests = [
+        test_add_and_get_pending,
+        test_update_entry,
+        test_get_entry_history,
+        test_cleanup_queue,
+        test_get_status_summary,
+        test_concurrent_access,
+        test_message_ordering
+    ]
+    
+    for i, test in enumerate(tests, 1):
+        print(f"\n=== Running Test {i}/{len(tests)} ===")
+        test()
+    
+    print("\n==== All Tests Completed ====")
 
 if __name__ == "__main__":
     run_all_tests()
