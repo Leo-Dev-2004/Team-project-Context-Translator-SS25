@@ -13,16 +13,11 @@ from pydantic import BaseModel
 
 # Ensure these imports are correct based on your file structure
 from ..core.simulator import SimulationManager
-from ..queues.shared_queue import (
-    get_to_backend_queue,
-    get_to_frontend_queue,
-    get_from_backend_queue,
-    get_from_frontend_queue,
-    get_dead_letter_queue
-)
-# REMOVED: direct import and instantiation of WebSocketManager here
+
 # from ..services.websocket_manager import WebSocketManager # No longer directly instantiated here
 from ..models.message_types import WebSocketMessage
+
+from ..core.Queues import queues
 
 # IMPORT THE GETTER FOR SIMULATION MANAGER AND THE NEW GETTER FOR WEBSOCKET MANAGER
 from ..dependencies import get_simulation_manager, get_websocket_manager_instance # ADDED get_websocket_manager_instance
@@ -180,23 +175,27 @@ async def debug_queues():
             details["id"] = item_dict.get('id')
         return details
 
+    assert queues.to_frontend is not None, "to_frontend queue must be initialized"
+    assert queues.from_frontend is not None, "from_frontend queue must be initialized"
+    assert queues.to_backend is not None, "to_backend queue must be initialized"
+    assert queues.from_backend is not None, "from_backend queue must be initialized"
 
     return {
         "to_frontend_queue": {
-            "size": get_to_frontend_queue().qsize(),
-            "items": [format_queue_item_details(item) for item in list(get_to_frontend_queue().get_items_snapshot())]
+            "size": queues.to_frontend.qsize(),
+            "items": [format_queue_item_details(item) for item in list(queues.to_frontend.get_items_snapshot())]
         },
         "from_frontend_queue": {
-            "size": get_from_frontend_queue().qsize(),
-            "items": [format_queue_item_details(item) for item in list(get_from_frontend_queue().get_items_snapshot())]
+            "size": queues.from_frontend.qsize(),
+            "items": [format_queue_item_details(item) for item in list(queues.from_frontend.get_items_snapshot())]
         },
         "to_backend_queue": {
-            "size": get_to_backend_queue().qsize(),
-            "items": [format_queue_item_details(item) for item in list(get_to_backend_queue().get_items_snapshot())]
+            "size": queues.to_backend.qsize(),
+            "items": [format_queue_item_details(item) for item in list(queues.to_backend.get_items_snapshot())]
         },
         "from_backend_queue": {
-            "size": get_from_backend_queue().qsize(),
-            "items": [format_queue_item_details(item) for item in list(get_from_backend_queue().get_items_snapshot())]
+            "size": queues.from_backend.qsize(),
+            "items": [format_queue_item_details(item) for item in list(queues.from_backend.get_items_snapshot())]
         }
     }
 

@@ -2,25 +2,12 @@
 import asyncio
 import logging
 from typing import Optional
+
 from Backend.core.simulator import SimulationManager
-from Backend.queues.shared_queue import (
-    get_from_backend_queue,
-    get_to_backend_queue,
-    get_to_frontend_queue,
-    get_from_frontend_queue,
-    # ADDED: Import get_dead_letter_queue
-    get_dead_letter_queue
-)
-# ADDED: Import WebSocketManager and its getter/setter
 from Backend.services.websocket_manager import WebSocketManager
-
-
+from Backend.core.Queues import queues
 logger = logging.getLogger(__name__)
-
-# This global variable will hold the SimulationManager instance
 _global_sim_manager_instance: Optional[SimulationManager] = None
-
-# This global variable will hold the WebSocketManager instance
 _global_ws_manager_instance: Optional[WebSocketManager] = None
 
 
@@ -39,14 +26,21 @@ def get_simulation_manager(require_ready: bool = True) -> SimulationManager:
 
     if _global_sim_manager_instance is None:
         logger.info("Initializing SimulationManager with queues")
+        assert queues.to_backend is not None, "to_backend queue must be initialized before creating SimulationManager"
+        assert queues.from_backend is not None, "from_backend queue must be initialized before creating SimulationManager"
+        assert queues.to_frontend is not None, "to_frontend queue must be initialized before creating SimulationManager"
+        assert queues.from_frontend is not None, "from_frontend queue must be initialized before creating SimulationManager"
+        assert queues.dead_letter is not None, "dead_letter queue must be initialized before creating SimulationManager"
+        # Initialize the SimulationManager with the queues
+        logger.info("Creating SimulationManager instance with provided queues")
         _global_sim_manager_instance = SimulationManager(
-            to_backend_queue=get_to_backend_queue(),
+            to_backend_queue=queues.to_backend,  # Ensure this is correct
             # FIX: Changed from_backend_queue to use get_from_backend_queue()
-            from_backend_queue=get_from_backend_queue(), # Ensure this is correct
-            to_frontend_queue=get_to_frontend_queue(),
-            from_frontend_queue=get_from_frontend_queue(),
+            from_backend_queue=queues.from_backend, # Ensure this is correct
+            to_frontend_queue=queues.to_frontend,
+            from_frontend_queue=queues.from_frontend,
             # FIX: Use get_dead_letter_queue() to get an actual MessageQueue instance
-            dead_letter_queue=get_dead_letter_queue()
+            dead_letter_queue=queues.dead_letter
         )
         logger.info(f"SimulationManager initialized on loop {id(asyncio.get_running_loop())}")
 

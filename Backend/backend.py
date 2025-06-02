@@ -2,21 +2,16 @@ import logging
 import asyncio
 import uuid
 import time # Ensure time is imported if used in commented out sections or elsewhere
-from typing import Optional, Dict, Set, Any
+from typing import Optional, cast
 
-from fastapi import FastAPI, Depends, WebSocket
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.websockets import WebSocketDisconnect # Import WebSocketDisconnect here
 
 # Import the shared queue functions
-from Backend.queues.shared_queue import (
-    get_initialized_queues,
-    get_to_backend_queue,
-    get_from_backend_queue,
-    get_to_frontend_queue,
-    get_from_frontend_queue,
-    get_dead_letter_queue,
-)
+from Backend.models.message_types import QueueMessage, WebSocketMessage
+
+from Backend.core.Queues import queues # Import the global shared queues instance
 
 # Import the SimulationManager class (for type hinting and instantiation)
 from Backend.core.simulator import SimulationManager
@@ -26,6 +21,7 @@ from Backend.core.message_processor import MessageProcessor
 from Backend.core.queue_forwarder import QueueForwarder
 
 # ADDED: Import WebSocketManager
+from Backend.queues.MessageQueue import initialize_and_assert_queues
 from Backend.services.websocket_manager import WebSocketManager # Adjust this import path if needed
 
 # Import the API router (ensure this is from the correct relative path)
@@ -85,6 +81,8 @@ simulation_manager_instance: Optional[SimulationManager] = None
 # ADDED: Declare global WebSocketManager instance
 websocket_manager_instance: Optional[WebSocketManager] = None
 
+
+
 # --- NEW: BACKGROUND TASK TO SEND QUEUE STATUS TO FRONTEND ---
 async def send_queue_status_to_frontend():
     # Wait a bit for initial connection and setup to complete
@@ -93,10 +91,9 @@ async def send_queue_status_to_frontend():
         try:
             # Ensure these are the correct queue instances being checked
             # Use the queues initialized during startup
-            queues = await get_initialized_queues() # Or use a global `shared_queues` dict if you set one up
-            from_frontend_q = queues.get("from_frontend")
-            to_frontend_q = queues.get("to_frontend")
-            dead_letter_q = queues.get("dead_letter") # Ensure this is also in your initialized_queues or accessible
+            from_frontend_q = queues.from_frontend
+            to_frontend_q = queues.to_frontend
+            dead_letter_q = queues.dead_letter # Ensure this is also in your initialized_queues or accessible
 
             from_frontend_q_size = from_frontend_q.qsize() if from_frontend_q else 0
             to_frontend_q_size = to_frontend_q.qsize() if to_frontend_q else 0
@@ -148,32 +145,34 @@ async def startup_event():
     logger.info("Application startup event triggered.")
 
     # 1. Initialize all shared queues
-    queues = await get_initialized_queues()
-    logger.info("Shared queues initialized.")
+    await initialize_and_assert_queues()
+    logger.info("queues initialized.")
 
-    # 2. Get queue instances
-    to_backend_q = queues["to_backend"]
-    from_backend_q = queues["from_backend"]
-    to_frontend_q = queues["to_frontend"]
-    from_frontend_q = queues["from_frontend"]
-    dead_letter_q = get_dead_letter_queue()
-    logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
+    # Assert that they are not None after initialization
+    assert queues is not None, "to_backend queue was not initialized!"
+    assert queues.from_backend is not None, "from_backend queue was not initialized!"
+    assert queues.to_backend is not None, "to_backend queue was not initialized!"
+    assert queues.to_frontend is not None, "to_frontend queue was not initialized!"
+    assert queues.from_frontend is not None, "from_frontend queue was not initialized!"
+    assert queues.dead_letter is not None, "dead_letter queue was not initialized!"
 
     # ADDED: Initialize WebSocketManager instance first
     global websocket_manager_instance
-    websocket_manager_instance = WebSocketManager(from_frontend_queue=from_frontend_q)
+    websocket_manager_instance = WebSocketManager(from_frontend_queue=queues.from_frontend)
     set_websocket_manager_instance(websocket_manager_instance)  # Store in dependencies
     logger.info("WebSocketManager initialized and stored in dependencies.")
 
     # 3. Initialize the SimulationManager with all required queues
     global simulation_manager_instance
+    from .queues.MessageQueue import MessageQueue  # Ensure the queues module is imported to access the global queues instance
     simulation_manager_instance = SimulationManager(
-        to_backend_queue=to_backend_q,
-        to_frontend_queue=to_frontend_q,
-        from_backend_queue=from_backend_q,
-        from_frontend_queue=from_frontend_q,
-        dead_letter_queue=dead_letter_q
+        to_backend_queue=cast(MessageQueue, queues.to_backend),
+        to_frontend_queue=cast(MessageQueue, queues.to_frontend),
+        from_backend_queue=cast(MessageQueue, queues.from_backend),
+        from_frontend_queue=cast(MessageQueue, queues.from_frontend),
+        dead_letter_queue=cast(MessageQueue, queues.dead_letter)
     )
+    logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
     if not hasattr(simulation_manager_instance, 'is_ready'):
         simulation_manager_instance.is_ready = False
     simulation_manager_instance.is_ready = True
@@ -195,6 +194,7 @@ async def startup_event():
     # MODIFIED: Pass the newly created websocket_manager_instance
     queue_forwarder_instance = QueueForwarder(websocket_manager=websocket_manager_instance)
     await queue_forwarder_instance.initialize()
+    # Pass a suitable message argument if required by forward(), e.g., None or an initial message
     queue_forwarder_task = asyncio.create_task(queue_forwarder_instance.forward())
     logger.info("QueueForwarder task started.")
 

@@ -7,7 +7,9 @@ import logging
 import uuid # This import is crucial and now correctly present
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
-from ..queues.shared_queue import MessageQueue
+
+from Backend.queues.queue_types import AbstractMessageQueue
+from ..queues.MessageQueue import MessageQueue
 from ..models.message_types import QueueMessage
 
 logger = logging.getLogger(__name__)
@@ -28,11 +30,11 @@ class SystemMessage:
 class SimulationManager:
     def __init__(
         self,
-        to_backend_queue: MessageQueue,
-        to_frontend_queue: MessageQueue,
-        from_backend_queue: MessageQueue,
-        from_frontend_queue: MessageQueue,
-        dead_letter_queue: MessageQueue
+        to_backend_queue: AbstractMessageQueue,
+        to_frontend_queue: AbstractMessageQueue,
+        from_backend_queue: AbstractMessageQueue,
+        from_frontend_queue: AbstractMessageQueue,
+        dead_letter_queue: AbstractMessageQueue
     ):
         self._running = False
         self.running = False
@@ -266,7 +268,7 @@ class SimulationManager:
             await asyncio.sleep(0.5 + 1.5 * random.random())
             
             if self.counter % 5 == 0:
-                self._monitor_queues()
+                await self._monitor_queues()
         
         logger.info(f"Simulation stopped for client: {client_id}")
 
@@ -285,7 +287,7 @@ class SimulationManager:
         )
         await self._to_frontend_queue.enqueue(final_status_msg)
 
-    def _monitor_queues(self):
+    async def _monitor_queues(self):
         """Monitor queue health"""
         to_backend_size = self._to_backend_queue.qsize()
         from_backend_size = self._from_backend_queue.qsize()
@@ -298,9 +300,11 @@ class SimulationManager:
         if to_backend_size > 5:
             logger.warning(f"to_backend_queue has {to_backend_size} messages")
             try:
-                oldest_msg = self._to_backend_queue._queue[0]
-                age = time.time() - oldest_msg.get('timestamp', time.time())
-                logger.warning(f"Oldest message age: {age:.2f}s (ID: {oldest_msg.get('data', {}).get('id')})")
+                oldest_msg = self._to_backend_queue.peek()
+                if oldest_msg:
+                    age = time.time() - getattr(oldest_msg, 'timestamp', time.time())
+                    msg_id = getattr(oldest_msg, 'data', {}).get('id') if isinstance(getattr(oldest_msg, 'data', None), dict) else None
+                    logger.warning(f"Oldest message age: {age:.2f}s (ID: {msg_id})")
             except Exception as e:
                 logger.error(f"Error checking queue: {str(e)}")
                 

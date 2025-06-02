@@ -10,10 +10,10 @@ from fastapi.websockets import WebSocketState
 from typing import Dict, Any, Optional, Union
 from starlette.websockets import WebSocketDisconnect
 
-# Ensure these imports match your actual queue and model paths
-from ..queues.shared_queue import get_to_frontend_queue, get_from_frontend_queue, get_dead_letter_queue
 # IMPORTANT: Import QueueMessage and DeadLetterMessage from your models
 from Backend.models.message_types import QueueMessage, DeadLetterMessage, WebSocketMessage # Assuming WebSocketMessage is also a Pydantic model
+
+from Backend.core.Queues import queues
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class WebSocketManager:
         # Using a dictionary to map client_id to its tasks (sender_task, receiver_task)
         self.active_tasks: Dict[str, tuple[asyncio.Task, asyncio.Task]] = {}
         self._running = True  # Flag for graceful shutdown
-        self.from_frontend_queue = from_frontend_queue if from_frontend_queue else get_from_frontend_queue()
-        self.to_frontend_queue = get_to_frontend_queue()
-        self.dead_letter_queue = get_dead_letter_queue()
+        self.from_frontend_queue = from_frontend_queue if from_frontend_queue else queues.from_frontend
+        self.to_frontend_queue = queues.to_frontend
+        self.dead_letter_queue = queues.dead_letter
 
     # Helper to get the formatted client address string
     def _get_formatted_client_address(self, websocket: WebSocket) -> str:
@@ -71,6 +71,7 @@ class WebSocketManager:
                 error_details=details,
                 client_id=client_id
             )
+            assert self.dead_letter_queue is not None, "Dead letter queue not initialized!"
             await self.dead_letter_queue.enqueue(dl_message)
             logger.error(f"Message sent to DLQ (reason: {reason})")
         except Exception as e:
@@ -201,6 +202,7 @@ class WebSocketManager:
                 try:
                     # Dequeue message from the shared to_frontend_queue
                     # This now returns a Pydantic QueueMessage or DeadLetterMessage object
+                    assert self.to_frontend_queue is not None, "to_frontend_queue not initialized!"
                     message: Union[QueueMessage, DeadLetterMessage] = await asyncio.wait_for(
                         self.to_frontend_queue.dequeue(),
                         timeout=1.0 # Short timeout to check connection status and running flag
@@ -378,7 +380,7 @@ class WebSocketManager:
                             error_type="PydanticValidationError_WebSocketMessage",
                             error_details=str(e)
                         )
-                        )
+                        
                         continue # Skip to next receive loop if message is malformed
                     except Exception as e:
                         logger.critical(f"[{client_id}] [Receiver {msg_counter}] CRITICAL: Unexpected error during message parsing/validation: {e}\nRaw data: {data[:200]}...", exc_info=True)
@@ -395,6 +397,7 @@ class WebSocketManager:
                     # --- Enqueueing the Validated Pydantic Message ---
                     try:
                         logger.debug(f"[{client_id}] [Receiver {msg_counter}] Enqueueing message {message_for_queue.id} of type '{message_for_queue.data['type']}' to from_frontend_queue.")
+                        assert self.from_frontend_queue is not None, "from_frontend_queue not initialized!"
                         await self.from_frontend_queue.enqueue(message_for_queue)
                     except Exception as e:
                         logger.error(f"[{client_id}] [Receiver {msg_counter}] Failed to enqueue message {message_for_queue.id} to from_frontend_queue: {e}", exc_info=True)
@@ -527,12 +530,14 @@ class WebSocketManager:
                 return False
 
         except ValidationError as e:
-            logger.error(f"[{client_id}] Validation error for direct message: {e.errors()}. Original data: {message_data}", exc_info=True)
-            await self._send_to_dead_letter_queue(
-                original_message=message_data.model_dump() if hasattr(message_data, "model_dump") else dict(message_data),
-                reason=f"Validation error: {str(e)}",
-                client_id=client_id
-            )
+            logging.critical(f"Failed to validate DeadLetterMessage before sending to DLQ: {e}. ")
+            #logging.critical(traceback.format_exc())            #logger.error(f"[{client_id}] Validation error for direct message: {e.errors()}. Original data: {message_data}", exc_info=True)
+            
+            #await self._send_to_dead_letter_queue(
+               # original_message=message_data.model_dump() if hasattr(message_data, "model_dump") and callable(message_data.model_dump) else message_data,
+              #  reason=f"Validation error: {str(e)}",
+             #   client_id=client_id
+            #)
             return False
         except Exception as e:
             logger.error(f"Failed to send message to {client_id}: {e}", exc_info=True)

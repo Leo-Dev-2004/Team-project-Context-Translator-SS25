@@ -8,14 +8,10 @@ import uuid
 from typing import Optional, Dict, Any, Union, cast # Import Union for type hints
 from pydantic import ValidationError
 
-from ..queues.shared_queue import (
-    get_from_frontend_queue,
-    get_to_backend_queue,
-    get_to_frontend_queue,
-    get_dead_letter_queue
-)
 # Import all necessary Pydantic models for type hinting and instantiation
 from ..models.message_types import ProcessingPathEntry, WebSocketMessage, ErrorTypes, QueueMessage, DeadLetterMessage
+
+from .Queues import queues
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +27,9 @@ class MessageProcessor:
     async def initialize(self):
         """Sichere Initialisierung mit Queue-Validierung"""
         try:
-            self._input_queue = get_from_frontend_queue()
-            self._output_queue = get_to_frontend_queue()
-            self._dead_letter_queue = get_dead_letter_queue()
+            self._input_queue = queues.from_frontend
+            self._output_queue = queues.to_frontend
+            self._dead_letter_queue = queues.dead_letter
 
             if None in (self._input_queue, self._output_queue, self._dead_letter_queue):
                 raise RuntimeError("One or more MessageProcessor queues not initialized correctly")
@@ -146,48 +142,67 @@ class MessageProcessor:
         This function handles messages that are either direct WebSocketMessages
         or QueueMessages that contain a WebSocketMessage in their 'data' field.
         """
-        msg: Optional[WebSocketMessage] = None # This variable will hold the actual WebSocketMessage instance
+        msg: Optional[WebSocketMessage] = None
         msg_id: str = "unknown"
 
         try:
             if isinstance(message, QueueMessage):
-                # The actual WebSocketMessage is already stored in the 'data' field of the QueueMessage
                 if isinstance(message.data, WebSocketMessage):
-                    msg = message.data # Use it directly if it's already a WebSocketMessage
+                    msg = message.data
                 elif isinstance(message.data, dict):
-                    # If for some reason message.data is a dict (e.g., from direct FastAPI endpoint),
-                    # then validate it into a WebSocketMessage
                     msg = WebSocketMessage.model_validate(message.data)
                 else:
-                    # This case should be rare, but handles unexpected types in QueueMessage.data
                     raise TypeError(f"Unexpected type in QueueMessage.data: {type(message.data).__name__}. Expected WebSocketMessage or dict.")
             elif isinstance(message, WebSocketMessage):
-                # If the message is already a WebSocketMessage, use it directly
                 msg = message
             else:
-                # This should ideally not happen if types are strictly enforced upstream
                 raise TypeError(f"Received unsupported message type for processing: {type(message).__name__}. Expected QueueMessage or WebSocketMessage.")
 
-            msg_id = msg.id if msg.id is not None else "unknown"  # Ensure msg_id is always a string
+            msg_id = msg.id if msg.id is not None else "unknown"
 
             logger.info(f"Processing message ID: {msg_id}, Type: {msg.type}, Client ID: {msg.client_id}")
 
-            # --- Your existing message processing logic goes here, using 'msg' ---
-            # Example:
-            if msg.type == "frontend_init":
-                logger.info(f"Frontend initialized by client {msg.client_id} with message: {msg.data.get('message')}")
-                # You can now access msg.data for the specific content of this message type
-                # For frontend_init, msg.data might be something like {"message": "Frontend ready acknowledged"}
-                # You should not try to re-validate msg.data as a WebSocketMessage
+            # --- MODIFIED: Add handlers for 'frontend_ready_ack' and 'ping' ---
+            if msg.type == "frontend_ready_ack":
+                logger.info(f"Received 'frontend_ready_ack' from client {msg.client_id}. Frontend is ready.")
+                # Optional: Send a confirmation back to the frontend
+                await self.safe_enqueue(self._output_queue, QueueMessage(
+                    id=f"backend-ready-confirm-{msg.id}",
+                    type="backend_ready_confirm", # You'll need to define this type in WebSocketMessage if you send it
+                    data={"message": "Backend received your ready signal!"},
+                    client_id=msg.client_id
+                ))
+            elif msg.type == "ping":
+                logger.debug(f"Received 'ping' from client {msg.client_id}. Sending 'pong'.")
+                await self.safe_enqueue(self._output_queue, QueueMessage(
+                    id=f"pong-{msg.id}",
+                    type="pong", # Frontend should expect a 'pong' type message
+                    data={"timestamp": time.time()},
+                    client_id=msg.client_id
+                ))
             elif msg.type == "user_input":
                 logger.info(f"Received user input from {msg.client_id}: {msg.data.get('text')}")
-                # Process user input
+                # Process user input as before
             elif msg.type == "start_simulation":
                 logger.info(f"Starting simulation for client {msg.client_id}")
-                # Start simulation
+                # Start simulation as before
+            elif msg.type == "frontend_init": # Assuming frontend_init is distinct from frontend_ready_ack
+                logger.info(f"Frontend initialized by client {msg.client_id} with message: {msg.data.get('message')}")
             else:
-                logger.warning(f"Unknown WebSocket message type: {msg.type} from client {msg.client_id}")
-                # Potentially send to DLQ if unknown types are errors, or handle gracefully
+                logger.warning(f"Unknown WebSocket message type: {msg.type} from client {msg.client_id}. Sending to DLQ.")
+                await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
+                    original_message=msg.model_dump(),
+                    reason="UnknownMessageType",
+                    error_details={
+                        "type": "UnknownMessageType",
+                        "message": f"No handler found for type: {msg.type}",
+                        "component": "MessageProcessor",
+                        "timestamp": time.time(),
+                        "client_id": msg.client_id
+                    },
+                    client_id=msg.client_id,
+                    id=f"dlq-{msg.id}"
+                ))
 
         except ValidationError as e:
             # This catches validation errors during initial message parsing or within command logic

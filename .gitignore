@@ -1,4 +1,43 @@
 .aider*
 .env
-.env
-.env
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+venv/
+# Assuming 'veny' is your virtual environment directory as seen in the image
+veny/
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+# --- Neu hinzugefügt: Testdateien ---
+test_fastapi.py
+test_imports.py
+test_websocket_client*.py # Erfasst test_websocket_client.py und ähnliche
+# --- Ende der neuen Einträge ---
+
+# Logs
+*.log
+backend.log
+system.log
