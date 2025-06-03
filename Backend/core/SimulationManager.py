@@ -124,7 +124,7 @@ class SimulationManager:
         """Stop the simulation"""
         logger.info(f"Attempting to stop simulation for client: {client_id if client_id else 'N/A'}")
 
-        if not self.running:
+        if not self._running:
             logger.info("Simulation is not running. No action needed.")
             status_msg = UniversalMessage(
                 type="status.simulation_stop",

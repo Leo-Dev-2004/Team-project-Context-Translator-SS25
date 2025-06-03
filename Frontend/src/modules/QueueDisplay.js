@@ -12,11 +12,62 @@ const backendQueueDisplayMap = {
 
 // Map frontend's *local* queue names to their display IDs
 const frontendQueueDisplayMap = {
-    'toBackendQueue': 'frontendOutgoingQueueDisplay', // Frontend's queue for messages *to* backend
-    'fromBackendQueue': 'frontendIncomingQueueDisplay', // Frontend's queue for messages *from* backend
-    'frontendActionQueue': 'frontendActionQueueDisplay', // Your existing frontend queue if you use it
-    'frontendDisplayQueue': 'frontendDisplayQueueDisplay', // Your existing frontend queue if you use it
+        // Frontend's perspective of queues (defined by MessageQueue in app.js and passed to WebSocketManager)
+    // These are updated via subscriptions in app.js and WebSocketManager.js
+    'toBackendQueueDisplay': 'toBackendQueueDisplay',       // Used in app.js for toBackendQueue subscription
+    'fromBackendQueueDisplay': 'fromBackendQueueDisplay',   // Used in app.js for fromBackendQueue subscription
+
+    // Backend's perspective of queues (sent by backend system.queue_status_update messages)
+    // These correspond to the backend's internal queue names
+    'incoming': 'fromFrontendQueueDisplay',     // Backend's 'incoming' is Frontend's 'fromFrontendQueueDisplay'
+    'outgoing': 'toFrontendQueueDisplay',       // Backend's 'outgoing' is Frontend's 'toFrontendQueueDisplay'
+    'dead_letter': 'deadLetterQueueDisplay',    // Backend's 'dead_letter'
+
+    // Special IDs for WebSocketManager's internal updateQueueDisplay calls
+    // Note: Your WebSocketManager uses 'incomingQueueDisplay' and 'outgoingQueueDisplay' directly.
+    // However, your HTML uses 'fromFrontendQueueDisplay' and 'toFrontendQueueDisplay'
+    // for what the backend's incoming/outgoing queues *represent*.
+    // And 'toBackendQueueDisplay' and 'fromBackendQueueDisplay' for the frontend's internal queues.
+    // We need to make sure the names align.
+    // The previous analysis identified a potential mismatch in how WebSocketManager was calling updateQueueDisplay.
+    // Let's ensure the *string names* passed to updateQueueDisplay match the keys here.
+
+    // Re-evaluating based on the console log and your HTML:
+    // WebSocketManager.js uses these internal names for subscriptions:
+    //   - updateQueueDisplay('incomingQueueDisplay', size, items); // from _incomingFrontendQueue subscription
+    //   - updateQueueDisplay('outgoingQueueDisplay', size, items); // from _outgoingFrontendQueue subscription
+    //
+    // The HTML has these elements:
+    //   - id="fromFrontendQueueDisplay"
+    //   - id="toBackendQueueDisplay"
+    //   - id="fromBackendQueueDisplay"
+    //   - id="toFrontendQueueDisplay"
+    //   - id="deadLetterQueueDisplay"
+
+    // Let's refine the mapping to ensure all calls match the HTML IDs.
+
+    // Mapping for WebSocketManager.js subscriptions to frontend internal queues:
+    // When _incomingFrontendQueue (what frontend sends) changes, it calls 'incomingQueueDisplay'
+    // This frontend queue is what app.js calls 'toBackendQueue'
+    // And its display is 'toBackendQueueDisplay' in HTML.
+    'incomingQueueDisplay': 'toBackendQueueDisplay', // WebSocketManager's internal name for frontend's "send" queue
+
+    // When _outgoingFrontendQueue (what frontend receives) changes, it calls 'outgoingQueueDisplay'
+    // This frontend queue is what app.js calls 'fromBackendQueue'
+    // And its display is 'fromBackendQueueDisplay' in HTML.
+    'outgoingQueueDisplay': 'fromBackendQueueDisplay', // WebSocketManager's internal name for frontend's "receive" queue
+
+    // Mapping for `app.js` direct subscriptions to frontend internal queues:
+    'toBackendQueueDisplay': 'toBackendQueueDisplay',
+    'fromBackendQueueDisplay': 'fromBackendQueueDisplay',
+
+    // Mapping for backend queue status updates (from backend `message.type === 'queue_status_update'`)
+    // The backend sends 'incoming', 'outgoing', 'dead_letter' as queue_name in payload
+    'incoming': 'fromFrontendQueueDisplay', // Backend's 'incoming' is the frontend's 'fromFrontendQueueDisplay'
+    'outgoing': 'toFrontendQueueDisplay',   // Backend's 'outgoing' is the frontend's 'toFrontendQueueDisplay'
+    'dead_letter': 'deadLetterQueueDisplay', // Backend's 'dead_letter'};
 };
+
 
 /**
  * Updates a specific queue's display in the HTML.
@@ -56,7 +107,7 @@ function updateQueueDisplay(queueName, size, items) {
 
     // Special handling for Dead Letter Queue, as its structure might differ
     if (elementId === 'deadLetterQueueDisplay') {
-        const itemsContainer = displayElement.querySelector('.queue-items');
+        const itemsContainer = displayElement.querySelector('.message-items-container');
         if (itemsContainer) {
             itemsContainer.innerHTML = ''; // Clear existing items
 
@@ -82,7 +133,7 @@ function updateQueueDisplay(queueName, size, items) {
     // --- Standard Queue Display Logic (for non-Dead Letter Queues) ---
     const itemsToDisplay = items.slice(-MAX_DISPLAY_ITEMS_PER_QUEUE); // Show last N items
 
-    const itemsContainer = displayElement.querySelector('.queue-items');
+    const itemsContainer = displayElement.querySelector('.message-items-container');
     if (!itemsContainer) {
         console.error(`Queue items container (.queue-items) not found inside #${elementId}.`);
         return;

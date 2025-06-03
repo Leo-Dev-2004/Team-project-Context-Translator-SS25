@@ -17,7 +17,7 @@ const fromBackendQueue = new MessageQueue('fromBackendQueue');        // Message
 // --- WebSocket Manager Instance ---
 // The WebSocketManager handles the actual WebSocket connection, sending, and receiving.
 // It uses the toBackendQueue and fromBackendQueue to manage its message flow.
-const webSocketManager = new WebSocketManager();
+const webSocketManager = WebSocketManager; // <<< FIX: Assign the imported singleton directly, without 'new'
 
 // --- Application Initialization Logic ---
 // This ensures that the application starts correctly once the DOM is fully loaded.
@@ -35,10 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // The WebSocketManager needs references to the queues it will interact with.
     // It will enqueue outgoing messages into toBackendQueue and dequeue incoming messages from fromBackendQueue.
     webSocketManager.setQueues({
-        frontendDisplayQueue,
-        frontendActionQueue,
-        toBackendQueue,
-        fromBackendQueue
+ // Map your existing queue instances to the names WebSocketManager expects
+        incomingFrontendQueue: toBackendQueue,   // Messages frontend sends TO backend
+        outgoingFrontendQueue: fromBackendQueue, // Messages frontend receives FROM backend
+
+        // Keep these if other modules also use them from this setupEventListeners call
+        // but WebSocketManager.setQueues itself doesn't use them directly
+        // frontendDisplayQueue,
+        // frontendActionQueue,
     });
     console.log('app.js: Queues passed to WebSocketManager for internal management.');
 

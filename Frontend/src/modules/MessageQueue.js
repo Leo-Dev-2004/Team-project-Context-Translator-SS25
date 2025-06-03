@@ -1,5 +1,5 @@
 // frontend/src/modules/MessageQueue.js
-class MessageQueue {
+export class MessageQueue {
     constructor(name = "default") {
         this.name = name;
         this.queue = [];
