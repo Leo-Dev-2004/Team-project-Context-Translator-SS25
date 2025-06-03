@@ -5,38 +5,46 @@ import time
 from typing import Dict, Optional, Union, Any, cast, Deque
 from collections import deque
 
-# Import the abstract type and the global 'queues' instance
-from Backend.queues.queue_types import AbstractMessageQueue # Import the abstract type
-from Backend.core.Queues import queues # STILL import the global instance from its correct location
+# Import the abstract type
+from Backend.queues.queue_types import AbstractMessageQueue
 
+# Temporarily keep these imports. They will be replaced by UniversalMessage soon.
+# This is a transitional step as we introduce UniversalMessage.
 from Backend.models.message_types import QueueMessage, DeadLetterMessage, ForwardingPathEntry
+
+# Import the global 'queues' instance (its structure will change in Backend/core/Queues.py)
+# We need to keep this import as MessageQueue is responsible for initializing the global queues.
+from Backend.core.Queues import queues 
 
 logger = logging.getLogger(__name__)
 
-# Make MessageQueue inherit from AbstractMessageQueue (for type correctness)
-class MessageQueue(asyncio.Queue, AbstractMessageQueue): # <-- Inherit from AbstractMessageQueue
+class MessageQueue(asyncio.Queue, AbstractMessageQueue):
     _queue: deque
     """
     A custom message queue inheriting from asyncio.Queue to handle Pydantic message objects.
     It adds a name for logging and ensures type validation for enqueued items.
+    
+    This class will soon be adapted to work exclusively with 'UniversalMessage'.
     """
-
-    def get_items_snapshot(self) -> list[Dict[str, Any]]:
-        """ Returns a snapshot (list) of all messages currently in the queue without removing them."""
-        # Access the internal deque managed by asyncio.Queue
-        return list(self._queue)
 
     def __init__(self, maxsize: int = 0, name: str = "default"):
         super().__init__(maxsize=maxsize)
         self._name = name
-
         logger.debug(f"MessageQueue '{self._name}' initialized with maxsize={maxsize}.")
 
     @property
     def name(self) -> str:
         return self._name
 
-    async def enqueue(self, item: Union[QueueMessage, DeadLetterMessage]): # Changed 'item: T' to 'item: Union[...]'
+    def get_items_snapshot(self) -> list[Dict[str, Any]]:
+        """ Returns a snapshot (list) of all messages currently in the queue without removing them."""
+        # Access the internal deque managed by asyncio.Queue
+        return list(self._queue)
+
+    # TYPE HINTING ADJUSTMENT:
+    # We're keeping QueueMessage and DeadLetterMessage for now as a transitional step.
+    # Once UniversalMessage is fully implemented and replaces these, this Union will simplify.
+    async def enqueue(self, item: Union[QueueMessage, DeadLetterMessage]):
         """
         Enqueues a Pydantic message object into the queue.
         Performs strict type validation to ensure only QueueMessage or DeadLetterMessage instances are accepted.
@@ -54,7 +62,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue): # <-- Inherit from Abst
 
         try:
             # Add to forwarding path if it's a QueueMessage (DeadLetterMessage inherits this)
-            if isinstance(item, QueueMessage):
+            if isinstance(item, QueueMessage): # This check is still valid for now
                 item.forwarding_path.append(ForwardingPathEntry(
                     processor="MessageQueue_enqueue",
                     timestamp=time.time(),
@@ -85,7 +93,9 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue): # <-- Inherit from Abst
             )
             raise # Re-raise to propagate the error
 
-    async def dequeue(self) -> Union[QueueMessage, DeadLetterMessage]: # Changed '-> T' to '-> Union[...]'
+    # TYPE HINTING ADJUSTMENT:
+    # Same as enqueue, this will simplify once UniversalMessage is the single type.
+    async def dequeue(self) -> Union[QueueMessage, DeadLetterMessage]:
         """
         Retrieves a Pydantic message object from the queue.
         Blocks until an item is available.
@@ -98,7 +108,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue): # <-- Inherit from Abst
         self.task_done() # Signal that a task processing this item is complete
 
         # Add to forwarding path
-        if isinstance(item, QueueMessage): # This check is still valid as DeadLetterMessage inherits from QueueMessage
+        if isinstance(item, QueueMessage): # This check is still valid for now
             item.forwarding_path.append(ForwardingPathEntry(
                 processor="MessageQueue_dequeue",
                 timestamp=time.time(),
@@ -138,7 +148,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue): # <-- Inherit from Abst
         """
         if self.empty():
             return None
-        return self._queue[0] # Correctly accessing the internal deque
+        return self._queue[0]
 
 
 async def initialize_and_assert_queues() -> None:
@@ -146,26 +156,26 @@ async def initialize_and_assert_queues() -> None:
         Initializes all singleton queues and populates the global shared_queues instance.
         This function must be called once at application startup.
         It also asserts that all queues have been successfully initialized.
+        
+        This function is adjusted to initialize 'incoming', 'outgoing', and 'dead_letter' queues.
         """
         # Define the names of the queues we expect to initialize
+        # RENAMED QUEUES:
         expected_queue_names = [
-            "to_frontend",
-            "from_frontend",
-            "to_backend",
-            "from_backend",
+            "incoming",
+            "outgoing",
             "dead_letter",
         ]
 
-        # Only initialize if they haven't been already (e.g., if to_frontend is None)
-        if queues.to_frontend is None:
+        # Only initialize if they haven't been already (e.g., if queues.incoming is None)
+        if queues.incoming is None:
             logger.info(f"Initializing all queues on event loop {id(asyncio.get_running_loop())}...")
             
             # Initialize the queues directly on the shared_queues object
-            queues.to_frontend = MessageQueue(maxsize=100, name="to_frontend")
-            queues.from_frontend = MessageQueue(maxsize=100, name="from_frontend")
-            queues.to_backend = MessageQueue(maxsize=100, name="to_backend")
-            queues.from_backend = MessageQueue(maxsize=100, name="from_backend")
-            queues.dead_letter = MessageQueue(maxsize=0, name="dead_letter")
+            # RENAMED QUEUE INSTANTIATION:
+            queues.incoming = MessageQueue(maxsize=100, name="incoming")
+            queues.outgoing = MessageQueue(maxsize=100, name="outgoing")
+            queues.dead_letter = MessageQueue(maxsize=100, name="dead_letter")
             
             initialized_queue_names = [getattr(queues, name).name for name in expected_queue_names]
             logger.info(f"All queues initialized: {initialized_queue_names}")

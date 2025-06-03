@@ -494,3 +494,161 @@
                 transform: rotate(90deg); /* Keep arrow horizontal but rotate connector for vertical flow */
             }
         }
+
+        /* --- NEW/MODIFIED STYLES FOR ANIMATED QUEUE VISUALIZATION --- */
+
+/* Base container for visual message items within each queue */
+.message-items-container {
+    flex-grow: 1; /* Allows it to take available height */
+    border: 1px dashed #cbd5e0; /* Light dashed border */
+    border-radius: 0.25rem; /* Slightly rounded corners */
+    padding: 0.5rem; /* Internal padding */
+    min-height: 100px; /* Ensure visibility even if empty */
+    position: relative; /* Crucial for absolute positioning of exiting animations */
+    overflow-y: auto; /* Allow scrolling if many items */
+    display: flex; /* Make it a flex container */
+    flex-direction: column; /* Stack items vertically */
+    gap: 0.5rem; /* Space between message items */
+}
+
+/* Style for an individual message item */
+.message-item {
+    background-color: #ffffff; /* White background */
+    border: 1px solid #a0aec0; /* Gray border */
+    border-radius: 0.375rem; /* Rounded corners */
+    padding: 0.5rem; /* Padding inside */
+    font-size: 0.875rem; /* text-sm equivalent */
+    color: #4a5568; /* text-gray-700 equivalent */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    transition: all 0.3s ease-out; /* Smooth transitions for other properties */
+    position: relative; /* For animations, allows control */
+    display: flex;
+    justify-content: space-between; /* Space out type and ID */
+    align-items: center; /* Vertically align content */
+    flex-shrink: 0; /* Prevent items from shrinking below content size */
+}
+
+/* Specific styling for spans within message-item */
+.message-item span {
+    font-weight: 500;
+}
+
+.message-item .type {
+    font-weight: bold; /* Bold the message type */
+    color: #2b6cb0; /* blue-700 equivalent */
+}
+
+/* Animation Keyframes for entering/leaving messages */
+@keyframes fadeInSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px); /* Start slightly below and fade in */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0); /* End at normal position */
+    }
+}
+
+@keyframes fadeOutSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0); /* Start at normal position */
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px); /* Slide up slightly and fade out */
+    }
+}
+
+/* Classes to apply animations */
+.message-item.entering {
+    animation: fadeInSlideIn 0.5s ease-out forwards; /* 0.5s fade and slide in */
+}
+
+.message-item.leaving {
+    animation: fadeOutSlideOut 0.5s ease-out forwards; /* 0.5s fade and slide out */
+    position: absolute; /* Take out of flow during exit animation to prevent jumps */
+    /* Dynamically set width in JS or make it consistent with parent */
+    width: calc(100% - 1rem); /* Match container width minus its 0.5rem padding on each side */
+    /* Ensure it overlays correctly when leaving */
+    top: auto; /* Will be set by JS or relative positioning */
+    bottom: auto; /* Will be set by JS or relative positioning */
+    left: 0.5rem; /* Align with container's padding */
+    right: 0.5rem; /* Align with container's padding */
+    z-index: 10; /* Ensure it's above other elements during animation */
+}
+
+/* Queue-specific background and border colors (as per your HTML, adapted from my previous tailwind classes) */
+/* These are the classes assigned to the main div of each queue */
+.queue-container#fromFrontendQueueDisplay {
+    background-color: #f3e8ff; /* bg-purple-100 */
+    border-color: #9333ea; /* A purple border */
+}
+.queue-container#toBackendQueueDisplay {
+    background-color: #e0f2fe; /* bg-indigo-100 */
+    border-color: #3b82f6; /* A blue border */
+}
+.queue-container#fromBackendQueueDisplay {
+    background-color: #d1fae5; /* bg-green-100 */
+    border-color: #10b981; /* A green border */
+}
+.queue-container#toFrontendQueueDisplay {
+    background-color: #ccfbf1; /* bg-teal-100 */
+    border-color: #14b8a6; /* A teal border */
+}
+.queue-container#deadLetterQueueDisplay {
+    background-color: #fee2e2; /* bg-red-100 */
+    border-color: #ef4444; /* A red border */
+}
+
+
+/* Adjustments to existing classes for compatibility with new structure */
+/* Removed old .queue-log, .queue-header, .queue-items, .queue-item rules here as they are replaced. */
+/* The .queue-log now refers to .message-items-container. */
+.queue-box .queue-log {
+    /* Removed redundant rules from old .queue-log */
+    /* The .message-items-container takes over most of this */
+    padding: 0; /* Managed by .message-items-container */
+    border: none; /* Managed by .message-items-container */
+    margin-top: 0; /* Managed by .message-items-container */
+    min-height: 100px; /* To allow the flex container to stretch */
+    height: 100%; /* Ensure it fills parent flex item */
+    box-sizing: border-box;
+    display: flex; /* Ensure it acts as a flex container */
+    flex-direction: column; /* Stack items vertically */
+    /* The `message-items-container` inside the HTML handles most of the display now */
+}
+
+
+/* Ensure visibility of the inner message container */
+.queue-container .message-items-container {
+    background-color: inherit; /* Inherit background from parent queue-container */
+    border: 1px dashed; /* Dashed border based on parent's border-color */
+    border-color: inherit; /* Inherit border color from parent */
+    padding: 0.5rem; /* Keep padding */
+    border-radius: 0.25rem; /* Keep rounding */
+    flex-grow: 1; /* Allow it to fill vertical space */
+    min-height: 150px; /* Ensure minimum height for visual queues */
+}
+
+/* Override .queue-box h3 for the specific queue displays, if needed, to clarify size text */
+.queue-container h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.1); /* Subtle separator */
+}
+
+/* Ensure the queue-size text is smaller within the h3 */
+.queue-container h3 .queue-size {
+    font-size: 0.8rem; /* Smaller size for the count */
+    font-weight: normal;
+    color: inherit; /* Inherit color from the h3 */
+}
+
+
+/* --- End of NEW/MODIFIED STYLES --- */

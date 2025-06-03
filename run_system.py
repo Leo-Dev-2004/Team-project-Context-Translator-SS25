@@ -1,13 +1,10 @@
-import uvicorn
 import logging
 import sys
 import threading
 import subprocess
 import webbrowser
 import time
-import requests
 import os
-import psutil
 from pathlib import Path
 
 # Configure logging
