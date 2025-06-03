@@ -6,7 +6,7 @@ import uuid
 from typing import Optional, Dict, Any, Union, cast
 from pydantic import ValidationError
 
-from Backend.models.message_types import (
+from Backend.models.UniversalMessage import (
     UniversalMessage,
     DeadLetterMessage, # Expected to be a subclass of UniversalMessage
     ProcessingPathEntry,

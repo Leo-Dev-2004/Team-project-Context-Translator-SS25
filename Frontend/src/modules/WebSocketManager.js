@@ -275,7 +275,7 @@ class WebSocketManager {
 
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
-            .reconnectTimer = null; // Clear timer on error to prevent double calls
+            this.reconnectTimer = null; // Clear timer on error to prevent double calls
             }
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
                 this.reconnectAttempts++;

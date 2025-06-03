@@ -1,46 +1,63 @@
 # Backend/queues/queue_types.py
 from abc import ABC, abstractmethod
-from typing import Any, Union, Dict, Optional
+from typing import Any, Dict, Optional
 
-# Assuming these are external and don't cause circular imports
-from Backend.models.message_types import QueueMessage, DeadLetterMessage, ForwardingPathEntry
+# Import the ONE UniversalMessage type
+from ..models.UniversalMessage import UniversalMessage, ForwardingPathEntry
 
-# Define a minimal interface for MessageQueue that Queues.py can depend on
+# defines the abstract interface (protocol/ABC) for any message queue implementation in your system (AbstractMessageQueue). It specifies what methods a queue must have (e.g., enqueue, dequeue, qsize, peek, drain).
 class AbstractMessageQueue(ABC):
+    """
+    Abstract base class defining the interface for message queues in the system.
+    All concrete queue implementations must adhere to this interface.
+    """
     @property
     @abstractmethod
     def name(self) -> str:
+        """The name of the queue for identification and logging."""
         pass
 
     @abstractmethod
-    async def enqueue(self, item: Union[QueueMessage, DeadLetterMessage]) -> None:
+    async def enqueue(self, item: UniversalMessage) -> None:
+        """
+        Asynchronously adds a UniversalMessage item to the queue.
+        Implementations should handle potential QueueFull errors.
+        """
         pass
 
     @abstractmethod
-    async def dequeue(self) -> Union[QueueMessage, DeadLetterMessage]:
+    async def dequeue(self) -> UniversalMessage:
+        """
+        Asynchronously retrieves and removes a UniversalMessage item from the queue.
+        Blocks until an item is available.
+        """
         pass
 
     @abstractmethod
     def qsize(self) -> int:
+        """Returns the current number of items in the queue."""
         pass
 
-    # Add other methods from MessageQueue that Queues.py might need to type hint
     @abstractmethod
-    def get_items_snapshot(self) -> list[Dict[str, Any]]:
+    def get_items_snapshot(self) -> list[Dict[str, Any]]: # Removed Dict from outer Union as we enforce UniversalMessage
+        """
+        Returns a snapshot (list of dictionaries) of all messages currently in the queue
+        without removing them. Useful for debugging and monitoring.
+        """
         pass
-    
+
     @abstractmethod
     async def drain(self, timeout: Optional[float] = None) -> None:
         """
-        Abstract method for draining the queue.
-        Concrete implementations must provide this.
+        Asynchronously removes all currently available items from the queue.
+        Can be used during shutdown or for cleanup.
         """
         pass
 
     @abstractmethod
-    def peek(self) -> Optional[Union[QueueMessage, DeadLetterMessage]]:
+    def peek(self) -> Optional[UniversalMessage]: # Removed Dict from outer Union
         """
-        Abstract method to peek at the next item in the queue without removing it.
-        Concrete implementations must provide this.
+        Peeks at the first item in the queue without removing it.
+        Returns the item or None if the queue is empty.
         """
         pass

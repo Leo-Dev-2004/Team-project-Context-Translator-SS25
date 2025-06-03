@@ -11,7 +11,7 @@ from typing import Optional, Any
 from pydantic import BaseModel, ValidationError # Added ValidationError for completeness if needed elsewhere
 
 # UniversalMessage is the standard. WebSocketMessage import removed.
-from ..models.message_types import UniversalMessage # Assuming DeadLetterMessage might be handled by services, not directly here unless for typing
+from ..models.UniversalMessage import UniversalMessage # Assuming DeadLetterMessage might be handled by services, not directly here unless for typing
 from ..core.Queues import queues
 from ..core.simulator import SimulationManager # Assuming this is the correct path
 from ..dependencies import get_simulation_manager, get_websocket_manager_instance

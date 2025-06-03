@@ -1,262 +1,202 @@
+# Backend/MessageRouter.py
+
 import asyncio
 import logging
 import time
-import uuid
-from typing import Optional, Dict, Any, Union
+from typing import Dict, Any, Optional
+from pydantic import ValidationError # <-- ADDED IMPORT: For handling Pydantic validation errors
 
-from Backend.models.message_types import (
+# Import UniversalMessage and its related models
+from Backend.models.UniversalMessage import (
     UniversalMessage,
-    DeadLetterMessage, # Expected to be a subclass of UniversalMessage
     ProcessingPathEntry,
     ForwardingPathEntry,
-    ErrorTypes, # Assuming this is an Enum
+    DeadLetterMessage, # Still used for DLQ specific messages
+    ErrorTypes # Import the updated ErrorTypes enum
 )
-from Backend.core.Queues import queues # Assuming this provides MessageQueue instances
+
+# Import the global queues instance
+from Backend.core.Queues import queues # Access the pre-initialized global queues
+from Backend.queues.queue_types import AbstractMessageQueue # For type hinting
 
 logger = logging.getLogger(__name__)
 
 class MessageRouter:
     """
-    The MessageRouter pulls UniversalMessages from the outgoing queue (from the dispatcher)
-    and routes them to their final destination queues based on their 'destination' field.
+    The MessageRouter is responsible for routing UniversalMessages between different
+    queues and services based on their 'type' and 'destination' fields.
+    It acts as a central hub for message flow management.
     """
+
     def __init__(self):
+        # Queues are now guaranteed to be initialized when 'queues' is imported,
+        # so we can directly assign them. Type hints should reflect AbstractMessageQueue.
+        self._input_queue: AbstractMessageQueue = queues.incoming # Messages from external sources/frontend
+        self._output_queue: AbstractMessageQueue = queues.outgoing # Messages to be processed by services
+        self._websocket_out_queue: AbstractMessageQueue = queues.websocket_out # Messages specifically for WebSocket clients
+        self._dead_letter_queue: AbstractMessageQueue = queues.dead_letter # For unprocessable messages
+
         self._running = False
-        self._routing_task: Optional[asyncio.Task] = None
-        self._input_queue: Optional[asyncio.Queue] = None
-        self._websocket_out_queue: Optional[asyncio.Queue] = None
-        self._dead_letter_queue: Optional[asyncio.Queue] = None
-
-    async def initialize(self):
-        """Secure initialization and queue validation."""
-        try:
-            self._input_queue = queues.outgoing
-            self._websocket_out_queue = queues.websocket_out
-            self._dead_letter_queue = queues.dead_letter
-
-            if None in (self._input_queue, self._websocket_out_queue, self._dead_letter_queue):
-                raise RuntimeError("One or more MessageRouter queues not initialized correctly")
-
-            logger.info("MessageRouter queues verified and initialized.")
-        except Exception as e:
-            logger.error(f"Failed to initialize MessageRouter: {str(e)}", exc_info=True)
-            raise
+        self._router_task: Optional[asyncio.Task] = None
+        logger.info("MessageRouter initialized with global queues.")
 
     async def start(self):
-        """Starts the main message routing loop as a background task."""
+        """Starts the message routing process."""
         if not self._running:
             self._running = True
-            logger.info("Starting MessageRouter task.")
-            self._routing_task = asyncio.create_task(self._route_messages())
-            logger.info("MessageRouter task created and running in background.")
-        else:
-            logger.info("MessageRouter already running.")
-
-    async def _route_messages(self):
-        """Main routing loop with DLQ integration for unroutable messages."""
-        logger.info("MessageRouter main loop started.")
-
-        routed_count = 0
-        last_log_time = time.time()
-
-        while self._running:
-            message: Optional[UniversalMessage] = None
-            try:
-                if self._input_queue is None or self._websocket_out_queue is None or self._dead_letter_queue is None:
-                    logger.error("MessageRouter queues are not initialized. Cannot route messages.")
-                    await asyncio.sleep(1)
-                    continue
-
-                try:
-                    message = await asyncio.wait_for(self._input_queue.dequeue(), timeout=1.0)
-                except asyncio.TimeoutError:
-                    continue
-                if message is None:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                if message.processing_path is None:
-                    message.processing_path = []
-                message.processing_path.append(
-                    ProcessingPathEntry(
-                        processor="MessageRouter",
-                        status="dequeued_for_routing",
-                        details={"from_queue": "queues.outgoing"}
-                    )
-                )
-                logger.debug(f"Router dequeued message {message.id} of type '{message.type}'. Destination: '{message.destination}'.")
-
-                await self._process_single_message_for_routing(message)
-
-                routed_count += 1
-
-                if time.time() - last_log_time > 5:
-                    logger.info(f"Routed {routed_count} messages in the last 5 seconds. Outgoing Queue Size: {self._input_queue.qsize()}")
-                    last_log_time = time.time()
-                    routed_count = 0
-
-            except asyncio.CancelledError:
-                logger.info("MessageRouter task was cancelled gracefully.")
-                break
-            except Exception as e:
-                logger.error(f"Error during MessageRouter main loop: {str(e)}", exc_info=True)
-                dlq_client_id = getattr(message, 'client_id', 'unknown_client_error') if message else 'unknown_client_error'
-                original_msg_data = message.model_dump() if message and isinstance(message, UniversalMessage) else {"raw_message": str(message)}
-                
-                # Enqueue to Dead Letter Queue for unexpected loop errors
-                assert self._dead_letter_queue is not None, "Dead Letter Queue must be initialized."
-                await self._dead_letter_queue.enqueue(DeadLetterMessage(
-                    id=str(uuid.uuid4()),
-                    type=ErrorTypes.SYSTEM_ERROR.value,
-                    client_id=dlq_client_id,
-                    payload={"original_message_data": original_msg_data,
-                             "reason": ErrorTypes.INTERNAL.value,
-                             "error_details": {"exception": str(e), "component": "MessageRouter._route_messages_loop"}},
-                    original_message=original_msg_data,
-                    reason=ErrorTypes.INTERNAL.value,
-                    error_details={"exception": str(e), "component": "MessageRouter._route_messages_loop"}
-                ))
-                await asyncio.sleep(1)
-
-        logger.info("MessageRouter main loop stopped.")
-
-    async def _process_single_message_for_routing(self, message: UniversalMessage) -> None:
-        """
-        Processes a single UniversalMessage to determine its routing destination.
-        Sends unroutable messages to DLQ.
-        """
-        msg_id: str = message.id if message.id else "unknown"
-        client_id: Optional[str] = message.client_id or "N/A"
-
-        try:
-            message.processing_path.append(
-                ProcessingPathEntry(
-                    processor="MessageRouter",
-                    status="determining_route",
-                    details={"destination_field": message.destination}
-                )
-            )
-
-            # Routing Logic
-            if message.destination == "frontend":
-                logger.info(f"Message ID {msg_id} (Type: {message.type}) for client {client_id} identified for routing to WebSocket output queue.")
-                
-                message.forwarding_path.append(
-                    ForwardingPathEntry(
-                        processor="MessageRouter",
-                        status="routed_to_websocket_output",
-                        to_queue="queues.websocket_out"
-                    )
-                )
-                assert self._websocket_out_queue is not None, "WebSocket output queue must be initialized."
-                await self.safe_enqueue(self._websocket_out_queue, message)
-                logger.debug(f"Message ID {msg_id} enqueued to 'queues.websocket_out'.")
-
-            else:
-                logger.warning(f"Unknown destination '{message.destination}' for message ID {msg_id}. Sending to DLQ.")
-                message.processing_path.append(
-                    ProcessingPathEntry(
-                        processor="MessageRouter",
-                        status="unknown_destination_dlq",
-                        details={"unknown_destination": message.destination}
-                    )
-                )
-                # Enqueue to Dead Letter Queue for unknown destinations
-                assert self._dead_letter_queue is not None, "Dead Letter Queue must be initialized."
-                await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
-                    id=str(uuid.uuid4()),
-                    type=ErrorTypes.ROUTING_ERROR.value, # Specific error type for routing issues
-                    client_id=client_id,
-                    payload={"original_message_data": message.model_dump(),
-                             "reason": ErrorTypes.ROUTING_ERROR.value,
-                             "error_details": {
-                                 "type": "UnknownDestination",
-                                 "message": f"No routing rule for destination: {message.destination}",
-                                 "component": "MessageRouter._process_single_message_for_routing",
-                                 "timestamp": time.time(),
-                                 "client_id": client_id,
-                                 "original_universal_message_id": message.id
-                             }},
-                    original_message=message.model_dump(),
-                    reason=ErrorTypes.ROUTING_ERROR.value,
-                    error_details={
-                        "type": "UnknownDestination",
-                        "message": f"No routing rule for destination: {message.destination}",
-                        "component": "MessageRouter._process_single_message_for_routing",
-                        "timestamp": time.time(),
-                        "client_id": client_id,
-                        "original_universal_message_id": message.id
-                    }
-                ))
-
-            if not message.processing_path[-1].status == "unknown_destination_dlq":
-                message.processing_path.append(
-                    ProcessingPathEntry(
-                        processor="MessageRouter",
-                        status="routing_complete"
-                    )
-                )
-
-        except ValidationError as e:
-            logger.error(f"Validation error during message routing for message {msg_id}: {e}", exc_info=True)
-            dlq_client_id = client_id
-            # Enqueue to Dead Letter Queue for validation errors
-            assert self._dead_letter_queue is not None, "Dead Letter Queue must be initialized."
-            await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
-                id=str(uuid.uuid4()),
-                type=ErrorTypes.SYSTEM_ERROR.value,
-                client_id=dlq_client_id,
-                payload={"original_message_data": message.model_dump(),
-                         "reason": ErrorTypes.VALIDATION.value,
-                         "error_details": {"validation_error": str(e), "component": "MessageRouter._process_single_message_for_routing"}},
-                original_message=message.model_dump(),
-                reason=ErrorTypes.VALIDATION.value,
-                error_details={"validation_error": str(e), "component": "MessageRouter._process_single_message_for_routing"}
-            ))
-        except Exception as e:
-            logger.error(f"Critical error during single message routing for message {msg_id}: {str(e)}", exc_info=True)
-            dlq_client_id = client_id
-            # Enqueue to Dead Letter Queue for general exceptions
-            assert self._dead_letter_queue is not None, "Dead Letter Queue must be initialized."
-            await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
-                id=str(uuid.uuid4()),
-                type=ErrorTypes.SYSTEM_ERROR.value,
-                client_id=dlq_client_id,
-                payload={"original_message_data": message.model_dump(),
-                         "reason": ErrorTypes.INTERNAL.value,
-                         "error_details": {"exception": str(e), "component": "MessageRouter._process_single_message_for_routing"}},
-                original_message=message.model_dump(),
-                reason=ErrorTypes.INTERNAL.value,
-                error_details={"exception": str(e), "component": "MessageRouter._process_single_message_for_routing"}
-            ))
-
-    async def safe_enqueue(self, queue, message: Union[UniversalMessage, DeadLetterMessage]) -> bool:
-        """Thread-safe enqueue with error handling."""
-        try:
-            if queue:
-                if not isinstance(message, (UniversalMessage, DeadLetterMessage)):
-                    logger.error(f"Attempted to enqueue unsupported message type to queue in MessageRouter: {type(message).__name__}. Message: {message}")
-                    return False
-                
-                await queue.enqueue(message)
-                return True
-            logger.warning("Attempted to enqueue to an uninitialized queue in MessageRouter.")
-            return False
-        except Exception as e:
-            logger.error(f"Safe Enqueue failed in MessageRouter for message ID {getattr(message, 'id', 'N/A')}: {str(e)}", exc_info=True)
-            return False
+            logger.info("MessageRouter starting...")
+            self._router_task = asyncio.create_task(self._route_messages())
+            logger.info("MessageRouter started.")
 
     async def stop(self):
-        """Graceful shutdown for the MessageRouter."""
+        """Stops the message routing process and waits for pending tasks."""
         if self._running:
             self._running = False
-            logger.debug("MessageRouter shutdown initiated. Waiting for tasks to complete...")
-            if self._routing_task:
-                self._routing_task.cancel()
+            logger.info("MessageRouter stopping...")
+            if self._router_task:
+                self._router_task.cancel()
                 try:
-                    await self._routing_task
+                    await self._router_task
                 except asyncio.CancelledError:
-                    pass
-            logger.info("MessageRouter shutdown complete.")
-        else:
-            logger.info("MessageRouter was not running.")
+                    logger.info("MessageRouter task cancelled successfully.")
+                finally:
+                    self._router_task = None
+            logger.info("MessageRouter stopped.")
+
+    async def _route_messages(self):
+        """Main loop for routing messages from the input queue."""
+        logger.info("MessageRouter: Listening for messages on input queue...")
+        while self._running:
+            try:
+                # Dequeue from the input queue
+                message: UniversalMessage = await self._input_queue.dequeue() # <-- FIXED: dequeue is now known
+
+                logger.debug(
+                    f"MessageRouter received message (ID: {message.id}, Type: {message.type}, "
+                    f"Origin: {message.origin}, Destination: {message.destination})."
+                )
+
+                # Update processing path (Router is a processor in this context)
+                message.processing_path.append(ProcessingPathEntry(
+                    processor="MessageRouter",
+                    status="received_for_routing",
+                    timestamp=time.time(), # `completed_at` is optional, no need to provide if not completed
+                    completed_at=None,
+                    details=None
+                ))
+
+                await self._process_and_route_message(message)
+
+            except asyncio.CancelledError:
+                logger.info("MessageRouter loop cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"MessageRouter encountered unhandled error in main loop: {e}", exc_info=True)
+                # Attempt to move problematic message to DLQ if possible
+                # The message variable might not be defined if error occurred before dequeue.
+                # Use a dummy if it's not available.
+                problematic_message = message if 'message' in locals() else UniversalMessage(
+                    type=ErrorTypes.INTERNAL_SERVER_ERROR.value, # <-- FIXED: Use new enum value
+                    payload={"error": "Router loop unhandled exception", "details": str(e)},
+                    origin="MessageRouter",
+                    destination="dead_letter_queue",
+                    client_id=None
+                )
+                await self._send_to_dlq(
+                    message=problematic_message,
+                    reason=f"Router loop unhandled exception: {e}",
+                    error_type=ErrorTypes.INTERNAL_SERVER_ERROR # <-- FIXED: Use new enum value
+                )
+
+    async def _process_and_route_message(self, message: UniversalMessage):
+        """Processes a single message and routes it to the appropriate queue."""
+        try:
+            target_queue: Optional[AbstractMessageQueue] = None
+
+            # Route based on message destination
+            if message.destination == "backend.dispatcher":
+                target_queue = self._output_queue
+                logger.debug(f"Routing message {message.id} to backend.dispatcher.")
+            elif message.destination == "frontend":
+                target_queue = self._websocket_out_queue
+                logger.debug(f"Routing message {message.id} to frontend.")
+            elif message.destination == "dead_letter_queue":
+                target_queue = self._dead_letter_queue
+                logger.debug(f"Routing message {message.id} directly to dead_letter_queue.")
+            else:
+                logger.warning(
+                    f"Unknown or unroutable message destination '{message.destination}' "
+                    f"for message ID: {message.id}. Sending to Dead Letter Queue."
+                )
+                await self._send_to_dlq(
+                    message=message,
+                    reason=f"Unroutable destination: {message.destination}",
+                    error_type=ErrorTypes.UNKNOWN_MESSAGE_TYPE # <-- FIXED: Use new enum value (or ROUTING_ERROR)
+                )
+                return # Stop processing this message
+
+            if target_queue:
+                # Update processing path before enqueuing
+                message.processing_path.append(ProcessingPathEntry(
+                    processor="MessageRouter",
+                    status=f"routed_to_{target_queue.name}",
+                    timestamp=time.time(),
+                    completed_at=None,  # Not completed at this step
+                    details=None        # No extra details at this step
+                ))
+                await target_queue.enqueue(message) # <-- FIXED: enqueue is now known
+                logger.debug(f"Message {message.id} successfully enqueued to {target_queue.name}.")
+            else:
+                # This else block should theoretically be covered by the previous unknown destination check,
+                # but it's a good fail-safe.
+                logger.error(f"No target queue determined for message ID: {message.id}. Sending to DLQ.")
+                await self._send_to_dlq(
+                    message=message,
+                    reason="No target queue determined by router.",
+                    error_type=ErrorTypes.ROUTING_ERROR # <-- FIXED: Use new enum value
+                )
+
+        except ValidationError as ve: # <-- ADDED IMPORT: ValidationError
+            logger.error(f"Message validation error during routing for message ID: {message.id}. Error: {ve}", exc_info=True)
+            await self._send_to_dlq(
+                message=message,
+                reason=f"Validation error during routing: {ve}",
+                error_type=ErrorTypes.VALIDATION # <-- FIXED: Use new enum value
+            )
+        except Exception as e:
+            logger.error(f"Error processing and routing message ID: {message.id}. Error: {e}", exc_info=True)
+            await self._send_to_dlq(
+                message=message,
+                reason=f"General error during routing: {e}",
+                error_type=ErrorTypes.INTERNAL_SERVER_ERROR # <-- FIXED: Use new enum value
+            )
+
+    async def _send_to_dlq(self, message: UniversalMessage, reason: str, error_type: ErrorTypes):
+        """Sends a message to the Dead Letter Queue."""
+        logger.warning(
+            f"Sending message (ID: {message.id}, Type: {message.type}) to DLQ. "
+            f"Reason: {reason}. Error Type: {error_type.value}" # .value to get string from enum
+        )
+        try:
+            dlq_message = DeadLetterMessage(
+                type=ErrorTypes.DEAD_LETTER.value,
+                origin="MessageRouter",
+                destination="dead_letter_queue",
+                original_message_raw=message.model_dump(), # <-- FIXED: Use original_message_raw
+                reason=reason,
+                client_id=getattr(message, "client_id", None),  # Pass client_id if present, else None
+                # dlq_timestamp defaults automatically
+                error_details={"error_type": error_type.value, "router_error": reason}, # <-- FIXED: Use .value
+                # Other UniversalMessage fields are set by DeadLetterMessage's validator
+                # and don't need to be passed here.
+            )
+            await self._dead_letter_queue.enqueue(dlq_message)
+            logger.info(f"Message {message.id} successfully sent to Dead Letter Queue.")
+        except Exception as e:
+            logger.critical(f"FATAL: Failed to send message {message.id} to Dead Letter Queue: {e}", exc_info=True)
+
+
+# Example of how MessageRouter might be instantiated and started (e.g., in your main app)
+# router = MessageRouter()
+# await router.start()
+# await router.stop()
