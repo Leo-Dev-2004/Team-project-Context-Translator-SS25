@@ -67,7 +67,7 @@ class QueueForwarder:
                     else:
                         logger.warning(f"Pong message ID {message.id} missing client_id or ws_manager. Sending to DLQ.")
                         assert queues.dead_letter is not None, "Pong message must have a client_id or WebSocketManager"
-                        await queues.dead_letter.enqueue(DeadLetterMessage(
+                        await self._dead_letter_queue.enqueue(DeadLetterMessage(
                             original_message=message.model_dump(),
                             reason="Pong message missing client_id or WebSocketManager.",
                             client_id=message.client_id
@@ -90,7 +90,7 @@ class QueueForwarder:
                     else:
                         assert queues.dead_letter is not None, "backend_ready_confirm message must have a client_id"
                         logger.warning(f"Backend_ready_confirm ID {message.id} missing client_id or ws_manager. Sending to DLQ.")
-                        await queues.dead_letter.enqueue(DeadLetterMessage(
+                        await self._dead_letter_queue.enqueue(DeadLetterMessage(
                             original_message=message.model_dump(),
                             reason="backend_ready_confirm missing client_id or WebSocketManager.",
                             client_id=message.client_id
@@ -112,7 +112,7 @@ class QueueForwarder:
                     else:
                         assert queues.dead_letter is not None, "websocket_message must have a client_id"
                         logger.warning(f"Message ID {message.id} is a websocket_message but has no client_id or websocket_manager is not set. Sending to DLQ.")
-                        await queues.dead_letter.enqueue(DeadLetterMessage(
+                        await self._dead_letter_queue.enqueue(DeadLetterMessage(
                             original_message=message.model_dump(),
                             reason="Websocket message with no client_id or no manager.",
                             client_id=message.client_id
@@ -163,7 +163,7 @@ class QueueForwarder:
                 if message is not None:
                     try:
                         assert queues.dead_letter is not None, "Dead letter queue must be initialized for error handling"
-                        await queues.dead_letter.enqueue(DeadLetterMessage(
+                        await self._dead_letter_queue.enqueue(DeadLetterMessage(
                             original_message=message.model_dump(),
                             reason=f"Processing error in QueueForwarder: {e}",
                             client_id=message.client_id

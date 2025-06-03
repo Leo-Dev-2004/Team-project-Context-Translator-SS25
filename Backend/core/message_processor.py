@@ -116,7 +116,7 @@ class MessageProcessor:
                 logger.error(f"Error during MessageProcessor main loop: {str(e)}", exc_info=True)
                 dlq_client_id = getattr(message, 'client_id', 'unknown_client_error') if message else 'unknown_client_error'
                 original_msg_data = message.model_dump() if message and hasattr(message, 'model_dump') else {"raw_message": str(message)}
-                await self.safe_enqueue(self._dead_letter_queue, DeadLetterMessage(
+                await self._dead_letter_queue.enqueue(DeadLetterMessage(
                     original_message=original_msg_data,
                     error_details={"exception": str(e), "component": "MessageProcessor._process_messages_loop"}, # Using error_details as a dict
                     # --- FIX: Use .value for Enum member ---
@@ -222,7 +222,7 @@ class MessageProcessor:
                     forwarding_path=copy.deepcopy(message.forwarding_path), # Propagate path
                     processing_path=copy.deepcopy(message.processing_path) # Propagate path
                 )
-                await self.safe_enqueue(self._output_queue, response_message)
+                await self._output_queue.enqueue(response_message)
                 logger.info(f"Enqueued backend_ready_confirm for client {client_id}.")
 
             elif msg.type == "ping":
@@ -236,7 +236,7 @@ class MessageProcessor:
                     forwarding_path=copy.deepcopy(message.forwarding_path),
                     processing_path=copy.deepcopy(message.processing_path)
                 )
-                await self.safe_enqueue(self._output_queue, pong_response)
+                await self._output_queue.enqueue(pong_response)
                 logger.debug(f"Enqueued pong response for client {client_id}.")
 
             elif msg.type == "user_input":
