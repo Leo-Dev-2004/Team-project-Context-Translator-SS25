@@ -79,14 +79,17 @@
             font-size: 1.35rem; /* Slightly larger heading for readability */
         }
 
-        /* User's existing queue-count */
+        /* User's existing queue-count - Removed as it was not being used and conflicting */
+        /* You can remove this entire block if you are not using a .queue-count class anywhere else */
+        /*
         .queue-count {
             background: #0d6efd;
             color: white;
-            padding: 4px 10px; /* Increased padding */
-            border-radius: 12px; /* Slightly larger border-radius */
-            font-size: 0.9em; /* Slightly larger font */
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.9em;
         }
+        */
         
         /* User's existing log-entry and its sub-styles */
         .log-entry {
@@ -643,12 +646,10 @@
     border-bottom: 1px solid rgba(0,0,0,0.1); /* Subtle separator */
 }
 
-/* Ensure the queue-size text is smaller within the h3 */
+/* CORRECTED: Ensure the queue-size text is clearly visible within the h3 */
 .queue-container h3 .queue-size {
-    font-size: 0.8rem; /* Smaller size for the count */
-    font-weight: normal;
-    color: inherit; /* Inherit color from the h3 */
+    font-size: 0.95rem; /* Made a bit larger for readability */
+    font-weight: 600; /* Made it slightly bolder */
+    color: #333; /* Changed to a dark gray for good contrast on any light background */
+    margin-left: 0.5rem; /* Added a little space from the main text */
 }
-
-
-/* --- End of NEW/MODIFIED STYLES --- */

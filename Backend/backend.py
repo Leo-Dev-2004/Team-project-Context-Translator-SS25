@@ -87,8 +87,9 @@ websocket_manager_instance: Optional[WebSocketManager] = None
 
 
 async def send_queue_status_to_frontend():
+    logger.info("send_queue_status_to_frontend: Function entered IMMEDIATELY. (Test 2)")
+
     # Wait a bit for initial connection and setup to complete
-    await asyncio.sleep(5)
     while True:
         try:
             # Use AbstractMessageQueue for consistent typing
@@ -100,14 +101,15 @@ async def send_queue_status_to_frontend():
             websocket_out_q_size = websocket_out_q.qsize()
             dead_letter_q_size = dead_letter_q.qsize()
 
+            # --- CRITICAL CHANGE HERE: ALIGN KEYS WITH FRONTEND EXPECTATIONS ---
             status_message_data = {
-                "incoming_q_size": incoming_q_size,
-                "websocket_out_q_size": websocket_out_q_size,
-                "dead_letter_q_size": dead_letter_q_size,
+                "from_frontend_q_size": incoming_q_size,      # Maps to backendIncomingQueueDisplay
+                "to_frontend_q_size": websocket_out_q_size,    # Maps to backendOutgoingQueueDisplay
+                "dead_letter_q_size": dead_letter_q_size,      # This one already matched
             }
+            logger.info(f"Sending queue status update with payload: {status_message_data}")
 
-            # --- USE UNIVERSALMESSAGE DIRECTLY FOR QUEUE STATUS ---
-            # Remove the problematic try-except block and dynamic class definition.
+
             # Create a UniversalMessage instance with all required fields.
 
             # Get the WebSocketManager instance
@@ -151,6 +153,10 @@ async def send_queue_status_to_frontend():
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
         await asyncio.sleep(1) # Send status every second
+
+
+
+
 # --- FASTAPI APPLICATION STARTUP EVENT ---
 @app.on_event("startup")
 async def startup_event():

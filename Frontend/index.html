@@ -89,28 +89,28 @@
         <div class="flex flex-col items-center mt-12 mb-12">
             <h2 class="subsection-title text-2xl font-semibold text-center mb-4 text-blue-700">Queue Flow Visualizer</h2>
             <div id="queuesFlowContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full">
-                <div id="fromFrontendQueueDisplay" class="queue-container bg-purple-100 p-4 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold text-purple-700 mb-2">From Frontend <span class="queue-size text-sm text-purple-500">(Size: 0)</span></h3>
+                <div id="backendIncomingQueueDisplay" class="queue-container bg-purple-100 p-4 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-purple-700 mb-2">Backend Incoming <span class="queue-size">(Size: 0)</span></h3>
                     <div class="message-items-container flex flex-col gap-2 h-40 overflow-y-auto bg-purple-50 p-2 rounded"></div>
                 </div>
 
-                <div id="toBackendQueueDisplay" class="queue-container bg-indigo-100 p-4 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-2">To Backend <span class="queue-size text-sm text-indigo-500">(Size: 0)</span></h3>
+                <div id="frontendOutgoingQueueDisplay" class="queue-container bg-indigo-100 p-4 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-indigo-700 mb-2">Frontend Outgoing <span class="queue-size">(Size: 0)</span></h3>
                     <div class="message-items-container flex flex-col gap-2 h-40 overflow-y-auto bg-indigo-50 p-2 rounded"></div>
                 </div>
 
-                <div id="fromBackendQueueDisplay" class="queue-container bg-green-100 p-4 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold text-green-700 mb-2">From Backend <span class="queue-size text-sm text-green-500">(Size: 0)</span></h3>
+                <div id="frontendIncomingQueueDisplay" class="queue-container bg-green-100 p-4 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-green-700 mb-2">Frontend Incoming <span class="queue-size">(Size: 0)</span></h3>
                     <div class="message-items-container flex flex-col gap-2 h-40 overflow-y-auto bg-green-50 p-2 rounded"></div>
                 </div>
 
-                <div id="toFrontendQueueDisplay" class="queue-container bg-teal-100 p-4 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold text-teal-700 mb-2">To Frontend <span class="queue-size text-sm text-teal-500">(Size: 0)</span></h3>
+                <div id="backendOutgoingQueueDisplay" class="queue-container bg-teal-100 p-4 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-teal-700 mb-2">Backend Outgoing <span class="queue-size">(Size: 0)</span></h3>
                     <div class="message-items-container flex flex-col gap-2 h-40 overflow-y-auto bg-teal-50 p-2 rounded"></div>
                 </div>
 
                 <div id="deadLetterQueueDisplay" class="queue-container bg-red-100 p-4 rounded-lg shadow-md col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-1">
-                    <h3 class="text-lg font-semibold text-red-700 mb-2">Dead Letter <span class="queue-size text-sm text-red-500">(Size: 0)</span></h3>
+                    <h3 class="text-lg font-semibold text-red-700 mb-2">Dead Letter <span class="queue-size">(Size: 0)</span></h3>
                     <div class="message-items-container flex flex-col gap-2 h-40 overflow-y-auto bg-red-50 p-2 rounded"></div>
                 </div>
             </div>

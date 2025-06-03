@@ -89,7 +89,6 @@ class BackendServiceDispatcher:
     async def _process_messages(self):
         """Main processing loop with robust error handling, now integrating DLQ."""
         logger.info("BackendServiceDispatcher main loop started.")
-
         processed_count = 0
         last_log_time = time.time()
 

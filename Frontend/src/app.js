@@ -1,155 +1,93 @@
-// frontend/src/app.js
+// Frontend/src/app.js
 
-import { WebSocketManager } from './modules/WebSocketManager.js';
-import { MessageQueue } from './modules/MessageQueue.js';
+import { MessagingService } from './modules/MessagingService.js';
 import { setupEventListeners } from './modules/EventListeners.js';
-import { updateSystemLog, updateStatusLog, updateQueueDisplay } from './modules/QueueDisplay.js';
-
-// --- Global Queue Instances ---
-// These queues manage the flow of messages within the frontend application.
-// They are initialized once and then passed to other modules (like WebSocketManager, EventListeners)
-// to ensure a single, consistent source of truth for message handling.
-const frontendDisplayQueue = new MessageQueue('frontendDisplayQueue'); // For displaying messages in UI
-const frontendActionQueue = new MessageQueue('frontendActionQueue');  // For actions triggered by UI
-const toBackendQueue = new MessageQueue('toBackendQueue');            // Messages ready to be sent to backend
-const fromBackendQueue = new MessageQueue('fromBackendQueue');        // Messages received from backend
-
-// --- WebSocket Manager Instance ---
-// The WebSocketManager handles the actual WebSocket connection, sending, and receiving.
-// It uses the toBackendQueue and fromBackendQueue to manage its message flow.
-const webSocketManager = WebSocketManager; // <<< FIX: Assign the imported singleton directly, without 'new'
+import { updateSystemLog, updateQueueDisplay } from './modules/QueueDisplay.js';
 
 // --- Application Initialization Logic ---
-// This ensures that the application starts correctly once the DOM is fully loaded.
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('app.js: DOMContentLoaded (first time)'); // Log for debugging
+    console.log('app.js: DOMContentLoaded (first time)');
 
-    // --- Initialize WebSocketManager with Client ID ---
-    // A unique client ID is generated or retrieved to identify this frontend instance.
-    // This is crucial for the backend to route messages correctly to specific clients.
+    // 1. Generate Client ID
     const clientId = `client_${Date.now()}${Math.random().toString(36).substring(2, 9)}`;
-    webSocketManager.setClientId(clientId);
     updateSystemLog(`Frontend Client ID: ${clientId}`);
 
-    // --- Set up Queues for WebSocketManager ---
-    // The WebSocketManager needs references to the queues it will interact with.
-    // It will enqueue outgoing messages into toBackendQueue and dequeue incoming messages from fromBackendQueue.
-    webSocketManager.setQueues({
- // Map your existing queue instances to the names WebSocketManager expects
-        incomingFrontendQueue: toBackendQueue,   // Messages frontend sends TO backend
-        outgoingFrontendQueue: fromBackendQueue, // Messages frontend receives FROM backend
+    // 2. Initialize the central MessagingService
+    MessagingService.initialize(clientId);
+    console.log('app.js: MessagingService initialized.');
 
-        // Keep these if other modules also use them from this setupEventListeners call
-        // but WebSocketManager.setQueues itself doesn't use them directly
-        // frontendDisplayQueue,
-        // frontendActionQueue,
-    });
-    console.log('app.js: Queues passed to WebSocketManager for internal management.');
+    // 3. Get references to the queues from MessagingService
+    const toBackendQueue = MessagingService.getToBackendQueue();
+    const fromBackendQueue = MessagingService.getFromBackendQueue();
+    const frontendDisplayQueue = MessagingService.getFrontendDisplayQueue();
+    const frontendActionQueue = MessagingService.getFrontendActionQueue(); // If you need this later
 
-    // --- Set up Event Listeners ---
-    // Event listeners for UI interactions (buttons, input fields) are set up in a separate module.
-    // They receive references to the queues and the WebSocketManager to send messages.
+    // 4. Set up Event Listeners, passing the necessary queues/service
     setupEventListeners({
-        webSocketManager,
-        frontendActionQueue,
-        toBackendQueue,
-        fromBackendQueue,
-        frontendDisplayQueue // Pass frontendDisplayQueue as well
+        messagingService: MessagingService, // Pass the entire service
+        toBackendQueue, // Still pass directly if EventListeners enqueues directly (less ideal)
+        fromBackendQueue, // Still pass directly if EventListeners dequeues directly (current setup)
+        frontendDisplayQueue,
+        frontendActionQueue
     });
-    console.log('app.js: Queues and WebSocketManager passed to EventListeners for UI interaction.');
+    console.log('app.js: EventListeners set up with MessagingService and queues.');
 
-// NEW: Event Listener for Send Test Settings Button
+    // --- Helper function to send a burst of test messages ---
+    const sendBurstTestMessages = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('app.js: Sending burst of test messages...');
+        updateSystemLog('Sending a burst of 15 test messages...');
+
+        for (let i = 0; i < 15; i++) {
+            MessagingService.sendToBackend(
+                'test.message',
+                { content: `Frontend burst message ${i + 1}`, timestamp: Date.now() / 1000 }
+            );
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        console.log('app.js: Finished enqueuing burst test messages.');
+        updateSystemLog('Finished enqueuing 15 test messages.');
+    };
+
+    // NEW: Event Listener for Send Test Settings Button (using MessagingService)
     const sendTestSettingsBtn = document.getElementById('sendTestSettingsBtn');
     if (sendTestSettingsBtn) {
         sendTestSettingsBtn.addEventListener('click', () => {
             console.log('app.js: "Send Test Settings" button clicked.');
             updateSystemLog('Attempting to send test settings message...');
 
-            // Create a WebSocketMessage object
-            const testSettingsMessage = {
-                id: `test-settings-${Date.now()}`, // Unique ID for the message
-                type: 'update_settings',           // Custom type for this message
-                data: {                            // Payload with test settings
+            MessagingService.sendToBackend(
+                'update_settings',
+                {
                     theme: 'dark_mode',
                     notifications: true,
                     language: 'en-US',
-                    level: Math.floor(Math.random() * 10) + 1 // Random level
-                },
-                timestamp: Date.now(),
-                client_id: webSocketManager.clientId // Crucial: include client_id
-            };
-
-            // Enqueue the message to the toBackendQueue
-            // The WebSocketManager will pick this up and send it over the WebSocket.
-            toBackendQueue.enqueue(testSettingsMessage);
-            updateSystemLog('Test settings message enqueued to toBackendQueue.');
+                    level: Math.floor(Math.random() * 10) + 1
+                }
+            );
+            updateSystemLog('Test settings message enqueued via MessagingService.');
         });
     }
 
-    // --- Initialize WebSocket Connection ---
-    // The WebSocket connection is initiated. The WebSocketManager handles reconnection logic.
-    webSocketManager.connect();
-    console.log('app.js: WebSocket connection initiated.');
+    // --- Trigger the burst of test messages after a short delay ---
+    setTimeout(() => sendBurstTestMessages(), 2500);
 
-    // --- Queue Display Updates ---
-    // Subscribe to changes in the frontend queues to update their visual representation.
-    // This ensures that the UI accurately reflects the state of messages in transit.
+    // --- Queue Display Updates (subscribe to the queues) ---
+    // You subscribe to the queues obtained from MessagingService
     toBackendQueue.subscribe((queueName, size, items) => {
-        updateQueueDisplay('toBackendQueueDisplay', size, items);
+        updateQueueDisplay(queueName, size, items);
     });
     fromBackendQueue.subscribe((queueName, size, items) => {
-        updateQueueDisplay('fromBackendQueueDisplay', size, items);
+        updateQueueDisplay(queueName, size, items);
     });
-    // Add subscriptions for other queues if they are managed by app.js and need visual updates
-    // For example, if frontendOutgoingQueue and frontendIncomingQueue are separate visual queues
-    // that are managed by EventListeners or other modules, they would subscribe there.
+    // If you want to visualize frontendDisplayQueue:
+    frontendDisplayQueue.subscribe((queueName, size, items) => {
+        // This queue is processed internally, so you might not want to show it in the main flow
+        // or just show its size and not individual messages unless debug
+        // For now, let's keep it separate from the main flow visualization.
+        // updateQueueDisplay(queueName, size, items);
+    });
 
-    
+
     console.log('app.js: Application initialization complete.');
 });
-
-// --- Observer for WebSocket Messages (can be moved to a separate module if complex) ---
-// This object defines how the application reacts to different types of messages
-// received from the WebSocket. It's passed to the WebSocketManager.
-const appObserver = {
-    handleMessage: (message) => {
-        // console.log('App Observer received message:', message); // Log all messages for debugging
-
-        // Update system log for all incoming messages (except pong which is handled internally)
-        if (message.type !== 'pong' && message.type !== 'queue_status_update') {
-            updateSystemLog(`Received: ${message.type} (ID: ${message.id ? message.id.substring(0,8) : 'N/A'})`);
-        }
-
-        // Handle specific message types
-        switch (message.type) {
-            case 'ack':
-                updateStatusLog(`Connection Acknowledged: ${message.data.message}`);
-                break;
-            case 'backend_ready_confirm':
-                updateStatusLog(`Backend Ready: ${message.data.message}`);
-                break;
-            case 'status':
-                // This is a generic status update, handled by _handleStatusMessage in WebSocketManager
-                // but can also be processed here if needed.
-                break;
-            case 'error':
-                // Error messages are handled by _handleErrorMessage in WebSocketManager
-                break;
-            case 'data':
-                // Data messages (like translation results) are handled by _handleDataMessage in WebSocketManager
-                break;
-            case 'pong':
-                // Pong messages are handled directly by WebSocketManager for heartbeat.
-                break;
-            case 'queue_status_update':
-                // Queue status updates are handled directly by WebSocketManager and QueueDisplay.
-                break;
-            case 'settings_updated_ack': // NEW: Acknowledge from backend for settings update
-                updateStatusLog(`Backend confirmed settings update: ${JSON.stringify(message.data)}`);
-                console.log('Backend confirmed settings update:', message.data);
-                break;
-        }
-    }
-};
-
-webSocketManager.setObserver(appObserver);
