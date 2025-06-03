@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any, Deque
 from collections import deque
 
 # Import the abstract type
-from Backend.queues.queue_types import AbstractMessageQueue
+from Backend.queues.QueueTypes import AbstractMessageQueue
 
 from ..models.UniversalMessage import UniversalMessage, ForwardingPathEntry
 

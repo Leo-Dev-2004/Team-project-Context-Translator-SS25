@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import the shared queue functions
 from Backend.models.UniversalMessage import UniversalMessage # Ensure UniversalMessage is correctly imported
 
+from Backend.queues.QueueTypes import AbstractMessageQueue # <<< ADD THIS IMPORT
+
 from Backend.core.Queues import queues # Access the pre-initialized queues
 from Backend.queues.MessageQueue import MessageQueue # For type hinting
 
 # Import the SimulationManager class (for type hinting and instantiation)
-from Backend.core.simulator import SimulationManager
+from Backend.core.SimulationManager import SimulationManager
 
 # Import BackendServiceDispatcher directly
 from Backend.core.BackendServiceDispatcher import BackendServiceDispatcher
@@ -84,19 +86,19 @@ simulation_manager_instance: Optional[SimulationManager] = None
 websocket_manager_instance: Optional[WebSocketManager] = None
 
 
-# --- BACKGROUND TASK TO SEND QUEUE STATUS TO FRONTEND ---
 async def send_queue_status_to_frontend():
     # Wait a bit for initial connection and setup to complete
     await asyncio.sleep(5)
     while True:
         try:
-            incoming_q = cast(MessageQueue, queues.incoming)
-            websocket_out_q = cast(MessageQueue, queues.websocket_out)
-            dead_letter_q = cast(MessageQueue, queues.dead_letter)
+            # Use AbstractMessageQueue for consistent typing
+            incoming_q: AbstractMessageQueue = queues.incoming
+            websocket_out_q: AbstractMessageQueue = queues.websocket_out
+            dead_letter_q: AbstractMessageQueue = queues.dead_letter
 
-            incoming_q_size = incoming_q.qsize() if incoming_q else 0
-            websocket_out_q_size = websocket_out_q.qsize() if websocket_out_q else 0
-            dead_letter_q_size = dead_letter_q.qsize() if dead_letter_q else 0
+            incoming_q_size = incoming_q.qsize()
+            websocket_out_q_size = websocket_out_q.qsize()
+            dead_letter_q_size = dead_letter_q.qsize()
 
             status_message_data = {
                 "incoming_q_size": incoming_q_size,
@@ -104,69 +106,51 @@ async def send_queue_status_to_frontend():
                 "dead_letter_q_size": dead_letter_q_size,
             }
 
-            # We need a way to send UniversalMessage with queue status
-            # Assuming UniversalMessage is defined and available (e.g., in models/message_types.py)
-            # You might need to define a QueueStatusMessage type or adjust UniversalMessage for this.
-            # For demonstration, let's assume UniversalMessage can carry this payload.
-            
-            # The issue here is that UniversalMessage requires 'type', 'origin', 'destination'.
-            # A dedicated QueueStatusMessage model would be better, or ensure UniversalMessage is flexible.
-            # Let's mock a QueueMessage if it's not defined, or assume UniversalMessage can be adapted.
-            # If QueueMessage is a custom type, ensure it's imported.
-            # For now, let's use a dummy class or ensure it's importable.
-            # If `QueueMessage` doesn't exist, replace it with `UniversalMessage` and provide required fields.
-            
-            # A placeholder for QueueMessage or an adapted UniversalMessage
-            try:
-                from Backend.models.QueueMessage import QueueMessage # Attempt to import your specific QueueMessage
-            except ImportError:
-                # Fallback to UniversalMessage if QueueMessage is not found, providing required fields
-                logger.warning("QueueMessage not found, falling back to UniversalMessage for status updates. Ensure UniversalMessage schema is flexible.")
-                class TempQueueMessage(UniversalMessage):
-                    # Override if necessary, or just use UniversalMessage directly
-                    pass
-                QueueMessage = TempQueueMessage
+            # --- USE UNIVERSALMESSAGE DIRECTLY FOR QUEUE STATUS ---
+            # Remove the problematic try-except block and dynamic class definition.
+            # Create a UniversalMessage instance with all required fields.
 
+            # Get the WebSocketManager instance
+            # Assuming you have a get_websocket_manager_instance() function or similar
+            # If not, ensure _global_ws_manager_instance is set elsewhere before this task starts.
+            websocket_manager_instance: Optional[WebSocketManager] = get_websocket_manager_instance()
 
-            if websocket_manager_instance and websocket_manager_instance.connections:
+            if websocket_manager_instance and websocket_manager_instance.connections: # Changed .connections to .active_connections based on common pattern
                 for client_id_str in list(websocket_manager_instance.connections.keys()):
                     try:
-                        # Ensure all required fields for QueueMessage/UniversalMessage are provided
-                        queue_message = QueueMessage(
+                        # Construct a UniversalMessage for the queue status update
+                        queue_status_universal_message = UniversalMessage(
                             id=str(uuid.uuid4()),
-                            type="system.queue_status_update", # Define a clear type
-                            origin="backend.system",
-                            destination="frontend", # Directed to the frontend
+                            type="system.queue_status_update",
+                            origin="backend.system_monitor",
+                            destination="frontend",
                             timestamp=time.time(),
-                            client_id=client_id_str,
-                            payload=status_message_data, # Put status data in payload
-                            processing_path=[],
-                            # forwarding_path=[], # REMOVED
+                            client_id=client_id_str, # Target a specific client if needed
+                            payload=status_message_data,
+                            processing_path=[], # Initialize empty if not relevant here
+                            # forwarding_path will be added by the WebSocketManager if it forwards
                         )
-                        # The WebSocketManager should have a public method to send messages.
-                        # We previously implemented `_send_to_dead_letter_queue` and the internal
-                        # `_outgoing_messages_loop`. For general sending, you might need a new method.
-                        # A direct `send_text` via the websocket itself is also an option if you get the WS object.
-                        
-                        # Assuming WebSocketManager has a robust method to send messages to a client_id
-                        # This might be `send_universal_message_to_client` or similar.
-                        # For now, if send_message_to_client is not defined, we'll log it.
-                        if hasattr(websocket_manager_instance, 'send_message_to_client'):
-                             await websocket_manager_instance.send_message_to_client(client_id_str, queue_message)
+
+                        # Assuming WebSocketManager has a method to send a UniversalMessage to a specific client.
+                        # This is the ideal way to encapsulate the sending logic.
+                        if hasattr(websocket_manager_instance, 'send_universal_message_to_client'):
+                            await websocket_manager_instance.send_message_to_client(client_id_str, queue_status_universal_message)
+                            logger.debug(f"Sent queue status (UniversalMessage) to client {client_id_str}")
                         elif websocket_manager_instance.connections.get(client_id_str):
-                            # Fallback if specific send method is not found, use direct websocket send
-                            await websocket_manager_instance.connections[client_id_str].send_text(queue_message.model_dump_json())
-                            logger.debug(f"Sent queue status directly via WS to {client_id_str}")
+                            # Fallback: Directly send as JSON via WebSocket if no higher-level method
+                            await websocket_manager_instance.connections[client_id_str].send_text(
+                                queue_status_universal_message.model_dump_json() # Use model_dump_json for Pydantic models
+                            )
+                            logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
                         else:
-                            logger.warning(f"No direct 'send_message_to_client' method or active connection for {client_id_str}. Cannot send queue status.")
+                            logger.warning(f"No suitable method or active connection for {client_id_str} to send queue status.")
+
                     except Exception as client_send_error:
                         logger.error(f"Error sending queue_status_update to client {client_id_str}: {client_send_error}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
-        await asyncio.sleep(1)
-
-
+        await asyncio.sleep(1) # Send status every second
 # --- FASTAPI APPLICATION STARTUP EVENT ---
 @app.on_event("startup")
 async def startup_event():

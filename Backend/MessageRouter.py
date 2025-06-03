@@ -4,20 +4,20 @@ import asyncio
 import logging
 import time
 from typing import Dict, Any, Optional
-from pydantic import ValidationError # <-- ADDED IMPORT: For handling Pydantic validation errors
+from pydantic import ValidationError
 
 # Import UniversalMessage and its related models
 from Backend.models.UniversalMessage import (
     UniversalMessage,
     ProcessingPathEntry,
     ForwardingPathEntry,
-    DeadLetterMessage, # Still used for DLQ specific messages
-    ErrorTypes # Import the updated ErrorTypes enum
+    DeadLetterMessage,
+    ErrorTypes
 )
 
 # Import the global queues instance
-from Backend.core.Queues import queues # Access the pre-initialized global queues
-from Backend.queues.queue_types import AbstractMessageQueue # For type hinting
+from Backend.core.Queues import queues
+from Backend.queues.QueueTypes import AbstractMessageQueue
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,10 @@ class MessageRouter:
     """
 
     def __init__(self):
-        # Queues are now guaranteed to be initialized when 'queues' is imported,
-        # so we can directly assign them. Type hints should reflect AbstractMessageQueue.
-        self._input_queue: AbstractMessageQueue = queues.incoming # Messages from external sources/frontend
-        self._output_queue: AbstractMessageQueue = queues.outgoing # Messages to be processed by services
-        self._websocket_out_queue: AbstractMessageQueue = queues.websocket_out # Messages specifically for WebSocket clients
-        self._dead_letter_queue: AbstractMessageQueue = queues.dead_letter # For unprocessable messages
+        self._input_queue: AbstractMessageQueue = queues.incoming
+        self._output_queue: AbstractMessageQueue = queues.outgoing
+        self._websocket_out_queue: AbstractMessageQueue = queues.websocket_out
+        self._dead_letter_queue: AbstractMessageQueue = queues.dead_letter
 
         self._running = False
         self._router_task: Optional[asyncio.Task] = None
@@ -67,9 +65,11 @@ class MessageRouter:
         """Main loop for routing messages from the input queue."""
         logger.info("MessageRouter: Listening for messages on input queue...")
         while self._running:
+            # Initialize message to None to ensure it's always bound
+            message: Optional[UniversalMessage] = None
             try:
                 # Dequeue from the input queue
-                message: UniversalMessage = await self._input_queue.dequeue() # <-- FIXED: dequeue is now known
+                message = await self._input_queue.dequeue()
 
                 logger.debug(
                     f"MessageRouter received message (ID: {message.id}, Type: {message.type}, "
@@ -80,7 +80,7 @@ class MessageRouter:
                 message.processing_path.append(ProcessingPathEntry(
                     processor="MessageRouter",
                     status="received_for_routing",
-                    timestamp=time.time(), # `completed_at` is optional, no need to provide if not completed
+                    timestamp=time.time(),
                     completed_at=None,
                     details=None
                 ))
@@ -92,20 +92,22 @@ class MessageRouter:
                 break
             except Exception as e:
                 logger.error(f"MessageRouter encountered unhandled error in main loop: {e}", exc_info=True)
-                # Attempt to move problematic message to DLQ if possible
-                # The message variable might not be defined if error occurred before dequeue.
-                # Use a dummy if it's not available.
-                problematic_message = message if 'message' in locals() else UniversalMessage(
-                    type=ErrorTypes.INTERNAL_SERVER_ERROR.value, # <-- FIXED: Use new enum value
-                    payload={"error": "Router loop unhandled exception", "details": str(e)},
-                    origin="MessageRouter",
-                    destination="dead_letter_queue",
-                    client_id=None
-                )
+                # If message is None, it means the error happened before dequeue
+                if message is None:
+                    problematic_message = UniversalMessage(
+                        type=ErrorTypes.INTERNAL_SERVER_ERROR.value,
+                        payload={"error": "Router loop unhandled exception: message not dequeued", "details": str(e)},
+                        origin="MessageRouter",
+                        destination="dead_letter_queue",
+                        client_id=None # Or a default/system client ID if applicable
+                    )
+                else:
+                    problematic_message = message
+
                 await self._send_to_dlq(
                     message=problematic_message,
                     reason=f"Router loop unhandled exception: {e}",
-                    error_type=ErrorTypes.INTERNAL_SERVER_ERROR # <-- FIXED: Use new enum value
+                    error_type=ErrorTypes.INTERNAL_SERVER_ERROR
                 )
 
     async def _process_and_route_message(self, message: UniversalMessage):
@@ -131,9 +133,9 @@ class MessageRouter:
                 await self._send_to_dlq(
                     message=message,
                     reason=f"Unroutable destination: {message.destination}",
-                    error_type=ErrorTypes.UNKNOWN_MESSAGE_TYPE # <-- FIXED: Use new enum value (or ROUTING_ERROR)
+                    error_type=ErrorTypes.ROUTING_ERROR # Using ROUTING_ERROR for unroutable destinations
                 )
-                return # Stop processing this message
+                return
 
             if target_queue:
                 # Update processing path before enqueuing
@@ -141,62 +143,51 @@ class MessageRouter:
                     processor="MessageRouter",
                     status=f"routed_to_{target_queue.name}",
                     timestamp=time.time(),
-                    completed_at=None,  # Not completed at this step
-                    details=None        # No extra details at this step
+                    completed_at=None,
+                    details=None
                 ))
-                await target_queue.enqueue(message) # <-- FIXED: enqueue is now known
+                await target_queue.enqueue(message)
                 logger.debug(f"Message {message.id} successfully enqueued to {target_queue.name}.")
             else:
-                # This else block should theoretically be covered by the previous unknown destination check,
-                # but it's a good fail-safe.
                 logger.error(f"No target queue determined for message ID: {message.id}. Sending to DLQ.")
                 await self._send_to_dlq(
                     message=message,
                     reason="No target queue determined by router.",
-                    error_type=ErrorTypes.ROUTING_ERROR # <-- FIXED: Use new enum value
+                    error_type=ErrorTypes.ROUTING_ERROR
                 )
 
-        except ValidationError as ve: # <-- ADDED IMPORT: ValidationError
+        except ValidationError as ve:
             logger.error(f"Message validation error during routing for message ID: {message.id}. Error: {ve}", exc_info=True)
             await self._send_to_dlq(
                 message=message,
                 reason=f"Validation error during routing: {ve}",
-                error_type=ErrorTypes.VALIDATION # <-- FIXED: Use new enum value
+                error_type=ErrorTypes.VALIDATION
             )
         except Exception as e:
             logger.error(f"Error processing and routing message ID: {message.id}. Error: {e}", exc_info=True)
             await self._send_to_dlq(
                 message=message,
                 reason=f"General error during routing: {e}",
-                error_type=ErrorTypes.INTERNAL_SERVER_ERROR # <-- FIXED: Use new enum value
+                error_type=ErrorTypes.INTERNAL_SERVER_ERROR
             )
 
     async def _send_to_dlq(self, message: UniversalMessage, reason: str, error_type: ErrorTypes):
         """Sends a message to the Dead Letter Queue."""
         logger.warning(
             f"Sending message (ID: {message.id}, Type: {message.type}) to DLQ. "
-            f"Reason: {reason}. Error Type: {error_type.value}" # .value to get string from enum
+            f"Reason: {reason}. Error Type: {error_type.value}"
         )
         try:
             dlq_message = DeadLetterMessage(
-                type=ErrorTypes.DEAD_LETTER.value,
+                type=error_type.value, # Use the provided error_type's value as the DLQ message type
                 origin="MessageRouter",
                 destination="dead_letter_queue",
-                original_message_raw=message.model_dump(), # <-- FIXED: Use original_message_raw
+                original_message_raw=message.model_dump(),
                 reason=reason,
-                client_id=getattr(message, "client_id", None),  # Pass client_id if present, else None
-                # dlq_timestamp defaults automatically
-                error_details={"error_type": error_type.value, "router_error": reason}, # <-- FIXED: Use .value
-                # Other UniversalMessage fields are set by DeadLetterMessage's validator
-                # and don't need to be passed here.
+                client_id=message.client_id, # Directly access client_id from the message
+                error_details={"error_type": error_type.value, "router_error": reason},
             )
             await self._dead_letter_queue.enqueue(dlq_message)
             logger.info(f"Message {message.id} successfully sent to Dead Letter Queue.")
         except Exception as e:
             logger.critical(f"FATAL: Failed to send message {message.id} to Dead Letter Queue: {e}", exc_info=True)
-
-
-# Example of how MessageRouter might be instantiated and started (e.g., in your main app)
-# router = MessageRouter()
-# await router.start()
-# await router.stop()

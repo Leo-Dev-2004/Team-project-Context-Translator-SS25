@@ -6,7 +6,7 @@ from typing import Optional, TYPE_CHECKING
 # Make sure Backend.queues.MessageQueue exists and defines MessageQueue
 from Backend.queues.MessageQueue import MessageQueue
 # Import the abstract type for type hinting consistency
-from Backend.queues.queue_types import AbstractMessageQueue
+from Backend.queues.QueueTypes import AbstractMessageQueue
 
 class Queues:
     """

@@ -201,6 +201,9 @@ class ErrorTypes(str, Enum):
     AUTHENTICATION_FAILED = "error.authentication_failed"
     PERMISSION_DENIED = "error.permission_denied"
     UNKNOWN_ERROR = "error.unknown"
-MESSAGE_UNDELIVERABLE = "error.message_undeliverable"
-INVALID_MESSAGE_FORMAT = "error.invalid_message_format"
-QUEUE_OPERATION_FAILED = "error.queue_operation_failed"
+    MESSAGE_UNDELIVERABLE = "error.message_undeliverable"
+    INVALID_MESSAGE_FORMAT = "error.invalid_message_format"
+    QUEUE_OPERATION_FAILED = "error.queue_operation_failed"
+    SYSTEM_ERROR= "error.system_error"
+    ROUTING_ERROR = "error.routing_error"
+# --- Custom Validation for UniversalMessage ---

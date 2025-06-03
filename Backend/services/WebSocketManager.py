@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from typing import Dict, Any, Optional, Union, Set 
+from starlette.websockets import WebSocketDisconnect # Add this line
 
 # Ensure MessageQueue is imported for type hinting
 from Backend.queues.MessageQueue import MessageQueue 
@@ -20,6 +21,7 @@ from Backend.models.UniversalMessage import (
     ProcessingPathEntry, 
     ErrorTypes 
 )
+from Backend.queues.QueueTypes import AbstractMessageQueue
 # We don't need to import global_queues here anymore if passed via __init__
 # from Backend.core.Queues import queues as global_queues 
 
@@ -30,15 +32,15 @@ class WebSocketManager:
     active_tasks: Dict[str, tuple[asyncio.Task, ...]]
     _running: bool
     # Explicitly type the queues as MessageQueue for clarity
-    incoming_queue: MessageQueue 
-    websocket_out_queue: MessageQueue 
-    dead_letter_queue: MessageQueue 
+    incoming_queue: AbstractMessageQueue 
+    websocket_out_queue: AbstractMessageQueue 
+    dead_letter_queue: AbstractMessageQueue 
 
     # Modify __init__ to accept queue instances
     def __init__(self, 
-                 incoming_queue: MessageQueue, 
-                 websocket_out_queue: MessageQueue, 
-                 dead_letter_queue: MessageQueue):
+                 incoming_queue: AbstractMessageQueue, 
+                 websocket_out_queue: AbstractMessageQueue, 
+                 dead_letter_queue: AbstractMessageQueue):
         self.connections = {} 
         self.active_tasks = {} 
         self._running = False 

@@ -8,22 +8,21 @@ import uuid
 from typing import Dict, Union, Optional, Any
 from fastapi import BackgroundTasks
 
-# Import the global queues instance
-from Backend.core.Queues import queues as global_queues # Renamed to avoid conflict
+# Import the MessageQueue for type hinting
+from Backend.queues.MessageQueue import MessageQueue, AbstractMessageQueue
 
 # Import the new UniversalMessage
 from Backend.models.UniversalMessage import UniversalMessage, ProcessingPathEntry, ForwardingPathEntry
-# Removed: from Backend.queues.queue_types import AbstractMessageQueue
-# Removed: from ..queues.MessageQueue import MessageQueue
-# Removed: from ..models.message_types import QueueMessage
-# Removed: class SystemMessage (will be replaced by UniversalMessage)
-
 
 logger = logging.getLogger(__name__)
 
 class SimulationManager:
-    # Removed queue parameters from __init__
-    def __init__(self):
+    # --- IMPORTANT: Re-added queue parameters to __init__ ---
+    def __init__(self,
+                 incoming_queue: AbstractMessageQueue,
+                 outgoing_queue: AbstractMessageQueue,
+                 websocket_out_queue: AbstractMessageQueue,
+                 dead_letter_queue: AbstractMessageQueue):
         self._running = False
         self.counter = 0
         self.task = None
@@ -31,17 +30,13 @@ class SimulationManager:
         self._autostart_task = None
         self._is_ready = False
 
-        # Directly use the global queues instance
-        # The simulator primarily produces messages for the outgoing queue
-        self._outgoing_queue = global_queues.outgoing
-        self._dead_letter_queue = global_queues.dead_letter
-        # If the simulator needs to receive specific internal messages from a backend service,
-        # it would get them via the BackendServiceDispatcher which pulls from global_queues.incoming
-        # So, no direct "from_backend_queue" here anymore.
+        # Assign the passed queue instances
+        self.incoming_queue = incoming_queue
+        self.outgoing_queue = outgoing_queue
+        self.websocket_out_queue = websocket_out_queue
+        self.dead_letter_queue = dead_letter_queue
 
-        logger.info("SimulationManager initialized with global queues references.")
-
-
+        logger.info("SimulationManager initialized with provided queue instances.")
 
     @property
     def is_ready(self) -> bool:
@@ -68,25 +63,15 @@ class SimulationManager:
     async def start(self, client_id: str, background_tasks: Optional[BackgroundTasks] = None):
         """Start the simulation"""
         if self.running:
-            status_msg = UniversalMessage( # Now UniversalMessage
-                type="status.simulation_start", # More specific type
-                payload={"status": "already_running", "message": "Simulation is already running."}, # Renamed 'data' to 'payload'
+            status_msg = UniversalMessage(
+                type="status.simulation_start",
+                payload={"status": "already_running", "message": "Simulation is already running."},
                 origin="simulation_manager",
-                destination="frontend", # Explicit destination for the router
+                destination="frontend",
                 client_id=client_id,
-                # id, timestamp, processing_path, forwarding_path will be default_factory
             )
-            await self._outgoing_queue.enqueue(status_msg) # Enqueue to the central outgoing queue
+            await self.outgoing_queue.enqueue(status_msg) # Use self.outgoing_queue
             return {"status": "already running"}
-
-        # Draining global queues directly might be problematic for other services.
-        # If a fresh state is needed, it should be managed by the queue consumers (Dispatcher, Router)
-        # or a specific reset mechanism for the queues themselves.
-        # For now, removed these specific drain calls. If needed, we'd drain the specific
-        # output queue for the simulator, which is _outgoing_queue.
-        # await self._to_backend_queue.drain() # Removed
-        # await self._to_frontend_queue.drain() # Removed
-
 
         self.running = True
         if background_tasks:
@@ -94,17 +79,17 @@ class SimulationManager:
         else:
             self.task = asyncio.create_task(self._run_simulation(client_id))
 
-        system_msg = UniversalMessage( # Now UniversalMessage
-            type="system.simulation_start", # More specific type
-            payload={ # Renamed 'data' to 'payload'
+        system_msg = UniversalMessage(
+            type="system.simulation_start",
+            payload={
                 "message": "Simulation started via API",
                 "status": "info"
             },
             origin="simulation_manager",
-            destination="frontend", # Explicit destination
+            destination="frontend",
             client_id=client_id,
         )
-        await self._outgoing_queue.enqueue(system_msg) # Enqueue to the central outgoing queue
+        await self.outgoing_queue.enqueue(system_msg) # Use self.outgoing_queue
 
         return {
             "status": "started",
@@ -127,9 +112,8 @@ class SimulationManager:
             try:
                 if self.is_ready and not self.is_running:
                     logger.info("Autostart: Starting simulation")
-                    # Autostart should also specify a client_id for traceability
                     await self.start(client_id="autostart_system")
-                await asyncio.sleep(5)  # Check every 5 seconds
+                await asyncio.sleep(5)
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -142,16 +126,15 @@ class SimulationManager:
 
         if not self.running:
             logger.info("Simulation is not running. No action needed.")
-            # Send status update
-            status_msg = UniversalMessage( # Now UniversalMessage
-                type="status.simulation_stop", # More specific type
+            status_msg = UniversalMessage(
+                type="status.simulation_stop",
                 payload={"message": "Simulation not running", "status": "info"},
                 origin="simulation_manager",
                 destination="frontend",
                 client_id=client_id,
             )
-            if client_id: # Only send to specific client if provided
-                await self._outgoing_queue.enqueue(status_msg)
+            if client_id:
+                await self.outgoing_queue.enqueue(status_msg) # Use self.outgoing_queue
             return {"status": "not running"}
 
         self.running = False
@@ -165,32 +148,32 @@ class SimulationManager:
                 logger.error(f"Error while cancelling simulation task: {e}", exc_info=True)
 
         logger.info(f"Simulation stopped. Sending final status to client: {client_id if client_id else 'broadcast'}")
-        system_msg_stopped = UniversalMessage( # Now UniversalMessage
-            type="status.simulation_stop", # More specific type
+        system_msg_stopped = UniversalMessage(
+            type="status.simulation_stop",
             payload={
                 "message": "Simulation stopped via API",
                 "status": "stopped"
             },
             origin="simulation_manager",
             destination="frontend",
-            client_id=client_id if client_id else 'broadcast', # Use actual client_id or 'broadcast'
+            client_id=client_id if client_id else 'broadcast',
         )
-        await self._outgoing_queue.enqueue(system_msg_stopped) # Enqueue to the central outgoing queue
+        await self.outgoing_queue.enqueue(system_msg_stopped) # Use self.outgoing_queue
 
         return {"status": "stopped"}
 
     async def status(self):
         """Get simulation status"""
-        # Updated to reflect new global queue names
+        # Use self.queue_name instead of global_queues.queue_name
         return {
             "running": self.running,
             "counter": self.counter,
             "timestamp": time.time(),
             "queues": {
-                "incoming": global_queues.incoming.qsize() if global_queues.incoming else 0,
-                "outgoing": global_queues.outgoing.qsize() if global_queues.outgoing else 0,
-                "websocket_out": global_queues.websocket_out.qsize() if global_queues.websocket_out else 0,
-                "dead_letter": global_queues.dead_letter.qsize() if global_queues.dead_letter else 0,
+                "incoming": self.incoming_queue.qsize() if self.incoming_queue else 0,
+                "outgoing": self.outgoing_queue.qsize() if self.outgoing_queue else 0,
+                "websocket_out": self.websocket_out_queue.qsize() if self.websocket_out_queue else 0,
+                "dead_letter": self.dead_letter_queue.qsize() if self.dead_letter_queue else 0,
             }
         }
 
@@ -199,10 +182,9 @@ class SimulationManager:
         logger.info(f"Simulation task starting for client: {client_id}")
 
         try:
-            # Initial system message (e.g., to backend dispatcher for setup)
             system_init_msg = UniversalMessage(
-                type="system.simulation_initialization", # More specific type
-                payload={ # Renamed 'data' to 'payload'
+                type="system.simulation_initialization",
+                payload={
                     "message": "Simulation started by system",
                     "status": "pending",
                     "progress": 0,
@@ -210,15 +192,11 @@ class SimulationManager:
                     "originating_client_id": client_id
                 },
                 origin="simulation_manager",
-                # This message's destination might be another backend service for setup,
-                # or directly to frontend if it's purely a status for client.
-                # Assuming for now it's a status update for the frontend.
                 destination="frontend",
-                client_id=client_id, # Link back to the client that initiated it
-                # paths will be default_factory
+                client_id=client_id,
             )
             logger.debug(f"Created system message: {system_init_msg.model_dump_json()}")
-            await self._outgoing_queue.enqueue(system_init_msg) # Enqueue to outgoing
+            await self.outgoing_queue.enqueue(system_init_msg) # Use self.outgoing_queue
             logger.info("System initialization message enqueued to outgoing queue")
         except Exception as e:
             logger.error(f"Failed to enqueue system initialization message: {e}")
@@ -228,39 +206,34 @@ class SimulationManager:
             self.counter += 1
             await asyncio.sleep(1)
 
-            # Simulation tick message for backend processing (if any)
-            # This would typically go to a backend service for processing
             sim_msg_for_backend = UniversalMessage(
-                type="simulation.tick_data", # More specific type
-                payload={ # Renamed 'data' to 'payload'
+                type="simulation.tick_data",
+                payload={
                     "content": f"Simulation data tick {self.counter}",
                     "simulation_counter": self.counter,
                     "created_at": time.time(),
                 },
                 origin="simulation_manager",
-                destination="backend.data_processor", # Example: send to a specific backend service
-                client_id=client_id, # Maintain client context
+                destination="backend.data_processor",
+                client_id=client_id,
             )
-            await self._outgoing_queue.enqueue(sim_msg_for_backend)
+            await self.outgoing_queue.enqueue(sim_msg_for_backend) # Use self.outgoing_queue
             logger.debug(f"Simulation tick data (ID: {sim_msg_for_backend.id}) enqueued to outgoing for backend processing.")
 
-
-            # Simulation status update for frontend
             frontend_status_msg = UniversalMessage(
-                type="status.simulation_progress", # More specific type
-                payload={ # Renamed 'data' to 'payload'
+                type="status.simulation_progress",
+                payload={
                     "status": "running",
                     "progress": self.counter,
                     "current_tick": self.counter,
                     "timestamp": time.time()
                 },
                 origin="simulation_manager",
-                destination="frontend", # Explicitly for the frontend
-                client_id=client_id, # Link back to the client
+                destination="frontend",
+                client_id=client_id,
             )
-            await self._outgoing_queue.enqueue(frontend_status_msg)
+            await self.outgoing_queue.enqueue(frontend_status_msg) # Use self.outgoing_queue
             logger.debug(f"Simulation status (ID: {frontend_status_msg.id}) enqueued to outgoing for frontend.")
-
 
             await asyncio.sleep(0.5 + 1.5 * random.random())
 
@@ -270,8 +243,8 @@ class SimulationManager:
         logger.info(f"Simulation stopped for client: {client_id}")
 
         final_status_msg = UniversalMessage(
-            type="status.simulation_finished", # More specific type
-            payload={ # Renamed 'data' to 'payload'
+            type="status.simulation_finished",
+            payload={
                 "message": "Simulation loop finished",
                 "status": "finished",
                 "final_tick_count": self.counter
@@ -280,25 +253,23 @@ class SimulationManager:
             destination="frontend",
             client_id=client_id,
         )
-        await self._outgoing_queue.enqueue(final_status_msg) # Enqueue to outgoing
+        await self.outgoing_queue.enqueue(final_status_msg) # Use self.outgoing_queue
 
     async def _monitor_queues(self):
         """Monitor queue health (updated for new global queue names)"""
-        # Ensure global_queues are initialized before trying to access qsize
-        incoming_size = global_queues.incoming.qsize() if global_queues.incoming else 0
-        outgoing_size = global_queues.outgoing.qsize() if global_queues.outgoing else 0
-        websocket_out_size = global_queues.websocket_out.qsize() if global_queues.websocket_out else 0
-        dead_letter_size = global_queues.dead_letter.qsize() if global_queues.dead_letter else 0
+        # Use self.queue_name instead of global_queues.queue_name
+        incoming_size = self.incoming_queue.qsize() if self.incoming_queue else 0
+        outgoing_size = self.outgoing_queue.qsize() if self.outgoing_queue else 0
+        websocket_out_size = self.websocket_out_queue.qsize() if self.websocket_out_queue else 0
+        dead_letter_size = self.dead_letter_queue.qsize() if self.dead_letter_queue else 0
 
         logger.debug(f"Queue sizes: Incoming: {incoming_size}, Outgoing: {outgoing_size}, WS_Out: {websocket_out_size}, DLQ: {dead_letter_size}")
 
-        if outgoing_size > 5: # Monitor outgoing queue as it's the simulator's primary output
+        if outgoing_size > 5:
             logger.warning(f"Outgoing queue has {outgoing_size} messages from simulation manager.")
             try:
-                # Peek logic requires a peek() method on your MessageQueue,
-                # which isn't standard for asyncio.Queue. Assuming it exists.
-                if hasattr(global_queues.outgoing, 'peek') and callable(global_queues.outgoing.peek):
-                    oldest_msg = global_queues.outgoing.peek()
+                if hasattr(self.outgoing_queue, 'peek') and callable(self.outgoing_queue.peek):
+                    oldest_msg = self.outgoing_queue.peek()
                     if oldest_msg:
                         age = time.time() - oldest_msg.timestamp
                         msg_id = oldest_msg.id
@@ -307,13 +278,8 @@ class SimulationManager:
             except Exception as e:
                 logger.error(f"Error checking oldest message in Outgoing queue: {str(e)}")
 
-        # Adjust warnings based on the new flow
         if outgoing_size > 10 and websocket_out_size < 2:
             logger.warning("Messages accumulating in outgoing_queue, possibly due to slow MessageRouter or WebSocketManager.")
-
-        # Note: The simulator doesn't directly interact with incoming or websocket_out for its core logic,
-        # so detailed warnings about those queues might be better placed in MessageRouter or WebSocketManager.
-        # This monitor is primarily for the simulator's *own* output and the overall system health.
 
     async def set_translation_settings(self, mode: str, context_level: int, client_id: str):
         """
@@ -325,7 +291,6 @@ class SimulationManager:
         self._translation_mode = mode
         self._context_level = context_level
         logger.info(f"Translation settings updated for client {client_id}: Mode='{mode}', Context Level={context_level}")
-        # Send a status update about this setting change
         status_msg = UniversalMessage(
             type="status.translation_settings_update",
             payload={"mode": mode, "context_level": context_level, "message": "Translation settings applied."},
@@ -333,5 +298,5 @@ class SimulationManager:
             destination="frontend",
             client_id=client_id,
         )
-        await self._outgoing_queue.enqueue(status_msg)
-        pass # The actual logic to apply settings would go here.
+        await self.outgoing_queue.enqueue(status_msg) # Use self.outgoing_queue
+        pass

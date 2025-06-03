@@ -13,7 +13,7 @@ from pydantic import BaseModel, ValidationError # Added ValidationError for comp
 # UniversalMessage is the standard. WebSocketMessage import removed.
 from ..models.UniversalMessage import UniversalMessage # Assuming DeadLetterMessage might be handled by services, not directly here unless for typing
 from ..core.Queues import queues
-from ..core.simulator import SimulationManager # Assuming this is the correct path
+from ..core.SimulationManager import SimulationManager # Assuming this is the correct path
 from ..dependencies import get_simulation_manager, get_websocket_manager_instance
 
 logger = logging.getLogger(__name__)
