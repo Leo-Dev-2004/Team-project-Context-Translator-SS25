@@ -16,6 +16,7 @@ from Backend.queues.QueueTypes import AbstractMessageQueue # <<< ADD THIS IMPORT
 
 from Backend.core.Queues import queues # Access the pre-initialized queues
 from Backend.queues.MessageQueue import MessageQueue # For type hinting
+from Backend.MessageRouter import MessageRouter # Import the MessageRouter class
 
 # Import the SimulationManager class (for type hinting and instantiation)
 from Backend.core.SimulationManager import SimulationManager
@@ -155,7 +156,8 @@ async def send_queue_status_to_frontend():
         await asyncio.sleep(1) # Send status every second
 
 
-
+message_router_instance: Optional[MessageRouter] = None # Add this line to declare global variable
+# --- Set the MessageRouter instance in dependencies ---
 
 # --- FASTAPI APPLICATION STARTUP EVENT ---
 @app.on_event("startup")
@@ -195,7 +197,13 @@ async def startup_event():
     set_simulation_manager_instance(simulation_manager_instance)
     logger.info("SimulationManager initialized and stored in dependencies.")
 
-    # 4. Initialize and start long-running background processors
+    # 4. Initialize and start the MessageRouter instance
+    global message_router_instance
+    message_router_instance = MessageRouter()
+    await message_router_instance.start() # Start the router's internal processing loop
+    logger.info("MessageRouter initialized and started.")
+
+    # 5. Initialize and start long-running background processors
     global message_processor_task, queue_status_sender_task
     global message_processor_instance
 
@@ -203,7 +211,7 @@ async def startup_event():
     # The dispatcher should use the `outgoing` queue for messages processed for external systems.
     # And `websocket_out` for messages specifically destined for the frontend.
     message_processor_instance = BackendServiceDispatcher(
-        incoming_queue=cast(MessageQueue, queues.incoming),
+        incoming_queue=cast(MessageQueue, queues.outgoing),
         outgoing_queue=cast(MessageQueue, queues.outgoing), # For sending processed messages to other backend services
         websocket_out_queue=cast(MessageQueue, queues.websocket_out), # For sending processed messages to frontend
         dead_letter_queue=cast(MessageQueue, queues.dead_letter)

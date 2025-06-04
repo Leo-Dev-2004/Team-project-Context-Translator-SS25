@@ -32,6 +32,7 @@ class BackendServiceDispatcher:
         self._input_queue = incoming_queue
         self._output_queue = outgoing_queue
         self._dead_letter_queue = dead_letter_queue
+        self._websocket_out_queue = websocket_out_queue
         logger.info("BackendServiceDispatcher initialized with queues.")
 
     async def initialize(self):
@@ -123,14 +124,21 @@ class BackendServiceDispatcher:
                 response_message: Optional[UniversalMessage] = await self._process_single_message(message)
 
                 if response_message:
-                    assert self._output_queue is not None, "Output queue must be initialized before sending messages"
-                    await self.safe_enqueue(self._output_queue, response_message)
-                    logger.debug(f"Dispatcher enqueued response message {response_message.id} of type '{response_message.type}' to outgoing queue.")
+                    # Determine the destination queue based on the message's destination field
+                    if response_message.destination == "frontend":
+                        assert self._websocket_out_queue is not None, "WebSocket Out queue must be initialized before sending to frontend"
+                        await self.safe_enqueue(self._websocket_out_queue, response_message)
+                        logger.debug(f"Dispatcher enqueued response message {response_message.id} of type '{response_message.type}' to websocket_out_queue (for frontend).")
+                    else:
+                        # Default to _output_queue for other backend services or general outputs
+                        assert self._output_queue is not None, "Output queue must be initialized before sending messages to other backend services"
+                        await self.safe_enqueue(self._output_queue, response_message)
+                        logger.debug(f"Dispatcher enqueued response message {response_message.id} of type '{response_message.type}' to outgoing queue (for backend).")
 
                 processed_count += 1
 
                 if time.time() - last_log_time > 5:
-                    logger.info(f"Processed {processed_count} messages in the last 5 seconds. Incoming Queue Size: {self._get_input_queue_size()}")
+                    logger.info(f"Processed {processed_count} messages in the last 5 seconds. Incoming Queue Size: {self._get_input_queue_size()}. WebSocket Out Queue Size: {self._websocket_out_queue.qsize()}.") # Added WS Out size to log
                     last_log_time = time.time()
                     processed_count = 0
 
@@ -139,7 +147,7 @@ class BackendServiceDispatcher:
                 break
             except Exception as e:
                 logger.error(f"Error during BackendServiceDispatcher main loop: {str(e)}", exc_info=True)
-                dlq_client_id = getattr(message, 'client_id', 'unknown_client_error') if message else 'unknown_client_error'
+                dlq_client_id = getattr(message, 'client_id', 'N/A') if message else 'unknown_client_error'
                 original_msg_data = message.model_dump() if message and isinstance(message, UniversalMessage) else {"raw_message_unparseable": str(message)}
 
                 assert self._dead_letter_queue is not None, "Dead Letter Queue must be initialized."
@@ -155,6 +163,7 @@ class BackendServiceDispatcher:
                 await asyncio.sleep(1)
 
         logger.info("BackendServiceDispatcher main loop stopped.")
+
 
     async def monitor_dead_letter_queue_task(self):
         """

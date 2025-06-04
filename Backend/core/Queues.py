@@ -18,7 +18,7 @@ class Queues:
         # Queues are now directly initialized with MessageQueue instances.
         # This makes them non-Optional after the Queues object is created.
         self.incoming: AbstractMessageQueue = MessageQueue(maxsize=100, name="incoming") # For all messages entering the backend
-        self.outgoing: AbstractMessageQueue = MessageQueue(maxsize=100, name="outgoing") # For all messages leaving a processing step, or meant for frontend
+        self.outgoing: AbstractMessageQueue = MessageQueue(maxsize=100, name="outgoing") 
         self.websocket_out: AbstractMessageQueue = MessageQueue(maxsize=100, name="websocket_out") # For messages specifically for WebSocket clients
         self.dead_letter: AbstractMessageQueue = MessageQueue(maxsize=100, name="dead_letter") # For unprocessable messages
 

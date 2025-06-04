@@ -17,7 +17,6 @@ from Backend.models.UniversalMessage import UniversalMessage, ProcessingPathEntr
 logger = logging.getLogger(__name__)
 
 class SimulationManager:
-    # --- IMPORTANT: Re-added queue parameters to __init__ ---
     def __init__(self,
                  incoming_queue: AbstractMessageQueue,
                  outgoing_queue: AbstractMessageQueue,
