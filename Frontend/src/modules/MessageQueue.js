@@ -1,5 +1,5 @@
 // frontend/src/modules/MessageQueue.js
-class MessageQueue {
+export class MessageQueue {
     constructor(name = "default") {
         this.name = name;
         this.queue = [];
@@ -18,10 +18,14 @@ class MessageQueue {
 
         // If there are consumers waiting, resolve the *oldest* waiting promise
         // with the *newly available* item.
+        // FIXED: Now we check if there's a waiting resolver and immediately resolve it
+        // with the message that was just enqueued, effectively allowing that dequeue
+        // call to proceed. The item will still be dequeued from the front.
         if (this.waitingResolvers.length > 0) {
             const resolve = this.waitingResolvers.shift(); // Get the oldest resolver
-            resolve(this.queue[this.queue.length - 1]); // Resolve with the *newly added* message
-                                                         // The dequeue will then shift it.
+            // Resolve the waiting promise without directly passing the item yet.
+            // The dequeue method will then properly shift and return the item.
+            resolve(); 
         }
     }
 
@@ -34,10 +38,13 @@ class MessageQueue {
             return item;
         } else {
             // If the queue is empty, return a Promise that will be resolved
-            // when a new item is enqueued.
+            // when a new item is enqueued, allowing this dequeue call to retry.
             return new Promise(resolve => {
                 this.waitingResolvers.push(resolve);
-            });
+            })
+            // FIXED: Await the resolution of the promise, then recursively call dequeue
+            // to ensure we get an actual item from the queue once it's available.
+            .then(() => this.dequeue()); 
         }
     }
 
@@ -89,7 +96,19 @@ class MessageQueue {
 
     clear() {
         this.queue = [];
-        this.waitingResolvers.forEach(resolve => resolve(null)); // Resolve all pending with null/undefined
+        // FIXED: Reject waiting promises to signal an exceptional clear condition
+        this.waitingResolvers.forEach(resolve => {
+            // We use setTimeout to ensure the promise is rejected asynchronously,
+            // preventing unhandled promise rejections if not caught immediately.
+            Promise.resolve().then(() => { // Wrap in Promise.resolve() for async rejection
+                // Instead of rejecting, we can simply resolve with null, and rely on the
+                // .then(() => this.dequeue()) in dequeue to handle the null.
+                // However, a clear should typically interrupt gracefully.
+                // For a queue clear, it's often more robust to reject or resolve with a special "cleared" value.
+                // Given the dequeue retry logic, resolving with null is a valid approach here.
+                resolve(null); // Resolve with null, which will cause dequeue to retry.
+            });
+        });
         this.waitingResolvers = []; // Clear all waiting resolvers
         this.notifyListeners(); // Notify listeners after clearing
         console.log(`Queue '${this.name}' cleared.`);

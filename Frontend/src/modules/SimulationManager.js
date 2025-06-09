@@ -7,17 +7,6 @@ async function startSimulation() {
     console.group('startSimulation');
     console.log('TRACE: startSimulation called!');
     try {
-        // Clear all queues first (good practice for new sim run)
-        // It's good to ensure queues are clear for a new simulation,
-        // but the SimulationManager might not be the best place to clear *all* queues.
-        // Consider if this logic belongs elsewhere or needs to be more targeted.
-
-        // Example of how you *would* get the last message from a queue if needed:
-        // const lastMessage = fromBackendQueue.getLastMessage(); // Assuming MessageQueue has this method
-        // console.log("Last message from backend queue:", lastMessage);
-
-        // debugger; // Keep this if you want to pause here
-
         const response = await fetch('http://localhost:8000/simulation/start', {
             method: 'POST', // Assuming it's a POST to start/stop
             mode: 'cors',
