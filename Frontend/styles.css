@@ -1,0 +1,496 @@
+/* User's existing body and base styles */
+        body {
+            font-family: 'Inter', Arial, sans-serif; /* Prioritize Inter, fallback to Arial */
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f4f8; /* Added from my version */
+            color: #334155; /* Added from my version */
+        }
+        h1 {
+            color: #0d6efd; /* User's color */
+            text-align: center; /* Added for section-title consistency */
+            font-size: 2.5rem; /* Adjusted for consistency */
+            font-weight: bold; /* Adjusted for consistency */
+            margin-bottom: 2rem; /* Adjusted for spacing */
+        }
+
+        /* User's existing button styles */
+        button {
+            padding: 10px 20px; /* Made buttons slightly larger */
+            margin-right: 10px;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease; /* Added transition */
+            font-size: 0.95rem; /* Increased button font size */
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+
+        /* User's existing queue-box base styles */
+        .queue-box {
+            flex: 1;
+            background-color: #f8f9fa;
+            padding: 20px; /* Increased padding */
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 280px; /* Increased min-width for more content space */
+            height: auto; /* Changed to auto to allow content to define height */
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* User's existing queue-box hover and after */
+        .queue-box:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        .queue-box::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to top, rgba(248,249,250,1), rgba(248,249,250,0));
+            pointer-events: none;
+        }
+
+        /* User's existing queue-box h3 */
+        .queue-box h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 0 10px 0;
+            padding-bottom: 8px;
+            color: #0d6efd;
+            border-bottom: 2px solid #e0e0e0;
+            width: 100%; /* Ensure it spans full width */
+            font-size: 1.35rem; /* Slightly larger heading for readability */
+        }
+
+        /* User's existing queue-count */
+        .queue-count {
+            background: #0d6efd;
+            color: white;
+            padding: 4px 10px; /* Increased padding */
+            border-radius: 12px; /* Slightly larger border-radius */
+            font-size: 0.9em; /* Slightly larger font */
+        }
+        
+        /* User's existing log-entry and its sub-styles */
+        .log-entry {
+            border-left: 4px solid #ddd;
+            padding: 15px; /* Increased padding */
+            margin: 8px 0; /* Increased margin */
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            position: relative;
+            font-size: 0.95rem; /* Increased font size for readability */
+        }
+        .log-entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .log-entry:hover::before {
+            opacity: 1;
+        }
+        .log-entry:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .message-header {
+            display: flex;
+            flex-wrap: wrap; /* Allow header items to wrap */
+            gap: 10px; /* Increased gap */
+            margin-bottom: 6px; /* Increased margin */
+        }
+        .message-id {
+            font-weight: bold;
+            color: #333;
+        }
+        .message-type {
+            padding: 3px 8px; /* Increased padding */
+            border-radius: 4px;
+            font-size: 0.85em; /* Adjusted font size */
+        }
+        .message-type.message { background: #e6f7ff; }
+        .message-type.alert { background: #ffebee; }
+        .message-priority {
+            padding: 3px 8px; /* Increased padding */
+            border-radius: 4px;
+            font-size: 0.85em; /* Adjusted font size */
+            background: #f5f5f5;
+        }
+        .priority-1 { background: #e8f5e9 !important; }
+        .priority-2 { background: #c8e6c9 !important; }
+        .priority-3 { background: #a5d6a7 !important; }
+        .priority-4 { background: #81c784 !important; }
+        .message-content {
+            margin: 6px 0; /* Increased margin */
+            word-break: break-word; /* Ensure long words break */
+        }
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em; /* Adjusted font size */
+            color: #666;
+        }
+        .message-status {
+            font-weight: bold;
+        }
+        .status-pending { color: #ff9800; }
+        .status-urgent { color: #f44336; }
+        .status-processing { color: #2196f3; }
+        .status-processed { color: #4caf50; }
+        .log-overflow {
+            color: red;
+            font-weight: bold;
+            padding: 5px;
+            background-color: #f8d7da;
+        }
+        
+        /* User's existing queue-log and log-content */
+        .queue-log, .log-content { /* Removed pre from this selector */
+            flex-grow: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            background-color: white;
+            padding: 10px; /* Increased padding */
+            border: 1px solid #e0e0e0;
+            margin-top: 10px;
+            max-height: 500px; /* Increased max-height */
+            min-height: 250px; /* Increased min-height */
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            scrollbar-width: thin;
+            scrollbar-color: #0d6efd #f0f0f0;
+            white-space: pre-wrap; /* Changed from pre to pre-wrap for better wrapping */
+            overflow-wrap: break-word; /* Ensure long words break */
+            display: flex;
+            flex-direction: column;
+            font-size: 0.95rem; /* Increased base font size */
+        }
+        pre.log-content { /* Specific style for pre elements used as log content */
+            white-space: pre-wrap;
+            word-break: break-all; /* Break words rather than overflow */
+            font-size: 0.95rem;
+        }
+
+
+        .log-box {
+            background-color: #f8f9fa;
+            padding: 20px; /* Increased padding */
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log-box h3 {
+            font-size: 1.5rem; /* Larger headings for log boxes */
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+
+
+        #logsContainer {
+            margin-top: 40px; /* Increased margin-top */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Better responsiveness */
+        }
+
+        .queue-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .queue-log::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .queue-log::-webkit-scrollbar-thumb {
+            background-color: #0d6efd;
+            border-radius: 4px;
+        }
+
+        @keyframes highlightNew {
+            0% { background-color: rgba(13, 110, 253, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        .new-entry {
+            animation: highlightNew 1.5s ease-out;
+        }
+        
+        /* User's existing queue-header, queue-items, queue-item */
+        .queue-header {
+            display: flex;
+            font-weight: bold;
+            padding: 8px; /* Increased padding */
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0; /* Prevent shrinking */
+            font-size: 0.9rem; /* Adjusted for headers */
+        }
+        .queue-header span {
+            flex: 1;
+            text-align: center;
+        }
+        .queue-items {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .queue-item {
+            display: flex;
+            padding: 8px; /* Increased padding */
+            border-bottom: 1px solid #eee;
+            margin-bottom: 4px; /* Added spacing between items */
+            font-size: 0.95rem; /* Increased font size for item content */
+        }
+        .queue-item span {
+            flex: 1;
+            text-align: center;
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis */
+            white-space: nowrap; /* Prevent wrapping */
+        }
+        #queueDisplay .last-message {
+            background-color: #e9ecef;
+            padding: 10px; /* Increased padding */
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.95rem; /* Increased font size */
+        }
+
+        /* My new styles (merged and adapted) */
+        .container-card {
+            background-color: #fff;
+            padding: 2.5rem; /* Increased overall padding */
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        /* Adjusted queue-box h3 for clarity and to fit with tailwind/user styles */
+        .queue-box h3 {
+            font-size: 1.4rem; /* Adjusted for better visibility */
+            font-weight: 600;
+            color: #1f2937; /* Adjusted color for better contrast */
+        }
+        .queue-box p.description {
+            font-size: 0.9rem; /* Slightly larger description text */
+            color: #4b5563;
+            margin-top: 0.75rem; /* Adjusted margin */
+            line-height: 1.4; /* Improved line spacing */
+        }
+        .queue-box p.direction {
+            font-size: 1rem; /* Larger direction text */
+            font-weight: 600;
+            margin-top: 0.5rem; /* Adjusted margin */
+        }
+        .arrow-icon {
+            color: #9ca3af;
+            font-size: 3.5rem; /* Larger arrows */
+            font-weight: bold;
+        }
+        .section-title {
+            font-size: 2.5rem; /* Slightly larger main title */
+            font-weight: 800;
+            text-align: center;
+            color: #111827;
+            margin-bottom: 2.5rem; /* Increased margin */
+        }
+        .subsection-title {
+            font-size: 1.6rem; /* Slightly larger subsection titles */
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1.25rem; /* Increased margin */
+        }
+        .message-log-item {
+            padding: 0.75rem; /* Increased padding */
+            border-radius: 0.375rem;
+            margin-bottom: 0.35rem; /* Adjusted margin */
+            font-size: 0.9rem; /* Increased font size */
+        }
+        .message-log-item.sent {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .message-log-item.received {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .message-log-item.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .flow-description {
+            background-color: #f9fafb;
+            padding: 2rem; /* Increased padding */
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) inset;
+            border: 1px solid #e5e7eb;
+            font-size: 0.95rem; /* Base font size for description */
+        }
+        .flow-description h3 {
+            font-size: 1.4rem; /* Adjusted heading size */
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem; /* Adjusted margin */
+        }
+        .flow-description p {
+            color: #374151;
+            margin-bottom: 0.75rem; /* Adjusted margin */
+            line-height: 1.5; /* Improved line spacing */
+        }
+        .flow-description ul {
+            list-style-type: disc;
+            padding-left: 1.5rem; /* Increased padding */
+            margin-bottom: 0.75rem; /* Adjusted margin */
+        }
+        .flow-description li {
+            color: #374151;
+            margin-bottom: 0.25rem; /* Spacing for list items */
+        }
+
+        /* Specific queue box colors */
+        .queue-box.frontend-origin { background-color: #e0f2fe; border-color: #0d6efd; } /* Light blue */
+        .queue-box.backend-inbound { background-color: #fff3cd; border-color: #ffc107; } /* Light yellow-orange */
+        .queue-box.backend-outbound { background-color: #d4edda; border-color: #28a745; } /* Light green */
+        .queue-box.dead-letter { background-color: #f8d7da; border-color: #dc3545; } /* Light red */
+
+        /* Layout for the main queue flow */
+        #queuesFlowContainer {
+            display: grid;
+            /* Defined 4 columns explicitly for alignment */
+            grid-template-columns: 1fr 0.1fr 1fr 1fr; /* col1 (queue), col2 (connector), col3 (queue), col4 (deadletter) */
+            /* Defined 3 rows explicitly for better control */
+            grid-template-rows: auto auto auto auto; /* Row 1: fromFrontend, toBackend, DeadLetter Top; Row 2: fromBackend, Connector; Row 3: toFrontend, Connector; Row 4: DeadLetter Bottom Connector (optional) */
+            gap: 20px;
+            align-items: stretch;
+            justify-items: center; /* Center grid items horizontally */
+        }
+
+        /* Explicit grid placement for each item to ensure alignment */
+        .queue-box.from-frontend-q { grid-column: 1; grid-row: 1; }
+        .flow-connector.frontend-to-backend { grid-column: 2; grid-row: 1; }
+        .queue-box.to-backend-q { grid-column: 3; grid-row: 1; }
+
+        .queue-box.from-backend-q { grid-column: 1; grid-row: 3; } /* Moved to row 3 for better visual flow under fromFrontend */
+        .flow-connector.to-backend-to-message-processor { grid-column: 3; grid-row: 2; } /* Connector below toBackend */
+        .queue-box.to-frontend-q { grid-column: 3; grid-row: 3; } /* Aligned with fromBackend */
+
+        .flow-connector.from-backend-to-frontend { grid-column: 2; grid-row: 3; } /* Connector between fromBackend and toFrontend */
+
+        .queue-box.dead-letter-q { grid-column: 4; grid-row: 1 / span 3; } /* Dead Letter spans rows 1, 2, and 3 */
+
+        .flow-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 80px; /* Ensure space for arrows/text */
+            color: #666;
+            font-size: 0.9em;
+        }
+        .flow-connector span.arrow-icon {
+            margin-bottom: 5px;
+        }
+        .flow-connector p {
+            font-size: 0.95em; /* Slightly larger text in connectors */
+            color: #666;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+
+        /* Ensure queue-box content (queue-log) fills space */
+        .queue-box .queue-log {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 200px; /* Ensure it has ample height even if empty */
+            box-sizing: border-box; /* Include padding in width/height calculation */
+        }
+        
+        /* Override Tailwind's default button styles to keep user's specific ones */
+        #startSim, #stopSim, #sendTestMessage, #sendTranscription {
+            padding: 0.75rem 1.25rem; /* px-5 py-3 for larger buttons */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); /* shadow-md */
+            transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+            font-size: 1rem; /* Make button text readable */
+        }
+        #startSim {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: #fff; /* text-white */
+        }
+        #startSim:hover {
+            background-color: #1d4ed8; /* hover:bg-blue-700 */
+        }
+        #stopSim {
+            background-color: #dc2626; /* bg-red-600 */
+            color: #fff; /* text-white */
+        }
+        #stopSim:hover {
+            background-color: #b91c1c; /* hover:bg-red-700 */
+        }
+        #sendTestMessage {
+            background-color: #16a34a; /* bg-green-600 */
+            color: #fff; /* text-white */
+        }
+        #sendTestMessage:hover {
+            background-color: #15803d; /* hover:bg-green-700 */
+        }
+        #sendTranscription {
+            background-color: #9333ea; /* A new purple for transcription */
+            color: #fff;
+        }
+        #sendTranscription:hover {
+            background-color: #7e22ce;
+        }
+
+        /* Input field adjustments */
+        #transcriptionInput {
+            font-size: 1rem;
+            padding: 0.6rem 0.8rem;
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 1024px) {
+            #queuesFlowContainer {
+                grid-template-columns: 1fr; /* Stack columns on smaller screens */
+                grid-template-rows: auto;
+            }
+
+            .queue-box, .flow-connector {
+                grid-column: 1 / -1 !important; /* Make them span full width */
+                grid-row: auto !important; /* Auto-arrange rows */
+            }
+
+            /* Adjust vertical spacing for stacked layout */
+            .queue-box {
+                margin-bottom: 20px;
+            }
+            .flow-connector {
+                margin-top: 0;
+                margin-bottom: 0; /* Connectors directly between boxes */
+            }
+            .flow-connector.from-backend-to-frontend {
+                transform: rotate(90deg); /* Keep arrow horizontal but rotate connector for vertical flow */
+            }
+        }
