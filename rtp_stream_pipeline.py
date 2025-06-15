@@ -4,6 +4,7 @@ import queue
 import whisper
 import numpy as np
 import soundfile as sf
+import time
 
 # === Parameter Settings ===
 CHUNK_DURATION_SEC = 10      # Duration of each audio chunk (in seconds)
@@ -45,7 +46,7 @@ def chunk_audio_stream(audio_queue: queue.Queue):
         while len(buffer) >= CHUNK_SIZE:
             chunk = buffer[:CHUNK_SIZE]
             buffer = buffer[CHUNK_SIZE - OVERLAP_SIZE:]  # keep overlap
-            yield chunk
+            yield (chunk, time.time())
 
 # === Load Whisper model once ===
 model = whisper.load_model("base")
@@ -57,8 +58,14 @@ def transcribe_chunk(chunk_data: bytes):
 
     audio_np, _ = sf.read("temp_chunk.wav", dtype="float32")
 
-    result = model.transcribe(audio_np, fp16=False)
-    print("[Whisper] Transcription:", result["text"])
+    result = model.transcribe(audio_np, fp16=False, word_timestamps=True)
+
+    text = result["text"]
+
+    if any(p in text for p in [".", "?", "!"]):
+        print(f"[Whisper] Finalized sentence: {text.strip()}")
+    else:
+        print(f"[Whisper] Ongoing: {text.strip()}")
 
 # === Start background thread to receive audio ===
 threading.Thread(
@@ -68,5 +75,6 @@ threading.Thread(
 ).start()
 
 # === Main processing loop ===
-for chunk in chunk_audio_stream(audio_queue):
+for chunk, timestamp in chunk_audio_stream(audio_queue):
+    print(f"[Timestamp: {timestamp}]")
     transcribe_chunk(chunk)
