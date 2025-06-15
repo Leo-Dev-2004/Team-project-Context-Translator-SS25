@@ -128,17 +128,3 @@ out/
 .env.production.local
 .env.local
 
-# Frontend related files (if applicable)
-*.asp
-*.cer
-*.csr
-*.css
-*.htm
-*.html
-*.js
-*.jsp
-*.php
-*.rss
-*.wasm
-*.wat
-*.xhtml

@@ -1,0 +1,16 @@
+{
+  "name": "@context-translator/shared",
+  "version": "1.0.0",
+  "description": "Shared components and styles for Context Translator",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./styles": "./src/index.css",
+    "./my-element": "./src/my-element.js"
+  },
+  "dependencies": {
+    "lit": "^3.3.0",
+    "@material/web": "^2.3.0"
+  }
+}
