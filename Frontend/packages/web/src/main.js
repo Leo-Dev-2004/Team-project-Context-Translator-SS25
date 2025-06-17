@@ -1,5 +1,4 @@
-// filepath: d:\Dokumente\Coding\Uni\Teamprojekt\UI Testing\my-lit-app\packages\web\src\main.js
-import { MyElement } from '../../shared/index.js'
+import { MyElement } from '../../shared/src/index.js'
 import '../../shared/src/index.css'
 
 // Web-spezifische Erweiterungen
