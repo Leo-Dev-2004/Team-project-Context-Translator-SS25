@@ -10,7 +10,8 @@
     "./my-element": "./src/my-element.js"
   },
   "dependencies": {
+    "@material/web": "^2.3.0",
     "lit": "^3.3.0",
-    "@material/web": "^2.3.0"
+    "marked": "^15.0.12"
   }
 }

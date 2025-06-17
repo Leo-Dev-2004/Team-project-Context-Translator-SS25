@@ -26,7 +26,6 @@ export class ExplanationManager {
   notifyListeners() {
     this.listeners.forEach(callback => callback(this.explanations));
   }
-
   // CRUD Operations
   addExplanation(title, content, timestamp = Date.now()) {
     const explanation = {
@@ -40,15 +39,16 @@ export class ExplanationManager {
     };
 
     this.explanations.unshift(explanation); // Neue Erklärungen oben
+    this._sortExplanations(); // Ensure proper sorting
     this.saveToStorage();
     this.notifyListeners();
     return explanation;
   }
-
   updateExplanation(id, updates) {
     const index = this.explanations.findIndex(exp => exp.id === id);
     if (index !== -1) {
       this.explanations[index] = { ...this.explanations[index], ...updates };
+      this._sortExplanations(); // Ensure proper sorting after update
       this.saveToStorage();
       this.notifyListeners();
       return this.explanations[index];
@@ -64,22 +64,31 @@ export class ExplanationManager {
       this.notifyListeners();
     }
   }
-
   pinExplanation(id) {
     const explanation = this.explanations.find(exp => exp.id === id);
     if (explanation) {
       explanation.isPinned = !explanation.isPinned;
-      
-      // Gepinnte Erklärungen nach oben sortieren
-      this.explanations.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return b.createdAt - a.createdAt; // Neueste zuerst
-      });
-      
+      this._sortExplanations(); // Re-sort immediately after pinning
       this.saveToStorage();
       this.notifyListeners();
     }
+  }
+
+  // Helper method to sort explanations (pinned always on top)
+  _sortExplanations() {
+    this.explanations.sort((a, b) => {
+      // Pinned items always come first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // Among pinned items, sort by creation time (newest first)
+      if (a.isPinned && b.isPinned) {
+        return b.createdAt - a.createdAt;
+      }
+      
+      // Among unpinned items, sort by creation time (newest first)
+      return b.createdAt - a.createdAt;
+    });
   }
 
   getVisibleExplanations() {
@@ -100,18 +109,12 @@ export class ExplanationManager {
       console.error('Failed to save explanations to storage:', error);
     }
   }
-
   loadFromStorage() {
     try {
       const stored = sessionStorage.getItem(this.storageKey);
       if (stored) {
         this.explanations = JSON.parse(stored);
-        // Sicherstellen, dass gepinnte Elemente oben stehen
-        this.explanations.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return b.createdAt - a.createdAt;
-        });
+        this._sortExplanations(); // Ensure proper sorting when loading
       }
     } catch (error) {
       console.error('Failed to load explanations from storage:', error);

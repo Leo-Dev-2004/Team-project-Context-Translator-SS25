@@ -163,8 +163,7 @@ export class MyElement extends LitElement {
           <div class="tab-panel explanations-panel">
             <div class="explanations-header">
               <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
-              <p class="body-large">Terms and concepts explained during your meetings</p>
-                <div class="explanations-controls">
+              <p class="body-large">Terms and concepts explained during your meetings</p>              <div class="explanations-controls">
                 <md-text-button @click=${this._clearAllExplanations}>
                   🗑️ Clear All
                 </md-text-button>
