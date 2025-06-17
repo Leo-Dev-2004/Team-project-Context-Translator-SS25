@@ -46,8 +46,8 @@ export class MyElement extends LitElement {
         <!-- Material Tabs -->
         <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
           <md-primary-tab>Setup</md-primary-tab>
-          <md-primary-tab>Translator</md-primary-tab>
-          <md-primary-tab>Settings</md-primary-tab>
+          <md-primary-tab>Explenations</md-primary-tab>
+          <md-primary-tab>Summaries</md-primary-tab>
         </md-tabs>
 
         <!-- Tab Content -->
