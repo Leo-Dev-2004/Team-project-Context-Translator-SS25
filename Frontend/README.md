@@ -125,7 +125,6 @@ npm run clean
 ## 🌟 Platform Features
 
 ### Web Version
-- Google Meet Add-on Integration
 - Browser `localStorage` for settings
 - Progressive Web App (PWA) ready
 - Responsive design
@@ -166,14 +165,6 @@ npm run clean
 - **Web Components Guide**: https://developer.mozilla.org/en-US/docs/Web/API/Web_components - Standard web component APIs
 - **Material 3 Design System**: https://m3.material.io/develop/web - Modern design principles and guidelines
 
-#### Google Meet Integration
-- **Meet Add-Ons SDK Documentation**: https://developers.google.com/workspace/meet/add-ons/guides/overview - Complete integration guide
-- **Meet Add-Ons SDK npm Package**: https://www.npmjs.com/package/@googleworkspace/meet-addons - Official SDK for development
-- **Meet Add-Ons SDK Code Samples**: https://github.com/googleworkspace/meet/tree/main - Real-world implementation examples
-
-#### Legacy APIs (No Longer Used)
-- **Google Meet Media API**: https://developers.google.com/workspace/meet/media-api/guides/overview - Deprecated in favor of Add-Ons SDK
-
 ### Learning Resources
 
 #### Web Development Fundamentals
@@ -189,12 +180,6 @@ npm run clean
 - **Package Management Deep Dive**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Client-side_tools/Package_management#what_exactly_is_a_package_manager
 - **MDN JavaScript Course**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting - Complete JS fundamentals
 - **Node.js Documentation**: https://nodejs.org/en/ - Server-side JavaScript runtime
-
-#### React (Alternative Framework Reference)
-- **MDN React Tutorial**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Frameworks_libraries/React_getting_started
-- **React Official Docs**: https://react.dev/ - Component-based UI library
-- **React from Scratch**: https://react.dev/learn/build-a-react-app-from-scratch - Hands-on building guide
-- **ESLint for React**: https://www.npmjs.com/package/eslint-config-react-app - Code quality and consistency tools
 
 ### Development Tools & Quality Assurance
 
