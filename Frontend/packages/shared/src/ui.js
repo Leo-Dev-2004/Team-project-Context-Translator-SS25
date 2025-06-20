@@ -18,7 +18,7 @@ import '@material/web/select/select-option.js'
  *
  * @slot - This element has a slot
  */
-export class MyElement extends LitElement {
+export class UI extends LitElement {
   static properties = {
     activeTab: { type: Number },
     domainValue: { type: String },
@@ -390,4 +390,4 @@ export class MyElement extends LitElement {
   ]
 }
 
-window.customElements.define('my-element', MyElement)
+window.customElements.define('my-element', UI)

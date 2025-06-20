@@ -1,8 +1,8 @@
-import { MyElement } from '../../shared/src/index.js'
+import { UI } from '../../shared/src/index.js'
 import '../../shared/src/index.css'
 
 // Web-spezifische Erweiterungen
-class WebMyElement extends MyElement {
+class WebMyElement extends UI {
   constructor() {
     super()
     this.platform = 'web'
