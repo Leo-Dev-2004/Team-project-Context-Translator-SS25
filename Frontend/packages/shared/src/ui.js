@@ -60,7 +60,6 @@ export class UI extends LitElement {
         <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
           <md-primary-tab>Setup</md-primary-tab>
           <md-primary-tab>Explanations</md-primary-tab>
-          <md-primary-tab>Summaries</md-primary-tab>
         </md-tabs>
 
         <!-- Tab Content -->
