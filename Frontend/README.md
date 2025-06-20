@@ -138,6 +138,10 @@ npm run clean
 - Auto-updater ready
 - Native OS notifications
 
+## UI Design
+
+- Design Mockup in FigJam: https://www.figma.com/file/lNu6mryCnWlOjguu0iT9dm?node-id=0-1&p=f&t=daVSVvT5MOhVv0bV-0&type=whiteboard
+
 ## 📚 Documentation and Technologies
 
 ### Core Technology Stack
