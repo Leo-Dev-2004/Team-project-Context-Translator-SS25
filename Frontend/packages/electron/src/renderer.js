@@ -70,8 +70,14 @@ class ElectronMyElement extends UI {
       }
     } else {
       // Fallback to localStorage
-      localStorage.setItem('context-translator-settings', JSON.stringify(settings))
-      console.log('Settings saved to localStorage (fallback):', settings)
+      try {
+        localStorage.setItem('context-translator-settings', JSON.stringify(settings))
+        console.log('Settings saved to localStorage (fallback):', settings)
+        this._showNotification('Settings saved to localStorage!')
+      } catch (error) {
+        console.error('Error saving settings to localStorage:', error)
+        this._showNotification('Error saving settings to localStorage', 'error')
+      }
     }
   }
 
