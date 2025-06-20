@@ -25,7 +25,7 @@
  */
 
 // Export UI component and utilities - provides core user interface elements and helper functions
-export { UI as UI } from './ui.js'
+export { UI } from './ui.js'
 
 // Export shared styling configurations - contains common CSS-in-JS styles and theming
 export { sharedStyles } from './styles.js'
