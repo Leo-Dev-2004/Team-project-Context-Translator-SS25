@@ -1,0 +1,193 @@
+:root {
+  /* Ocean Blue Palette */
+  --ocean-blue-50: #f0f9ff;
+  --ocean-blue-100: #e0f2fe;
+  --ocean-blue-200: #bae6fd;
+  --ocean-blue-300: #7dd3fc;
+  --ocean-blue-400: #38bdf8;
+  --ocean-blue-500: #0ea5e9;
+  --ocean-blue-600: #0284c7;
+  --ocean-blue-700: #0369a1;
+  --ocean-blue-800: #075985;
+  --ocean-blue-900: #0c4a6e;
+
+  /* Material Design 3 Typography */
+  --md-sys-typescale-headline-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-headline-large-size: 2rem;
+  --md-sys-typescale-headline-large-weight: 400;
+  --md-sys-typescale-headline-large-line-height: 2.5rem;
+
+  --md-sys-typescale-body-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-body-large-size: 1rem;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-large-line-height: 1.5rem;
+
+  /* Custom Theme Colors */
+  --md-sys-color-primary: var(--ocean-blue-600);
+  --md-sys-color-primary-container: var(--ocean-blue-100);
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-on-primary-container: var(--ocean-blue-900);
+  
+  --md-sys-color-secondary: var(--ocean-blue-400);
+  --md-sys-color-secondary-container: var(--ocean-blue-50);
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-on-secondary-container: var(--ocean-blue-800);
+  
+  --md-sys-color-surface: #fefefe;
+  --md-sys-color-surface-variant: var(--ocean-blue-50);
+  --md-sys-color-on-surface: #1a1a1a;
+  --md-sys-color-on-surface-variant: var(--ocean-blue-700);
+  
+  --md-sys-color-outline: var(--ocean-blue-300);
+  --md-sys-color-outline-variant: var(--ocean-blue-200);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: var(--ocean-blue-300);
+    --md-sys-color-primary-container: var(--ocean-blue-800);
+    --md-sys-color-on-primary: var(--ocean-blue-900);
+    --md-sys-color-on-primary-container: var(--ocean-blue-100);
+    
+    --md-sys-color-secondary: var(--ocean-blue-200);
+    --md-sys-color-secondary-container: var(--ocean-blue-700);
+    --md-sys-color-on-secondary: var(--ocean-blue-800);
+    --md-sys-color-on-secondary-container: var(--ocean-blue-50);
+    
+    --md-sys-color-surface: #121212;
+    --md-sys-color-surface-variant: var(--ocean-blue-900);
+    --md-sys-color-on-surface: #e0e0e0;
+    --md-sys-color-on-surface-variant: var(--ocean-blue-200);
+    
+    --md-sys-color-outline: var(--ocean-blue-600);
+    --md-sys-color-outline-variant: var(--ocean-blue-700);
+  }
+}
+
+/* Global Styles (Rewritten) */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
+  font-size: var(--md-sys-typescale-body-large-size);
+  background-color: var(--ocean-blue-50);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Main Container */
+.app-container {
+  background: var(--md-sys-color-surface);
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.app-header {
+  text-align: center;
+}
+.app-header h1 {
+  font-size: 2.5rem;
+  color: var(--md-sys-color-primary);
+  margin: 0 0 0.5rem 0;
+}
+.app-header p {
+  font-size: 1.125rem;
+  color: var(--md-sys-color-secondary);
+  margin: 0;
+}
+
+/* Tabs */
+md-tabs {
+  margin: 0 0 1rem 0;
+  --md-primary-tab-label-text-font: var(--md-sys-typescale-headline-large-font);
+  --md-primary-tab-label-text-weight: 500;
+  --md-primary-tab-label-text-size: 1rem;
+  --md-primary-tab-indicator-color: var(--md-sys-color-primary);
+}
+
+/* Content Sections */
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.tab-panel {
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+/* Input Sections */
+.input-section {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.domain-input-group {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Text field and select full width in column */
+md-outlined-text-field,
+md-outlined-select {
+  width: 100%;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Button Theme Overrides */
+md-filled-button {
+  --md-filled-button-container-color: var(--md-sys-color-primary);
+  --md-filled-button-label-text-color: var(--md-sys-color-on-primary);
+}
+md-outlined-button {
+  --md-outlined-button-outline-color: var(--md-sys-color-primary);
+}
+md-text-button {
+  --md-text-button-label-text-color: var(--md-sys-color-primary);
+}
+
+/* Focus Outline for Accessibility */
+:focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .app-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  .action-buttons,
+  .button-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
