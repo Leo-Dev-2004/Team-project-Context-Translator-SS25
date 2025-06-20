@@ -11,6 +11,7 @@ class WebMyElement extends UI {
 
   connectedCallback() {
     super.connectedCallback()
+    this._loadSettings()
     this._initializeGoogleMeet()
   }
 
