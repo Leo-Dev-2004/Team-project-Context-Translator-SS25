@@ -1,8 +1,8 @@
-import { MyElement } from '../../shared/index.js'
+import { UI } from '../../shared/src/index.js'
 import '../../shared/src/index.css'
 
 // Electron-enhanced element
-class ElectronMyElement extends MyElement {
+class ElectronMyElement extends UI {
   constructor() {
     super()
     this.platform = 'electron'
