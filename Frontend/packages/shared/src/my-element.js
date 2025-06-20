@@ -60,7 +60,7 @@ export class MyElement extends LitElement {
         <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
           <md-primary-tab>Setup</md-primary-tab>
           <md-primary-tab>Explenations</md-primary-tab>
-          <md-primary-tab>Summaries</md-primary-tab>
+  
         </md-tabs>
 
         <!-- Tab Content -->
@@ -196,21 +196,7 @@ export class MyElement extends LitElement {
               }
             </div>
           </div>
-        `
-      case 2:
-        return html`
-          <div class="tab-panel ocean-card">
-            <h2 class="headline-medium ocean-accent-text">Application Settings</h2>
-            <p class="body-large">Manage your app preferences and account.</p>
-            <div class="button-group">
-              <md-outlined-button @click=${this._onPreferencesClick}>
-                Preferences
-              </md-outlined-button>
-              <md-outlined-button @click=${this._onAccountClick}>
-                Account Settings
-              </md-outlined-button>
-            </div>
-          </div>
+        
         `
       default:
         return html`<div class="tab-panel">Select a tab</div>`
