@@ -4,286 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Context Translator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
-        #queuesContainer {
-            display: flex;
-            gap: 20px;
-            height: calc(100vh - 150px);
-        }
-        
-        .queue-box {
-            flex: 1;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border: 2px solid #0d6efd;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 250px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .queue-box:hover {
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-
-        .queue-box::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: linear-gradient(to top, rgba(248,249,250,1), rgba(248,249,250,0));
-            pointer-events: none;
-        }
-
-        .queue-box h3 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0 0 10px 0;
-            padding-bottom: 8px;
-            color: #0d6efd;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .queue-count {
-            background: #0d6efd;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
-        }
-        
-        .log-entry {
-            border-left: 4px solid #ddd;
-            padding: 12px;
-            margin: 6px 0;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border-radius: 6px;
-            position: relative;
-        }
-        .log-entry::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -4px;
-            height: 100%;
-            width: 4px;
-            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .log-entry:hover::before {
-            opacity: 1;
-        }
-        .log-entry:hover {
-            transform: translateX(2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .message-header {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 4px;
-        }
-        .message-id {
-            font-weight: bold;
-            color: #333;
-        }
-        .message-type {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.8em;
-        }
-        .message-type.message { background: #e6f7ff; }
-        .message-type.alert { background: #ffebee; }
-        .message-priority {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            background: #f5f5f5;
-        }
-        .priority-1 { background: #e8f5e9 !important; }
-        .priority-2 { background: #c8e6c9 !important; }
-        .priority-3 { background: #a5d6a7 !important; }
-        .priority-4 { background: #81c784 !important; }
-        .message-content {
-            margin: 4px 0;
-        }
-        .message-footer {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8em;
-            color: #666;
-        }
-        .message-status {
-            font-weight: bold;
-        }
-        .status-pending { color: #ff9800; }
-        .status-urgent { color: #f44336; }
-        .status-processing { color: #2196f3; }
-        .status-processed { color: #4caf50; }
-        .log-overflow {
-            color: red;
-            font-weight: bold;
-            padding: 5px;
-            background-color: #f8d7da;
-        }
-        .queue-log, .log-content, pre {
-            flex-grow: 1;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            background-color: white;
-            padding: 8px;
-            border: 1px solid #e0e0e0;
-            margin-top: 10px;
-            max-height: 300px;
-            border-radius: 4px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-            scrollbar-width: thin;
-            scrollbar-color: #0d6efd #f0f0f0;
-        }
-
-        .log-box {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        #logsContainer {
-            margin-top: 30px;
-        }
-
-        .queue-log::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .queue-log::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 4px;
-        }
-
-        .queue-log::-webkit-scrollbar-thumb {
-            background-color: #0d6efd;
-            border-radius: 4px;
-        }
-
-        @keyframes highlightNew {
-            0% { background-color: rgba(13, 110, 253, 0.1); }
-            100% { background-color: transparent; }
-        }
-
-        .new-entry {
-            animation: highlightNew 1.5s ease-out;
-        }
-        .queue-box h3 {
-            color: #0d6efd;
-            margin-top: 0;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-        .queue-log {
-            font-family: monospace;
-            white-space: pre;
-            overflow-wrap: break-word;
-            max-height: 350px;
-            overflow-y: auto;
-        }
-        #queueDisplay .last-message {
-            background-color: #e9ecef;
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-        button {
-            padding: 8px 16px;
-            margin-right: 10px;
-            background-color: #0d6efd;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0b5ed7;
-        }
-    </style>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    <h1>Context Translator</h1>
-    <div id="controls">
-        <button id="startSim">Start Simulation</button>
-        <button id="stopSim">Stop Simulation</button>
-        <button id="testButton">Send Test Message</button> <div id="statusMonitor" style="margin-top:10px; padding:10px; background:#f0f0f0; border-radius:4px;">
-            <div>Connection: <span id="connectionStatus">Disconnected</span></div>
-            <div>Simulation: <span id="simulationStatus">Not Running</span></div> <div>Last Update: <span id="lastUpdate">Never</span></div>
-            <div>Message Count: <span id="messageCount">0</span></div>
-        </div>
-    </div>
-    </div>
-    <div id="queuesContainer" style="display: flex; gap: 20px; margin-top: 20px;">
-        <div class="queue-box">
-            <h3>To Frontend Queue <span id="toFrontendCount" class="queue-count">0</span></h3>
-            <div id="toFrontendLog" class="queue-log"></div>
-        </div>
-        <div class="queue-box">
-            <h3>From Frontend Queue <span id="fromFrontendCount" class="queue-count">0</span></h3>
-            <div id="fromFrontendLog" class="queue-log"></div>
-        </div>
-        <div class="queue-box">
-            <h3>To Backend Queue <span id="toBackendCount" class="queue-count">0</span></h3>
-            <div id="toBackendLog" class="queue-log"></div>
-        </div>
-        <div class="queue-box">
-            <h3>From Backend Queue <span id="fromBackendCount" class="queue-count">0</span></h3>
-            <div id="fromBackendLog" class="queue-log"></div>
-        </div>
-    </div>
+    <div class="max-w-7xl mx-auto container-card">
+        <h1 class="section-title">Context Translator Queue System Visualizer</h1>
 
-    <div id="logsContainer" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div class="log-box">
-            <h3>System Log</h3>
-            <pre id="system_log" class="log-content"></pre>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mb-12">
+            <div class="queue-box frontend-origin h-auto p-6">
+                <h2 class="text-2xl font-semibold text-blue-800">Context Translator</h2>
+                <p class="text-gray-600 mt-2">Text input and translation processing</p>
+
+                <div class="mt-4">
+                    <label for="sourceText" class="block text-gray-700 text-sm font-bold mb-2">Source Text:</label>
+                    <textarea id="sourceText" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter text to translate..."></textarea>
+                    <div class="mt-2 flex justify-between">
+                        <button id="clearText" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Clear</button>
+                        <button id="translateText" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded disabled:opacity-50">Translate</button>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Translation Result:</label>
+                    <div id="translationOutput" class="min-h-32 p-3 bg-gray-50 border rounded overflow-auto"></div>
+                    <div id="translationLoading" class="hidden mt-2 text-center">
+                        <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span class="ml-2 text-gray-600">Processing...</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 border-t pt-4">
+                    <h3 class="font-semibold text-gray-700 mb-2">Translation Settings</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Mode:</label>
+                            <select id="translationMode" class="w-full border rounded p-2">
+                                <option value="formal">Formal</option>
+                                <option value="informal">Informal</option>
+                                <option value="technical">Technical</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Context Level:</label>
+                            <input id="contextLevel" type="range" min="1" max="5" value="3" class="w-full">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Min</span>
+                                <span>Medium</span>
+                                <span>Max</span>
+                            </div>
+                        </div>
+                        <button id="saveSettings" class="w-full bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center justify-center">
+                <span class="arrow-icon">↔</span>
+                <p class="text-gray-600 text-sm mt-2">WebSocket Communication</p>
+            </div>
+
+            <div class="queue-box bg-gray-50 h-auto p-6">
+                <h2 class="text-2xl font-semibold text-gray-800">Backend Application</h2>
+                <p class="text-gray-600 mt-2">All Python services and internal queues run here.</p>
+                <p class="text-sm text-gray-500 mt-2">(FastAPI, Uvicorn, Asyncio)</p>
+            </div>
         </div>
-        <div class="log-box">
-            <h3>Simulation Log</h3>
-            <pre id="simulation_log" class="log-content"></pre>
+
+        <div id="statusMonitor" class="mt-8 p-4 bg-gray-100 rounded-lg shadow-inner text-center">
+            <h2 class="subsection-title">System Status</h2>
+            <div class="grid grid-cols-2 gap-4 text-lg">
+                <div>Connection: <span id="connectionStatus" class="font-semibold text-gray-700">Disconnected</span></div>
+                <div>Reconnection: <span id="reconnectStatus" class="font-semibold text-gray-700 hidden"></span></div>
+                <div>Simulation: <span id="simulationStatus" class="font-semibold text-gray-700">Not Running</span></div>
+                <div>Last Update: <span id="lastUpdate" class="font-semibold text-gray-700">Never</span></div>
+                <div>Message Count: <span id="messageCount" class="font-semibold text-gray-700">0</span></div>
+            </div>
+            <div id="errorDisplay" class="text-red-600 font-semibold mt-4 hidden"></div>
+            <div id="wsErrors" class="text-red-600 font-semibold mt-4 hidden"></div>
         </div>
-        <div class="log-box">
-            <h3>Status Log</h3>
-            <pre id="status_log" class="log-content"></pre>
+
+        <div class="flex flex-col items-center mt-12 mb-12">
+            <h2 class="subsection-title">Queue Flow Visualizer</h2>
+            <div id="queuesFlowContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+
+                <div class="queue-box frontend-outgoing">
+                    <h3>Frontend Outgoing <span id="frontendOutgoingQueueCount" class="queue-count">0</span></h3>
+                    <p class="direction text-blue-700">📤 UI to Backend</p>
+                    <p class="description">Messages from frontend, ready to be sent.</p>
+                    <div id="frontendOutgoingQueueDisplay" class="queue-log">
+                        <div class="queue-header"><span>Type</span><span>ID</span><span>Status</span><span>Time</span></div>
+                        <div class="queue-items"><div class="queue-item-placeholder">Queue is empty.</div></div>
+                    </div>
+                </div>
+
+                <div class="queue-box backend-incoming">
+                    <h3>Backend Incoming <span id="backendIncomingQueueCount" class="queue-count">0</span></h3>
+                    <p class="direction text-purple-700">📥 From Frontend</p>
+                    <p class="description">Messages received by backend from frontend.</p>
+                    <div id="backendIncomingQueueDisplay" class="queue-log">
+                        <div class="queue-header"><span>Type</span><span>ID</span><span>Status</span><span>Time</span></div>
+                        <div class="queue-items"><div class="queue-item-placeholder">Queue is empty.</div></div>
+                    </div>
+                </div>
+
+                <div class="queue-box backend-outgoing">
+                    <h3>Backend Outgoing <span id="backendOutgoingQueueCount" class="queue-count">0</span></h3>
+                    <p class="direction text-green-700">📤 To Frontend</p>
+                    <p class="description">Responses from backend, ready to be sent.</p>
+                    <div id="backendOutgoingQueueDisplay" class="queue-log">
+                        <div class="queue-header"><span>Type</span><span>ID</span><span>Status</span><span>Time</span></div>
+                        <div class="queue-items"><div class="queue-item-placeholder">Queue is empty.</div></div>
+                    </div>
+                </div>
+
+                <div class="queue-box frontend-incoming">
+                    <h3>Frontend Incoming <span id="frontendIncomingQueueCount" class="queue-count">0</span></h3>
+                    <p class="direction text-orange-700">📥 From Backend</p>
+                    <p class="description">Messages received by frontend from backend.</p>
+                    <div id="frontendIncomingQueueDisplay" class="queue-log">
+                        <div class="queue-header"><span>Type</span><span>ID</span><span>Status</span><span>Time</span></div>
+                        <div class="queue-items"><div class="queue-item-placeholder">Queue is empty.</div></div>
+                    </div>
+                </div>
+
+                <div class="queue-box dead-letter col-span-2 lg:col-span-4 flex flex-col justify-center items-center p-6 mt-4">
+                    <h3>Dead Letter Queue <span id="deadLetterCount" class="queue-count bg-red-600">0</span></h3>
+                    <p class="direction text-red-700">🗑️ Error Handling</p>
+                    <p class="description text-center">Malformed or unprocessable messages are stored here for audit.</p>
+                    <span class="text-3xl text-red-500 mt-2">🚨</span>
+                    <p class="text-xs text-gray-500 mt-1">Populated by all services</p>
+                    <div id="deadLetterQueueDisplay" class="queue-log">
+                        <div class="queue-items"><div class="queue-item-placeholder">Queue is empty.</div></div>
+                    </div>
+                </div>
+
+            </div>
         </div>
-        <div class="log-box">
-            <h3>Test Log</h3>
-            <pre id="test_log" class="log-content"></pre>
+
+        <div id="logsContainer" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="log-box">
+                <h3>System Log</h3>
+                <pre id="system_log" class="log-content"></pre>
+            </div>
+            <div class="log-box">
+                <h3>Simulation Log</h3>
+                <pre id="simulation_log" class="log-content"></pre>
+            </div>
+            <div class="log-box">
+                <h3>Status Log</h3>
+                <pre id="status_log" class="log-content"></pre>
+            </div>
+            <div class="log-box">
+                <h3>Test Log</h3>
+                <pre id="test_log" class="log-content"></pre>
+            </div>
+             <div class="log-box">
+                <h3>Transcription Log</h3>
+                <pre id="transcription_display" class="log-content"></pre>
+            </div>
+        </div>
+
+        <div class="mt-12 flow-description">
+            <h3 class="subsection-title">Understanding the Queue Flow</h3>
+            <p>This system uses a series of internal queues within the Python backend to manage the flow of messages between the frontend (your browser UI) and various backend services. This asynchronous architecture ensures that the application remains responsive and can handle multiple operations concurrently.</p>
+            
+            <p>Here's how messages typically flow:</p>
+            <ul>
+                <li><strong>1. Frontend Outgoing Queue:</strong>
+                    When you interact with the UI (e.g., click "Translate"), your action is first placed into the frontend's <strong>Frontend Outgoing Queue</strong>. This queue holds messages representing user-initiated actions before they are sent over WebSocket.</li>
+
+                <li><strong>2. Backend Incoming Queue:</strong>
+                    The <code>WebSocketManager</code> sends messages from the Frontend Outgoing Queue to the backend. In the backend, these messages are received and placed into the backend's <strong>Backend Incoming Queue</strong> (which corresponds to the backend's internal <code>from_frontend_queue</code>). This queue acts as the initial entry point for all client-originated messages into the backend system.</li>
+
+                <li><strong>3. Backend Processing:</strong>
+                    Messages from the Backend Incoming Queue are processed by backend services (like the <code>QueueForwarder</code> and <code>MessageProcessor</code>). This might involve internal routing through other backend queues (e.g., to a <code>to_backend_queue</code> for core processing, and potentially a <code>from_backend_queue</code> for internal service responses).</li>
+
+                <li><strong>4. Backend Outgoing Queue:</strong>
+                    After processing, if a response or status update needs to be sent back to the frontend, the backend places it into its <strong>Backend Outgoing Queue</strong> (which corresponds to the backend's internal <code>to_frontend_queue</code>).</li>
+
+                <li><strong>5. Frontend Incoming Queue:</strong>
+                    The <code>WebSocketManager</code> receives messages from the Backend Outgoing Queue via WebSocket. Upon receipt, these messages are placed into the frontend's <strong>Frontend Incoming Queue</strong> for further processing and UI updates.</li>
+
+                <li><strong>The Dead Letter Queue:</strong>
+                    Throughout this entire flow, if any service encounters a malformed, unprocessable, or erroneous message, it is routed to the <strong>Dead Letter Queue</strong>. This prevents bad messages from blocking the system and allows developers to inspect them later for debugging and analysis.</li>
+            </ul>
+            <p class="mt-4 text-sm text-gray-500">The 1-second delays after dequeuing from each queue (`from_frontend_queue`, `to_backend_queue`, `to_frontend_queue`) are temporarily added to help visualize the message movement in your backend logs.</p>
         </div>
     </div>
-
-    <script>
-        // Add this to your frontend.js later
-        function updateQueueCounters() {
-            document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
-            document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
-            document.getElementById('toBackendCount').textContent = toBackendQueue.size();
-            document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
-        }
-    </script>
-    
     <script type="module" src="./src/app.js"></script>
 </body>
 </html>

@@ -1,59 +1,99 @@
-// MessageQueue.js
+// frontend/src/modules/MessageQueue.js
 class MessageQueue {
-    constructor() {
+    constructor(name = "default") {
+        this.name = name;
         this.queue = [];
-        this.pending = [];
-        this._listeners = new Set();
+        this.waitingResolvers = []; // Promises waiting for an item
+        this._listeners = new Set(); // For UI updates
+        console.log(`MessageQueue '${this.name}' initialized.`);
     }
 
     enqueue(message) {
         if (!message.timestamp) {
-            message.timestamp = Date.now() / 1000;
+            message.timestamp = Date.now(); // Use milliseconds for JS consistency
         }
         this.queue.push(message);
-        this._listeners.forEach(cb => cb(this.queue));
-        while (this.pending.length > 0 && this.queue.length > 0) {
-            const resolve = this.pending.shift();
-            resolve(this.queue.shift());
+        console.log(`MessageQueue: Enqueued message to '${this.name}'. Current size: ${this.queue.length}`);
+        this.notifyListeners(); // Notify all UI listeners about the change
+
+        // If there are consumers waiting, resolve the *oldest* waiting promise
+        // with the *newly available* item.
+        if (this.waitingResolvers.length > 0) {
+            const resolve = this.waitingResolvers.shift(); // Get the oldest resolver
+            resolve(this.queue[this.queue.length - 1]); // Resolve with the *newly added* message
+                                                         // The dequeue will then shift it.
         }
     }
 
+    // Dequeue a message (asynchronous, blocking/waiting)
     async dequeue() {
         if (this.queue.length > 0) {
-            return this.queue.shift();
+            const item = this.queue.shift(); // Truly remove the item
+            console.log(`MessageQueue: Dequeued item from '${this.name}'. Current size: ${this.queue.length}`);
+            this.notifyListeners(); // Notify listeners after removal
+            return item;
+        } else {
+            // If the queue is empty, return a Promise that will be resolved
+            // when a new item is enqueued.
+            return new Promise(resolve => {
+                this.waitingResolvers.push(resolve);
+            });
         }
-        return new Promise(resolve => this.pending.push(resolve));
     }
 
     size() {
         return this.queue.length;
     }
 
+    // Used for displaying without removing
+    // Returns a shallow copy to prevent external modification of the queue
+    getCurrentItemsForDisplay() {
+        return [...this.queue];
+    }
+
+    // Alias for backward compatibility
     peekAll() {
-        return [...this.queue]; // Return a copy without modifying queue
+        return this.getCurrentItemsForDisplay();
     }
 
+    // Alias for backward compatibility
     getAll() {
-        return this.peekAll(); // Alias for backwards compatibility
+        return this.getCurrentItemsForDisplay();
     }
 
-    addListener(callback) {
+    // Method to subscribe UI components to queue changes
+    subscribe(callback) {
         this._listeners.add(callback);
+        // Optionally, immediately notify the new subscriber with the current state
+        callback(this.name, this.queue.length, this.getCurrentItemsForDisplay());
     }
 
-    removeListener(callback) {
+    // Method to unsubscribe UI components
+    unsubscribe(callback) {
         this._listeners.delete(callback);
     }
 
+    // Internal method to notify all subscribed listeners
+    notifyListeners() {
+        // Prepare items for display, ensuring they have necessary properties
+        const itemsForDisplay = this.queue.map(msg => ({
+            id: msg.id,
+            type: msg.type,
+            // Assuming 'status' could be part of msg.data, default to 'pending'
+            status: msg.data && msg.data.status ? msg.data.status : 'pending',
+            timestamp: msg.timestamp
+        }));
+        this._listeners.forEach(callback => callback(this.name, this.queue.length, itemsForDisplay));
+    }
+
+
     clear() {
         this.queue = [];
-        this._listeners.forEach(cb => cb(this.queue));
+        this.waitingResolvers.forEach(resolve => resolve(null)); // Resolve all pending with null/undefined
+        this.waitingResolvers = []; // Clear all waiting resolvers
+        this.notifyListeners(); // Notify listeners after clearing
+        console.log(`Queue '${this.name}' cleared.`);
     }
 }
 
-// Export the queue instances and the class
-export const toBackendQueue = new MessageQueue();
-export const fromBackendQueue = new MessageQueue();
-export const toFrontendQueue = new MessageQueue();
-export const fromFrontendQueue = new MessageQueue();
-export { MessageQueue }; // Export the class itself if needed elsewhere
+export default MessageQueue;

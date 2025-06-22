@@ -1,164 +1,302 @@
-// QueueDisplay.js
-import {
-    toFrontendQueue,
-    fromFrontendQueue, 
-    toBackendQueue,
-    fromBackendQueue
-} from './MessageQueue.js';
+// frontend/src/modules/QueueDisplay.js
 
-const MAX_VISIBLE_ITEMS = 20;
-let lastUpdateTime = 0;
-const UPDATE_THROTTLE_MS = 100;
+// Map backend queue names to frontend display IDs for easier lookup
+const backendQueueDisplayMap = {
+    // These are the *backend's* internal queue names as sent in `queue_status_update` messages
+    'from_frontend': 'backendIncomingQueueDisplay', // Backend's queue for messages *from* frontend
+    'to_backend': 'backendProcessingQueueDisplay', // Added this to match the flow description if you have a 'to_backend' queue
+    'from_backend': 'backendServiceQueueDisplay', // Added this for internal backend service responses
+    'to_frontend': 'backendOutgoingQueueDisplay',  // Backend's queue for messages *to* frontend
+    'dead_letter': 'deadLetterQueueDisplay',
+};
 
-// lastMessage is currently a global variable, needs to be passed or managed differently
-// For now, we'll keep it global in app.js and pass it, or you can consider encapsulating it.
-// Let's assume it's passed as an argument to updateQueueCounters or QueueDisplay.init()
+// Map frontend's *local* queue names to their display IDs
+const frontendQueueDisplayMap = {
+    'toBackendQueue': 'frontendOutgoingQueueDisplay', // Frontend's queue for messages *to* backend
+    'fromBackendQueue': 'frontendIncomingQueueDisplay', // Frontend's queue for messages *from* backend
+    'frontendActionQueue': 'frontendActionQueueDisplay', // Your existing frontend queue if you use it
+    'frontendDisplayQueue': 'frontendDisplayQueueDisplay', // Your existing frontend queue if you use it
+};
 
-function updateQueueDisplay(queueName, queue, elementId) {
-    if (!elementId) {
-        console.error('updateQueueDisplay: elementId parameter is required');
+/**
+ * Updates a specific queue's display in the HTML.
+ * This function is designed to be called by MessageQueue subscriptions
+ * or by WebSocketManager when receiving backend queue status updates.
+ *
+ * @param {string} queueName - The logical name of the queue (e.g., 'toBackendQueue' for frontend, 'from_frontend' for backend).
+ * @param {number} size - The current size of the queue.
+ * @param {Array<Object>} items - An array of message objects currently in the queue.
+ */
+function updateQueueDisplay(queueName, size, items) {
+    let elementId;
+
+    // Check if it's a backend queue name or a frontend local queue name
+    if (backendQueueDisplayMap[queueName]) {
+        elementId = backendQueueDisplayMap[queueName];
+    } else if (frontendQueueDisplayMap[queueName]) {
+        elementId = frontendQueueDisplayMap[queueName];
+    } else {
+        console.warn(`updateQueueDisplay: No mapping found for queueName "${queueName}".`);
         return;
     }
-    
+
     const displayElement = document.getElementById(elementId);
     if (!displayElement) {
-        console.error(`Display element with ID "${elementId}" not found`);
+        console.error(`Display element with ID "${elementId}" not found in the DOM for queue "${queueName}".`);
         return;
     }
 
-    if (!queue) {
-        console.error(`Queue "${queueName}" is undefined`);
-        return;
+    const MAX_DISPLAY_ITEMS_PER_QUEUE = 10; // Max items to show in the detailed log view
+
+    // Update the queue counter
+    const queueCountSpan = document.getElementById(elementId.replace('Display', 'Count'));
+    if (queueCountSpan) {
+        queueCountSpan.textContent = size;
     }
 
-    if (typeof queue.peekAll !== 'function') {
-        console.error(`Queue "${queueName}" does not have peekAll method`);
-        return;
-    }
+    // Special handling for Dead Letter Queue, as its structure might differ
+    if (elementId === 'deadLetterQueueDisplay') {
+        const itemsContainer = displayElement.querySelector('.queue-items');
+        if (itemsContainer) {
+            itemsContainer.innerHTML = ''; // Clear existing items
 
-    const items = queue.peekAll().slice(-10); // Show last 10 items
-    if (!Array.isArray(items)) {
-        console.error(`Queue "${queueName}" did not return valid items array`);
-        return;
-    }
-    displayElement.innerHTML = items.map(item => 
-        `<div class="queue-item">
-            <strong>${item.type}</strong>: ${JSON.stringify(item.data)}
-        </div>`
-    ).join('');
-}
-
-function updateAllQueueDisplays() {
-    console.log("DEBUG: updateAllQueueDisplays called.");
-    const now = performance.now();
-    if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
-        requestAnimationFrame(updateAllQueueDisplays);
-        return;
+            if (items && items.length > 0) {
+                const ul = document.createElement('ul');
+                ul.className = 'list-disc list-inside mt-2 text-sm dead-letter-list';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.type || 'N/A'} (ID: ${item.id ? String(item.id).substring(0, 8) : 'N/A'}) - ${new Date(item.timestamp * 1000).toLocaleTimeString()}`; // Assuming backend timestamp is in seconds
+                    ul.appendChild(li);
+                });
+                itemsContainer.appendChild(ul);
+            } else {
+                const noItemsDiv = document.createElement('div');
+                noItemsDiv.className = 'queue-item-placeholder text-center text-gray-500 py-4';
+                noItemsDiv.textContent = 'Queue is empty.';
+                itemsContainer.appendChild(noItemsDiv);
+            }
         }
-    
-        // Close the updateQueueLog function
-    
-    lastUpdateTime = now;
+        return; // Exit as dead letter queue is handled
+    }
 
-    Promise.resolve().then(() => {
-        updateQueueLog('toFrontendLog', toFrontendQueue);
-        updateQueueLog('fromFrontendLog', fromFrontendQueue);
-        updateQueueLog('toBackendLog', toBackendQueue);
-        updateQueueLog('fromBackendLog', fromBackendQueue);
-        updateQueueCounters();
-    });
-}
+    // --- Standard Queue Display Logic (for non-Dead Letter Queues) ---
+    const itemsToDisplay = items.slice(-MAX_DISPLAY_ITEMS_PER_QUEUE); // Show last N items
 
-// Frontend/src/modules/QueueDisplay.js (only the updateQueueLog function)
-
-function updateQueueLog(elementId, queueOrMessage) {
-    const logElement = document.getElementById(elementId);
-    if (!logElement) {
-        console.error(`Error: Log element with ID '${elementId}' not found.`);
+    const itemsContainer = displayElement.querySelector('.queue-items');
+    if (!itemsContainer) {
+        console.error(`Queue items container (.queue-items) not found inside #${elementId}.`);
         return;
     }
-    
-    // Sicherstellen, dass das Element sichtbar ist
-    if (logElement.style.display === 'none') {
-        logElement.style.display = 'block';
+
+    itemsContainer.innerHTML = ''; // Clear existing items for standard queues
+
+    // Add overflow message if too many items
+    if (items.length > MAX_DISPLAY_ITEMS_PER_QUEUE) {
+        const overflowDiv = document.createElement('div');
+        overflowDiv.className = 'log-overflow text-center text-gray-500 py-2 text-sm';
+        overflowDiv.textContent = `Showing last ${itemsToDisplay.length} of ${items.length} messages.`;
+        itemsContainer.appendChild(overflowDiv);
     }
 
-    // Wenn zweiter Parameter eine Queue ist
-    if (queueOrMessage && typeof queueOrMessage.peekAll === 'function') {
-        const queue = queueOrMessage;
+    if (itemsToDisplay.length === 0) {
+        const noItemsDiv = document.createElement('div');
+        noItemsDiv.className = 'queue-item-placeholder text-center text-gray-500 py-4';
+        noItemsDiv.textContent = 'Queue is empty.';
+        itemsContainer.appendChild(noItemsDiv);
+    } else {
+        itemsToDisplay.forEach(message => {
+            const data = message.data || {};
+            let id = (message.id || data.id || data.original_id || 'N/A').toString();
+            let type = message.type || 'unknown';
+            let status = data.status || 'N/A';
 
-    const MAX_DISPLAY_ITEMS_PER_QUEUE = 10;
-    const itemsToDisplay = queue.peekAll().slice(-MAX_DISPLAY_ITEMS_PER_QUEUE);
+            if (type === 'command') {
+                type = `command: ${data.command || 'N/A'}`;
+                id = (data.client_id || id).toString();
+                status = 'pending';
+            }
 
-    let htmlContent = '';
-    if (queue.size() > MAX_DISPLAY_ITEMS_PER_QUEUE) {
-        htmlContent += `<div class="log-overflow">Showing last ${itemsToDisplay.length} of ${queue.size()} messages.</div>`;
-    }
+            // Timestamps from backend are likely in seconds (Python's time.time()), JS Date needs milliseconds
+            const timestampMs = message.timestamp < 1e12 ? message.timestamp * 1000 : message.timestamp;
+            const timestamp = new Date(timestampMs).toLocaleTimeString();
 
-    itemsToDisplay.forEach(message => {
-        const data = message.data || {};
-        const id = data.id || data.original_id || 'N/A';
-        const type = message.type || 'unknown';
-        // Convert Unix timestamp (seconds) to JS timestamp (milliseconds)
-        const timestamp = new Date(message.timestamp * 1000).toLocaleTimeString();
-        const status = data.status || 'N/A';
-        const content = data.message || data.text || (typeof data === 'object' ? JSON.stringify(data) : data);
+            const itemElement = document.createElement('div');
+            itemElement.classList.add('queue-item', 'p-2', 'mb-1', 'rounded', 'flex', 'justify-between', 'items-center', 'text-xs', 'bg-gray-200');
+            itemElement.dataset.id = id;
 
-        let statusClass = '';
-        switch (status) {
-            case 'pending':
-                statusClass = 'status-pending';
-                break;
-            case 'urgent':
-                statusClass = 'status-urgent';
-                break;
-            case 'processing':
-                statusClass = 'status-processing';
-                break;
-            case 'processed':
-                statusClass = 'status-processed';
-                break;
-            default:
-                statusClass = '';
-                break;
-        }
-
-        htmlContent += `
-        <div class="log-entry">
-            <div class="message-header">
-                <span class="message-id">ID: ${String(id).substring(0, 8)}...</span> // <-- CORRECTED LINE
-                <span class="message-type">Type: ${type}</span>
-                <span class="message-timestamp">Timestamp: ${timestamp}</span>
-            </div>
-            <div class="message-content ${statusClass}">
-                ${content}
-            </div>
-        </div>`;
-        });
-    } 
-    // Wenn zweiter Parameter eine direkte Nachricht ist
-    else if (typeof queueOrMessage === 'string') {
-        logElement.textContent += queueOrMessage + '\n';
-    }
-}
-
-
-function updateQueueCounters() {
-    document.getElementById('toFrontendCount').textContent = toFrontendQueue.size();
-    document.getElementById('fromFrontendCount').textContent = fromFrontendQueue.size();
-    document.getElementById('toBackendCount').textContent = toBackendQueue.size();
-    document.getElementById('fromBackendCount').textContent = fromBackendQueue.size();
-
-    if (console.debug) {
-        console.debug('Queue Stats:', {
-            toFrontend: toFrontendQueue.size(),
-            fromFrontend: fromFrontendQueue.size(),
-            toBackend: toBackendQueue.size(),
-            fromBackend: fromBackendQueue.size()
+            itemElement.innerHTML = `
+                <span class="font-semibold">${type}</span>
+                <span class="text-gray-600">ID: ${id.substring(0, 8)}...</span>
+                <span class="${getStatusClass(status)}">${status}</span>
+                <span class="text-gray-500">${timestamp}</span>
+            `;
+            itemsContainer.appendChild(itemElement);
         });
     }
 }
-    
-    
-// Export the functions that need to be called externally
-export { updateAllQueueDisplays, updateQueueLog, updateQueueCounters, updateQueueDisplay };
+
+/**
+ * Determines the CSS class for a message status for visual styling.
+ * @param {string} status - The status string (e.g., 'pending', 'processed', 'error_parse').
+ * @returns {string} The corresponding CSS class.
+ */
+function getStatusClass(status) {
+    if (!status) return '';
+
+    const statusLower = status.toLowerCase();
+    if (statusLower.startsWith('error')) {
+        return 'text-red-600 font-bold';
+    }
+
+    switch (statusLower) {
+        case 'pending': return 'text-gray-500';
+        case 'processing': return 'text-blue-600';
+        case 'processed':
+        case 'success':
+        case 'completed': return 'text-green-600 font-medium';
+        case 'urgent': return 'text-orange-600 font-bold';
+        case 'generated': return 'text-purple-600';
+        default: return 'text-gray-700';
+    }
+}
+
+// --- Global Log Functions (exported for direct use from app.js or WebSocketManager) ---
+
+function updateSystemLog(message) {
+    const logElement = document.getElementById('system_log');
+    if (logElement) {
+        const timestamp = new Date().toLocaleTimeString();
+        const msgText = typeof message === 'object' && message !== null ?
+                        (message.message || JSON.stringify(message)) :
+                        String(message);
+        const entry = document.createElement('div');
+        entry.textContent = `[${timestamp}] ${msgText}`;
+        logElement.prepend(entry);
+        if (logElement.children.length > 100) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
+function updateSimulationLog(data) {
+    const logElement = document.getElementById('simulation_log');
+    if (logElement) {
+        const messageText = `Sim Update: ID=${data.id || 'N/A'}, Status=${data.status || 'N/A'}`;
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${messageText}`;
+        logElement.prepend(entry);
+        if (logElement.children.length > 100) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
+function updateStatusLog(message) {
+    const logElement = document.getElementById('status_log');
+    if (logElement) {
+        const msgText = typeof message === 'object' && message !== null ?
+                        (message.message || JSON.stringify(message)) :
+                        String(message);
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${msgText}`;
+        logElement.prepend(entry);
+        if (logElement.children.length > 100) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
+function updateTranscriptionLog(text) {
+    const logElement = document.getElementById('transcription_display');
+    if (logElement) {
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+        logElement.prepend(entry);
+        if (logElement.children.length > 50) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
+function updateTestLog(message) {
+    const logElement = document.getElementById('test_log');
+    if (logElement) {
+        const msgText = typeof message === 'object' && message !== null ?
+                        (message.message || JSON.stringify(message)) :
+                        String(message);
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${msgText}`;
+        logElement.prepend(entry);
+        if (logElement.children.length > 100) {
+            logElement.removeChild(logElement.lastChild);
+        }
+    }
+}
+
+// Add basic styles directly if not in CSS file
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+    .queue-item {
+        transition: background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    }
+    .queue-item:hover {
+        background-color: #e0e7ff; /* Lighter blue on hover */
+    }
+    .status-error {
+        color: #dc2626; /* Red-600 */
+        font-weight: bold;
+    }
+    .status-pending {
+        color: #6b7280; /* Gray-500 */
+    }
+    .status-processing {
+        color: #3b82f6; /* Blue-500 */
+    }
+    .status-processed {
+        color: #22c55e; /* Green-500 */
+        font-weight: medium;
+    }
+    .status-urgent {
+        color: #f97316; /* Orange-500 */
+        font-weight: bold;
+    }
+    .status-generated {
+        color: #a855f7; /* Purple-500 */
+    }
+    #reconnectStatus {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: #fbbf24; /* Amber-400 */
+        color: #333;
+        padding: 8px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: none; /* Hidden by default */
+        z-index: 1000;
+        font-size: 0.9rem;
+    }
+    .log-overflow {
+        font-style: italic;
+        color: #777;
+        margin-bottom: 8px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 4px;
+    }
+    .queue-item-placeholder {
+        font-style: italic;
+        color: #9ca3af; /* Gray-400 */
+    }
+`;
+document.head.appendChild(styleElement);
+
+
+// Export all necessary functions
+export {
+    updateQueueDisplay,
+    updateSystemLog,
+    updateSimulationLog,
+    updateStatusLog,
+    updateTestLog,
+    updateTranscriptionLog
+};
