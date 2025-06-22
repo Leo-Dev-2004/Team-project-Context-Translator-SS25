@@ -1,80 +1,62 @@
-import subprocess
-import threading
-import queue
+import asyncio
+import websockets
 import whisper
 import numpy as np
-import soundfile as sf
+import sounddevice as sd
+import queue
+import threading
 import time
+import json
 
-# === Parameter Settings ===
-CHUNK_DURATION_SEC = 10      # Duration of each audio chunk (in seconds)
-OVERLAP_SEC = 2              # Overlap duration (in seconds)
-SAMPLE_RATE = 48000          # Sampling rate in Hz
-CHANNELS = 1                 # Mono audio recommended for transcription
-SAMPLE_WIDTH = 2             # 16-bit audio = 2 bytes
-CHUNK_SIZE = SAMPLE_RATE * SAMPLE_WIDTH * CHANNELS * CHUNK_DURATION_SEC
-OVERLAP_SIZE = SAMPLE_RATE * SAMPLE_WIDTH * CHANNELS * OVERLAP_SEC
+CHUNK_DURATION_SEC = 5
+SAMPLE_RATE = 16000
+CHANNELS = 1
 
-# === Shared Resources ===
+model = whisper.load_model("tiny")
+
 audio_queue = queue.Queue()
-buffer = b""  # Initial buffer for accumulating audio data
 
-# === RTP Audio Stream to WAV PCM using ffmpeg ===
-def ffmpeg_stream_to_queue(sdp_file: str, audio_queue: queue.Queue):
-    process = subprocess.Popen([
-        'ffmpeg',
-        '-protocol_whitelist', 'file,udp,rtp',
-        '-i', sdp_file,
-        '-acodec', 'pcm_s16le',
-        '-ar', str(SAMPLE_RATE),
-        '-ac', str(CHANNELS),
-        '-f', 'wav', 'pipe:1'
-    ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+WEBSOCKET_URI = "ws://localhost:8000/ws"
 
-    while True:
-        data = process.stdout.read(4096)
-        if not data:
-            break
-        audio_queue.put(data)
+def record_audio():
+    def callback(indata, frames, time_info, status):
+        audio_queue.put(indata.copy())
 
-# === Chunking audio data with overlap ===
-def chunk_audio_stream(audio_queue: queue.Queue):
-    global buffer
-    while True:
-        data = audio_queue.get()
-        buffer += data
-        while len(buffer) >= CHUNK_SIZE:
-            chunk = buffer[:CHUNK_SIZE]
-            buffer = buffer[CHUNK_SIZE - OVERLAP_SIZE:]  # keep overlap
-            yield (chunk, time.time())
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, callback=callback):
+        while True:
+            sd.sleep(1000)
 
-# === Load Whisper model once ===
-model = whisper.load_model("base")
+threading.Thread(target=record_audio, daemon=True).start()
 
-# === Transcribe each chunk using Whisper ===
-def transcribe_chunk(chunk_data: bytes):
-    with open("temp_chunk.wav", "wb") as f:
-        f.write(chunk_data)
+async def transcribe_and_send():
+    async with websockets.connect(WEBSOCKET_URI) as websocket:
+        buffer = []
+        last_chunk_time = time.time()
 
-    audio_np, _ = sf.read("temp_chunk.wav", dtype="float32")
+        while True:
+            if not audio_queue.empty():
+                data = audio_queue.get()
+                buffer.append(data)
 
-    result = model.transcribe(audio_np, fp16=False, word_timestamps=True)
+            if time.time() - last_chunk_time >= CHUNK_DURATION_SEC:
+                if buffer:
+                    audio_chunk = np.concatenate(buffer, axis=0)
+                    buffer = []
+                    last_chunk_time = time.time()
 
-    text = result["text"]
+                    audio_data = audio_chunk.flatten().astype(np.float32)
+                    result = model.transcribe(audio_data, language="en", fp16=False)
 
-    if any(p in text for p in [".", "?", "!"]):
-        print(f"[Whisper] Finalized sentence: {text.strip()}")
-    else:
-        print(f"[Whisper] Ongoing: {text.strip()}")
+                    timestamp = time.time()
+                    text = result["text"]
 
-# === Start background thread to receive audio ===
-threading.Thread(
-    target=ffmpeg_stream_to_queue,
-    args=("input.sdp", audio_queue),
-    daemon=True
-).start()
+                    message = {
+                        "type": "transcription",
+                        "timestamp": timestamp,
+                        "text": text
+                    }
 
-# === Main processing loop ===
-for chunk, timestamp in chunk_audio_stream(audio_queue):
-    print(f"[Timestamp: {timestamp}]")
-    transcribe_chunk(chunk)
+                    print(f"[{timestamp}] {text}")
+                    await websocket.send(json.dumps(message))
+
+asyncio.run(transcribe_and_send())
