@@ -3,13 +3,13 @@
   --ocean-blue-50: #e1ebc6;
   --ocean-blue-100: #881f1f;
   --ocean-blue-200: #ffffff;
-  --ocean-blue-300: #F29B30;
+  --ocean-blue-300: #0476D9;
   --ocean-blue-400: #a62403;
   --ocean-blue-500: #e90e50;
-  --ocean-blue-600: #0678A6;
-  --ocean-blue-700: #0378A6;
-  --ocean-blue-800: #0367A6;
-  --ocean-blue-900: #0367A6; 
+  --ocean-blue-600: #0476D9;
+  --ocean-blue-700: #0476D9;
+  --ocean-blue-800: #011640;
+  --ocean-blue-900: #011640; 
 
   /* Material Design 3 Typography */
   --md-sys-typescale-headline-large-font: 'Roboto', sans-serif;
@@ -175,6 +175,11 @@ md-tabs {
 md-outlined-text-field,
 md-outlined-select {
   width: 100%;
+}
+
+/* Spacer Utility */
+.spacer {
+  height: var(--space-lg);
 }
 
 /* Action Buttons */

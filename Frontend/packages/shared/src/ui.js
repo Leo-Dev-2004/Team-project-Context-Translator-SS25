@@ -181,53 +181,9 @@ export class UI extends LitElement {
                         </md-icon-button>
                       `
                     : ''}
-                </div>
-              </div>
+                </div>              </div>
 
-              <div class="input-section">
-                <h3 class="title-medium section-title">Language Preferences</h3>
-                <md-outlined-select
-                  label="Primary Language"
-                  .value=${this.selectedLanguage}
-                  @change=${this._onLanguageChange}
-                >
-                  <md-select-option value="en">English</md-select-option>
-                  <md-select-option value="de">German</md-select-option>
-                  <md-select-option value="es">Spanish</md-select-option>
-                  <md-select-option value="fr">French</md-select-option>
-                  <md-select-option value="it">Italian</md-select-option>
-                </md-outlined-select>
-              </div>
-
-              <div class="input-section">
-                <h3 class="title-medium section-title">General Settings</h3>
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Auto-save translations</span>
-                    <span class="body-small setting-description">Automatically save all translations to your history</span>
-                  </div>
-                  <md-switch
-                    .selected=${this.autoSave}
-                    @change=${this._onAutoSaveChange}
-                  ></md-switch>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Real-time processing</span>
-                    <span class="body-small setting-description">Process audio in real-time for instant translations</span>
-                  </div>
-                  <md-switch selected></md-switch>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Confidence indicators</span>
-                    <span class="body-small setting-description">Show confidence levels for each translation</span>
-                  </div>
-                  <md-switch></md-switch>
-                </div>
-              </div>
+              <div class="spacer"></div>
 
               <div class="action-buttons">
                 <md-filled-button @click=${this._saveSettings}>
