@@ -165,23 +165,24 @@ export class UI extends LitElement {
                 <p class="body-medium section-description">
                   Describe your field or context to improve translation accuracy
                   (e.g., "CS student", "primary school teacher", "medical professional")
-                </p>
-                <div class="domain-input-group">
+                </p>                <div class="domain-input-group">
                   <md-outlined-text-field
                     label="Your domain or context"
                     .value=${this.domainValue}
                     @input=${this._onDomainInput}
-                    placeholder="e.g., computer science student"
+                    placeholder="e.g., computer science student, medical professional, software engineer..."
                     class="domain-field"
-                  ></md-outlined-text-field>
-                  ${this.domainValue
-                    ? html`
-                        <md-icon-button @click=${this._clearDomain} class="clear-button">
-                          <span class="material-icons">close</span>
-                        </md-icon-button>
-                      `
-                    : ''}
-                </div>              </div>
+                    type="textarea"
+                    rows="3"
+                    supporting-text="Describe your field or expertise to improve AI explanations"
+                  >
+                    ${this.domainValue ? html`
+                      <md-icon-button slot="trailing-icon" @click=${this._clearDomain} title="Clear text">
+                        <span class="material-icons">clear</span>
+                      </md-icon-button>
+                    ` : ''}
+                  </md-outlined-text-field>
+                </div></div>
 
               <div class="spacer"></div>
 
@@ -201,22 +202,19 @@ export class UI extends LitElement {
           <div class="tab-panel explanations-panel">
             <div class="explanations-header">
               <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
-              <p class="body-large">Terms and concepts explained during your meetings</p>              
-              <div class="explanations-controls">
+              <p class="body-large">Terms and concepts explained during your meetings</p>                <div class="explanations-controls">
                 <md-text-button @click=${this._clearAllExplanations}>
-                  🗑️ Clear All
+                  <span class="material-icons">delete</span> Clear All
                 </md-text-button>
                 <md-filled-button @click=${this._addTestExplanation}>
-                  ➕ Add Test
+                  <span class="material-icons">add</span> Add Test
                 </md-filled-button>
               </div>
             </div>
 
             <div class="explanations-content">              
               ${this.explanations.length === 0 
-                ? html`
-                  <div class="empty-state">
-                    <div class="empty-icon">❓</div>
+                ? html`                  <div class="empty-state">
                     <h3 class="title-medium">No explanations yet</h3>
                     <p class="body-medium">Join a meeting and our AI will automatically explain complex terms and concepts.</p>
                   </div>

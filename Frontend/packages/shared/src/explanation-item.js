@@ -62,9 +62,7 @@ export class ExplanationItem extends LitElement {
    * Component Styles
    * Uses shared styles from centralized CSS
    */
-  static styles = [sharedStyles]
-
-  /**
+  static styles = [sharedStyles]  /**
    * Component Constructor
    * Initializes component state with default values
    * Sets expanded state to false and empty explanation object
@@ -87,23 +85,20 @@ export class ExplanationItem extends LitElement {
 
     return html`
       <div class="explanation-card ${this.explanation.isPinned ? 'pinned' : ''}">
-        <div class="explanation-header" @click=${this._toggleExpanded}>
-          <div class="explanation-title">
-            ${this.explanation.isPinned ? html`<span class="pinned-indicator">📌 </span>` : ''}
+        <div class="explanation-header" @click=${this._toggleExpanded}>          <div class="explanation-title">
+            ${this.explanation.isPinned ? html`<span class="pinned-indicator material-icons">push_pin</span>` : ''}
             ${this.explanation.title}
           </div>
-          <div class="explanation-actions" @click=${this._stopPropagation}>
-            <button class="action-button pin-button ${this.explanation.isPinned ? 'pinned' : ''}" 
+          <div class="explanation-actions" @click=${this._stopPropagation}>            <button class="action-button pin-button ${this.explanation.isPinned ? 'pinned' : ''}" 
                     @click=${this._handlePin} 
                     title="${this.explanation.isPinned ? 'Unpin' : 'Pin'} explanation">
-              ${this.explanation.isPinned ? '📌' : '📌'}
+              <span class="material-icons">${this.explanation.isPinned ? 'push_pin' : 'push_pin'}</span>
             </button>
             <button class="action-button delete-button" @click=${this._handleDelete} title="Delete explanation">
-              ✕
+              <span class="material-icons">close</span>
             </button>
-          </div>
-          <div class="expand-icon ${this.expanded ? 'expanded' : ''}" title="Toggle explanation">
-            ▼
+          </div>          <div class="expand-icon ${this.expanded ? 'expanded' : ''}" title="Toggle explanation">
+            <span class="material-icons">expand_more</span>
           </div>
         </div>
         
@@ -115,17 +110,14 @@ export class ExplanationItem extends LitElement {
             <div class="explanation-footer">
               <span class="explanation-timestamp">
                 ${this._formatTimestamp(this.explanation.timestamp)}
-              </span>
-              <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
-                📋 Copy
+              </span>              <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
+                <span class="material-icons">content_copy</span> Copy
               </button>
             </div>          </div>
         </div>
       </div>
     `;
-  }
-
-  /**
+  }  /**
    * Toggle Expanded State
    * Toggles the expanded/collapsed state of the explanation content
    * Triggers re-render with updated expansion state
