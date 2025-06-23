@@ -1,7 +1,5 @@
 /**
- * ExplanationItem - Interactive Web Component for Context Translator Explanatio    return html`
-      <div class="explanation-item-host">
-        <div class="explanation-card ${this.explanation.isPinned ? 'pinned' : ''}">`
+ * ExplanationItem - Interactive Web Component for Context Translator Explanations
  * 
  * This file implements a LitElement-based web component that displays individual explanation
  * items within the Context Translator application. The component provides a rich, interactive
