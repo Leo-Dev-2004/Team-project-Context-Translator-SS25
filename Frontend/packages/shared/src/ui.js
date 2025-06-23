@@ -122,25 +122,26 @@ export class UI extends LitElement {
    * Defines the overall structure with header, tabs, and dynamic content
    * 
    * @returns {TemplateResult} Lit HTML template for the component
-   */
-  render() {
+   */  render() {
     return html`
-      <div class="app-container">
-        <!-- App Title and Description Header -->
-        <header class="app-header ocean-header">
-          <h1 class="display-medium">Context Translator</h1>
-          <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
-        </header>
+      <div class="ui-host">
+        <div class="ui-app-container">
+          <!-- App Title and Description Header -->
+          <header class="app-header ocean-header">
+            <h1 class="display-medium">Context Translator</h1>
+            <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
+          </header>
 
-        <!-- Material Design Tabs Navigation -->
-        <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
-          <md-primary-tab>Setup</md-primary-tab>
-          <md-primary-tab>Explanations</md-primary-tab>
-        </md-tabs>
+          <!-- Material Design Tabs Navigation -->
+          <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
+            <md-primary-tab>Setup</md-primary-tab>
+            <md-primary-tab>Explanations</md-primary-tab>
+          </md-tabs>
 
-        <!-- Dynamic Tab Content Container -->
-        <div class="tab-content">
-          ${this._renderTabContent()}
+          <!-- Dynamic Tab Content Container -->
+          <div class="tab-content">
+            ${this._renderTabContent()}
+          </div>
         </div>
       </div>
     `
@@ -446,100 +447,7 @@ export class UI extends LitElement {
   /**
    * Component styles definition
    * Combines shared styles with component-specific CSS for layout and theming
-   */
-  static styles = [
-    sharedStyles,
-    css`
-      :host {
-        display: block;
-        background-color: var(--md-sys-color-surface);
-        color: var(--md-sys-color-on-surface);
-        font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
-        min-height: 100vh;
-      }
-
-      .app-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      :focus {
-        outline: 3px solid var(--md-sys-color-primary);
-        outline-offset: 2px;
-      }
-
-      .explanations-panel {
-        max-width: 100%;
-        padding: 24px;
-      }
-
-      .explanations-header {
-        margin-bottom: 32px;
-      }
-
-      .explanations-controls {
-        display: flex;
-        gap: 12px;
-        margin-top: 16px;
-        flex-wrap: wrap;
-      }
-
-      .explanations-content {
-        max-height: 70vh;
-        overflow-y: auto;
-        padding-right: 8px;
-      }
-
-      .explanations-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 64px 24px;
-        color: var(--md-sys-color-on-surface-variant);
-      }
-
-      .empty-icon {
-        font-size: 72px;
-        margin-bottom: 16px;
-        opacity: 0.6;
-      }
-
-      .empty-state h3 {
-        margin: 16px 0 8px 0;
-      }
-
-      .empty-state p {
-        max-width: 400px;
-        margin: 0 auto;
-      }
-
-      .explanations-content::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .explanations-content::-webkit-scrollbar-track {
-        background: var(--md-sys-color-surface-container);
-        border-radius: 3px;
-      }
-
-      .explanations-content::-webkit-scrollbar-thumb {
-        background: var(--md-sys-color-outline-variant);
-        border-radius: 3px;
-      }
-
-      .explanations-content::-webkit-scrollbar-thumb:hover {
-        background: var(--md-sys-color-outline);
-      }
-    `
-  ]
+   */  static styles = [sharedStyles]
 }
 
 /**
