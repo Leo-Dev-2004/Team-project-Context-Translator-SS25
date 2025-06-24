@@ -136,6 +136,7 @@ out/
 *.htm
 *.html
 *.js
+!Frontend/src/modules/*.js
 *.jsp
 *.php
 *.rss
