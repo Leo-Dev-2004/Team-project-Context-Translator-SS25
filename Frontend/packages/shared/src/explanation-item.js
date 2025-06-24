@@ -60,7 +60,8 @@ export class ExplanationItem extends LitElement {
    * Component Styles
    * Uses shared styles from centralized CSS
    */
-  static styles = [sharedStyles]  /**
+  static styles = [sharedStyles];
+  /**
    * Component Constructor
    * Initializes component state with default values
    * Sets expanded state to false and empty explanation object

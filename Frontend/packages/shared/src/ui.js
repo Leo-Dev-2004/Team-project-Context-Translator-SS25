@@ -401,7 +401,8 @@ export class UI extends LitElement {
   /**
    * Component styles definition
    * Combines shared styles with component-specific CSS for layout and theming
-   */  static styles = [sharedStyles]
+   */
+  static styles = [sharedStyles]
 }
 
 /**
