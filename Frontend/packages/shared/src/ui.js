@@ -122,25 +122,26 @@ export class UI extends LitElement {
    * Defines the overall structure with header, tabs, and dynamic content
    * 
    * @returns {TemplateResult} Lit HTML template for the component
-   */
-  render() {
+   */  render() {
     return html`
-      <div class="app-container">
-        <!-- App Title and Description Header -->
-        <header class="app-header ocean-header">
-          <h1 class="display-medium">Context Translator</h1>
-          <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
-        </header>
+      <div class="ui-host">
+        <div class="ui-app-container">
+          <!-- App Title and Description Header -->
+          <header class="app-header ocean-header">
+            <h1 class="display-medium">Context Translator</h1>
+            <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
+          </header>
 
-        <!-- Material Design Tabs Navigation -->
-        <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
-          <md-primary-tab>Setup</md-primary-tab>
-          <md-primary-tab>Explanations</md-primary-tab>
-        </md-tabs>
+          <!-- Material Design Tabs Navigation -->
+          <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
+            <md-primary-tab>Setup</md-primary-tab>
+            <md-primary-tab>Explanations</md-primary-tab>
+          </md-tabs>
 
-        <!-- Dynamic Tab Content Container -->
-        <div class="tab-content">
-          ${this._renderTabContent()}
+          <!-- Dynamic Tab Content Container -->
+          <div class="tab-content">
+            ${this._renderTabContent()}
+          </div>
         </div>
       </div>
     `
@@ -164,69 +165,26 @@ export class UI extends LitElement {
                 <p class="body-medium section-description">
                   Describe your field or context to improve translation accuracy
                   (e.g., "CS student", "primary school teacher", "medical professional")
-                </p>
-                <div class="domain-input-group">
+                </p>                <div class="domain-input-group">
                   <md-outlined-text-field
                     label="Your domain or context"
                     .value=${this.domainValue}
                     @input=${this._onDomainInput}
-                    placeholder="e.g., computer science student"
+                    placeholder="e.g., computer science student, medical professional, software engineer..."
                     class="domain-field"
-                  ></md-outlined-text-field>
-                  ${this.domainValue
-                    ? html`
-                        <md-icon-button @click=${this._clearDomain} class="clear-button">
-                          <span class="material-icons">close</span>
-                        </md-icon-button>
-                      `
-                    : ''}
-                </div>
-              </div>
+                    type="textarea"
+                    rows="3"
+                    supporting-text="Describe your field or expertise to improve AI explanations"
+                  >
+                    ${this.domainValue ? html`
+                      <md-icon-button slot="trailing-icon" @click=${this._clearDomain} title="Clear text">
+                        <span class="material-icons">clear</span>
+                      </md-icon-button>
+                    ` : ''}
+                  </md-outlined-text-field>
+                </div></div>
 
-              <div class="input-section">
-                <h3 class="title-medium section-title">Language Preferences</h3>
-                <md-outlined-select
-                  label="Primary Language"
-                  .value=${this.selectedLanguage}
-                  @change=${this._onLanguageChange}
-                >
-                  <md-select-option value="en">English</md-select-option>
-                  <md-select-option value="de">German</md-select-option>
-                  <md-select-option value="es">Spanish</md-select-option>
-                  <md-select-option value="fr">French</md-select-option>
-                  <md-select-option value="it">Italian</md-select-option>
-                </md-outlined-select>
-              </div>
-
-              <div class="input-section">
-                <h3 class="title-medium section-title">General Settings</h3>
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Auto-save translations</span>
-                    <span class="body-small setting-description">Automatically save all translations to your history</span>
-                  </div>
-                  <md-switch
-                    .selected=${this.autoSave}
-                    @change=${this._onAutoSaveChange}
-                  ></md-switch>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Real-time processing</span>
-                    <span class="body-small setting-description">Process audio in real-time for instant translations</span>
-                  </div>
-                  <md-switch selected></md-switch>
-                </div>
-
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <span class="label-large">Confidence indicators</span>
-                    <span class="body-small setting-description">Show confidence levels for each translation</span>
-                  </div>
-                  <md-switch></md-switch>
-                </div>
-              </div>
+              <div class="spacer"></div>
 
               <div class="action-buttons">
                 <md-filled-button @click=${this._saveSettings}>
@@ -244,22 +202,19 @@ export class UI extends LitElement {
           <div class="tab-panel explanations-panel">
             <div class="explanations-header">
               <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
-              <p class="body-large">Terms and concepts explained during your meetings</p>              
-              <div class="explanations-controls">
+              <p class="body-large">Terms and concepts explained during your meetings</p>                <div class="explanations-controls">
                 <md-text-button @click=${this._clearAllExplanations}>
-                  🗑️ Clear All
+                  <span class="material-icons">delete</span> Clear All
                 </md-text-button>
                 <md-filled-button @click=${this._addTestExplanation}>
-                  ➕ Add Test
+                  <span class="material-icons">add</span> Add Test
                 </md-filled-button>
               </div>
             </div>
 
             <div class="explanations-content">              
               ${this.explanations.length === 0 
-                ? html`
-                  <div class="empty-state">
-                    <div class="empty-icon">❓</div>
+                ? html`                  <div class="empty-state">
                     <h3 class="title-medium">No explanations yet</h3>
                     <p class="body-medium">Join a meeting and our AI will automatically explain complex terms and concepts.</p>
                   </div>
@@ -447,99 +402,7 @@ export class UI extends LitElement {
    * Component styles definition
    * Combines shared styles with component-specific CSS for layout and theming
    */
-  static styles = [
-    sharedStyles,
-    css`
-      :host {
-        display: block;
-        background-color: var(--md-sys-color-surface);
-        color: var(--md-sys-color-on-surface);
-        font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
-        min-height: 100vh;
-      }
-
-      .app-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      :focus {
-        outline: 3px solid var(--md-sys-color-primary);
-        outline-offset: 2px;
-      }
-
-      .explanations-panel {
-        max-width: 100%;
-        padding: 24px;
-      }
-
-      .explanations-header {
-        margin-bottom: 32px;
-      }
-
-      .explanations-controls {
-        display: flex;
-        gap: 12px;
-        margin-top: 16px;
-        flex-wrap: wrap;
-      }
-
-      .explanations-content {
-        max-height: 70vh;
-        overflow-y: auto;
-        padding-right: 8px;
-      }
-
-      .explanations-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 64px 24px;
-        color: var(--md-sys-color-on-surface-variant);
-      }
-
-      .empty-icon {
-        font-size: 72px;
-        margin-bottom: 16px;
-        opacity: 0.6;
-      }
-
-      .empty-state h3 {
-        margin: 16px 0 8px 0;
-      }
-
-      .empty-state p {
-        max-width: 400px;
-        margin: 0 auto;
-      }
-
-      .explanations-content::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .explanations-content::-webkit-scrollbar-track {
-        background: var(--md-sys-color-surface-container);
-        border-radius: 3px;
-      }
-
-      .explanations-content::-webkit-scrollbar-thumb {
-        background: var(--md-sys-color-outline-variant);
-        border-radius: 3px;
-      }
-
-      .explanations-content::-webkit-scrollbar-thumb:hover {
-        background: var(--md-sys-color-outline);
-      }
-    `
-  ]
+  static styles = [sharedStyles]
 }
 
 /**
