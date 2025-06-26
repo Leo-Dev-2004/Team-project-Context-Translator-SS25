@@ -1,15 +1,15 @@
 :root {
-  /* Vereinfachte Farbpalette - Light Mode */
-  --color-primary: #0476D9;
-  --color-secondary: #6B7280;
-  --color-surface: #030037;
+  /* Harmonische Farbpalette - Light Mode */
+  --color-primary: #1E40AF;
+  --color-secondary: #64748B;
+  --color-surface: #F8FAFC;
 
   /* Automatisch generierte Varianten */
-  --color-primary-light: color-mix(in srgb, var(--color-primary) 20%, white);
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 15%, white);
   --color-primary-dark: color-mix(in srgb, var(--color-primary) 80%, black);
-  --color-secondary-light: color-mix(in srgb, var(--color-secondary) 15%, white);
-  --color-secondary-dark: color-mix(in srgb, var(--color-secondary) 70%, black);
-  --color-surface-dark: color-mix(in srgb, var(--color-surface) 85%, black);
+  --color-secondary-light: color-mix(in srgb, var(--color-secondary) 20%, white);
+  --color-secondary-dark: color-mix(in srgb, var(--color-secondary) 75%, black);
+  --color-surface-dark: #1E293B;
   --color-surface-light: white;
 
   /* Spacing & Sizing */
@@ -35,8 +35,7 @@
   /* Transitions */
   --transition-fast: 0.15s;
   --transition-normal: 0.3s;
-
-  /* Material Design Mappings */
+  /* Material Design Mappings - Light Mode */
   --md-sys-color-primary: var(--color-primary);
   --md-sys-color-primary-container: var(--color-primary-light);
   --md-sys-color-on-primary: white;
@@ -50,7 +49,7 @@
   --md-sys-color-on-surface: var(--color-surface-dark);
   --md-sys-color-on-surface-variant: var(--color-secondary);
   --md-sys-color-outline: var(--color-secondary-light);
-  --md-sys-color-outline-variant: var(--color-surface);
+  --md-sys-color-outline-variant: #E2E8F0;
   --md-sys-color-error: #DC2626;
   --md-sys-color-error-container: #FEE2E2;
   --md-sys-color-on-error-container: #991B1B;
@@ -58,13 +57,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* Harmonische Farbpalette - Dark Mode */
     --color-primary: #60A5FA;
     --color-secondary: #9CA3AF;
     --color-surface: #1F2937;
     --color-surface-dark: #111827;
     --color-surface-light: #374151;
+    
+    /* Dark Mode Material Design Mappings */
     --md-sys-color-surface: var(--color-surface-dark);
+    --md-sys-color-surface-variant: var(--color-surface-light);
     --md-sys-color-on-surface: var(--color-secondary-light);
+    --md-sys-color-outline-variant: #4B5563;
     --md-sys-color-error: #F87171;
   }
 }
