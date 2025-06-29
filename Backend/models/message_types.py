@@ -35,9 +35,6 @@ class BaseMessage(BaseModel):
 class SystemMessage(BaseMessage):
     data: Dict[str, Any]
 
-class SimulationMessage(BaseMessage):
-    data: Dict[str, Any]
-
 class FrontendMessage(BaseMessage):
     data: Dict[str, Any]
 
@@ -75,38 +72,6 @@ class QueueMessage(BaseModel):
             datetime: lambda v: v.timestamp()
         }
     )
-
-# --- Dead Letter Message Model ---
-class DeadLetterMessage(QueueMessage): # Inherit from QueueMessage
-    """Model for messages sent to the Dead Letter Queue."""
-    original_message: Dict[str, Any]  # The raw dictionary of the message that failed
-    reason: Optional[str]                       # Why it failed
-    dlq_timestamp: float = Field(default_factory=time.time) # When it entered the DLQ
-    error_details: Optional[Dict[str, Any]] = None # Additional details about the error
-
-    # Custom __init__ to set default fields for QueueMessage and manage original_message
-    def __init__(self, original_message: Dict[str, Any], reason: str, **data):
-        # Set default type for DLQ entries
-        # Populate base data with summary info, keeping full original_message separate
-        super().__init__(
-            type="dead_letter_entry",
-            data={
-                "reason": reason,
-                "original_message_type": original_message.get("type", "unknown"),
-                "original_message_id": original_message.get("id", "unknown_id"),
-                "original_message_summary": original_message.get("data", {}).get("command", original_message.get("data", {}).get("message", "N/A_summary")) # Small summary
-            },
-            # Pass through any other fields provided in **data that QueueMessage expects
-            **{k: v for k, v in data.items() if k in ['id', 'timestamp', 'client_id', 'processing_path', 'forwarding_path']}
-        )
-        self.original_message = original_message
-        self.reason = reason
-        self.dlq_timestamp = data.get("dlq_timestamp", time.time())
-        self.error_details = data.get("error_details", None)
-
-        # Ensure ID is always set, even if base class somehow didn't set it (e.g., if 'id' was None in data)
-        if not self.id:
-            self.id = str(uuid.uuid4())
 
 
 # --- WebSocket Message Model ---
