@@ -1,0 +1,27 @@
+{
+  "name": "context-translator",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Context Translator - Web and Desktop App",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "dev:web": "npm run dev --workspace=packages/web",
+    "dev:electron": "npm run dev --workspace=packages/electron",
+    "dev:shared": "npm run dev --workspace=packages/shared",
+    "build:web": "npm run build --workspace=packages/web",
+    "build:electron": "npm run build --workspace=packages/electron",
+    "build:all": "npm run build:web && npm run build:electron",
+    "start:electron": "npm run start --workspace=packages/electron",
+    "clean": "npm run clean --workspace=packages/web && npm run clean --workspace=packages/electron"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
