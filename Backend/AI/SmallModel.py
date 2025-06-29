@@ -1,27 +1,27 @@
-# Backend/AI/SmallModel.py (CORRECTED)
+# Backend/AI/SmallModel.py
 
 import logging
-from typing import Dict, Any
-from uuid import uuid4
 import time
+from typing import Dict, Any, Optional
+from uuid import uuid4
 
-# --- FIX: REMOVE THE CLASS DEFINITION OF UniversalMessage FROM HERE ---
-# --- INSTEAD, IMPORT IT FROM THE CENTRAL MODELS FILE ---
-from Backend.models.UniversalMessage import UniversalMessage, ErrorTypes # Import ErrorTypes if you plan to use it for error messages from SmallModel
+from ..models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
 
 logger = logging.getLogger(__name__)
 
 class SmallModel:
     """
-    A dummy AI model to process incoming STT transcriptions.
+    A dummy AI model that processes a UniversalMessage via a direct function call
+    and returns a UniversalMessage. It does NOT manage its own queues or run loop.
     """
     def __init__(self):
-        logger.info("SmallModel initialized.")
+        logger.info("SmallModel initialized (as a direct message processor).")
 
-    async def DummyProcessIncoming(self, message: UniversalMessage, output_queue):
+    async def process_message(self, message: UniversalMessage) -> UniversalMessage:
         """
-        Retrieves transcribed text, puts it in parenthesis, outputs to system.log,
-        and passes it back to the BackendServiceDispatcher for the frontend.
+        Processes an incoming UniversalMessage (specifically 'stt.transcription' types)
+        and returns a response message.
+        This method is called directly by other components (e.g., MessageRouter).
         """
         if message.type == "stt.transcription":
             try:
@@ -29,71 +29,123 @@ class SmallModel:
                 language = message.payload.get("language", "unknown")
                 confidence = message.payload.get("confidence", 0.0)
 
+                # Add a check for empty transcription text
+                if not transcribed_text:
+                    logger.warning(f"SmallModel: Received empty transcription for message ID: {message.id}. Returning processing error message.")
+                    # Create an error message directly
+                    error_msg = UniversalMessage(
+                        id=message.id, # Use original ID for traceability
+                        type=ErrorTypes.PROCESSING_ERROR.value,
+                        timestamp=time.time(),
+                        payload={"error": "SmallModel received empty transcription text.", "original_message_id": message.id},
+                        origin="small_model",
+                        client_id=message.client_id,
+                        destination="frontend", # Error goes back to frontend
+                        processing_path=message.processing_path + [ # Append to existing path
+                            ProcessingPathEntry(
+                                processor="SmallModel",
+                                status="validation_failed_empty_text",
+                                timestamp=time.time(),
+                                completed_at=time.time(),
+                                details={"reason": "Empty transcription text received"}
+                            )
+                        ]
+                    )
+                    return error_msg # RETURN the error message
+
                 processed_text = f"({transcribed_text})"
 
-                # Log to system.log (this will be picked up by SystemRunner's stderr capture)
-                logger.info(f"SmallModel processed transcription: '{processed_text}' (Lang: {language}, Conf: {confidence})")
-
-                # Create a new message to send to the frontend
-                # You might choose a different type, e.g., "ai.processed_transcription"
-                # For simplicity, let's assume it's directly for TTS or display
-                response_message = UniversalMessage(
-                    id=str(uuid4()),
-                    type="tts.speak", # Or "display.text" or "ai.processed_text"
-                    timestamp=time.time(),
-                    payload={"text": processed_text, "original_transcription_id": message.id},
-                    origin="small_model",
-                    client_id=message.client_id, # Keep the client_id to route back to the correct frontend client
-                    destination="frontend"
+                # Add a processing path entry for SmallModel's action
+                message.processing_path.append(
+                    ProcessingPathEntry(
+                        processor="SmallModel",
+                        status="transcription_processed",
+                        timestamp=time.time(),
+                        details={
+                            "action": "Text put in parenthesis",
+                            "input_text_snippet": transcribed_text[:50] + "..." if len(transcribed_text) > 50 else transcribed_text,
+                            "output_text_snippet": processed_text[:50] + "..." if len(processed_text) > 50 else processed_text,
+                            "language": language,
+                            "confidence": confidence
+                        },
+                        completed_at=time.time() # This step is now completed
+                    )
                 )
 
-                # Put the new message into the output queue for the dispatcher to send
-                await output_queue.put(response_message)
-                logger.debug(f"SmallModel enqueued processed message for frontend: {response_message.id}")
+                logger.info(f"SmallModel processed transcription: '{processed_text}' (Lang: {language}, Conf: {confidence})")
+
+                # Create a new message to send back as the response
+                response_message = UniversalMessage(
+                    id=message.id, # Keep the original ID
+                    type="tts.speak", # Or "display.text" or "ai.processed_text"
+                    timestamp=time.time(), # Use current time for this step's timestamp
+                    payload={"text": processed_text, "original_transcription_id": message.id}, # Keep original ID for reference
+                    origin="small_model",
+                    client_id=message.client_id,
+                    destination="frontend", # Assuming it goes directly to frontend for TTS/display
+                    processing_path=message.processing_path # Pass the updated path
+                )
+                return response_message # RETURN the processed message
 
             except KeyError as e:
                 logger.error(f"SmallModel: Missing key in transcription payload: {e}")
-                # You can add error message sending here, using the imported ErrorTypes
-                # error_msg = UniversalMessage(
-                #     id=str(uuid4()), type=ErrorTypes.PROCESSING_ERROR.value, timestamp=time.time(),
-                #     payload={"error": f"Missing data in STT transcription: {e}", "original_message_id": message.id},
-                #     origin="small_model", client_id=message.client_id, destination="frontend"
-                # )
-                # await output_queue.put(error_msg)
+                # Create and RETURN an error message
+                error_msg = UniversalMessage(
+                    id=message.id, # Use original ID for traceability
+                    type=ErrorTypes.PROCESSING_ERROR.value,
+                    timestamp=time.time(),
+                    payload={"error": f"SmallModel: Missing data in STT transcription: {e}", "original_message_id": message.id},
+                    origin="small_model",
+                    client_id=message.client_id,
+                    destination="frontend",
+                    processing_path=message.processing_path + [
+                        ProcessingPathEntry(
+                            processor="SmallModel",
+                            status="error_missing_payload_key",
+                            timestamp=time.time(),
+                            completed_at=time.time(),
+                            details={"error_message": str(e)}
+                        )
+                    ]
+                )
+                return error_msg # RETURN the error message
             except Exception as e:
                 logger.error(f"SmallModel: An unexpected error occurred during processing: {e}", exc_info=True)
-                # You can add error message sending here, using the imported ErrorTypes
-                # error_msg = UniversalMessage(
-                #     id=str(uuid4()), type=ErrorTypes.INTERNAL_SERVER_ERROR.value, timestamp=time.time(),
-                #     payload={"error": f"SmallModel processing failed: {e}", "original_message_id": message.id},
-                #     origin="small_model", client_id=message.client_id, destination="frontend"
-                # )
-                # await output_queue.put(error_msg)
+                # Create and RETURN an error message
+                error_msg = UniversalMessage(
+                    id=message.id, # Use original ID for traceability
+                    type=ErrorTypes.INTERNAL_SERVER_ERROR.value,
+                    timestamp=time.time(),
+                    payload={"error": f"SmallModel processing failed: {e}", "original_message_id": message.id},
+                    origin="small_model",
+                    client_id=message.client_id,
+                    destination="frontend",
+                    processing_path=message.processing_path + [
+                        ProcessingPathEntry(
+                            processor="SmallModel",
+                            status="error_unexpected_exception",
+                            timestamp=time.time(),
+                            completed_at=time.time(),
+                            details={"error_message": str(e)}
+                        )
+                    ]
+                )
+                return error_msg # RETURN the error message
         else:
             logger.warning(f"SmallModel: Received unexpected message type: {message.type}. Not processing.")
+            # If SmallModel isn't meant to handle this type, it should return the original message
+            # with an added processing path entry indicating it was not handled.
+            message.processing_path.append(
+                ProcessingPathEntry(
+                    processor="SmallModel",
+                    status="skipped_unhandled_type",
+                    timestamp=time.time(),
+                    completed_at=time.time(),
+                    details={"reason": f"Message type {message.type} not handled by SmallModel"}
+                )
+            )
+            return message # RETURN the original message, marked as skipped
 
-# For direct testing (optional)
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    test_model = SmallModel()
-    from asyncio import Queue, run
-
-    async def test_dummy_process():
-        mock_output_queue = Queue()
-        mock_message = UniversalMessage( # This UniversalMessage is now the one imported from Backend.models.UniversalMessage
-            id="test-transcription-123",
-            type="stt.transcription",
-            timestamp=time.time(),
-            payload={"text": "hello world", "language": "en", "confidence": 0.95},
-            origin="stt_module",
-            client_id="test_client_id",
-            destination="frontend" # Explicitly set the destination
-        )
-        await test_model.DummyProcessIncoming(mock_message, mock_output_queue)
-        if not mock_output_queue.empty():
-            response = await mock_output_queue.get()
-            print(f"\nTest Output Queue received: {response.to_dict()}")
-        else:
-            print("\nTest Output Queue is empty.")
-
-    run(test_dummy_process())
+# No 'run()' method in this version.
+# No 'if __name__ == "__main__":' block that runs queues or a loop.
+# Testing would involve instantiating SmallModel and calling process_message directly.

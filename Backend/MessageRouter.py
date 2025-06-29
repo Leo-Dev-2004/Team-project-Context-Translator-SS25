@@ -11,16 +11,19 @@ from pydantic import ValidationError
 from Backend.models.UniversalMessage import (
     UniversalMessage,
     ProcessingPathEntry,
-    ForwardingPathEntry,
+    ForwardingPathEntry, # Keep if used elsewhere, removed from this example's use.
     ErrorTypes
 )
 
 # Import the global queues instance
 from Backend.core.Queues import queues
-from Backend.queues.QueueTypes import AbstractMessageQueue
+# --- CORRECTED IMPORT AND HINTING ---
+# If your Queues.py hints its queue attributes as AbstractMessageQueue, use that for MessageRouter's attributes.
+from Backend.queues.MessageQueue import MessageQueue # Assuming MessageQueue is a concrete class implementing the abstract one
+from Backend.queues.QueueTypes import AbstractMessageQueue # NEW: Import AbstractMessageQueue if queues use it for hinting
 
-# --- NEW IMPORT: Import SmallModel ---
-from Backend.AI.SmallModel import SmallModel
+# --- IMPORT SmallModel ---
+from Backend.AI.SmallModel import SmallModel # SmallModel is now a direct processor
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,7 @@ class MessageRouter:
     """
 
     def __init__(self):
+        # --- CORRECTED: Use AbstractMessageQueue for type hints if that's what queues.py uses ---
         self._input_queue: AbstractMessageQueue = queues.incoming
         self._output_queue: AbstractMessageQueue = queues.outgoing
         self._websocket_out_queue: AbstractMessageQueue = queues.websocket_out
@@ -40,9 +44,10 @@ class MessageRouter:
         self._router_task: Optional[asyncio.Task] = None
         logger.info("MessageRouter initialized with global queues.")
 
-        # --- NEW: Initialize SmallModel instance ---
-        self._small_model = SmallModel()
-        logger.info("SmallModel instance created in MessageRouter.")
+        # --- SmallModel is a direct processor, instantiate it ---
+        self._small_model: SmallModel = SmallModel()
+        logger.info("SmallModel instance created in MessageRouter (as a direct processor).")
+
 
     async def start(self):
         """Starts the message routing process."""
@@ -71,24 +76,20 @@ class MessageRouter:
         """Main loop for routing messages from the input queue."""
         logger.info("MessageRouter: Listening for messages on input queue...")
         while self._running:
-            # Initialize message to None to ensure it's always bound
             message: Optional[UniversalMessage] = None
             try:
-                # Dequeue from the input queue
                 message = await self._input_queue.dequeue()
-
                 logger.debug(
                     f"MessageRouter received message (ID: {message.id}, Type: {message.type}, "
                     f"Origin: {message.origin}, Destination: {message.destination})."
                 )
 
-                # Update processing path (Router is a processor in this context)
                 message.processing_path.append(ProcessingPathEntry(
                     processor="MessageRouter",
                     status="received_for_routing",
                     timestamp=time.time(),
-                    completed_at=None,
-                    details=None
+                    details=None,
+                    completed_at=None # Router is still processing this message, so not completed yet
                 ))
 
                 await self._process_and_route_message(message)
@@ -98,22 +99,27 @@ class MessageRouter:
                 break
             except Exception as e:
                 logger.error(f"MessageRouter encountered unhandled error in main loop: {e}", exc_info=True)
-                # If message is None, it means the error happened before dequeue
-                if message is None:
-                    problematic_message = UniversalMessage(
-                        id=str(uuid.uuid4()), # Need to import uuid if not already
-                        type=ErrorTypes.INTERNAL_SERVER_ERROR.value,
-                        payload={"error": "Router loop unhandled exception: message not dequeued", "details": str(e)},
-                        origin="MessageRouter",
-                        destination="dead_letter_queue", # Assuming you have a DLQ
-                        client_id=None # Or a default/system client ID if applicable
-                    )
-                else:
-                    problematic_message = message
-                # Send the problematic message to a Dead Letter Queue or handle otherwise
-                # You'll need a _send_to_dlq method or similar error handling strategy here
-                logger.error(f"Failed to process or route message {message.id if message else 'N/A'} due to unhandled error.")
-                # self._send_to_dlq(problematic_message, "Unhandled error in router loop", ErrorTypes.INTERNAL_SERVER_ERROR)
+                # Create and route an error message for unhandled exceptions in the router's main loop
+                problematic_message_id = message.id if message else str(uuid.uuid4())
+                error_for_frontend = UniversalMessage(
+                    id=problematic_message_id,
+                    type=ErrorTypes.INTERNAL_SERVER_ERROR.value, # --- CORRECTED: Use .value ---
+                    payload={"error": f"Router loop unhandled exception: {e}", "original_message_id": problematic_message_id},
+                    origin="MessageRouter",
+                    destination="frontend",
+                    client_id=message.client_id if message else None, # Keep original client_id if available
+                    processing_path= (message.processing_path if message else []) + [
+                        ProcessingPathEntry(
+                            processor="MessageRouter",
+                            status="router_loop_exception",
+                            timestamp=time.time(),
+                            completed_at=time.time(),
+                            details={"error_message": str(e)}
+                        )
+                    ]
+                )
+                await self._websocket_out_queue.enqueue(error_for_frontend) # Send error to client
+                logger.error(f"Sent error message {error_for_frontend.id} due to unhandled router loop error.")
 
 
     async def _process_and_route_message(self, message: UniversalMessage):
@@ -121,65 +127,136 @@ class MessageRouter:
         Processes a single message and routes it to the appropriate queue or service.
         """
         try:
-            # --- NEW ROUTING LOGIC ---
-            # If it's an STT transcription, route to SmallModel for processing
+            # --- CORRECTED: Direct call to SmallModel's process_message and handle its return ---
             if message.type == "stt.transcription":
-                logger.debug(f"MessageRouter: Routing STT transcription (ID: {message.id}) to SmallModel for processing.")
+                logger.debug(f"MessageRouter: Sending STT transcription (ID: {message.id}) to SmallModel for direct processing.")
+
                 message.processing_path.append(ProcessingPathEntry(
                     processor="MessageRouter",
-                    status="routed_to_SmallModel",
+                    status="forwarding_to_SmallModel_direct_call",
                     timestamp=time.time(),
-                    completed_at=None, # Completed by SmallModel, not router
-                    details={"message": "Transcription processing initiated."}
+                    details={"action": "Direct invocation of SmallModel.process_message"},
+                    completed_at=time.time() # Router's forwarding action is done here
                 ))
-                # Call SmallModel's processing function, passing the message
-                # SmallModel will be responsible for putting the *result* back into a queue
-                await self._small_model.DummyProcessIncoming(message, self._output_queue)
-                logger.debug(f"MessageRouter: SmallModel processing invoked for {message.id}. No further routing by router for this message.")
-                return # Important: Stop further routing by the router for this message
+
+                # Call SmallModel's processing function directly
+                response_from_small_model = await self._small_model.process_message(message)
+
+                logger.debug(f"MessageRouter: Received response from SmallModel for {message.id}. Type: {response_from_small_model.type}")
+
+                # Now, route the response from SmallModel, typically to the frontend
+                if response_from_small_model.destination == "frontend":
+                    response_from_small_model.processing_path.append(ProcessingPathEntry(
+                        processor="MessageRouter",
+                        status="routed_to_frontend_from_small_model_response",
+                        timestamp=time.time(),
+                        completed_at=time.time(), # Router's part in this step is completed
+                        details={"target_queue": self._websocket_out_queue.name}
+                    ))
+                    await self._websocket_out_queue.enqueue(response_from_small_model)
+                    logger.debug(f"MessageRouter: SmallModel response {response_from_small_model.id} enqueued to websocket_out.")
+                else:
+                    logger.warning(
+                        f"MessageRouter: SmallModel returned message (ID: {response_from_small_model.id}) "
+                        f"with unhandled destination '{response_from_small_model.destination}'. "
+                        "No specific route for this destination after SmallModel processing."
+                    )
+                    # If SmallModel's response isn't for the frontend, it might be for another backend service.
+                    # You'd need more specific routing rules here. For now, assume it's for frontend
+                    # or it's an unhandled case.
+
+                return # Router's job for this message type is complete
 
             # --- EXISTING ROUTING LOGIC (for other message types or destinations) ---
-            target_queue: Optional[AbstractMessageQueue] = None
+            target_queue: Optional[AbstractMessageQueue] = None # --- CORRECTED: Hint as AbstractMessageQueue ---
 
             # Route based on message destination
             if message.destination == "backend.dispatcher":
-                # If it reaches here, it's not an STT transcription, or it's a message
-                # that the dispatcher itself should handle directly, not SmallModel.
-                # In your prior setup, BackendServiceDispatcher contained the logic for SmallModel.
-                # Now, the MessageRouter is taking over that routing decision.
-                target_queue = self._output_queue # This is the queue the Dispatcher listens on
+                target_queue = self._output_queue
                 logger.debug(f"MessageRouter: Routing message {message.id} to backend.dispatcher.")
             elif message.destination == "frontend":
                 target_queue = self._websocket_out_queue
                 logger.debug(f"MessageRouter: Routing message {message.id} to frontend (websocket_out).")
-            # --- Add more routing rules as needed ---
-            # elif message.type == "translation.request":
-            #     target_queue = queues.translation_input
-            #     logger.debug(f"MessageRouter: Routing message {message.id} to translation service.")
             else:
                 logger.warning(
                     f"MessageRouter: Unknown or unroutable message destination '{message.destination}' "
-                    f"and type '{message.type}' for message ID: {message.id}. Sending to Dead Letter Queue."
+                    f"and type '{message.type}' for message ID: {message.id}. No direct route found."
                 )
-                return
+                # Create an error message for unroutable message
+                unroutable_error = UniversalMessage(
+                    id=message.id,
+                    type=ErrorTypes.ROUTING_ERROR.value, # --- CORRECTED: Use .value ---
+                    timestamp=time.time(),
+                    payload={"error": f"Message could not be routed. Unknown destination: {message.destination}", "original_message_id": message.id},
+                    origin="message_router",
+                    client_id=message.client_id,
+                    destination="frontend", # Try to send this error back to the client
+                    processing_path=message.processing_path + [
+                        ProcessingPathEntry(
+                            processor="MessageRouter",
+                            status="unroutable_destination",
+                            timestamp=time.time(),
+                            completed_at=time.time(),
+                            details={"destination_attempted": message.destination, "message_type": message.type}
+                        )
+                    ]
+                )
+                await self._websocket_out_queue.enqueue(unroutable_error) # Send error to frontend
+                return # Stop processing this message
 
             if target_queue:
-                # Update processing path before enqueuing
                 message.processing_path.append(ProcessingPathEntry(
                     processor="MessageRouter",
-                    status="some_status",
+                    status="routed_to_target_queue",
                     timestamp=time.time(),
-                    details={"message": "Transcription processing initiated."},
-                    completed_at=time.time()
+                    completed_at=time.time(), # Router's part in this step is done
+                    details={"target_queue": target_queue.name}
                 ))
                 await target_queue.enqueue(message)
                 logger.debug(f"Message {message.id} successfully enqueued to {target_queue.name}.")
             else:
-                logger.error(f"MessageRouter: No target queue determined for message ID: {message.id}. Sending to DLQ.")
+                logger.error(f"MessageRouter: Internal error, target queue unexpectedly None for message ID: {message.id}.")
+                # Should be caught by the 'else' above, but good for defensive programming.
 
         except ValidationError as ve:
             logger.error(f"MessageRouter: Message validation error during routing for message ID: {message.id}. Error: {ve}", exc_info=True)
+            validation_error_msg = UniversalMessage(
+                id=message.id,
+                type=ErrorTypes.VALIDATION_ERROR.value, # --- CORRECTED: Use .value ---
+                timestamp=time.time(),
+                payload={"error": f"Message validation failed: {ve}", "original_message_id": message.id},
+                origin="message_router",
+                client_id=message.client_id,
+                destination="frontend",
+                processing_path=message.processing_path + [
+                    ProcessingPathEntry(
+                        processor="MessageRouter",
+                        status="message_validation_failed",
+                        timestamp=time.time(),
+                        completed_at=time.time(),
+                        details={"validation_error": str(ve)}
+                    )
+                ]
+            )
+            await self._websocket_out_queue.enqueue(validation_error_msg)
         except Exception as e:
-            logger.error(f"MessageRouter: Error processing and routing message ID: {message.id}. Error: {e}", exc_info=True)
-
-   
+            logger.error(f"MessageRouter: Critical error processing and routing message ID: {message.id}. Error: {e}", exc_info=True)
+            internal_error_msg = UniversalMessage(
+                id=message.id,
+                type=ErrorTypes.INTERNAL_SERVER_ERROR.value, # --- CORRECTED: Use .value ---
+                timestamp=time.time(),
+                payload={"error": f"Internal routing error: {e}", "original_message_id": message.id},
+                origin="message_router",
+                client_id=message.client_id,
+                destination="frontend",
+                processing_path=message.processing_path + [
+                    ProcessingPathEntry(
+                        processor="MessageRouter",
+                        status="internal_routing_exception",
+                        timestamp=time.time(),
+                        completed_at=time.time(),
+                        details={"exception_type": type(e).__name__, "error_message": str(e)}
+                    )
+                ]
+            )
+            await self._websocket_out_queue.enqueue(internal_error_msg)

@@ -9,6 +9,8 @@ from starlette.websockets import WebSocketDisconnect, WebSocketState
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
+from .AI.SmallModel import SmallModel
+
 # Import all message-related models from message_types.py
 # Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
 # ForwardingPathEntry und ErrorTypes sind alle in dieser einen Datei definiert.
@@ -151,6 +153,9 @@ async def startup_event():
     message_router_instance = MessageRouter()
     await message_router_instance.start()
     logger.info("MessageRouter initializing and starting") 
+
+    # Zwischenschritt SmallModel starten
+    small_model_instance = SmallModel()
 
     # 5. Den Task zum Senden des Queue-Status starten
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())

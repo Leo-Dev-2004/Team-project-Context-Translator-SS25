@@ -144,4 +144,5 @@ class ErrorTypes(str, Enum):
     QUEUE_OPERATION_FAILED = "error.queue_operation_failed"
     SYSTEM_ERROR= "error.system_error"
     ROUTING_ERROR = "error.routing_error"
-    MESSAGE_VALIDATION_ERROR = "error.message_validation" # <--- ADD THIS LINE
+    VALIDATION_ERROR = "error.message_validation"
+    PROCESSING_ERROR = "error.processing"
