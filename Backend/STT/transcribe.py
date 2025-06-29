@@ -11,16 +11,18 @@ import logging
 import websockets
 import json
 from uuid import uuid4
-
 from faster_whisper import WhisperModel
 
 # --- Configuration ---
-CHUNK_DURATION_SEC = 3
+CHUNK_DURATION_SEC = 1.0
 SAMPLE_RATE = 16000
 CHANNELS = 1
 MODEL_SIZE = "base"
-LANGUAGE = "en"
+LANGUAGE = "auto"
 WEBSOCKET_URI = "ws://localhost:8000/ws"
+
+MIN_WORDS_PER_SENTENCE = 3
+MAX_SENTENCE_DURATION_SECONDS = 10
 
 # --- Logging konfigurieren ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -32,6 +34,17 @@ model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
 audio_queue = queue.Queue()
 is_recording = threading.Event()
 is_recording.set()
+
+# --- VAD-Einstellungen ---
+VAD_PARAMS = dict(
+    min_silence_suration_ms=700,
+    max_speech_duration_s=15
+)
+
+# --- Buffer für Wörter und Zeit ---
+current_sentence_words = []
+last_emitted_word_end_time = 0.0
+first_word_start_time = None
 
 # --- Audioaufnahme-Funktion ---
 def record_audio():
@@ -114,10 +127,36 @@ async def transcribe_and_send_to_backend():
                         audio_data_flat = audio_to_transcribe.flatten().astype(np.float32)
 
                         try:
-                            segments, info = model.transcribe(audio_data_flat, language=LANGUAGE, beam_size=5)
+                            segments, info = model.transcribe(
+                                audio_data_flat,
+                                language=LANGUAGE,
+                                beam_size=5,
+                                word_timestamps=True,
+                                vad_filter=True,
+                                vad_parameters=VAD_PARAMS)
 
                             full_text = ""
                             for segment in segments:
+                                for word_info in segment.words:
+                                    if word_info.end > last_emitted_word_end_time:
+                                        current_sentence_words.append(word_info.word)
+                                        last_emitted_word_end_time = word_info.end
+
+                                        if first_word_start_time is None:
+                                            first_word_start_time = word_info.start
+
+                                            if word_info.word.strip().endswith((".", "?", "!")) and len(current_sentence_words) >= MIN_WORDS_PER_SENTENCE:
+                                                full_sentence = " ".join(current_sentence_words).strip()
+                                                await send_sentence(full_sentence, websocket, info, stt_client_id)
+                                                current_sentence_words.clear()
+                                                first_word_start_time = None
+
+                                            elif first_word_start_time is not None and (word_info.end - first_word_start_time) > MAX_SENTENCE_DURATION_SECONDS:
+                                                full_sentence = " ".join(current_sentence_words).strip()
+                                                await send_sentence(full_sentence, websocket, info, stt_client_id)
+                                                current_sentence_words.clear()
+                                                first_word_start_time = None
+
                                 full_text += segment.text
 
                             text = clean_transcription(full_text)
@@ -155,6 +194,23 @@ async def transcribe_and_send_to_backend():
 
     logger.info("Transkriptions- und Sende-Loop beendet.")
 
+async def send_sentence(sentence, websocket, info, client_id):
+    if sentence:
+        transcription_payload = {
+            "text": sentence,
+            "language": info.language,
+            "confidence": info.language_probability
+        }
+        message = {
+            "id": str(uuid4()),
+            "type": "stt.transcription",
+            "timestamp": time.time(),
+            "payload": transcription_payload,
+            "origin": "stt_module",
+            "client_id": client_id
+        }
+        await websocket.send(json.dumps(message))
+        logger.info(f"Gesendet an Backen (Satz): {sentence[:50]}...")
 
 # --- Hauptausführung ---
 if __name__ == "__main__":
