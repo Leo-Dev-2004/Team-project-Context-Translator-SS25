@@ -148,7 +148,9 @@ async def startup_event():
     # 4. MessageRouter initialisieren (falls hier explizit instanziiert werden muss)
     # Annahme: MessageRouter hat keine komplexen Init-Argumente oder holt seine Abhängigkeiten dynamisch.
     # Falls er `queues` oder `dispatcher_instance` etc. benötigt, müssen diese hier übergeben werden.
-    # message_router_instance = MessageRouter(...) 
+    message_router_instance = MessageRouter()
+    await message_router_instance.start()
+    logger.info("MessageRouter initializing and starting") 
 
     # 5. Den Task zum Senden des Queue-Status starten
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())

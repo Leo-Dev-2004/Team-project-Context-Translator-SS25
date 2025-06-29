@@ -1,4 +1,4 @@
-# Backend/STT/transcriber.py (Updated to be a WebSocket client)
+# Backend/STT/transcribe.py (MODIFIED)
 
 import asyncio
 import numpy as np
@@ -8,9 +8,9 @@ import threading
 import time
 import re
 import logging
-import websockets # Import websockets for client functionality
-import json       # Import json
-from uuid import uuid4 # For generating unique message IDs
+import websockets
+import json
+from uuid import uuid4
 
 from faster_whisper import WhisperModel
 
@@ -20,8 +20,7 @@ SAMPLE_RATE = 16000
 CHANNELS = 1
 MODEL_SIZE = "base"
 LANGUAGE = "en"
-# This is the correct base URI for the FastAPI /ws/{client_id} endpoint
-WEBSOCKET_URI = "ws://localhost:8000/ws" 
+WEBSOCKET_URI = "ws://localhost:8000/ws"
 
 # --- Logging konfigurieren ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -71,20 +70,32 @@ async def transcribe_and_send_to_backend():
     samples_per_chunk = int(CHUNK_DURATION_SEC * SAMPLE_RATE)
     current_samples_in_buffer = 0
 
-    # Generate a unique client ID for this STT instance
     stt_client_id = f"stt_instance_{uuid4()}"
-    # This construction is correct for the FastAPI /ws/{client_id} endpoint
     websocket_uri_with_id = f"{WEBSOCKET_URI}/{stt_client_id}"
 
     logger.info(f"STT Client ID: {stt_client_id}")
     logger.info(f"Versuche, eine Verbindung zum WebSocket unter {websocket_uri_with_id} herzustellen...")
 
-    while is_recording.is_set(): # Keep trying to connect if disconnected
+    while is_recording.is_set():
         try:
             async with websockets.connect(websocket_uri_with_id) as websocket:
                 logger.info("WebSocket-Verbindung zum Backend hergestellt.")
-                # You could send an initial message to identify yourself more explicitly
-                await websocket.send(json.dumps({"type": "stt_init", "client_id": stt_client_id, "message": "STT service connected"}))
+
+                # MODIFICATION 1: Initial message now conforms to UniversalMessage
+                initial_message_payload = {
+                    "message": "STT service connected" # Your original 'message' field
+                }
+                initial_message = {
+                    "id": str(uuid4()),
+                    "type": "stt.init", # Use a structured type like "stt.init"
+                    "timestamp": time.time(),
+                    "payload": initial_message_payload, # All specific data goes in payload
+                    "origin": "stt_module", # Optional: specify origin
+                    "client_id": stt_client_id
+                }
+                await websocket.send(json.dumps(initial_message))
+                logger.info(f"Gesendet an Backend (initial): {initial_message['type']} from {initial_message['client_id']}")
+
 
                 while is_recording.is_set():
                     if not audio_queue.empty():
@@ -104,7 +115,7 @@ async def transcribe_and_send_to_backend():
 
                         try:
                             segments, info = model.transcribe(audio_data_flat, language=LANGUAGE, beam_size=5)
-                            
+
                             full_text = ""
                             for segment in segments:
                                 full_text += segment.text
@@ -113,17 +124,19 @@ async def transcribe_and_send_to_backend():
                             timestamp = time.time()
 
                             if text:
-                                # Create a message conforming to your WebSocketMessage schema
+                                # MODIFICATION 2: Transcription message now conforms to UniversalMessage
+                                transcription_payload = {
+                                    "text": text,
+                                    "language": info.language,
+                                    "confidence": info.language_probability
+                                }
                                 message = {
-                                    "id": str(uuid4()), # Unique ID for this message
-                                    "type": "transcription",
+                                    "id": str(uuid4()),
+                                    "type": "stt.transcription", # Use a structured type like "stt.transcription"
                                     "timestamp": timestamp,
-                                    "data": {
-                                        "text": text,
-                                        "language": info.language,
-                                        "confidence": info.language_probability
-                                    },
-                                    "client_id": stt_client_id # Identify the sender
+                                    "payload": transcription_payload, # All specific data goes in payload
+                                    "origin": "stt_module", # Optional: specify origin
+                                    "client_id": stt_client_id
                                 }
                                 await websocket.send(json.dumps(message))
                                 logger.info(f"Gesendet an Backend: {text[:50]}...")
@@ -131,17 +144,15 @@ async def transcribe_and_send_to_backend():
                         except Exception as e:
                             logger.error(f"Fehler bei der Transkription oder beim Senden: {e}", exc_info=True)
 
-                    await asyncio.sleep(0.01) # Short sleep to yield control
+                    await asyncio.sleep(0.01)
 
         except websockets.exceptions.WebSocketException as e:
-            # Handles all WebSocket specific exceptions (connection refused, closed, etc.)
             logger.warning(f"WebSocket-Fehler ({type(e).__name__}): {e}. Verbindung verloren. Versuche erneut in 3 Sekunden...", exc_info=True)
-            await asyncio.sleep(3) # Wait before retrying connection
+            await asyncio.sleep(3)
         except Exception as e:
-            # Catch-all for any other unexpected errors in the main loop of this function
             logger.critical(f"Ein unerwarteter Fehler im Transkriptions-Loop (Hauptschleife): {e}", exc_info=True)
-            await asyncio.sleep(5) # Wait longer for potentially more serious issues
-    
+            await asyncio.sleep(5)
+
     logger.info("Transkriptions- und Sende-Loop beendet.")
 
 

@@ -17,7 +17,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('system.log')
+        logging.FileHandler('system.log', mode='w') # mode w überschreibt system.log statt anzuhängen
     ]
 )
 logger = logging.getLogger(__name__)
