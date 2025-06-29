@@ -1,38 +1,60 @@
-import logging
+# Backend/backend.py
 import asyncio
+import logging
 import uuid
-import time # Ensure time is imported if used in commented out sections or elsewhere
-from typing import Optional, cast
+import time
+from typing import Optional, cast 
+from starlette.websockets import WebSocketDisconnect, WebSocketState 
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.websockets import WebSocketDisconnect # Import WebSocketDisconnect here
 
-# Import the shared queue functions
-from Backend.models.message_types import QueueMessage, WebSocketMessage
+# Import all message-related models from message_types.py
+# Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
+# ForwardingPathEntry und ErrorTypes sind alle in dieser einen Datei definiert.
+from .models.UniversalMessage import ( # Korrigierter Importpfad zu relativ
+    UniversalMessage,
+    DeadLetterMessage,
+    ProcessingPathEntry,
+    ForwardingPathEntry,
+    ErrorTypes,
+)
 
-from Backend.core.Queues import queues # Import the global shared queues instance
+# Import the API router 
+from .api import endpoints # <--- ADDED THIS EXPLICIT IMPORT FOR ENDPOINTS
 
-# Import the SimulationManager class (for type hinting and instantiation)
-from Backend.core.simulator import SimulationManager
+# Korrigierter Import für den abstrakten Queue-Typ (relativer Pfad und Kleinbuchstaben im Dateinamen)
+from .queues.QueueTypes import AbstractMessageQueue
 
-# Import MessageProcessor and QueueForwarder
-from Backend.core.message_processor import MessageProcessor
-from Backend.core.queue_forwarder import QueueForwarder
+from .core.Queues import queues # Zugriff auf die vorinitialisierten Queues
+from .queues.MessageQueue import MessageQueue # Für Type Hinting (ebenfalls relativ, falls im selben Verzeichnis)
+from .MessageRouter import MessageRouter # Importiere die MessageRouter-Klasse (Annahme: sie ist in Backend/)
 
-# ADDED: Import WebSocketManager
-from Backend.queues.MessageQueue import initialize_and_assert_queues
-from Backend.services.websocket_manager import WebSocketManager # Adjust this import path if needed
+# Importiere die SimulationManager-Klasse (für Type Hinting und Instanziierung)
+# WICHTIG: Dateiname ist 'SimulationManager.py' (Großbuchstaben), daher hier auch Großbuchstaben
+from .core.simulator import SimulationManager 
 
-# Import the API router (ensure this is from the correct relative path)
-from .api import endpoints # Corrected to a relative import
+# Importiere BackendServiceDispatcher direkt
+from .core.BackendServiceDispatcher import BackendServiceDispatcher
 
-# Import the functions to set and get the SimulationManager instance from dependencies.py
-from Backend.dependencies import set_simulation_manager_instance, get_simulation_manager, set_websocket_manager_instance
+# Importiere WebSocketManager
+from .services.WebSocketManager import WebSocketManager
 
-# --- APPLICATION-WIDE LOGGING CONFIGURATION ---
+# Importiere die Funktionen zum Setzen und Holen von Instanzen aus dependencies.py
+from .dependencies import (
+    set_simulation_manager_instance, 
+    get_simulation_manager, 
+    set_websocket_manager_instance, 
+    get_websocket_manager_instance,
+
+    # SICHERSTELLEN: Diese sind korrekt in Backend/dependencies.py definiert
+    set_backend_service_dispatcher_instance, 
+    get_backend_service_dispatcher_instance 
+)
+
+# --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -41,10 +63,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# --- FASTAPI APPLICATION INSTANCE ---
+# --- FASTAPI-ANWENDUNGSINSTANZ ---
 app = FastAPI()
 
-# --- FASTAPI MIDDLEWARE ---
+# --- FASTAPI-MIDDLEWARE ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -52,6 +74,9 @@ app.add_middleware(
         "http://127.0.0.1:9000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "http://localhost",    # Hinzugefügt für breitere localhost-Kompatibilität
+        "http://127.0.0.1",    # Hinzugefügt für breitere localhost-Kompatibilität
+        "null",                # Hinzugefügt für file:// oder bestimmte Client-Typen
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,293 +84,241 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-# --- INCLUDE API ROUTERS ---
+# --- API-ROUTER EINBEZIEHEN ---
 app.include_router(endpoints.router)
 
-# --- APPLICATION STATE ---
-# app.state.websockets = set() # This line is kept as you provided it,
-                               # but note that WebSocketManager now handles active connections internally.
-                               # If this 'app.state.websockets' is used elsewhere for general tracking, keep it.
-                               # For connection management, prefer the WebSocketManager's internal state.
-app.state.websockets = set() # Corrected type hint for Pylance
+# --- ANWENDUNGSZUSTAND ---
+# Dieses Set könnte redundant werden, wenn WebSocketManager ausschließlich Verbindungen verwaltet.
+# Vorerst beibehalten, falls andere Teile deiner App sich noch darauf für direkten WebSocket-Zugriff verlassen.
+app.state.websockets = set() 
 
-# --- GLOBAL INSTANCES for Background Tasks ---
-# These will be set during the startup event
+# --- GLOBALE INSTANZEN für Hintergrundaufgaben ---
+# Diese werden während des Startup-Events gesetzt
 message_processor_task: Optional[asyncio.Task] = None
-queue_forwarder_task: Optional[asyncio.Task] = None
-simulation_manager_task: Optional[asyncio.Task] = None
+queue_status_sender_task: Optional[asyncio.Task] = None
 
-message_processor_instance: Optional[MessageProcessor] = None
-queue_forwarder_instance: Optional[QueueForwarder] = None
+backend_service_dispatcher_instance: Optional[BackendServiceDispatcher] = None 
 simulation_manager_instance: Optional[SimulationManager] = None
-# ADDED: Declare global WebSocketManager instance
 websocket_manager_instance: Optional[WebSocketManager] = None
+message_router_instance: Optional[MessageRouter] = None 
 
 
-
-# --- NEW: BACKGROUND TASK TO SEND QUEUE STATUS TO FRONTEND ---
-async def send_queue_status_to_frontend():
-    # Wait a bit for initial connection and setup to complete
-    await asyncio.sleep(5)
-    while True:
-        try:
-            # Ensure these are the correct queue instances being checked
-            # Use the queues initialized during startup
-            from_frontend_q = queues.from_frontend
-            to_frontend_q = queues.to_frontend
-            dead_letter_q = queues.dead_letter # Ensure this is also in your initialized_queues or accessible
-
-            from_frontend_q_size = from_frontend_q.qsize() if from_frontend_q else 0
-            to_frontend_q_size = to_frontend_q.qsize() if to_frontend_q else 0
-            dead_letter_q_size = dead_letter_q.qsize() if dead_letter_q else 0
-
-            status_message = {
-                "id": str(uuid.uuid4()),
-                "type": "queue_status",
-                "data": {
-                    "from_frontend_q_size": from_frontend_q_size,
-                    "to_frontend_q_size": to_frontend_q_size,
-                    "dead_letter_q_size": dead_letter_q_size,
-                },
-                "timestamp": time.time(),
-                "client_id": None, # This message is generic for all clients
-                "processing_path": [],
-                "forwarding_path": [],
-            }
-
-            if websocket_manager_instance and websocket_manager_instance.connections:
-                logger.info(f"Attempting to send queue_status. Active connections: {len(websocket_manager_instance.connections)}")
-                # CORRECTED ITERATION: Iterate over the dictionary's keys explicitly.
-                # The previous version 'for client_id in websocket_manager_instance.connections:'
-                # also iterates keys, but let's be explicit and debug.
-                for client_id_str in websocket_manager_instance.connections:
-                    try:
-                        # Convert dict to QueueMessage
-                        queue_message = QueueMessage(**status_message)
-                        # Use the to_websocket_message() method for conversion
-                        await websocket_manager_instance.send_message_to_client(client_id_str, queue_message)
-                        logger.info(f"Sent queue_status to client {client_id_str}: {status_message['data']}")
-                    except Exception as client_send_error:
-                        logger.error(f"Error sending queue_status to client {client_id_str}: {client_send_error}", exc_info=True)
-            else:
-                logger.debug("No WebSocket connections to send queue_status to or WebSocketManager not ready.")
-
-
-        except Exception as e:
-            logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
-            # Consider a small delay here if errors are frequent to prevent busy-looping on errors
-            # await asyncio.sleep(0.5)
-
-        await asyncio.sleep(1) # Send status every 1 second
-
-
-# --- FASTAPI APPLICATION STARTUP EVENT ---
+# --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
 @app.on_event("startup")
 async def startup_event():
     logger.info("Application startup event triggered.")
+    global backend_service_dispatcher_instance, simulation_manager_instance, websocket_manager_instance
+    global message_processor_task, queue_status_sender_task, message_router_instance
 
-    # 1. Initialize all shared queues
-    await initialize_and_assert_queues()
-    logger.info("queues initialized.")
+    # 1. WebSocketManager ZUERST initialisieren, da andere Dienste (wie der Dispatcher) davon abhängen könnten.
+    # Er benötigt die websocket_out_queue, um Nachrichten an Clients zu senden.
+    websocket_manager_instance = WebSocketManager(       
+        incoming_queue=queues.incoming,          # Incoming messages from WS clients
+        outgoing_queue=queues.websocket_out,# Messages specifically for WS clients
+)
+    set_websocket_manager_instance(websocket_manager_instance) # Über dependencies global zugänglich machen
+    logger.info("WebSocketManager initialisiert und gesetzt.")
 
-    # Assert that they are not None after initialization
-    assert queues is not None, "to_backend queue was not initialized!"
-    assert queues.from_backend is not None, "from_backend queue was not initialized!"
-    assert queues.to_backend is not None, "to_backend queue was not initialized!"
-    assert queues.to_frontend is not None, "to_frontend queue was not initialized!"
-    assert queues.from_frontend is not None, "from_frontend queue was not initialized!"
-    assert queues.dead_letter is not None, "dead_letter queue was not initialized!"
+    # 2. BackendServiceDispatcher initialisieren
+    backend_service_dispatcher_instance = BackendServiceDispatcher(
+        incoming_queue=queues.incoming,
+        outgoing_queue=queues.outgoing,
+        websocket_out_queue=queues.websocket_out
+        )
+    # SICHERSTELLEN: set_backend_service_dispatcher_instance existiert in dependencies.py
+    set_backend_service_dispatcher_instance(backend_service_dispatcher_instance) # Global setzen
 
-    # ADDED: Initialize WebSocketManager instance first
-    global websocket_manager_instance
-    websocket_manager_instance = WebSocketManager(from_frontend_queue=queues.from_frontend)
-    set_websocket_manager_instance(websocket_manager_instance)  # Store in dependencies
-    logger.info("WebSocketManager initialized and stored in dependencies.")
+    await backend_service_dispatcher_instance.initialize() # Asynchrone Einrichtung durchführen
+    # Den Verarbeitungsprozess als Hintergrundaufgabe starten.
+    message_processor_task = asyncio.create_task(backend_service_dispatcher_instance.start()) 
+    logger.info("BackendServiceDispatcher initialisiert und gestartet.")
 
-    # 3. Initialize the SimulationManager with all required queues
-    global simulation_manager_instance
-    from .queues.MessageQueue import MessageQueue  # Ensure the queues module is imported to access the global queues instance
+    # 3. SimulationManager initialisieren -- !!! ANGEPASST AN DEINE LETZTE SimulationManager.py SGINATUR !!!
+    # Die Parameter hier MÜSSEN mit der __init__-Methode in Backend/core/SimulationManager.py übereinstimmen.
     simulation_manager_instance = SimulationManager(
-        to_backend_queue=cast(MessageQueue, queues.to_backend),
-        to_frontend_queue=cast(MessageQueue, queues.to_frontend),
-        from_backend_queue=cast(MessageQueue, queues.from_backend),
-        from_frontend_queue=cast(MessageQueue, queues.from_frontend),
-        dead_letter_queue=cast(MessageQueue, queues.dead_letter)
-    )
-    logger.info(f"Retrieved queue instances. Event loop ID: {id(asyncio.get_running_loop())}")
-    if not hasattr(simulation_manager_instance, 'is_ready'):
-        simulation_manager_instance.is_ready = False
-    simulation_manager_instance.is_ready = True
-    set_simulation_manager_instance(simulation_manager_instance)
-    logger.info("SimulationManager initialized and stored in dependencies.")
+        incoming_queue=queues.incoming,
+        outgoing_queue=queues.outgoing,
+        websocket_out_queue=queues.websocket_out    
+        )
+    set_simulation_manager_instance(simulation_manager_instance) # Global zugänglich machen
+    logger.info("SimulationManager initialisiert und gesetzt.")
 
-    # 4. Initialize and start long-running background processors
-    global message_processor_task, queue_forwarder_task, simulation_manager_task
-    global message_processor_instance, queue_forwarder_instance
+    # 4. MessageRouter initialisieren (falls hier explizit instanziiert werden muss)
+    # Annahme: MessageRouter hat keine komplexen Init-Argumente oder holt seine Abhängigkeiten dynamisch.
+    # Falls er `queues` oder `dispatcher_instance` etc. benötigt, müssen diese hier übergeben werden.
+    # message_router_instance = MessageRouter(...) 
 
-    # MessageProcessor
-    message_processor_instance = MessageProcessor()
-    await message_processor_instance.initialize()
-    await message_processor_instance.start()
-    message_processor_task = message_processor_instance._processing_task
-    logger.info("MessageProcessor task started.")
-
-    # QueueForwarder
-    # MODIFIED: Pass the newly created websocket_manager_instance
-    queue_forwarder_instance = QueueForwarder(websocket_manager=websocket_manager_instance)
-    await queue_forwarder_instance.initialize()
-    # Pass a suitable message argument if required by forward(), e.g., None or an initial message
-    queue_forwarder_task = asyncio.create_task(queue_forwarder_instance.forward())
-    logger.info("QueueForwarder task started.")
-
-    # If SimulationManager has a long-running 'run' or 'process_events' method:
-    # simulation_manager_task = asyncio.create_task(simulation_manager_instance.run())
-    # logger.info("SimulationManager background task started.")
-
-    asyncio.create_task(message_processor_instance.monitor_dead_letter_queue_task())
-    logger.info("Background task 'monitor_dead_letter_queue_task' launched.")
-
-     # NEW: Start the queue status sender task
+    # 5. Den Task zum Senden des Queue-Status starten
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())
-    logger.info("Background task 'send_queue_status_to_frontend' launched.")
+    logger.info("Queue status sender task gestartet.")
+
+    logger.info("Anwendungsstart abgeschlossen. Alle Dienste initialisiert.")
 
 
-# --- FASTAPI APPLICATION SHUTDOWN EVENT ---
+async def send_queue_status_to_frontend():
+    logger.info("send_queue_status_to_frontend: Funktion sofort betreten. (Test 2)")
+
+    while True:
+        try:
+            incoming_q: AbstractMessageQueue = queues.incoming
+            websocket_out_q: AbstractMessageQueue = queues.websocket_out
+
+            incoming_q_size = incoming_q.qsize()
+            websocket_out_q_size = websocket_out_q.qsize()
+
+            status_message_data = {
+                "from_frontend_q_size": incoming_q_size,      
+                "to_frontend_q_size": websocket_out_q_size
+            }
+            logger.info(f"Sending queue status update with payload: {status_message_data}")
+
+            websocket_manager_instance_local: Optional[WebSocketManager] = get_websocket_manager_instance() 
+
+            if websocket_manager_instance_local and websocket_manager_instance_local.connections: 
+                for client_id_str in list(websocket_manager_instance_local.connections.keys()):
+                    try:
+                        queue_status_universal_message = UniversalMessage(
+                            id=str(uuid.uuid4()),
+                            type="system.queue_status_update",
+                            origin="backend.system_monitor",
+                            destination="frontend",
+                            timestamp=time.time(),
+                            client_id=client_id_str, 
+                            payload=status_message_data,
+                            processing_path=[], 
+                        )
+
+                        if hasattr(websocket_manager_instance_local, 'send_message_to_client'):
+                            await websocket_manager_instance_local.send_message_to_client(client_id_str, queue_status_universal_message)
+                            logger.debug(f"Sent queue status (UniversalMessage) to client {client_id_str}")
+                        elif websocket_manager_instance_local.connections.get(client_id_str):
+                            await websocket_manager_instance_local.connections[client_id_str].send_text(
+                                queue_status_universal_message.model_dump_json() 
+                            )
+                            logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
+                        else:
+                            logger.warning(f"No suitable method or active connection for {client_id_str} to send queue status.")
+
+                    except Exception as client_send_error:
+                        logger.error(f"Error sending queue_status_update to client {client_id_str}: {client_send_error}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
+        await asyncio.sleep(1) 
+
+
+# --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT ---
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Application shutdown event triggered.")
 
-    global message_processor_instance, queue_forwarder_instance, simulation_manager_instance, websocket_manager_instance # ADDED websocket_manager_instance
-    global message_processor_task, queue_forwarder_task, simulation_manager_task
+    # Zugriff auf globale Instanzen direkt
+    global backend_service_dispatcher_instance, simulation_manager_instance, websocket_manager_instance
+    global message_processor_task, queue_status_sender_task
 
-    # 1. Stop the simulation if it's running (retrieve from dependencies)
-    shutdown_sim_manager = get_simulation_manager()
-    if shutdown_sim_manager:
+    # 1. Den Queue-Status-Sender-Task zuerst abbrechen
+    if queue_status_sender_task:
+        logger.info("Cancelling queue_status_sender_task...")
+        queue_status_sender_task.cancel()
         try:
-            if hasattr(shutdown_sim_manager, 'running') and shutdown_sim_manager.running:
-                await shutdown_sim_manager.stop()
-                logger.info("SimulationManager stopped.")
-            elif hasattr(shutdown_sim_manager, 'stop'):
-                await shutdown_sim_manager.stop()
+            await asyncio.wait_for(queue_status_sender_task, timeout=1.0)
+        except asyncio.CancelledError:
+            logger.info("queue_status_sender_task cancelled gracefully.")
+        except asyncio.TimeoutError:
+            logger.warning("queue_status_sender_task did not stop cleanly within timeout.")
+    else:
+        logger.warning("queue_status_sender_task not found for graceful shutdown.")
+
+    # 2. Die Simulation stoppen, falls sie läuft
+    if simulation_manager_instance:
+        try:
+            if hasattr(simulation_manager_instance, 'is_running') and simulation_manager_instance.is_running:
+                await simulation_manager_instance.stop()
+                logger.info("SimulationManager explicitly stopped.")
+            elif hasattr(simulation_manager_instance, 'stop'): 
+                await simulation_manager_instance.stop()
                 logger.info("SimulationManager stop method called.")
         except Exception as e:
             logger.error(f"Error during SimulationManager shutdown: {e}", exc_info=True)
     else:
-        logger.warning("SimulationManager instance not found in dependencies for graceful shutdown.")
+        logger.warning("SimulationManager instance not available for graceful shutdown.")
 
-    # 2. Cancel background tasks gracefully
-    if message_processor_instance and isinstance(message_processor_instance, MessageProcessor):
-        logger.info("Stopping MessageProcessor...")
+    # 3. BackendServiceDispatcher stoppen 
+    if backend_service_dispatcher_instance: 
+        logger.info("Stopping BackendServiceDispatcher...")
         try:
-            await message_processor_instance.stop()
-            remaining = message_processor_instance._get_input_queue_size()
-            if remaining > 0:
-                logger.info(f"Draining {remaining} messages from MessageProcessor's input queue.")
+            await backend_service_dispatcher_instance.stop() 
             if message_processor_task and not message_processor_task.done():
                 message_processor_task.cancel()
                 try:
                     await asyncio.wait_for(message_processor_task, timeout=2.0)
                 except asyncio.CancelledError:
-                    logger.info("MessageProcessor task cancelled gracefully.")
+                    logger.info("BackendServiceDispatcher task cancelled gracefully.")
                 except asyncio.TimeoutError:
-                    logger.warning("MessageProcessor task did not stop cleanly within timeout.")
+                    logger.warning("BackendServiceDispatcher task did not stop cleanly within timeout.")
         except Exception as e:
-            logger.error(f"Error stopping MessageProcessor: {str(e)}", exc_info=True)
+            logger.error(f"Error stopping BackendServiceDispatcher: {str(e)}", exc_info=True)
     else:
-        logger.warning("MessageProcessor instance not available or not initialized for graceful shutdown.")
+        logger.warning("BackendServiceDispatcher instance not available or not initialized for graceful shutdown.")
 
-    if queue_forwarder_instance and isinstance(queue_forwarder_instance, QueueForwarder):
-        logger.info("Stopping QueueForwarder...")
-        try:
-            await queue_forwarder_instance.stop()
-            if queue_forwarder_task and not queue_forwarder_task.done():
-                queue_forwarder_task.cancel()
-                try:
-                    await asyncio.wait_for(queue_forwarder_task, timeout=2.0)
-                except asyncio.CancelledError:
-                    logger.info("QueueForwarder task cancelled gracefully.")
-                except asyncio.TimeoutError:
-                    logger.warning("QueueForwarder task did not stop cleanly within timeout.")
-        except Exception as e:
-            logger.error(f"Error stopping QueueForwarder: {str(e)}", exc_info=True)
-    else:
-        logger.warning("QueueForwarder instance not available or not initialized for graceful shutdown.")
-
-    if simulation_manager_instance and isinstance(simulation_manager_instance, SimulationManager):
-        logger.info("Calling SimulationManager instance stop method...")
-        try:
-            if hasattr(simulation_manager_instance, 'stop'):
-                await simulation_manager_instance.stop()
-            if simulation_manager_task and not simulation_manager_task.done():
-                simulation_manager_task.cancel()
-                try:
-                    await asyncio.wait_for(simulation_manager_task, timeout=2.0)
-                except asyncio.CancelledError:
-                    logger.info("SimulationManager task cancelled gracefully.")
-                except asyncio.TimeoutError:
-                    logger.warning("SimulationManager task did not stop cleanly within timeout.")
-        except Exception as e:
-            logger.error(f"Error stopping SimulationManager: {str(e)}", exc_info=True)
-    else:
-        logger.warning("SimulationManager instance not available or not initialized for graceful shutdown.")
-
-    # ADDED: Shutdown WebSocketManager (to close all connections managed by it)
+    # 4. WebSocketManager herunterfahren (um alle von ihm verwalteten Verbindungen zu schließen)
     if websocket_manager_instance:
-        logger.info("Shutting down WebSocketManager...")
+        logger.info("Shutting down WebSocketManager (closing all client connections)...")
         try:
-            await websocket_manager_instance.shutdown()
+            await websocket_manager_instance.stop() 
             logger.info("WebSocketManager shutdown complete.")
         except Exception as e:
             logger.error(f"Error during WebSocketManager shutdown: {e}", exc_info=True)
     else:
         logger.warning("WebSocketManager instance not available for graceful shutdown.")
 
-    # 3. Close active WebSocket connections (This block operates on app.state.websockets)
-    # This block is kept as you provided it. If app.state.websockets is purely for legacy
-    # or separate tracking and not the source of truth for active connections
-    # managed by WebSocketManager, this will still run. If WebSocketManager handles
-    # all closing, this might become redundant.
-    for ws in list(app.state.websockets):
-        try:
-            await ws.close(code=1000)
-            logger.debug(f"Closed WebSocket connection: {ws.client.host}:{ws.client.port}")
-        except RuntimeError as e:
-            logger.warning(f"RuntimeError closing WebSocket during shutdown (likely already closed): {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error during WebSocket close in shutdown: {e}", exc_info=True)
-        finally:
-            app.state.websockets.discard(ws)
-    logger.info(f"All WebSocket connections attempted to close. Remaining: {len(app.state.websockets)}")
+    # 5. app.state.websockets als letzte Bereinigung löschen (falls noch verwendet)
+    remaining_websockets_count = len(app.state.websockets)
+    if remaining_websockets_count > 0:
+        logger.warning(f"{remaining_websockets_count} WebSocket connections still present in app.state.websockets. Attempting to force close.")
+        for ws in list(app.state.websockets):
+            try:
+                if ws.client_state == WebSocketState.CONNECTED:
+                    await ws.close(code=1001, reason="Server shutting down")
+                    client_info = f"{ws.client.host}:{ws.client.port}" if ws.client else "unknown"
+                    logger.debug(f"Forcibly closed WebSocket connection from app.state.websockets: {client_info}")
+                else:
+                    client_info = f"{ws.client.host}:{ws.client.port}" if ws.client else "unknown"
+                    logger.debug(f"WebSocket already closed/disconnected in app.state.websockets: {client_info}")
+            except RuntimeError as e:
+                logger.warning(f"RuntimeError closing WebSocket during shutdown (likely already closed): {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error during WebSocket force close in shutdown: {e}", exc_info=True)
+            finally:
+                app.state.websockets.discard(ws)
 
+    logger.info(f"All WebSocket connections managed by WebSocketManager and app.state.websockets should be closed. Remaining in app.state.websockets: {len(app.state.websockets)}")
     logger.info("Application shutdown complete.")
 
-# --- WebSocket Endpoint ---
-# This part of the code is typically found in api/endpoints.py.
-# If you intend to use it via the router, this should be removed and placed in endpoints.py.
-# However, if it remains here, it will be the active endpoint.
-# It now delegates connection handling to the global websocket_manager_instance.
+# --- WebSocket-Endpunkt ---
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    logger.info(f"Incoming WebSocket connection for client_id: {client_id}")
+    app.state.websockets.add(websocket) # Beibehalten, falls du dich noch für allgemeine Nachverfolgung darauf verlässt
 
-# REMOVED the original commented-out block (which contained the full WebSocket handling logic)
-# because the new active endpoint delegates to WebSocketManager.
-# The previous version of this response inadvertently showed this removal.
+    global websocket_manager_instance # Deklarieren, dass wir die globale Instanz verwenden
 
-@app.websocket("/ws/{client_id}") # Retained your original path with {client_id}
-async def websocket_endpoint(websocket: WebSocket, client_id: str): # Retained client_id parameter
-    # Ensure websocket_manager_instance is available after startup
-    if websocket_manager_instance:
-        # Pass the WebSocket and client_id to the WebSocketManager for handling
-        await websocket_manager_instance.handle_connection(websocket, client_id) # MODIFIED: Pass client_id
+    if websocket_manager_instance: # Diese Prüfung ist jetzt robust
+        try:
+            await websocket_manager_instance.handle_connection(websocket, client_id)
+        except WebSocketDisconnect:
+            logger.info(f"WebSocket disconnected for client_id: {client_id}")
+        except Exception as e:
+            logger.error(f"Error handling WebSocket connection for client_id {client_id}: {e}", exc_info=True)
+        finally:
+            app.state.websockets.discard(websocket) # Aus dem allgemeinen Tracking-Set entfernen
+            logger.info(f"WebSocket connection for client_id {client_id} cleaned up from app.state.websockets.")
     else:
-        logger.error("WebSocketManager not initialized when a connection attempted.")
-        await websocket.close(code=1011) # Internal Error
+        logger.error("WebSocketManager not initialized when a connection attempted. Closing connection.")
+        await websocket.close(code=1011, reason="Server internal error: WebSocketManager not ready.")
 
 
-# Removed the "Background Task for Sending Messages to Frontend via WebSockets" and
-# "start_frontend_sender_task" as the QueueForwarder now handles this via WebSocketManager.
-# This was a logical removal from the previous version.
-
-
-# --- Main execution block (for direct script execution with Uvicorn) ---
+# --- Hauptausführungsblock (für direkte Skriptausführung mit Uvicorn) ---
 if __name__ == "__main__":
     import uvicorn
     logger.info("Running backend.py directly with Uvicorn.")

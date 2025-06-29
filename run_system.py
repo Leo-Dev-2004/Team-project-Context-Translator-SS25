@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).parent # The root of your project
 BACKEND_DIR = ROOT_DIR / "Backend"
 FRONTEND_DIR = ROOT_DIR / "Frontend" # This is where your package.json and Electron app lives
-STT_SCRIPT_PATH = FRONTEND_DIR / "STT" / "RT_transcribe.py" # Path to your STT script
+STT_SCRIPT_PATH = BACKEND_DIR / "STT" / "transcribe.py" # Path to your STT script
 
 # --- ELECTRON APP CONFIGURATION ---
 # Command to run Electron app in development mode
@@ -110,7 +110,7 @@ class SystemRunner:
                 "Backend.backend:app", # Assuming Backend/backend.py exposes 'app'
                 "--host", "0.0.0.0",
                 "--port", str(self.backend_port),
-                "--reload" # --reload can be useful for development but might restart STT/Electron
+               # "--reload" # --reload can be useful for development but might restart STT/Electron
             ],
             cwd=str(ROOT_DIR), # Execute uvicorn from the project root
             env=env,
@@ -122,7 +122,7 @@ class SystemRunner:
         self._start_logging(backend, "Backend")
 
     def run_stt_module(self):
-        """Run the RT_transcribe.py as a separate process."""
+        """Run the transcribe.py as a separate process."""
         if not STT_SCRIPT_PATH.exists():
             logger.error(f"STT script not found: {STT_SCRIPT_PATH}. Cannot start STT module.")
             return
