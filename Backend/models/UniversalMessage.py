@@ -83,68 +83,6 @@ class UniversalMessage(BaseModel):
         """
         return WebSocketMessage.model_validate(self.model_dump())
 
-
-# --- Dead Letter Message Model ---
-class DeadLetterMessage(UniversalMessage):
-    """
-    Specialized UniversalMessage for items sent to the Dead Letter Queue.
-    It extends UniversalMessage by adding DLQ-specific metadata, which
-    will be populated into its 'payload' for consistent handling.
-    """
-    # These fields are defined here to capture the specific DLQ input,
-    # but their values will be moved into the 'payload' of the UniversalMessage.
-    original_message_raw: Dict[str, Any] = Field(..., description="The raw dictionary of the message that caused the error.")
-    reason: str = Field(..., description="The reason the message was moved to the DLQ (e.g., 'validation_error', 'unhandled_exception').")
-    dlq_timestamp: float = Field(default_factory=time.time, description="Unix timestamp when the message entered the DLQ.")
-    error_details: Optional[Dict[str, Any]] = Field(None, description="Additional technical details about the error.")
-
-    @model_validator(mode='after')
-    def set_dlq_properties_and_payload(self) -> 'DeadLetterMessage':
-        """
-        Ensures that DeadLetterMessage specific fields are moved into the payload
-        and sets a consistent type and destination for DLQ messages.
-        """
-        # Set a consistent type for DLQ messages
-        self.type = "system.dead_letter_entry"
-        # Set destination to dead_letter_queue for explicit routing by the MessageRouter
-        self.destination = "dead_letter_queue"
-        self.origin = self.origin or "system.error_handler" # Set if not already provided
-
-        # Populate the payload with DLQ-specific information
-        # This structure ensures the core UniversalMessage payload is well-defined
-        self.payload = {
-            "dlq_reason": self.reason,
-            "dlq_timestamp": self.dlq_timestamp,
-            "dlq_error_details": self.error_details,
-            "original_message_info": {
-                "id": self.original_message_raw.get("id", "unknown"),
-                "type": self.original_message_raw.get("type", "unknown"),
-                "timestamp": self.original_message_raw.get("timestamp"),
-                "client_id": self.original_message_raw.get("client_id"),
-                "summary": self.original_message_raw.get("payload", {}).get("command", self.original_message_raw.get("payload", {}).get("message", "N/A"))
-            },
-            # Store the full raw message for later inspection if needed
-            "full_original_message": self.original_message_raw
-        }
-        return self
-
-    @model_validator(mode='before')
-    @classmethod
-    def pre_validate_dead_letter(cls, data: Any) -> Any:
-        """
-        Pre-validator to handle potential input formats for DeadLetterMessage,
-        especially when instantiating from an existing UniversalMessage.
-        """
-        if isinstance(data, dict):
-            # If the input 'data' dict contains UniversalMessage fields at its root,
-            # we assume this is an attempt to create a DeadLetterMessage from a UniversalMessage.
-            # We move the relevant parts into 'original_message_raw'.
-            # This handles cases where you might do DeadLetterMessage(original_message=some_universal_message.model_dump(), ...)
-            if "original_message" in data and not "original_message_raw" in data:
-                data["original_message_raw"] = data.pop("original_message")
-        return data
-
-
 # --- WebSocket Message Model ---
 class WebSocketMessage(UniversalMessage):
     """

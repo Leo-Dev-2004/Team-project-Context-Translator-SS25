@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
 # Import the ONE UniversalMessage type
-from Backend.models.UniversalMessage import UniversalMessage, ForwardingPathEntry, DeadLetterMessage
+from Backend.models.UniversalMessage import UniversalMessage, ForwardingPathEntry
 
 # defines the abstract interface (protocol/ABC) for any message queue implementation in your system (AbstractMessageQueue). It specifies what methods a queue must have (e.g., enqueue, dequeue, qsize, peek, drain).
 class AbstractMessageQueue(ABC):
@@ -26,7 +26,7 @@ class AbstractMessageQueue(ABC):
         pass
 
     @abstractmethod
-    async def dequeue(self) -> Union[UniversalMessage, DeadLetterMessage]:
+    async def dequeue(self) -> UniversalMessage:
         """
         Asynchronously retrieves and removes a UniversalMessage item from the queue.
         Blocks until an item is available.

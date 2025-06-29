@@ -1,4 +1,4 @@
-# Frontend/STT/transcriber.py (Updated to be a WebSocket client)
+# Backend/STT/transcriber.py (Updated to be a WebSocket client)
 
 import asyncio
 import numpy as np

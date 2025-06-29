@@ -11,7 +11,6 @@ from Backend.models.UniversalMessage import (
     UniversalMessage,
     ProcessingPathEntry,
     ForwardingPathEntry,
-    DeadLetterMessage,
     ErrorTypes
 )
 

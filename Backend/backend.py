@@ -12,9 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import all message-related models from message_types.py
 # Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
 # ForwardingPathEntry und ErrorTypes sind alle in dieser einen Datei definiert.
-from .models.UniversalMessage import ( # Korrigierter Importpfad zu relativ
+from .models.UniversalMessage import ( 
     UniversalMessage,
-    DeadLetterMessage,
     ProcessingPathEntry,
     ForwardingPathEntry,
     ErrorTypes,
@@ -118,6 +117,9 @@ async def startup_event():
 )
     set_websocket_manager_instance(websocket_manager_instance) # Über dependencies global zugänglich machen
     logger.info("WebSocketManager initialisiert und gesetzt.")
+
+    await websocket_manager_instance.start()
+    logger.info("WebSocketManager initializied and set.")
 
     # 2. BackendServiceDispatcher initialisieren
     backend_service_dispatcher_instance = BackendServiceDispatcher(
