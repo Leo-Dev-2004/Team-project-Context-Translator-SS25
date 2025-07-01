@@ -34,8 +34,9 @@
  * to ensure best practices and comprehensive functionality.
  */
 
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
 import { marked } from 'marked';
+import { sharedStyles } from './styles.js';
 
 /**
  * ExplanationItem Web Component
@@ -55,212 +56,11 @@ export class ExplanationItem extends LitElement {
     onDelete: { type: Function },
     onCopy: { type: Function }
   };
-
   /**
    * Component Styles
-   * Comprehensive CSS styling using Material Design 3 design tokens
-   * Includes responsive design, animations, and accessibility features
+   * Uses shared styles from centralized CSS
    */
-  static styles = css`
-    :host {
-      display: block;
-      margin-bottom: 12px;
-    }
-
-    .explanation-card {
-      background: var(--md-sys-color-surface-container-lowest);
-      border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-
-    .explanation-card.pinned {
-      background: var(--md-sys-color-secondary-container);
-      border-color: var(--md-sys-color-secondary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .explanation-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    .explanation-header:hover {
-      background: var(--md-sys-color-surface-container);
-    }
-
-    .explanation-title {
-      font-family: var(--md-sys-typescale-title-medium-font);
-      font-size: var(--md-sys-typescale-title-medium-size);
-      font-weight: var(--md-sys-typescale-title-medium-weight);
-      color: var(--md-sys-color-on-surface);
-      flex: 1;
-      margin-right: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .pinned-indicator {
-      color: var(--md-sys-color-secondary);
-      font-size: 16px;
-    }
-
-    .explanation-actions {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    .action-button {
-      background: none;
-      border: none;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--md-sys-color-on-surface-variant);
-      transition: all 0.2s ease;
-      font-size: 16px;
-    }
-
-    .action-button:hover {
-      background: var(--md-sys-color-surface-container);
-      color: var(--md-sys-color-on-surface);
-    }
-
-    .pin-button.pinned {
-      color: var(--md-sys-color-secondary);
-      background: var(--md-sys-color-secondary-container);
-    }
-
-    .delete-button:hover {
-      background: var(--md-sys-color-error-container);
-      color: var(--md-sys-color-on-error-container);
-    }
-
-    .expand-icon {
-      transition: transform 0.3s ease;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      color: var(--md-sys-color-on-surface-variant);
-    }
-
-    .expand-icon:hover {
-      background: var(--md-sys-color-surface-container);
-    }
-
-    .expand-icon.expanded {
-      transform: rotate(180deg);
-    }
-
-    .explanation-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
-
-    .explanation-content.expanded {
-      max-height: 1000px;
-    }
-
-    .explanation-body {
-      padding: 0 16px 16px 16px;
-    }
-
-    .explanation-text {
-      background: var(--md-sys-color-surface-container);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-      font-family: var(--md-sys-typescale-body-medium-font);
-      font-size: var(--md-sys-typescale-body-medium-size);
-      line-height: 1.6;
-      color: var(--md-sys-color-on-surface);
-      white-space: pre-wrap;
-    }
-
-    .explanation-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 8px;
-      border-top: 1px solid var(--md-sys-color-outline-variant);
-    }
-
-    .explanation-timestamp {
-      font-family: var(--md-sys-typescale-body-small-font);
-      font-size: var(--md-sys-typescale-body-small-size);
-      color: var(--md-sys-color-on-surface-variant);
-    }
-
-    .copy-button {
-      background: var(--md-sys-color-primary-container);
-      color: var(--md-sys-color-on-primary-container);
-      border: none;
-      border-radius: 20px;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .copy-button:hover {
-      background: var(--md-sys-color-primary);
-      color: var(--md-sys-color-on-primary);
-    }
-
-    .markdown-content strong {
-      font-weight: 600;
-    }
-
-    .markdown-content em {
-      font-style: italic;
-    }
-
-    .markdown-content code {
-      background: var(--md-sys-color-surface-container-high);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9em;
-    }
-
-    .markdown-content ul, .markdown-content ol {
-      margin: 8px 0;
-      padding-left: 20px;
-    }
-
-    .markdown-content li {
-      margin: 4px 0;
-    }
-
-    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-      margin: 16px 0 8px 0;
-      font-weight: 600;
-    }
-
-    .markdown-content h1 { font-size: 1.5em; }
-    .markdown-content h2 { font-size: 1.3em; }
-    .markdown-content h3 { font-size: 1.1em; }
-  `;
-
+  static styles = [sharedStyles];
   /**
    * Component Constructor
    * Initializes component state with default values
@@ -284,23 +84,20 @@ export class ExplanationItem extends LitElement {
 
     return html`
       <div class="explanation-card ${this.explanation.isPinned ? 'pinned' : ''}">
-        <div class="explanation-header" @click=${this._toggleExpanded}>
-          <div class="explanation-title">
-            ${this.explanation.isPinned ? html`<span class="pinned-indicator">📌 </span>` : ''}
+        <div class="explanation-header" @click=${this._toggleExpanded}>          <div class="explanation-title">
+            ${this.explanation.isPinned ? html`<span class="pinned-indicator material-icons">push_pin</span>` : ''}
             ${this.explanation.title}
           </div>
-          <div class="explanation-actions" @click=${this._stopPropagation}>
-            <button class="action-button pin-button ${this.explanation.isPinned ? 'pinned' : ''}" 
+          <div class="explanation-actions" @click=${this._stopPropagation}>            <button class="action-button pin-button ${this.explanation.isPinned ? 'pinned' : ''}" 
                     @click=${this._handlePin} 
                     title="${this.explanation.isPinned ? 'Unpin' : 'Pin'} explanation">
-              ${this.explanation.isPinned ? '📌' : '📌'}
+              <span class="material-icons">${this.explanation.isPinned ? 'push_pin' : 'push_pin'}</span>
             </button>
             <button class="action-button delete-button" @click=${this._handleDelete} title="Delete explanation">
-              ✕
+              <span class="material-icons">close</span>
             </button>
-          </div>
-          <div class="expand-icon ${this.expanded ? 'expanded' : ''}" title="Toggle explanation">
-            ▼
+          </div>          <div class="expand-icon ${this.expanded ? 'expanded' : ''}" title="Toggle explanation">
+            <span class="material-icons">expand_more</span>
           </div>
         </div>
         
@@ -312,18 +109,14 @@ export class ExplanationItem extends LitElement {
             <div class="explanation-footer">
               <span class="explanation-timestamp">
                 ${this._formatTimestamp(this.explanation.timestamp)}
-              </span>
-              <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
-                📋 Copy
+              </span>              <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
+                <span class="material-icons">content_copy</span> Copy
               </button>
-            </div>
-          </div>
+            </div>          </div>
         </div>
       </div>
     `;
-  }
-
-  /**
+  }  /**
    * Toggle Expanded State
    * Toggles the expanded/collapsed state of the explanation content
    * Triggers re-render with updated expansion state
