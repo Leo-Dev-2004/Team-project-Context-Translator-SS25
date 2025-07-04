@@ -53,6 +53,9 @@ import { sharedStyles } from './styles.js'
 // Import explanation item component for displaying individual explanations
 import './explanation-item.js'
 
+// Import status bar component for displaying real-time connection and service status
+import './status-bar.js'
+
 // Import explanation manager for handling explanation state and operations
 import { explanationManager } from './explanation-manager.js'
 
@@ -131,6 +134,9 @@ export class UI extends LitElement {
             <h1 class="display-medium">Context Translator</h1>
             <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
           </header>
+
+          <!-- Status Bar - Real-time connection and service monitoring -->
+          <status-bar></status-bar>
 
           <!-- Material Design Tabs Navigation -->
           <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
