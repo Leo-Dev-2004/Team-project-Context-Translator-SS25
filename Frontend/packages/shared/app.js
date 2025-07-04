@@ -4,11 +4,16 @@ import MessageQueue from './modules/MessageQueue.js';
 import { WebSocketManager } from './modules/WebSocketManager.js'; // Imports the singleton instance
 import { initializeEventListeners, setQueuesAndManager as setEventListenersQueuesAndManager } from './modules/EventListeners.js';
 import { updateSystemLog } from './modules/QueueDisplay.js'; // Only import necessary logging functions
+import { UniversalMessageParser } from './universal-message-parser.js';
+import { explanationManager } from './explanation-manager.js';
 
 // --- NEW: Generate a unique client ID for this session ---
 const CLIENT_ID = 'client_' + Date.now().toString() + Math.random().toString(36).substring(2, 8);
 console.log('Frontend Client ID:', CLIENT_ID);
 // ---------------------------------------------------------
+
+// Initialize Parser
+window.UniversalMessageParser = UniversalMessageParser;
 
 // Global Queue Instances - CREATED HERE AND ONLY HERE
 // These are the frontend's specific queues for its internal message flow.
