@@ -67,7 +67,8 @@ import '@material/web/iconbutton/icon-button.js'
 import '@material/web/switch/switch.js'
 import '@material/web/select/outlined-select.js'
 import '@material/web/select/select-option.js'
-
+//Import for the Universal Message Parser
+import { UniversalMessageParser } from './universal-message-parser.js'
 /**
  * Main UI Component - Context Translator Application Interface
  * 
