@@ -258,8 +258,8 @@ export class UniversalMessageParser {
             return `**${payload.term}**\n\n${payload.definition}`;
         }
 
-        if (payload.concept && payload.explanation) {
-            return `**${payload.concept}**\n\n${payload.explanation}`;
+        if (payload.concept && payload.explanation && payload.explanation.content) {
+            return `**${payload.concept}**\n\n${payload.explanation.content}`;
         }
 
         // 6. KI-Response spezifisch
