@@ -136,6 +136,8 @@ export class UI extends LitElement {
             <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
           </header>
 
+          <br>
+
           <!-- Status Bar Component - Connection and Service Health Monitoring -->
           <status-bar></status-bar>
 

@@ -69,7 +69,6 @@ export class StatusBar extends LitElement {
    */
   static properties = {
     websocketStatus: { type: String },     // WebSocket connection state
-    backendStatus: { type: String },       // Backend service health
     isConnecting: { type: Boolean },       // Connection in progress flag
     lastUpdate: { type: Number },          // Timestamp of last status update
     errorMessage: { type: String }         // Error message display
@@ -82,7 +81,6 @@ export class StatusBar extends LitElement {
   constructor() {
     super();
     this.websocketStatus = 'disconnected';  // Initial WebSocket state
-    this.backendStatus = 'unknown';         // Initial backend state
     this.isConnecting = false;              // No connection in progress
     this.lastUpdate = Date.now();           // Current timestamp
     this.errorMessage = '';                 // No initial errors
@@ -122,17 +120,6 @@ export class StatusBar extends LitElement {
               >
                 <span class="material-icons status-icon">${this._getStatusIcon('websocket')}</span>
                 <span class="status-text">${this._getStatusText('websocket')}</span>
-              </md-assist-chip>
-            </div>
-
-            <div class="status-group">
-              <span class="status-label">Backend:</span>
-              <md-assist-chip 
-                class="status-chip ${this._getStatusClass('backend')}"
-                .elevated=${true}
-              >
-                <span class="material-icons status-icon">${this._getStatusIcon('backend')}</span>
-                <span class="status-text">${this._getStatusText('backend')}</span>
               </md-assist-chip>
             </div>
           </div>
