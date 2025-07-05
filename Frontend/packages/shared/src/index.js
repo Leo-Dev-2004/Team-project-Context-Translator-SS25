@@ -30,6 +30,9 @@ export { UI } from './ui.js'
 // Export shared styling configurations - contains common CSS-in-JS styles and theming
 export { sharedStyles } from './styles.js'
 
+// Export StatusBar component - connection and service status monitoring interface
+export { StatusBar } from './status-bar.js'
+
 // Export ExplanationItem component - individual explanation display component for context translations
 export { ExplanationItem } from './explanation-item.js'
 
