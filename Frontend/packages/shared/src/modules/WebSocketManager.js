@@ -22,6 +22,7 @@ const WebSocketManager = (() => {
     let appObserver = null; // This was not used in previous implementations, but kept for completeness.
 
     const connect = () => {
+        console.log('WebSocketManager: Attempting to connect to WebSocket...');
         if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
             console.warn('WebSocketManager: Already connected or connecting. Skipping connection attempt.');
             return;

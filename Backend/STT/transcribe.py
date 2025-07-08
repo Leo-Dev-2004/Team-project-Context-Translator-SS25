@@ -15,9 +15,10 @@ from faster_whisper import WhisperModel
 CHUNK_DURATION_SEC = 1.0  # Process smaller chunks more frequently for responsiveness
 SAMPLE_RATE = 16000
 CHANNELS = 1
-MODEL_SIZE = "small"
+MODEL_SIZE = "medium"
 LANGUAGE = "en"
 WEBSOCKET_URI = "ws://localhost:8000/ws"
+MAX_SENTENCE_DURATION_SECONDS = 10.0  # Maximum duration to wait before sending buffered text
 
 # --- New: Silence Threshold for Sending Transcriptions ---
 # If no new speech is detected for this duration, send the current buffered text.

@@ -1,47 +1,64 @@
-import { UI } from '../../shared/src/index.js'
-import '../../shared/src/index.css'
+import { UI } from '../../shared/src/index.js';
+import '../../shared/src/index.css';
+import { initializeApplication } from '../../shared/app.js'; // Correct path to app.js
 
 // Electron-enhanced element
 class ElectronMyElement extends UI {
   constructor() {
-    super()
-    this.platform = 'electron'
-    this.isElectron = true
+    super();
+    this.platform = 'electron';
+    this.isElectron = true;
   }
 
-  async connectedCallback() {
-    super.connectedCallback()
-    await this._initializeElectron()
+  // Use firstUpdated for main application initialization
+  async firstUpdated(changedProperties) {
+    super.firstUpdated(changedProperties); // Call super.firstUpdated first
+
+    // Call initializeApplication with 'this' (the instance of ElectronMyElement)
+    // This ensures app.js gets the correct UI component reference.
+    initializeApplication(this); // <--- THIS IS THE SOLE CALL NOW
+    console.log('renderer.js: initializeApplication called after first render.');
+
+    // Electron-specific initialization
+    await this._initializeElectron();
   }
+
+  // connectedCallback is still useful for handlers, but main app init is in firstUpdated
+  async connectedCallback() {
+    super.connectedCallback();
+    this.saveSettingsHandler = this._saveSettings.bind(this);
+    this.exportTranslationsHandler = this._exportTranslations.bind(this);
+  }
+
+  // ... (rest of ElectronMyElement methods) ...
 
   async _initializeElectron() {
     if (window.electronAPI) {
       try {
-        // Get platform info
-        const platformInfo = await window.electronAPI.getPlatform()
-        console.log('Platform:', platformInfo)
-        
-        // Load saved settings
-        const result = await window.electronAPI.loadSettings()
+        const platformInfo = await window.electronAPI.getPlatform();
+        console.log('Platform:', platformInfo);
+
+        const result = await window.electronAPI.loadSettings();
         if (result.success && result.settings) {
-          this._loadSettingsFromElectron(result.settings)
+          this._loadSettingsFromElectron(result.settings);
         }
-        
-        // Get app version
-        const version = await window.electronAPI.getAppVersion()
-        console.log('App version:', version)
-        
+
+        const version = await window.electronAPI.getAppVersion();
+        console.log('App version:', version);
+
       } catch (error) {
-        console.error('Electron initialization error:', error)
+        console.error('Electron initialization error:', error);
       }
+    } else {
+        console.warn('Electron API not available on window.electronAPI. Running in web mode fallback.');
     }
   }
 
   _loadSettingsFromElectron(settings) {
-    this.domainValue = settings.domain || ''
-    this.selectedLanguage = settings.language || 'en'
-    this.autoSave = settings.autoSave || false
-    console.log('Settings loaded from Electron:', settings)
+    this.domainValue = settings.domain || '';
+    this.selectedLanguage = settings.language || 'en';
+    this.autoSave = settings.autoSave || false;
+    console.log('Settings loaded from Electron:', settings);
   }
 
   async _saveSettings() {
@@ -51,37 +68,34 @@ class ElectronMyElement extends UI {
       autoSave: this.autoSave,
       platform: this.platform,
       timestamp: new Date().toISOString()
-    }
+    };
 
     if (window.electronAPI) {
-      // Electron: Persistent file storage
       try {
-        const result = await window.electronAPI.saveSettings(settings)
+        const result = await window.electronAPI.saveSettings(settings);
         if (result.success) {
-          console.log('Settings saved via Electron API:', settings)
-          this._showNotification('Settings saved to file system!')
+          console.log('Settings saved via Electron API:', settings);
+          this._showNotification('Settings saved to file system!');
         } else {
-          console.error('Failed to save settings:', result.error)
-          this._showNotification('Failed to save settings', 'error')
+          console.error('Failed to save settings:', result.error);
+          this._showNotification('Failed to save settings', 'error');
         }
       } catch (error) {
-        console.error('Error saving settings:', error)
-        this._showNotification('Error saving settings', 'error')
+        console.error('Error saving settings:', error);
+        this._showNotification('Error saving settings', 'error');
       }
     } else {
-      // Fallback to localStorage
       try {
-        localStorage.setItem('context-translator-settings', JSON.stringify(settings))
-        console.log('Settings saved to localStorage (fallback):', settings)
-        this._showNotification('Settings saved to localStorage!')
+        localStorage.setItem('context-translator-settings', JSON.stringify(settings));
+        console.log('Settings saved to localStorage (fallback):', settings);
+        this._showNotification('Settings saved to localStorage!');
       } catch (error) {
-        console.error('Error saving settings to localStorage:', error)
-        this._showNotification('Error saving settings to localStorage', 'error')
+        console.error('Error saving settings to localStorage:', error);
+        this._showNotification('Error saving settings to localStorage', 'error');
       }
     }
   }
 
-  // Override methods for Electron-specific features
   async _exportTranslations() {
     if (window.electronAPI) {
       const result = await window.electronAPI.showSaveDialog({
@@ -91,8 +105,8 @@ class ElectronMyElement extends UI {
           { name: 'JSON Files', extensions: ['json'] },
           { name: 'All Files', extensions: ['*'] }
         ]
-      })
-      
+      });
+
       if (!result.canceled) {
         const data = {
           settings: {
@@ -103,25 +117,21 @@ class ElectronMyElement extends UI {
           platform: 'electron',
           exportedAt: new Date().toISOString(),
           filePath: result.filePath
-        }
-        
-        console.log('Export to:', result.filePath)
-        console.log('Export data:', data)
-        
-        // In a real implementation, you would write the file here
-        // For now, just show success
-        this._showNotification(`Export saved to ${result.filePath}`)
+        };
+
+        console.log('Export to:', result.filePath);
+        console.log('Export data:', data);
+
+        this._showNotification(`Export saved to ${result.filePath}`);
       }
     } else {
-      // Fallback to web behavior
-      super._exportTranslations()
+      super._exportTranslations();
     }
   }
 
   _showNotification(message, type = 'success') {
-    // Simple notification - in production you might use a toast library
-    const notification = document.createElement('div')
-    notification.textContent = message
+    const notification = document.createElement('div');
+    notification.textContent = message;
     notification.style.cssText = `
       position: fixed;
       top: 20px;
@@ -133,19 +143,19 @@ class ElectronMyElement extends UI {
       z-index: 1000;
       font-family: var(--md-sys-typescale-body-large-font);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    `
-    
-    document.body.appendChild(notification)
-    
+    `;
+
+    document.body.appendChild(notification);
+
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.parentNode.removeChild(notification)
+        notification.parentNode.removeChild(notification);
       }
-    }, 4000)
+    }, 4000);
   }
 }
 
-if (!customElements.get('my-element')) { // <--- ADD THIS CHECK
+if (!customElements.get('my-element')) {
   customElements.define('my-element', ElectronMyElement);
 } else {
   console.warn('Attempted to define "my-element" again. Skipping.');
