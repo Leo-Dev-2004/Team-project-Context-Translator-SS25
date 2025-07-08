@@ -1,4 +1,4 @@
-// Frontend/src/modules/EventListeners.js
+// Frontend/packages/shared/src/modules/EventListeners.js (MODIFIED EXPORTS AND NEW FUNCTION)
 
 import { updateSystemLog, updateStatusLog, updateSimulationLog, updateTestLog, updateTranscriptionLog } from './QueueDisplay.js';
 import { WebSocketManager } from './WebSocketManager.js'; // Still needed for isConnected/isWebSocketReady
@@ -18,15 +18,28 @@ const setWebSocketReadyState = (state) => {
     isWebSocketReady = state;
     // Potentially enable/disable buttons based on connection state here
     if (translateButton) translateButton.disabled = !state;
-    // ... other buttons
+    if (startSimButton) startSimButton.disabled = !state; // Enable simulation buttons when ready
+    if (stopSimButton) stopSimButton.disabled = !state; // Enable simulation buttons when ready (or only start, then stop)
 };
 
-const setupEventListeners = (dependencies) => {
-    webSocketManager = dependencies.webSocketManager; // Still needed for isConnected
-    // Get queues from the MessagingService
-    fromBackendQueue = dependencies.fromBackendQueue;
-    frontendDisplayQueue = dependencies.frontendDisplayQueue;
+// --- NEW FUNCTION: To receive queues and WebSocketManager from app.js ---
+const setQueuesAndManager = (queues, manager) => {
+    if (!queues || !manager) {
+        console.error('EventListeners: setQueuesAndManager received null/undefined queues or manager.');
+        return;
+    }
+    webSocketManager = manager;
+    fromBackendQueue = queues.fromBackendQueue;
+    frontendDisplayQueue = queues.frontendDisplayQueue;
+    console.log('EventListeners: Queues and WebSocketManager references set.');
 
+    // Start processing the frontendDisplayQueue as soon as queues are set
+    // This is safer than relying on DOMContentLoaded in app.js
+    processFrontendDisplayQueueMessages();
+};
+
+// RENAMED from setupEventListeners to initializeEventListeners as expected by app.js
+const initializeEventListeners = () => { // No longer needs 'dependencies' as they are set via setQueuesAndManager
     // Direct DOM element references
     translateButton = document.getElementById('translateText');
     const sourceText = document.getElementById('sourceText');
@@ -34,7 +47,7 @@ const setupEventListeners = (dependencies) => {
     const saveSettingsButton = document.getElementById('saveSettings');
     const translationMode = document.getElementById('translationMode');
     const contextLevel = document.getElementById('contextLevel');
-    startSimButton = document.getElementById('startSimulation'); // Assuming you have these buttons
+    startSimButton = document.getElementById('startSimulation');
     stopSimButton = document.getElementById('stopSimulation');
 
 
@@ -43,17 +56,16 @@ const setupEventListeners = (dependencies) => {
     if (startSimButton) startSimButton.disabled = true;
     if (stopSimButton) stopSimButton.disabled = true;
 
-    // --- Message Processing for FrontendDisplayQueue ---
-    // This loop now processes messages from the frontendDisplayQueue
-    // which is fed by the MessagingService's observer
-    processFrontendDisplayQueueMessages();
-
     // --- UI Event Listeners ---
     if (translateButton) {
         translateButton.addEventListener('click', () => {
             const text = sourceText.value;
             if (text.trim() === '') {
                 updateSystemLog('Source text is empty. Cannot translate.');
+                return;
+            }
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot send translation request.');
                 return;
             }
             translateButton.disabled = true; // Disable while translating
@@ -78,6 +90,10 @@ const setupEventListeners = (dependencies) => {
 
     if (saveSettingsButton) {
         saveSettingsButton.addEventListener('click', () => {
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot save settings.');
+                return;
+            }
             // Using MessagingService to send settings
             MessagingService.sendToBackend(
                 'update_settings',
@@ -93,6 +109,10 @@ const setupEventListeners = (dependencies) => {
     // Example for simulation buttons (if you have them)
     if (startSimButton) {
         startSimButton.addEventListener('click', () => {
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot start simulation.');
+                return;
+            }
             MessagingService.sendToBackend('start_simulation', { message: 'Start simulation' });
             updateSystemLog('Start simulation request sent.');
             startSimButton.disabled = true;
@@ -102,12 +122,17 @@ const setupEventListeners = (dependencies) => {
 
     if (stopSimButton) {
         stopSimButton.addEventListener('click', () => {
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot stop simulation.');
+                return;
+            }
             MessagingService.sendToBackend('stop_simulation', { message: 'Stop simulation' });
             updateSystemLog('Stop simulation request sent.');
             stopSimButton.disabled = true;
             startSimButton.disabled = false;
         });
     }
+    console.log('EventListeners: UI event listeners set up.');
 };
 
 // --- Frontend Display Queue Processor ---
@@ -123,10 +148,13 @@ async function processFrontendDisplayQueueMessages() {
 
     try {
         while (processFrontendDisplayQueueMessages._running) {
-            // Dequeue from the frontendDisplayQueue
-            const message = await frontendDisplayQueue.dequeue(); // This queue is populated by MessagingService
+            if (!frontendDisplayQueue) { // Added a check in case queues aren't set yet
+                console.warn('FrontendDisplayQueue Processor: frontendDisplayQueue not initialized. Waiting...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+            }
+            const message = await frontendDisplayQueue.dequeue();
 
-            // Reduce this delay significantly or remove it entirely
             await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 2000ms
 
             if (message) {
@@ -249,7 +277,8 @@ async function processFrontendDisplayQueueMessages() {
                         updateSystemLog(`Unknown message type: ${message.type} - ${JSON.stringify(message.payload || {}).substring(0,100)}...`);
                 }
             }
-            updateAllQueueDisplays(); // Always refresh display after processing a message
+            // Temporarily commented out updateAllQueueDisplays() to avoid potential errors if not defined globally
+            // updateAllQueueDisplays(); // Always refresh display after processing a message
         }
     } catch (error) {
         console.error('FrontendDisplayQueue Processor: Fatal error in message processing loop:', error);
@@ -262,5 +291,5 @@ async function processFrontendDisplayQueueMessages() {
     }
 }
 
-
-export { setupEventListeners, setWebSocketReadyState };
+// Export the functions that app.js needs
+export { initializeEventListeners, setWebSocketReadyState, setQueuesAndManager };

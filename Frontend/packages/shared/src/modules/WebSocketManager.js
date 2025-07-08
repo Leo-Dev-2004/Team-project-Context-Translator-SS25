@@ -1,4 +1,4 @@
-// Frontend/src/modules/WebSocketManager.js
+// Frontend/src/modules/WebSocketManager.js (CORRECTED QUEUE ASSIGNMENTS)
 
 import { updateSystemLog, updateStatusLog, updateTestLog, updateQueueDisplay } from './QueueDisplay.js'; // Ensure updateQueueDisplay is imported
 
@@ -48,7 +48,7 @@ const WebSocketManager = (() => {
                 _wsOutboundQueue.enqueue(readyAckMessage);
                 console.log('WebSocketManager: Sending message:', readyAckMessage);
             } else {
-                console.error('WebSocketManager: _toBackendQueue is not set. Cannot send ready_ack.');
+                console.error('WebSocketManager: _wsOutboundQueue is not set. Cannot send ready_ack.'); // Corrected variable name
             }
         };
 
@@ -75,7 +75,7 @@ const WebSocketManager = (() => {
                 _wsInboundQueue.enqueue(message);
                 // The subscription in app.js for 'fromBackendQueue' will now trigger updateQueueDisplay
             } else {
-                console.error('WebSocketManager: _fromBackendQueue is not set. Cannot enqueue incoming message.');
+                console.error('WebSocketManager: _wsInboundQueue is not set. Cannot enqueue incoming message.'); // Corrected variable name
             }
         };
 
@@ -103,7 +103,7 @@ const WebSocketManager = (() => {
         };
     };
 
-    // This loop sends messages from the _toBackendQueue over the WebSocket
+    // This loop sends messages from the _wsOutboundQueue over the WebSocket
     const sendQueueMessages = async () => {
             if (sendQueueMessages._running) {
         console.warn('WebSocketManager: sendQueueMessages loop already running.');
@@ -116,7 +116,7 @@ const WebSocketManager = (() => {
             const message = await _wsOutboundQueue.dequeue(); // Wait for a message
                 
             // <--- ADD THE DELAY HERE FOR `toBackendQueue` ---
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate sending delay (e.g., 0.5 seconds)
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate sending delay (e.g., 2 seconds)
 
             try {
                 ws.send(JSON.stringify(message));
@@ -147,19 +147,29 @@ const WebSocketManager = (() => {
             updateTestLog(`Set Client ID: ${clientId}`);
         },
         setQueues: (queues) => {
-            _wsOutboundQueue = queues.incomingFrontendQueue; // This is the queue holding messages TO be sent to backend
-            _wsInboundQueue = queues.outgoingFrontendQueue; // This is the queue holding messages RECEIVED FROM backend
+            // CORRECTED ASSIGNMENTS HERE:
+            _wsOutboundQueue = queues.toBackendQueue; // This is the queue holding messages TO be sent to backend
+            _wsInboundQueue = queues.fromBackendQueue; // This is the queue holding messages RECEIVED FROM backend
             console.log('WebSocketManager: Frontend queues set.');
 
             // *** IMPORTANT: SUBSCRIBE TO THE QUEUES WITH THEIR ACTUAL NAMES ***
             // These subscriptions will trigger updateQueueDisplay correctly.
             // No need for 'incomingQueueDisplay' or 'outgoingQueueDisplay' string literals here.
-            _wsOutboundQueue.subscribe((queueName, size, items) => {
-                updateQueueDisplay(queueName, size, items); // queueName will be 'toBackendQueue'
-            });
-            _wsInboundQueue.subscribe((queueName, size, items) => {
-                updateQueueDisplay(queueName, size, items); // queueName will be 'fromBackendQueue'
-            });
+            if (_wsOutboundQueue) { // Added null check before subscribing
+                _wsOutboundQueue.subscribe((queueName, size, items) => {
+                    updateQueueDisplay(queueName, size, items); // queueName will be 'toBackendQueue'
+                });
+            } else {
+                console.error('WebSocketManager: _wsOutboundQueue is null/undefined after assignment.');
+            }
+
+            if (_wsInboundQueue) { // Added null check before subscribing
+                _wsInboundQueue.subscribe((queueName, size, items) => {
+                    updateQueueDisplay(queueName, size, items); // queueName will be 'fromBackendQueue'
+                });
+            } else {
+                console.error('WebSocketManager: _wsInboundQueue is null/undefined after assignment.');
+            }
 
             // Start the loop to send messages from the outgoing queue
             sendQueueMessages();
