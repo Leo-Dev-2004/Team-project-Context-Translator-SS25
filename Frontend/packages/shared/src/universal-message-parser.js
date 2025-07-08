@@ -55,6 +55,8 @@ export class UniversalMessageParser {
                 return null;
             }
 
+            console.debug("WIN !!!");
+
             const payload = universalMessage.payload || {};
 
             // Erstelle ExplanationItem basierend auf der UniversalMessage

@@ -4,6 +4,8 @@ import { dirname, join } from 'path'
 import fs from 'fs/promises'
 import os from 'os'
 
+console.log('--- main.js started executing ---'); // <<< FÜGEN SIE DIESE ZEILE HIER HINZU!
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 

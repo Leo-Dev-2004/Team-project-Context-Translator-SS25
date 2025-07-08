@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import atexit
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
 import contextlib
 from enum import Enum
 from errno import EBADF
@@ -26,9 +29,6 @@ import sys
 import types
 from types import ModuleType
 from typing import Any
-from typing import Callable
-from typing import Iterable
-from typing import Iterator
 from typing import TypeVar
 import uuid
 import warnings
@@ -711,7 +711,7 @@ def _import_module_using_spec(
         if module_path.is_dir():
             # The `spec_from_file_location` matches a loader based on the file extension by default.
             # For a namespace package, need to manually specify a loader.
-            loader = NamespaceLoader(name, module_path, PathFinder())
+            loader = NamespaceLoader(name, module_path, PathFinder())  # type: ignore[arg-type]
 
         spec = importlib.util.spec_from_file_location(
             module_name, str(module_path), loader=loader

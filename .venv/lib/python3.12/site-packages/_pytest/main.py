@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Sequence
+from collections.abc import Set as AbstractSet
 import dataclasses
 import fnmatch
 import functools
@@ -11,15 +16,9 @@ import importlib.util
 import os
 from pathlib import Path
 import sys
-from typing import AbstractSet
-from typing import Callable
-from typing import Dict
 from typing import final
-from typing import Iterable
-from typing import Iterator
 from typing import Literal
 from typing import overload
-from typing import Sequence
 from typing import TYPE_CHECKING
 import warnings
 
@@ -55,31 +54,8 @@ if TYPE_CHECKING:
 
 
 def pytest_addoption(parser: Parser) -> None:
-    parser.addini(
-        "norecursedirs",
-        "Directory patterns to avoid for recursion",
-        type="args",
-        default=[
-            "*.egg",
-            ".*",
-            "_darcs",
-            "build",
-            "CVS",
-            "dist",
-            "node_modules",
-            "venv",
-            "{arch}",
-        ],
-    )
-    parser.addini(
-        "testpaths",
-        "Directories to search for tests when no files or directories are given on the "
-        "command line",
-        type="args",
-        default=[],
-    )
     group = parser.getgroup("general", "Running and selection options")
-    group._addoption(
+    group._addoption(  # private to use reserved lower-case short option
         "-x",
         "--exitfirst",
         action="store_const",
@@ -87,6 +63,33 @@ def pytest_addoption(parser: Parser) -> None:
         const=1,
         help="Exit instantly on first error or failed test",
     )
+    group.addoption(
+        "--maxfail",
+        metavar="num",
+        action="store",
+        type=int,
+        dest="maxfail",
+        default=0,
+        help="Exit after first num failures or errors",
+    )
+    group.addoption(
+        "--strict-config",
+        action="store_true",
+        help="Any warnings encountered while parsing the `pytest` section of the "
+        "configuration file raise errors",
+    )
+    group.addoption(
+        "--strict-markers",
+        action="store_true",
+        help="Markers not registered in the `markers` section of the configuration "
+        "file raise errors",
+    )
+    group.addoption(
+        "--strict",
+        action="store_true",
+        help="(Deprecated) alias to --strict-markers",
+    )
+
     group = parser.getgroup("pytest-warnings")
     group.addoption(
         "-W",
@@ -100,56 +103,6 @@ def pytest_addoption(parser: Parser) -> None:
         help="Each line specifies a pattern for "
         "warnings.filterwarnings. "
         "Processed after -W/--pythonwarnings.",
-    )
-    group._addoption(
-        "--maxfail",
-        metavar="num",
-        action="store",
-        type=int,
-        dest="maxfail",
-        default=0,
-        help="Exit after first num failures or errors",
-    )
-    group._addoption(
-        "--strict-config",
-        action="store_true",
-        help="Any warnings encountered while parsing the `pytest` section of the "
-        "configuration file raise errors",
-    )
-    group._addoption(
-        "--strict-markers",
-        action="store_true",
-        help="Markers not registered in the `markers` section of the configuration "
-        "file raise errors",
-    )
-    group._addoption(
-        "--strict",
-        action="store_true",
-        help="(Deprecated) alias to --strict-markers",
-    )
-    group._addoption(
-        "-c",
-        "--config-file",
-        metavar="FILE",
-        type=str,
-        dest="inifilename",
-        help="Load configuration from `FILE` instead of trying to locate one of the "
-        "implicit configuration files.",
-    )
-    group._addoption(
-        "--continue-on-collection-errors",
-        action="store_true",
-        default=False,
-        dest="continue_on_collection_errors",
-        help="Force test execution even if collection errors occur",
-    )
-    group._addoption(
-        "--rootdir",
-        action="store",
-        dest="rootdir",
-        help="Define root directory for tests. Can be relative path: 'root_dir', './root_dir', "
-        "'root_dir/another_dir/'; absolute path: '/home/user/root_dir'; path with variables: "
-        "'$HOME/root_dir'.",
     )
 
     group = parser.getgroup("collect", "collection")
@@ -214,12 +167,48 @@ def pytest_addoption(parser: Parser) -> None:
         help="Don't ignore tests in a local virtualenv directory",
     )
     group.addoption(
+        "--continue-on-collection-errors",
+        action="store_true",
+        default=False,
+        dest="continue_on_collection_errors",
+        help="Force test execution even if collection errors occur",
+    )
+    group.addoption(
         "--import-mode",
         default="prepend",
         choices=["prepend", "append", "importlib"],
         dest="importmode",
         help="Prepend/append to sys.path when importing test modules and conftest "
         "files. Default: prepend.",
+    )
+    parser.addini(
+        "norecursedirs",
+        "Directory patterns to avoid for recursion",
+        type="args",
+        default=[
+            "*.egg",
+            ".*",
+            "_darcs",
+            "build",
+            "CVS",
+            "dist",
+            "node_modules",
+            "venv",
+            "{arch}",
+        ],
+    )
+    parser.addini(
+        "testpaths",
+        "Directories to search for tests when no files or directories are given on the "
+        "command line",
+        type="args",
+        default=[],
+    )
+    parser.addini(
+        "collect_imported_tests",
+        "Whether to collect tests in imported modules outside `testpaths`",
+        type="bool",
+        default=True,
     )
     parser.addini(
         "consider_namespace_packages",
@@ -229,6 +218,23 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
     group = parser.getgroup("debugconfig", "test session debugging and configuration")
+    group._addoption(  # private to use reserved lower-case short option
+        "-c",
+        "--config-file",
+        metavar="FILE",
+        type=str,
+        dest="inifilename",
+        help="Load configuration from `FILE` instead of trying to locate one of the "
+        "implicit configuration files.",
+    )
+    group.addoption(
+        "--rootdir",
+        action="store",
+        dest="rootdir",
+        help="Define root directory for tests. Can be relative path: 'root_dir', './root_dir', "
+        "'root_dir/another_dir/'; absolute path: '/home/user/root_dir'; path with variables: "
+        "'$HOME/root_dir'.",
+    )
     group.addoption(
         "--basetemp",
         dest="basetemp",
@@ -350,8 +356,7 @@ def pytest_collection(session: Session) -> None:
 def pytest_runtestloop(session: Session) -> bool:
     if session.testsfailed and not session.config.option.continue_on_collection_errors:
         raise session.Interrupted(
-            "%d error%s during collection"
-            % (session.testsfailed, "s" if session.testsfailed != 1 else "")
+            f"{session.testsfailed} error{'s' if session.testsfailed != 1 else ''} during collection"
         )
 
     if session.config.option.collectonly:
@@ -476,7 +481,7 @@ class Failed(Exception):
 
 
 @dataclasses.dataclass
-class _bestrelpath_cache(Dict[Path, str]):
+class _bestrelpath_cache(dict[Path, str]):
     __slots__ = ("path",)
 
     path: Path
@@ -586,13 +591,12 @@ class Session(nodes.Collector):
         return session
 
     def __repr__(self) -> str:
-        return "<%s %s exitstatus=%r testsfailed=%d testscollected=%d>" % (
-            self.__class__.__name__,
-            self.name,
-            getattr(self, "exitstatus", "<UNSET>"),
-            self.testsfailed,
-            self.testscollected,
-        )
+        return (
+            f"<{self.__class__.__name__} {self.name} "
+            f"exitstatus=%r "
+            f"testsfailed={self.testsfailed} "
+            f"testscollected={self.testscollected}>"
+        ) % getattr(self, "exitstatus", "<UNSET>")
 
     @property
     def shouldstop(self) -> bool | str:
@@ -655,7 +659,7 @@ class Session(nodes.Collector):
             self.testsfailed += 1
             maxfail = self.config.getvalue("maxfail")
             if maxfail and self.testsfailed >= maxfail:
-                self.shouldfail = "stopping after %d failures" % (self.testsfailed)
+                self.shouldfail = f"stopping after {self.testsfailed} failures"
 
     pytest_collectreport = pytest_runtest_logreport
 

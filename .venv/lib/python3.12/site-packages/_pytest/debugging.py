@@ -5,12 +5,12 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
+from collections.abc import Generator
 import functools
 import sys
 import types
 from typing import Any
-from typing import Callable
-from typing import Generator
 import unittest
 
 from _pytest import outcomes
@@ -40,13 +40,13 @@ def _validate_usepdb_cls(value: str) -> tuple[str, str]:
 
 def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("general")
-    group._addoption(
+    group.addoption(
         "--pdb",
         dest="usepdb",
         action="store_true",
         help="Start the interactive Python debugger on errors or KeyboardInterrupt",
     )
-    group._addoption(
+    group.addoption(
         "--pdbcls",
         dest="usepdb_cls",
         metavar="modulename:classname",
@@ -54,7 +54,7 @@ def pytest_addoption(parser: Parser) -> None:
         help="Specify a custom interactive Python debugger for use with --pdb."
         "For example: --pdbcls=IPython.terminal.debugger:TerminalPdb",
     )
-    group._addoption(
+    group.addoption(
         "--trace",
         dest="trace",
         action="store_true",
@@ -159,6 +159,9 @@ class pytestPDB:
                 cls._recursive_debug -= 1
                 return ret
 
+            if hasattr(pdb_cls, "do_debug"):
+                do_debug.__doc__ = pdb_cls.do_debug.__doc__
+
             def do_continue(self, arg):
                 ret = super().do_continue(arg)
                 if cls._recursive_debug == 0:
@@ -185,21 +188,26 @@ class pytestPDB:
                 self._continued = True
                 return ret
 
+            if hasattr(pdb_cls, "do_continue"):
+                do_continue.__doc__ = pdb_cls.do_continue.__doc__
+
             do_c = do_cont = do_continue
 
             def do_quit(self, arg):
-                """Raise Exit outcome when quit command is used in pdb.
-
-                This is a bit of a hack - it would be better if BdbQuit
-                could be handled, but this would require to wrap the
-                whole pytest run, and adjust the report etc.
-                """
+                # Raise Exit outcome when quit command is used in pdb.
+                #
+                # This is a bit of a hack - it would be better if BdbQuit
+                # could be handled, but this would require to wrap the
+                # whole pytest run, and adjust the report etc.
                 ret = super().do_quit(arg)
 
                 if cls._recursive_debug == 0:
                     outcomes.exit("Quitting debugger")
 
                 return ret
+
+            if hasattr(pdb_cls, "do_quit"):
+                do_quit.__doc__ = pdb_cls.do_quit.__doc__
 
             do_q = do_quit
             do_exit = do_quit
@@ -292,8 +300,8 @@ class PdbInvoke:
             _enter_pdb(node, call.excinfo, report)
 
     def pytest_internalerror(self, excinfo: ExceptionInfo[BaseException]) -> None:
-        tb = _postmortem_traceback(excinfo)
-        post_mortem(tb)
+        exc_or_tb = _postmortem_exc_or_tb(excinfo)
+        post_mortem(exc_or_tb)
 
 
 class PdbTrace:
@@ -354,32 +362,46 @@ def _enter_pdb(
     tw.sep(">", "traceback")
     rep.toterminal(tw)
     tw.sep(">", "entering PDB")
-    tb = _postmortem_traceback(excinfo)
+    tb_or_exc = _postmortem_exc_or_tb(excinfo)
     rep._pdbshown = True  # type: ignore[attr-defined]
-    post_mortem(tb)
+    post_mortem(tb_or_exc)
     return rep
 
 
-def _postmortem_traceback(excinfo: ExceptionInfo[BaseException]) -> types.TracebackType:
+def _postmortem_exc_or_tb(
+    excinfo: ExceptionInfo[BaseException],
+) -> types.TracebackType | BaseException:
     from doctest import UnexpectedException
 
+    get_exc = sys.version_info >= (3, 13)
     if isinstance(excinfo.value, UnexpectedException):
         # A doctest.UnexpectedException is not useful for post_mortem.
         # Use the underlying exception instead:
-        return excinfo.value.exc_info[2]
+        underlying_exc = excinfo.value
+        if get_exc:
+            return underlying_exc.exc_info[1]
+
+        return underlying_exc.exc_info[2]
     elif isinstance(excinfo.value, ConftestImportFailure):
         # A config.ConftestImportFailure is not useful for post_mortem.
         # Use the underlying exception instead:
-        assert excinfo.value.cause.__traceback__ is not None
-        return excinfo.value.cause.__traceback__
+        cause = excinfo.value.cause
+        if get_exc:
+            return cause
+
+        assert cause.__traceback__ is not None
+        return cause.__traceback__
     else:
         assert excinfo._excinfo is not None
+        if get_exc:
+            return excinfo._excinfo[1]
+
         return excinfo._excinfo[2]
 
 
-def post_mortem(t: types.TracebackType) -> None:
+def post_mortem(tb_or_exc: types.TracebackType | BaseException) -> None:
     p = pytestPDB._init_pdb("post_mortem")
     p.reset()
-    p.interaction(None, t)
+    p.interaction(None, tb_or_exc)
     if p.quitting:
         outcomes.exit("Quitting debugger")

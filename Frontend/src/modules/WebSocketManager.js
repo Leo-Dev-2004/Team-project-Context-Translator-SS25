@@ -57,6 +57,10 @@ const WebSocketManager = (() => {
             const message = JSON.parse(event.data);
             console.log('WebSocketManager: Parsed MESSAGE:', message); // Add this to see the parsed object
 
+            if (message.type === 'stt.transcription') {
+                console.log("TRANSCRIPTION RECEIVED!!!! ERFOLG!");
+            }
+
             // Directly handle system.queue_status_update messages for visualization
             if (message.type === 'system.queue_status_update') {
                 // The backend sends the queue names as 'from_frontend_q_size', 'to_frontend_q_size', 'dead_letter_q_size' in payload

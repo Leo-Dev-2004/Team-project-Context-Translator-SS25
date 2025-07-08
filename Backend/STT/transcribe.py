@@ -1,4 +1,4 @@
-# Backend/STT/transcribe.py (MODIFIED)
+# Backend/STT/transcribe.py
 
 import asyncio
 import numpy as np
@@ -17,8 +17,8 @@ from faster_whisper import WhisperModel
 CHUNK_DURATION_SEC = 1.0
 SAMPLE_RATE = 16000
 CHANNELS = 1
-MODEL_SIZE = "base"
-LANGUAGE = "auto"
+MODEL_SIZE = "medium"
+LANGUAGE = "de"
 WEBSOCKET_URI = "ws://localhost:8000/ws"
 
 MIN_WORDS_PER_SENTENCE = 3
@@ -37,7 +37,7 @@ is_recording.set()
 
 # --- VAD-Einstellungen ---
 VAD_PARAMS = dict(
-    min_silence_suration_ms=700,
+    min_silence_duration_ms=700,
     max_speech_duration_s=15
 )
 
@@ -79,6 +79,9 @@ async def transcribe_and_send_to_backend():
     """
     Connects to the backend WebSocket, transcribes audio chunks, and sends the text.
     """
+    # Declare these variables as global because they are modified in this function
+    global last_emitted_word_end_time, first_word_start_time 
+    
     audio_buffer = []
     samples_per_chunk = int(CHUNK_DURATION_SEC * SAMPLE_RATE)
     current_samples_in_buffer = 0
@@ -137,25 +140,26 @@ async def transcribe_and_send_to_backend():
 
                             full_text = ""
                             for segment in segments:
-                                for word_info in segment.words:
-                                    if word_info.end > last_emitted_word_end_time:
-                                        current_sentence_words.append(word_info.word)
-                                        last_emitted_word_end_time = word_info.end
+                                if segment.words is not None:
+                                    for word_info in segment.words:
+                                        if word_info.end > last_emitted_word_end_time:
+                                            current_sentence_words.append(word_info.word)
+                                            last_emitted_word_end_time = word_info.end
 
-                                        if first_word_start_time is None:
-                                            first_word_start_time = word_info.start
+                                            if first_word_start_time is None:
+                                                first_word_start_time = word_info.start
 
-                                            if word_info.word.strip().endswith((".", "?", "!")) and len(current_sentence_words) >= MIN_WORDS_PER_SENTENCE:
-                                                full_sentence = " ".join(current_sentence_words).strip()
-                                                await send_sentence(full_sentence, websocket, info, stt_client_id)
-                                                current_sentence_words.clear()
-                                                first_word_start_time = None
+                                                if word_info.word.strip().endswith((".", "?", "!")) and len(current_sentence_words) >= MIN_WORDS_PER_SENTENCE:
+                                                    full_sentence = " ".join(current_sentence_words).strip()
+                                                    await send_sentence(full_sentence, websocket, info, stt_client_id)
+                                                    current_sentence_words.clear()
+                                                    first_word_start_time = None
 
-                                            elif first_word_start_time is not None and (word_info.end - first_word_start_time) > MAX_SENTENCE_DURATION_SECONDS:
-                                                full_sentence = " ".join(current_sentence_words).strip()
-                                                await send_sentence(full_sentence, websocket, info, stt_client_id)
-                                                current_sentence_words.clear()
-                                                first_word_start_time = None
+                                                elif first_word_start_time is not None and (word_info.end - first_word_start_time) > MAX_SENTENCE_DURATION_SECONDS:
+                                                    full_sentence = " ".join(current_sentence_words).strip()
+                                                    await send_sentence(full_sentence, websocket, info, stt_client_id)
+                                                    current_sentence_words.clear()
+                                                    first_word_start_time = None
 
                                 full_text += segment.text
 

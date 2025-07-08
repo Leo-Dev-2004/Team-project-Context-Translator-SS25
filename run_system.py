@@ -1,4 +1,4 @@
-# SystemRunner.py
+# run_system.py
 
 import uvicorn
 import logging
@@ -26,7 +26,7 @@ logger = logging.getLogger('SystemRunner') # Use a specific logger name
 ROOT_DIR = Path(__file__).parent.resolve() # Get absolute path
 BACKEND_DIR = ROOT_DIR / "Backend"
 FRONTEND_DIR = ROOT_DIR / "Frontend" # This is where your package.json and Electron app lives
-STT_SCRIPT_PATH = BACKEND_DIR / "STT" / "transcribe.py" # Path to your STT script
+STT_SCRIPT_PATH = BACKEND_DIR / "STT" / "transcribe.py" 
 
 # --- ELECTRON APP CONFIGURATION ---
 # Command to run Electron app in development mode
@@ -198,8 +198,8 @@ class SystemRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                shell=True if sys.platform == "win32" else False, # Use shell=True on Windows for npm commands
-                bufsize=1 # Line-buffered output
+                shell=True if sys.platform == "win32" else False, 
+                bufsize=1 
             )
             self.processes.append(electron_process)
             logger.info(f"Electron app process started with PID: {electron_process.pid}")

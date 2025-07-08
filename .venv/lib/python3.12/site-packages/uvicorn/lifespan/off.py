@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any
+from typing import Any, Dict
 
 from uvicorn import Config
 
@@ -8,7 +6,7 @@ from uvicorn import Config
 class LifespanOff:
     def __init__(self, config: Config) -> None:
         self.should_exit = False
-        self.state: dict[str, Any] = {}
+        self.state: Dict[str, Any] = {}
 
     async def startup(self) -> None:
         pass

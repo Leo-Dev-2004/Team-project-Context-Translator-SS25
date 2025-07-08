@@ -3,7 +3,8 @@ import os
 import shlex
 import sys
 from contextlib import contextmanager
-from typing import Any, Dict, IO, Iterator, List, Optional
+from subprocess import Popen
+from typing import Any, Dict, IO, Iterator, List
 
 try:
     import click
@@ -16,7 +17,7 @@ from .main import dotenv_values, set_key, unset_key
 from .version import __version__
 
 
-def enumerate_env() -> Optional[str]:
+def enumerate_env():
     """
     Return a path for the ${pwd}/.env file.
 
@@ -160,13 +161,14 @@ def run(ctx: click.Context, override: bool, commandline: List[str]) -> None:
     if not commandline:
         click.echo('No command given.')
         exit(1)
-    run_command(commandline, dotenv_as_dict)
+    ret = run_command(commandline, dotenv_as_dict)
+    exit(ret)
 
 
-def run_command(command: List[str], env: Dict[str, str]) -> None:
-    """Replace the current process with the specified command.
+def run_command(command: List[str], env: Dict[str, str]) -> int:
+    """Run command in sub process.
 
-    Replaces the current process with the specified command and the variables from `env`
+    Runs the command in a sub process with the variables from `env`
     added in the current environment variables.
 
     Parameters
@@ -178,8 +180,8 @@ def run_command(command: List[str], env: Dict[str, str]) -> None:
 
     Returns
     -------
-    None
-        This function does not return any value. It replaces the current process with the new one.
+    int
+        The return code of the command
 
     """
     # copy the current environment variables and add the vales from
@@ -187,4 +189,11 @@ def run_command(command: List[str], env: Dict[str, str]) -> None:
     cmd_env = os.environ.copy()
     cmd_env.update(env)
 
-    os.execvpe(command[0], args=command, env=cmd_env)
+    p = Popen(command,
+              universal_newlines=True,
+              bufsize=0,
+              shell=False,
+              env=cmd_env)
+    _, _ = p.communicate()
+
+    return p.returncode

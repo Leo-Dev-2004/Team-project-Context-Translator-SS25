@@ -30,9 +30,15 @@ class HTTPEndpoint:
 
     async def dispatch(self) -> None:
         request = Request(self.scope, receive=self.receive)
-        handler_name = "get" if request.method == "HEAD" and not hasattr(self, "head") else request.method.lower()
+        handler_name = (
+            "get"
+            if request.method == "HEAD" and not hasattr(self, "head")
+            else request.method.lower()
+        )
 
-        handler: typing.Callable[[Request], typing.Any] = getattr(self, handler_name, self.method_not_allowed)
+        handler: typing.Callable[[Request], typing.Any] = getattr(
+            self, handler_name, self.method_not_allowed
+        )
         is_async = is_async_callable(handler)
         if is_async:
             response = await handler(request)
@@ -74,8 +80,10 @@ class WebSocketEndpoint:
                 if message["type"] == "websocket.receive":
                     data = await self.decode(websocket, message)
                     await self.on_receive(websocket, data)
-                elif message["type"] == "websocket.disconnect":  # pragma: no branch
-                    close_code = int(message.get("code") or status.WS_1000_NORMAL_CLOSURE)
+                elif message["type"] == "websocket.disconnect":
+                    close_code = int(
+                        message.get("code") or status.WS_1000_NORMAL_CLOSURE
+                    )
                     break
         except Exception as exc:
             close_code = status.WS_1011_INTERNAL_ERROR
@@ -108,7 +116,9 @@ class WebSocketEndpoint:
                 await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
                 raise RuntimeError("Malformed JSON data received.")
 
-        assert self.encoding is None, f"Unsupported 'encoding' attribute {self.encoding}"
+        assert (
+            self.encoding is None
+        ), f"Unsupported 'encoding' attribute {self.encoding}"
         return message["text"] if message.get("text") else message["bytes"]
 
     async def on_connect(self, websocket: WebSocket) -> None:

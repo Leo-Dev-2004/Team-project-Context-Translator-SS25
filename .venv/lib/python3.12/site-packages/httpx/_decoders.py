@@ -3,7 +3,6 @@ Handlers for Content-Encoding.
 
 See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
 """
-
 from __future__ import annotations
 
 import codecs
@@ -11,26 +10,8 @@ import io
 import typing
 import zlib
 
+from ._compat import brotli
 from ._exceptions import DecodingError
-
-# Brotli support is optional
-try:
-    # The C bindings in `brotli` are recommended for CPython.
-    import brotli
-except ImportError:  # pragma: no cover
-    try:
-        # The CFFI bindings in `brotlicffi` are recommended for PyPy
-        # and other environments.
-        import brotlicffi as brotli
-    except ImportError:
-        brotli = None
-
-
-# Zstandard support is optional
-try:
-    import zstandard
-except ImportError:  # pragma: no cover
-    zstandard = None  # type: ignore
 
 
 class ContentDecoder:
@@ -156,48 +137,6 @@ class BrotliDecoder(ContentDecoder):
             return b""
         except brotli.error as exc:  # pragma: no cover
             raise DecodingError(str(exc)) from exc
-
-
-class ZStandardDecoder(ContentDecoder):
-    """
-    Handle 'zstd' RFC 8878 decoding.
-
-    Requires `pip install zstandard`.
-    Can be installed as a dependency of httpx using `pip install httpx[zstd]`.
-    """
-
-    # inspired by the ZstdDecoder implementation in urllib3
-    def __init__(self) -> None:
-        if zstandard is None:  # pragma: no cover
-            raise ImportError(
-                "Using 'ZStandardDecoder', ..."
-                "Make sure to install httpx using `pip install httpx[zstd]`."
-            ) from None
-
-        self.decompressor = zstandard.ZstdDecompressor().decompressobj()
-        self.seen_data = False
-
-    def decode(self, data: bytes) -> bytes:
-        assert zstandard is not None
-        self.seen_data = True
-        output = io.BytesIO()
-        try:
-            output.write(self.decompressor.decompress(data))
-            while self.decompressor.eof and self.decompressor.unused_data:
-                unused_data = self.decompressor.unused_data
-                self.decompressor = zstandard.ZstdDecompressor().decompressobj()
-                output.write(self.decompressor.decompress(unused_data))
-        except zstandard.ZstdError as exc:
-            raise DecodingError(str(exc)) from exc
-        return output.getvalue()
-
-    def flush(self) -> bytes:
-        if not self.seen_data:
-            return b""
-        ret = self.decompressor.flush()  # note: this is a no-op
-        if not self.decompressor.eof:
-            raise DecodingError("Zstandard data is incomplete")  # pragma: no cover
-        return bytes(ret)
 
 
 class MultiDecoder(ContentDecoder):
@@ -383,11 +322,8 @@ SUPPORTED_DECODERS = {
     "gzip": GZipDecoder,
     "deflate": DeflateDecoder,
     "br": BrotliDecoder,
-    "zstd": ZStandardDecoder,
 }
 
 
 if brotli is None:
     SUPPORTED_DECODERS.pop("br")  # pragma: no cover
-if zstandard is None:
-    SUPPORTED_DECODERS.pop("zstd")  # pragma: no cover
