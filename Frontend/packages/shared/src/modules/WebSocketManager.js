@@ -70,7 +70,7 @@ const WebSocketManager = (() => {
         };
 
         ws.onmessage = (event) => {
-            // console.log('WebSocketManager: Raw MESSAGE received:', event.data); // Uncomment for debugging raw data
+            console.log('WebSocketManager: Raw MESSAGE received:', event.data); // Uncomment for debugging raw data
             try {
                 const message = JSON.parse(event.data);
                 // console.log('WebSocketManager: Parsed MESSAGE:', message); // Uncomment for debugging parsed object

@@ -1,105 +1,120 @@
-// Frontend/src/modules/QueueDisplay.js (MODIFIED to accept UI component instance)
+// Frontend/src/modules/QueueDisplay.js (UPDATED: Delayed DOM access)
 
-let uiComponentRef = null; // Store a reference to the UI component
+let uiComponentRef = null; // This will hold the reference to the Lit UI component instance
 
-export const setUIDomElements = (component) => { // <--- NEW METHOD
+/**
+ * Sets the reference to the main UI component instance.
+ * This should be called by app.js after the UI component has rendered.
+ * @param {Object} component - The main UI component (ElectronMyElement) instance.
+ */
+const setUIDomElements = (component) => {
     uiComponentRef = component;
     console.log('QueueDisplay: UI component instance set.');
+    // No need to query elements here. The update functions will query on demand.
 };
 
-export const updateSystemLog = (message) => {
-    // Query from the UI component's shadowRoot/light DOM
-    const logElement = uiComponentRef?.shadowRoot?.getElementById('systemLog') || document.getElementById('systemLog');
+// Helper function to safely get a DOM element from the UI component's shadowRoot
+const getElement = (id) => {
+    if (!uiComponentRef || !uiComponentRef.shadowRoot) {
+        // console.warn(`QueueDisplay: UI component reference or shadowRoot not available yet for element '${id}'.`);
+        return null;
+    }
+    return uiComponentRef.shadowRoot.getElementById(id);
+};
+
+
+const updateLog = (logId, message, logName) => {
+    const logElement = getElement(logId);
     if (logElement) {
-        const timestamp = new Date().toLocaleTimeString();
-        logElement.textContent += `[${timestamp}] ${message}\n`;
+        // Only append to the DOM element if it exists
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+        logElement.value += `[${timestamp}] ${message}\n`;
         logElement.scrollTop = logElement.scrollHeight; // Auto-scroll to bottom
     } else {
-        console.warn('QueueDisplay: systemLog element not found.');
-        console.log(`[System Log]: ${message}`); // Fallback to console
+        // If the element is not yet in the DOM (e.g., during very early init), log to console instead
+        console.log(`[${logName} - (UI not ready for ${logId})]: ${message}`);
     }
 };
 
-export const updateStatusLog = (message) => {
-    const logElement = uiComponentRef?.shadowRoot?.getElementById('statusLog') || document.getElementById('statusLog');
-    if (logElement) {
-        const timestamp = new Date().toLocaleTimeString();
-        logElement.textContent += `[${timestamp}] ${message}\n`;
-        logElement.scrollTop = logElement.scrollHeight;
-    } else {
-        console.warn('QueueDisplay: statusLog element not found.');
-        console.log(`[Status Log]: ${message}`);
-    }
+const updateSystemLog = (message) => {
+    updateLog('systemLog', message, 'System Log');
 };
 
-export const updateSimulationLog = (payload) => {
-    const logElement = uiComponentRef?.shadowRoot?.getElementById('simulationLog') || document.getElementById('simulationLog');
-    if (logElement) {
-        const timestamp = new Date().toLocaleTimeString();
-        const message = payload.message || JSON.stringify(payload);
-        logElement.textContent += `[${timestamp}] ${message}\n`;
-        logElement.scrollTop = logElement.scrollHeight;
-    } else {
-        console.warn('QueueDisplay: simulationLog element not found.');
-        console.log(`[Simulation Log]: ${payload.message || JSON.stringify(payload)}`);
-    }
+const updateStatusLog = (message) => {
+    updateLog('statusLog', message, 'Status Log');
 };
 
-export const updateTestLog = (message) => {
-    const logElement = uiComponentRef?.shadowRoot?.getElementById('testLog') || document.getElementById('testLog');
-    if (logElement) {
-        const timestamp = new Date().toLocaleTimeString();
-        logElement.textContent += `[${timestamp}] ${message}\n`;
-        logElement.scrollTop = logElement.scrollHeight;
-    } else {
-        console.warn('QueueDisplay: testLog element not found.');
-        console.log(`[Test Log]: ${message}`);
-    }
+const updateTestLog = (message) => {
+    updateLog('testLog', message, 'Test Log');
 };
 
-export const updateTranscriptionLog = (text) => {
-    const logElement = uiComponentRef?.shadowRoot?.getElementById('transcriptionLog') || document.getElementById('transcriptionLog');
-    const sourceTextElement = uiComponentRef?.shadowRoot?.getElementById('sourceText') || document.getElementById('sourceText'); // Also update sourceText
-    
-    if (logElement) {
-        const timestamp = new Date().toLocaleTimeString();
-        logElement.textContent += `[${timestamp}] ${text}\n`;
-        logElement.scrollTop = logElement.scrollHeight;
+const updateSimulationLog = (message) => {
+    let logMessage;
+    if (typeof message === 'object' && message !== null) {
+        logMessage = `Status: ${message.status || 'N/A'}, Progress: ${message.progress || 'N/A'}, Message: ${message.message || 'N/A'}`;
     } else {
-        console.warn('QueueDisplay: transcriptionLog element not found.');
-        console.log(`[Transcription Log]: ${text}`);
+        logMessage = message;
     }
-
-    if (sourceTextElement) {
-        sourceTextElement.value = text; // Update the source text field with transcription
-    } else {
-        console.warn('QueueDisplay: sourceText element not found.');
-    }
+    updateLog('simulationLog', logMessage, 'Simulation Log');
 };
 
-// This function is called by WebSocketManager to update queue sizes
-export const updateQueueDisplay = (queueName, size, items) => {
+const updateTranscriptionLog = (message) => {
+    updateLog('transcriptionLog', message, 'Transcription Log');
+};
+
+
+const updateQueueDisplay = (queueName, size, items = []) => {
     let displayElementId;
-    // Map the internal queue names to their display element IDs
-    if (queueName === 'toBackendQueue') {
+    let queueDisplayName;
+
+    // Map backend queue names to frontend display IDs if necessary
+    // Ensure these IDs match the IDs in your ui.js render method
+    if (queueName === 'toBackendQueue') { // Frontend's internal name for outbound queue
         displayElementId = 'frontendOutgoingQueueDisplay';
-    } else if (queueName === 'fromBackendQueue') {
+        queueDisplayName = 'Frontend Outgoing Queue';
+    } else if (queueName === 'fromBackendQueue') { // Frontend's internal name for inbound queue
         displayElementId = 'frontendIncomingQueueDisplay';
-    } else if (queueName === 'dead_letter_queue') {
-        displayElementId = 'deadLetterQueueDisplay'; // Assuming you have this ID for backend DLQ
-    } else if (queueName === 'from_frontend_queue') { // Backend's perspective of frontend's outgoing
-        displayElementId = 'frontendOutgoingQueueDisplay'; // Map to frontend's outgoing
-    } else if (queueName === 'to_frontend_queue') { // Backend's perspective of frontend's incoming
-        displayElementId = 'frontendIncomingQueueDisplay'; // Map to frontend's incoming
+        queueDisplayName = 'Frontend Incoming Queue';
+    } else if (queueName === 'dead_letter_queue' || queueName === 'deadLetterQueue') { // Backend's dead letter queue
+        displayElementId = 'deadLetterQueueDisplay';
+        queueDisplayName = 'Backend Dead Letter Queue';
+    } else if (queueName === 'from_frontend_queue') { // Backend's 'from_frontend_queue' which is frontend's outbound queue on backend
+         // This is a status update *from the backend* about its queue.
+         // It represents the queue on the backend that receives messages from the frontend.
+         // We should update the *frontend's outgoing queue display* based on the backend's perspective.
+        displayElementId = 'frontendOutgoingQueueDisplay'; // Update FE outgoing display
+        queueDisplayName = 'Backend (FE Outbound) Queue';
+    } else if (queueName === 'to_frontend_queue') { // Backend's 'to_frontend_queue' which is frontend's inbound queue on backend
+         // This is a status update *from the backend* about its queue.
+         // It represents the queue on the backend that sends messages to the frontend.
+         // We should update the *frontend's incoming queue display* based on the backend's perspective.
+        displayElementId = 'frontendIncomingQueueDisplay'; // Update FE incoming display
+        queueDisplayName = 'Backend (FE Inbound) Queue';
     } else {
         console.warn(`QueueDisplay: Unknown queue name for display: ${queueName}`);
         return;
     }
 
-    const element = uiComponentRef?.shadowRoot?.getElementById(displayElementId) || document.getElementById(displayElementId);
-    if (element) {
-        element.textContent = size.toString();
+    const sizeElement = getElement(displayElementId);
+
+    if (sizeElement) {
+        sizeElement.textContent = size.toString();
+        // You might extend this to show `items` as well, e.g., in a popup or expanded view
+        // For now, just logging if items are passed for debugging
+        if (items && items.length > 0) {
+            console.debug(`QueueDisplay: ${queueDisplayName} items:`, items);
+        }
     } else {
         console.warn(`QueueDisplay: Display element with ID "${displayElementId}" not found in the DOM for queue "${queueName}".`);
     }
+};
+
+export {
+    updateSystemLog,
+    updateStatusLog,
+    updateTestLog,
+    updateSimulationLog,
+    updateTranscriptionLog,
+    updateQueueDisplay,
+    setUIDomElements // Export the setter function
 };

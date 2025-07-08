@@ -96,7 +96,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
         Retrieves a UniversalMessage object from the queue.
         Blocks until an item is available. Updates the message's forwarding path.
         """
-        logger.debug(f"Queue '{self.name}' empty, waiting to dequeue..." if self.empty() else f"Dequeuing from '{self.name}', size: {self.qsize()}")
+        # logger.debug(f"Queue '{self.name}' empty, waiting to dequeue..." if self.empty() else f"Dequeuing from '{self.name}', size: {self.qsize()}")
 
         item: UniversalMessage = await self.get()
         
@@ -109,7 +109,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
         # However, this delay will make the *entire system* slow down when consuming messages.
         # The effect on *queue size* visibility is indirect, but it makes the processing
         # visually slower.
-        await asyncio.sleep(2) # Adjust delay as needed (e.g., 0.5 to 2.0 seconds)
+        # await asyncio.sleep(2) # Adjust delay as needed (e.g., 0.5 to 2.0 seconds)
 
         
         self.task_done() # Signal that a task processing this item is complete

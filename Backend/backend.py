@@ -107,7 +107,7 @@ message_router_instance: Optional[MessageRouter] = None
 # --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Application startup event triggered.")
+    #logger.info("Application startup event triggered.")
     global backend_service_dispatcher_instance, simulation_manager_instance, websocket_manager_instance
     global message_processor_task, queue_status_sender_task, message_router_instance
 
@@ -199,12 +199,12 @@ async def send_queue_status_to_frontend():
 
                         if hasattr(websocket_manager_instance_local, 'send_message_to_client'):
                             await websocket_manager_instance_local.send_message_to_client(client_id_str, queue_status_universal_message)
-                            logger.debug(f"Sent queue status (UniversalMessage) to client {client_id_str}")
+                            #logger.debug(f"Sent queue status (UniversalMessage) to client {client_id_str}")
                         elif websocket_manager_instance_local.connections.get(client_id_str):
                             await websocket_manager_instance_local.connections[client_id_str].send_text(
                                 queue_status_universal_message.model_dump_json() 
                             )
-                            logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
+                            #logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
                         else:
                             logger.warning(f"No suitable method or active connection for {client_id_str} to send queue status.")
 

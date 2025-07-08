@@ -1,21 +1,24 @@
 /**
  * UI Component Module - Main Application Interface
- * * This file contains the primary UI component for the Team Project Context Translator application.
+ * 
+ * This file contains the primary UI component for the Team Project Context Translator application.
  * It implements a tabbed interface using Lit web components and Material Design components,
  * providing the main user interface for setting up translation contexts, viewing AI explanations,
- * and managing application settings, and specifically, the real-time translation and connection status.
- * * The component serves as the central hub of the application, orchestrating user interactions
+ * and managing application settings.
+ * 
+ * The component serves as the central hub of the application, orchestrating user interactions
  * across different functional areas through a clean tabbed interface. It integrates with
  * the explanation management system to display real-time AI-generated explanations and
  * provides comprehensive settings for customizing the translation experience.
- * * Content:
+ * 
+ * Content:
  * - UI class: Main Lit web component with tabbed interface
  * - Setup tab: Domain configuration and language preferences
  * - Explanations tab: Display and management of AI explanations
- * - Translator tab: Real-time translation input/output, connection status, queue displays
  * - Settings management: Auto-save, real-time processing options
  * - Event handlers for user interactions
- * * Structure:
+ * 
+ * Structure:
  * - Import statements: Lit framework, Material Design components, shared modules
  * - UI class definition: Main component with reactive properties
  * - Constructor: Property initialization and explanation manager integration
@@ -24,19 +27,21 @@
  * - Event handlers: User interaction processing
  * - Utility methods: Helper functions for data formatting and operations
  * - Styles: CSS-in-JS styling definitions
- * * Key Features:
- * - Tabbed navigation (Setup, Explanations, Translator)
+ * 
+ * Key Features:
+ * - Tabbed navigation (Setup, Explanations)
  * - Domain and language configuration
  * - Real-time explanation display and management
- * - Real-time translation input/output and status updates
  * - Material Design component integration
  * - Responsive design with accessibility considerations
  * - Integration with explanation manager for state synchronization
- * * Dependencies:
+ * 
+ * Dependencies:
  * - Lit: Web component framework
  * - Material Web: Google's Material Design web components
  * - Shared styles and explanation management modules
- * * DISCLAIMER: Some portions of this code may have been generated or assisted by AI tools.
+ * 
+ * DISCLAIMER: Some portions of this code may have been generated or assisted by AI tools.
  */
 
 // Import Lit framework core components for web component creation
@@ -64,14 +69,14 @@ import '@material/web/select/outlined-select.js'
 import '@material/web/select/select-option.js'
 //Import for the Universal Message Parser
 import { UniversalMessageParser } from './universal-message-parser.js'
-
-
 /**
  * Main UI Component - Context Translator Application Interface
- * * A comprehensive web component that provides the primary user interface for the
+ * 
+ * A comprehensive web component that provides the primary user interface for the
  * Context Translator application. Features a tabbed interface with setup configuration,
  * AI explanation display, and settings management.
- * * @extends LitElement
+ * 
+ * @extends LitElement
  */
 export class UI extends LitElement {
   /**
@@ -83,14 +88,7 @@ export class UI extends LitElement {
     domainValue: { type: String },         // User's domain/context description
     autoSave: { type: Boolean },          // Auto-save setting toggle
     selectedLanguage: { type: String },    // User's preferred language
-    explanations: { type: Array },         // Array of AI-generated explanations
-    connectionStatus: { type: String },    // Status of WebSocket connection
-    reconnectStatus: { type: String },     // Reconnection attempt status
-    sourceText: { type: String },          // Original text for translation
-    translationOutput: { type: String },   // Translated text output
-    frontendOutgoingQueueSize: { type: Number }, // Size of outgoing queue
-    frontendIncomingQueueSize: { type: Number }, // Size of incoming queue
-    securityWarningVisible: { type: Boolean } // Visibility of security warning
+    explanations: { type: Array }          // Array of AI-generated explanations
   };
 
   /**
@@ -104,14 +102,7 @@ export class UI extends LitElement {
     this.autoSave = false
     this.selectedLanguage = 'en'
     this.explanations = [];
-    this.connectionStatus = 'Disconnected'; // Default status
-    this.reconnectStatus = 'none'; // 'none', 'reconnecting', 'connected'
-    this.sourceText = '';
-    this.translationOutput = '';
-    this.frontendOutgoingQueueSize = 0;
-    this.frontendIncomingQueueSize = 0;
-    this.securityWarningVisible = true; // Show by default
-
+    
     this._explanationListener = (explanations) => {
       this.explanations = [...explanations];
     };
@@ -130,35 +121,25 @@ export class UI extends LitElement {
   /**
    * Main render method - creates the component's HTML template
    * Defines the overall structure with header, tabs, and dynamic content
-   * * @returns {TemplateResult} Lit HTML template for the component
-   */
-  render() {
+   * 
+   * @returns {TemplateResult} Lit HTML template for the component
+   */  render() {
     return html`
       <div class="ui-host">
         <div class="ui-app-container">
+          <!-- App Title and Description Header -->
           <header class="app-header ocean-header">
             <h1 class="display-medium">Context Translator</h1>
             <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
           </header>
 
-          ${this.securityWarningVisible ? html`
-            <div id="securityWarning" class="security-warning">
-              <p>
-                <span class="material-icons">security</span>
-                Electron Security Warning (Insecure Content-Security-Policy)
-              </p>
-              <md-icon-button @click=${() => this.securityWarningVisible = false}>
-                <span class="material-icons">close</span>
-              </md-icon-button>
-            </div>
-          ` : ''}
-
+          <!-- Material Design Tabs Navigation -->
           <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
             <md-primary-tab>Setup</md-primary-tab>
             <md-primary-tab>Explanations</md-primary-tab>
-            <md-primary-tab>Translator</md-primary-tab>
           </md-tabs>
 
+          <!-- Dynamic Tab Content Container -->
           <div class="tab-content">
             ${this._renderTabContent()}
           </div>
@@ -170,7 +151,8 @@ export class UI extends LitElement {
   /**
    * Renders content for the currently active tab
    * Uses switch statement to determine which tab content to display
-   * * @returns {TemplateResult} HTML template for the active tab's content
+   * 
+   * @returns {TemplateResult} HTML template for the active tab's content
    */
   _renderTabContent() {
     switch (this.activeTab) {
@@ -254,69 +236,6 @@ export class UI extends LitElement {
             </div>
           </div>
         `
-      case 2: // New Translator Tab
-        return html`
-          <div class="tab-panel translator-panel">
-            <h2 class="headline-medium ocean-accent-text">Real-time Translator</h2>
-
-            <div id="reconnectStatus" style="${this.reconnectStatus === 'reconnecting' ? 'display: block;' : 'display: none;'} background-color: #fca503; color: white; padding: 8px; text-align: center; border-radius: 4px; margin-bottom: 10px;">
-                Reconnecting...
-            </div>
-
-            <div id="connectionStatus" class="connection-status ${this.connectionStatus.toLowerCase()}" style="margin-bottom: 10px;">
-                Status: ${this.connectionStatus}
-            </div>
-
-            <div class="translation-io">
-              <div class="input-section">
-                <md-outlined-text-field
-                  id="sourceText"
-                  label="Source Text (spoken by you)"
-                  .value=${this.sourceText}
-                  placeholder="Start speaking..."
-                  rows="4"
-                  type="textarea"
-                  readonly
-                  class="full-width"
-                ></md-outlined-text-field>
-              </div>
-
-              <div class="output-section">
-                <md-outlined-text-field
-                  id="translationOutput"
-                  label="Translation Output"
-                  .value=${this.translationOutput}
-                  placeholder="Translation will appear here..."
-                  rows="4"
-                  type="textarea"
-                  readonly
-                  class="full-width"
-                ></md-outlined-text-field>
-              </div>
-            </div>
-
-            <div class="queue-displays">
-              <div class="queue-display-container">
-                <label for="frontendOutgoingQueueDisplay">Outgoing Queue:</label>
-                <md-outlined-text-field
-                  id="frontendOutgoingQueueDisplay"
-                  .value=${this.frontendOutgoingQueueSize.toString()}
-                  readonly
-                  class="queue-field"
-                ></md-outlined-text-field>
-              </div>
-              <div class="queue-display-container">
-                <label for="frontendIncomingQueueDisplay">Incoming Queue:</label>
-                <md-outlined-text-field
-                  id="frontendIncomingQueueDisplay"
-                  .value=${this.frontendIncomingQueueSize.toString()}
-                  readonly
-                  class="queue-field"
-                ></md-outlined-text-field>
-              </div>
-            </div>
-          </div>
-        `
       default:
         return html`<div class="tab-panel">Select a tab</div>`
     }
@@ -325,7 +244,8 @@ export class UI extends LitElement {
   /**
    * Tab change event handler
    * Updates the active tab index when user clicks on a different tab
-   * * @param {Event} event - Tab change event from md-tabs component
+   * 
+   * @param {Event} event - Tab change event from md-tabs component
    */
   _onTabChange(event) {
     this.activeTab = event.target.activeTabIndex
@@ -334,7 +254,8 @@ export class UI extends LitElement {
   /**
    * Domain input event handler
    * Updates domain value as user types in the domain text field
-   * * @param {Event} event - Input event from domain text field
+   * 
+   * @param {Event} event - Input event from domain text field
    */
   _onDomainInput(event) {
     this.domainValue = event.target.value
@@ -351,7 +272,8 @@ export class UI extends LitElement {
   /**
    * Language selection change handler
    * Updates selected language when user chooses from dropdown
-   * * @param {Event} event - Change event from language select component
+   * 
+   * @param {Event} event - Change event from language select component
    */
   _onLanguageChange(event) {
     this.selectedLanguage = event.target.value
@@ -360,7 +282,8 @@ export class UI extends LitElement {
   /**
    * Auto-save toggle change handler
    * Updates auto-save setting when user toggles the switch
-   * * @param {Event} event - Change event from auto-save switch component
+   * 
+   * @param {Event} event - Change event from auto-save switch component
    */
   _onAutoSaveChange(event) {
     this.autoSave = event.target.selected
@@ -391,7 +314,8 @@ export class UI extends LitElement {
   /**
    * Pin explanation handler
    * Delegates to explanation manager to pin/unpin an explanation
-   * * @param {string} id - Unique identifier of the explanation to pin
+   * 
+   * @param {string} id - Unique identifier of the explanation to pin
    */
   _handlePin(id) {
     explanationManager.pinExplanation(id);
@@ -400,7 +324,8 @@ export class UI extends LitElement {
   /**
    * Delete explanation handler
    * Delegates to explanation manager to remove an explanation
-   * * @param {string} id - Unique identifier of the explanation to delete
+   * 
+   * @param {string} id - Unique identifier of the explanation to delete
    */
   _handleDelete(id) {
     explanationManager.deleteExplanation(id);
@@ -409,7 +334,8 @@ export class UI extends LitElement {
   /**
    * Copy explanation handler
    * Copies explanation content to clipboard in formatted text
-   * * @param {Object} explanation - Explanation object containing title, content, and timestamp
+   * 
+   * @param {Object} explanation - Explanation object containing title, content, and timestamp
    */
   _handleCopy(explanation) {
     const textToCopy = `**${explanation.title}**\n\n${explanation.content}\n\n---\n${this._formatTimestamp(explanation.timestamp)}`;
@@ -458,7 +384,8 @@ export class UI extends LitElement {
   /**
    * Format timestamp utility method
    * Converts timestamp to localized date and time string
-   * * @param {number} timestamp - Unix timestamp to format
+   * 
+   * @param {number} timestamp - Unix timestamp to format
    * @returns {string} Formatted date and time string in German locale
    */
   _formatTimestamp(timestamp) {
@@ -478,3 +405,9 @@ export class UI extends LitElement {
    */
   static styles = [sharedStyles]
 }
+
+/**
+ * Custom element registration
+ * Registers the UI component as 'my-element' in the browser's custom element registry
+ */
+window.customElements.define('my-element', UI)

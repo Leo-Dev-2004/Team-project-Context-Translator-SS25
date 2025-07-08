@@ -13,7 +13,7 @@ export class MessageQueue {
             message.timestamp = Date.now(); // Use milliseconds for JS consistency
         }
         this.queue.push(message);
-        console.log(`MessageQueue: Enqueued message to '${this.name}'. Current size: ${this.queue.length}`);
+        // console.log(`MessageQueue: Enqueued message to '${this.name}'. Current size: ${this.queue.length}`);
         this.notifyListeners(); // Notify all UI listeners about the change
 
         // If there are consumers waiting, resolve the *oldest* waiting promise
@@ -33,7 +33,7 @@ export class MessageQueue {
     async dequeue() {
         if (this.queue.length > 0) {
             const item = this.queue.shift(); // Truly remove the item
-            console.log(`MessageQueue: Dequeued item from '${this.name}'. Current size: ${this.queue.length}`);
+            // console.log(`MessageQueue: Dequeued item from '${this.name}'. Current size: ${this.queue.length}`);
             this.notifyListeners(); // Notify listeners after removal
             return item;
         } else {
