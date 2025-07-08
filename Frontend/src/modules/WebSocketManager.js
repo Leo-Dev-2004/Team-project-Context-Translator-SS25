@@ -53,9 +53,9 @@ const WebSocketManager = (() => {
         };
 
        ws.onmessage = (event) => {
-            console.log('WebSocketManager: Raw MESSAGE received:', event.data); // Add this for raw data inspection
+            console.debug('WebSocketManager: Raw MESSAGE received:', event.data); // Add this for raw data inspection
             const message = JSON.parse(event.data);
-            console.log('WebSocketManager: Parsed MESSAGE:', message); // Add this to see the parsed object
+            console.debug('WebSocketManager: Parsed MESSAGE:', message); // Add this to see the parsed object
 
             if (message.type === 'stt.transcription') {
                 console.debug("TRANSCRIPTION RECEIVED!!!! ERFOLG!");
