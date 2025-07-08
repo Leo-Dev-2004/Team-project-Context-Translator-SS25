@@ -1,9 +1,8 @@
-// frontend/src/renderer.js (FINAL PATH CORRECTION for app.js import)
+// Frontend/packages/electron/src/renderer.js (FIXED: Handles definition and passes UI instance)
 
-import { UI } from '../../shared/src/index.js';
+import { UI } from '../../shared/src/index.js'; // This now imports the UI class, not a defined element
 import '../../shared/src/index.css';
-// ABSOLUTELY CORRECTED PATH: Navigate up two directories, then down into shared/
-import { initializeApplication } from '../../shared/app.js'; // <--- PATH CORRECTED HERE AGAIN!
+import { initializeApplication } from '../../shared/app.js'; // Path corrected in previous steps
 
 // Electron-enhanced element
 class ElectronMyElement extends UI {
@@ -17,25 +16,22 @@ class ElectronMyElement extends UI {
     super.connectedCallback();
     await this._initializeElectron();
 
-    // Call initializeApplication here, after the custom element is connected
-    // This ensures app.js runs within the context of your main UI element
-    initializeApplication();
+    // Pass 'this' (the ElectronMyElement instance) to initializeApplication
+    // This allows app.js and subsequent modules to access the component's rendered DOM.
+    initializeApplication(this); // <--- MODIFIED CALL: Pass the UI instance
   }
 
   async _initializeElectron() {
     if (window.electronAPI) {
       try {
-        // Get platform info
         const platformInfo = await window.electronAPI.getPlatform();
         console.log('Platform:', platformInfo);
 
-        // Load saved settings
         const result = await window.electronAPI.loadSettings();
         if (result.success && result.settings) {
           this._loadSettingsFromElectron(result.settings);
         }
 
-        // Get app version
         const version = await window.electronAPI.getAppVersion();
         console.log('App version:', version);
 
@@ -64,7 +60,6 @@ class ElectronMyElement extends UI {
     };
 
     if (window.electronAPI) {
-      // Electron: Persistent file storage
       try {
         const result = await window.electronAPI.saveSettings(settings);
         if (result.success) {
@@ -79,7 +74,6 @@ class ElectronMyElement extends UI {
         this._showNotification('Error saving settings', 'error');
       }
     } else {
-      // Fallback to localStorage
       try {
         localStorage.setItem('context-translator-settings', JSON.stringify(settings));
         console.log('Settings saved to localStorage (fallback):', settings);
@@ -91,7 +85,6 @@ class ElectronMyElement extends UI {
     }
   }
 
-  // Override methods for Electron-specific features
   async _exportTranslations() {
     if (window.electronAPI) {
       const result = await window.electronAPI.showSaveDialog({
@@ -118,18 +111,14 @@ class ElectronMyElement extends UI {
         console.log('Export to:', result.filePath);
         console.log('Export data:', data);
 
-        // In a real implementation, you would write the file here
-        // For now, just show success
         this._showNotification(`Export saved to ${result.filePath}`);
       }
     } else {
-      // Fallback to web behavior
       super._exportTranslations();
     }
   }
 
   _showNotification(message, type = 'success') {
-    // Simple notification - in production you might use a toast library
     const notification = document.createElement('div');
     notification.textContent = message;
     notification.style.cssText = `
@@ -155,8 +144,9 @@ class ElectronMyElement extends UI {
   }
 }
 
+// Register the Electron-enhanced element ONLY ONCE here
 if (!customElements.get('my-element')) {
   customElements.define('my-element', ElectronMyElement);
 } else {
-  console.warn('Attempted to define "my-element" again. Skipping.');
+  console.warn('Attempted to define "my-element" again. Skipping. (This warning should now disappear)');
 }
