@@ -11,13 +11,34 @@ import os
 import psutil
 from pathlib import Path
 
-# Configure logging
+# --- File Flushing Logic ---
+# Define log file paths for flushing
+BACKEND_LOG_FILE = 'backend.log'
+SYSTEM_LOG_FILE = 'system.log'
+
+def flush_log_file(file_path):
+    """Deletes the specified log file if it exists."""
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            # print(f"Flushed log file: {file_path}") # For debugging the flush itself
+        except OSError as e:
+            # logger.error is not configured yet for system.log
+            print(f"Error flushing log file {file_path}: {e}")
+
+# Flush logs *before* configuring the logger for this script,
+# especially for system.log, so the FileHandler starts with a clean slate.
+flush_log_file(SYSTEM_LOG_FILE)
+# Flush backend.log as well, as Uvicorn will create/append to it
+flush_log_file(BACKEND_LOG_FILE)
+
+# Configure logging for SystemRunner
 logging.basicConfig(
     level=logging.DEBUG, # Set to INFO for less verbosity in production
     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', # Added %(name)s for better source identification
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('system.log', mode='w', encoding='utf-8') # Added encoding for robustness
+        logging.FileHandler(SYSTEM_LOG_FILE, mode='w', encoding='utf-8') # mode='w' already flushes on start
     ]
 )
 logger = logging.getLogger('SystemRunner') # Use a specific logger name
@@ -120,9 +141,11 @@ class SystemRunner:
             self.shutdown() # Ensure clean shutdown if ports are not free
             sys.exit(1) # Exit if ports are not free
 
-        logger.info("Starting backend server...")
+        logger.info("Starting backend server... (Logging to backend.log)")
         
         # Configure logging for Uvicorn
+        # These settings control Uvicorn's *internal* logging, but we also want
+        # to redirect its stdout/stderr to our backend.log file.
         logging.getLogger('uvicorn').setLevel(logging.INFO)
         logging.getLogger('uvicorn.access').setLevel(logging.INFO)
         logging.getLogger('uvicorn.error').setLevel(logging.ERROR) # Only log Uvicorn errors
@@ -146,18 +169,28 @@ class SystemRunner:
             # "--reload" # --reload can be useful for development but might restart STT/Electron
         ]
 
+        # Open the backend.log file in 'w' (write) mode for this process's output
+        # This will flush the file on each run of the backend itself
+        try:
+            backend_log_file_handle = open(BACKEND_LOG_FILE, 'w', encoding='utf-8', buffering=1) # Line-buffered
+        except IOError as e:
+            logger.critical(f"Could not open {BACKEND_LOG_FILE} for writing: {e}")
+            self.shutdown()
+            sys.exit(1)
+
         backend = subprocess.Popen(
             uvicorn_cmd,
             cwd=str(ROOT_DIR), # Execute uvicorn from the project root
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=backend_log_file_handle, # Redirect stdout to backend.log
+            stderr=subprocess.STDOUT,      # Redirect stderr to stdout (also to backend.log)
             text=True,
             bufsize=1 # Line-buffered output
         )
         self.processes.append(backend)
         logger.info(f"Backend process started with PID: {backend.pid}")
-        self._start_logging(backend, "Backend")
+        # We no longer need _start_logging for backend as its output goes directly to file
+        # Make sure to close the file handle when the process ends (handled in shutdown)
 
     def run_stt_module(self):
         """Run the transcribe.py as a separate process."""
@@ -221,6 +254,9 @@ class SystemRunner:
         def log_output(pipe, prefix):
             try:
                 for line in iter(pipe.readline, ''): # Read line by line until EOF
+                    # Filter out specific noisy lines here if desired,
+                    # although for SystemRunner's primary logger, we mostly filter by level.
+                    # For STT and Electron, this is where you'd put more specific filters.
                     logger.info(f"[{prefix}]: {line.strip()}")
             except ValueError: # Pipe might close unexpectedly
                 logger.debug(f"[{prefix}]: Pipe closed unexpectedly for {prefix}.")
@@ -286,6 +322,13 @@ class SystemRunner:
             else:
                 logger.debug(f"Process {p.pid} was already dead.")
         
+        # Close the file handle for backend.log if it was opened by Popen
+        # We need to find the specific Popen object if it was stored
+        for p in self.processes:
+            if hasattr(p, 'stdout') and isinstance(p.stdout, io.TextIOWrapper) and p.stdout.name == BACKEND_LOG_FILE:
+                p.stdout.close()
+                logger.debug(f"Closed backend.log file handle for process {p.pid}.")
+
         # Verify no ports are left open by our processes
         logger.info("Verifying ports are released...")
         time.sleep(2) # Give system a moment after processes are killed
@@ -298,6 +341,8 @@ class SystemRunner:
         sys.exit(0)
 
 if __name__ == "__main__":
+    import io # Import io for TextIOWrapper check
+
     runner = SystemRunner()
     
     # Check if this script is being run as a subprocess (e.g., by Uvicorn's --reload)
@@ -329,16 +374,19 @@ if __name__ == "__main__":
 
         runner.run_stt_module() # Now launch the STT module
         # Add a check for STT process as well
-        if runner.processes and runner.processes[1].poll() is not None: # Assuming STT is the second process
-             logger.critical(f"STT process (PID: {runner.processes[1].pid}) exited immediately. Check its error logs.")
+        # Assuming STT is the second process now, as backend is redirected to file directly
+        # and not processed by _start_logging
+        if runner.processes and len(runner.processes) > 0 and runner.processes[0].poll() is not None: 
+             logger.critical(f"STT process (PID: {runner.processes[0].pid}) exited immediately. Check its error logs.")
              runner.shutdown()
              sys.exit(1)
         
         time.sleep(2) # Increased pause
         runner.run_electron_app() # And your Electron app
         # Add a check for Electron process as well
-        if runner.processes and len(runner.processes) > 2 and runner.processes[2].poll() is not None: # Assuming Electron is the third process
-             logger.critical(f"Electron process (PID: {runner.processes[2].pid}) exited immediately. Check its error logs.")
+        # Assuming Electron is the second process now in the self.processes list
+        if runner.processes and len(runner.processes) > 1 and runner.processes[1].poll() is not None: 
+             logger.critical(f"Electron process (PID: {runner.processes[1].pid}) exited immediately. Check its error logs.")
              runner.shutdown()
              sys.exit(1)
 
@@ -349,7 +397,11 @@ if __name__ == "__main__":
             # Basic health check: check if any managed process has died
             for i, p in enumerate(runner.processes):
                 if p.poll() is not None: # Process has terminated
-                    logger.critical(f"Managed process {p.args[0] if p.args else 'Unknown'} (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}. This indicates a crash or unhandled exit.")
+                    # For the backend, stdout/stderr are redirected to file, so check its returncode
+                    if p.stdout and hasattr(p.stdout, 'name') and p.stdout.name == BACKEND_LOG_FILE:
+                        logger.critical(f"Backend process (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}. Check {BACKEND_LOG_FILE} for errors.")
+                    else:
+                        logger.critical(f"Managed process {p.args[0] if p.args else 'Unknown'} (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}. This indicates a crash or unhandled exit.")
                     # Optionally, you could try to restart it, or shut down everything
                     runner.shutdown()
                     sys.exit(1)

@@ -111,7 +111,7 @@ class BackendServiceDispatcher:
                         details={"from_queue": "queues.incoming"}
                     )
                 )
-                logger.debug(f"Dispatcher dequeued message {message.id} of type '{message.type}'. Client ID: {message.client_id}.")
+                # logger.debug(f"Dispatcher dequeued message {message.id} of type '{message.type}'. Client ID: {message.client_id}.")
 
                 response_message: Optional[UniversalMessage] = await self._process_single_message(message)
 

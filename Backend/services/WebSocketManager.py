@@ -61,7 +61,7 @@ class WebSocketManager:
         try:
             # Enqueue to the dedicated queue for outgoing WebSocket messages
             await self.websocket_out_queue.enqueue(message)
-            logger.debug(f"Queued message {message.id} for client {client_id} to websocket_out_queue.")
+            # logger.debug(f"Queued message {message.id} for client {client_id} to websocket_out_queue.")
         except Exception as e:
             logger.error(f"Failed to enqueue message {message.id} for client {client_id} to websocket_out_queue: {e}", exc_info=True)
       
@@ -224,7 +224,7 @@ class WebSocketManager:
 
                         json_data = message.model_dump_json()
                         await websocket.send_text(json_data)
-                        logger.debug(f"[{client_id}] Sent message (ID: {message.id}, Type: {message.type}) to frontend.")
+                        # logger.debug(f"[{client_id}] Sent message (ID: {message.id}, Type: {message.type}) to frontend.")   # IMPORTANT
 
                         message.processing_path.append(
                             ProcessingPathEntry(

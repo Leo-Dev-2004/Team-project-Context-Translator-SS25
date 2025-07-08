@@ -179,7 +179,7 @@ async def send_queue_status_to_frontend():
                 "from_frontend_q_size": incoming_q_size,      
                 "to_frontend_q_size": websocket_out_q_size
             }
-            logger.info(f"Sending queue status update with payload: {status_message_data}")
+            # logger.info(f"Sending queue status update with payload: {status_message_data}")
 
             websocket_manager_instance_local: Optional[WebSocketManager] = get_websocket_manager_instance() 
 
