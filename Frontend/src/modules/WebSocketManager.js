@@ -58,7 +58,7 @@ const WebSocketManager = (() => {
             console.log('WebSocketManager: Parsed MESSAGE:', message); // Add this to see the parsed object
 
             if (message.type === 'stt.transcription') {
-                console.log("TRANSCRIPTION RECEIVED!!!! ERFOLG!");
+                console.debug("TRANSCRIPTION RECEIVED!!!! ERFOLG!");
             }
 
             // Directly handle system.queue_status_update messages for visualization

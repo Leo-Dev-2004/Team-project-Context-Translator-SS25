@@ -145,5 +145,8 @@ class ElectronMyElement extends UI {
   }
 }
 
-// Register the Electron-enhanced element
-customElements.define('my-element', ElectronMyElement)
+if (!customElements.get('my-element')) { // <--- ADD THIS CHECK
+  customElements.define('my-element', ElectronMyElement);
+} else {
+  console.warn('Attempted to define "my-element" again. Skipping.');
+}
