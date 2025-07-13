@@ -1,0 +1,114 @@
+[
+  {
+    "id": 1,
+    "term": "gradient descent",
+    "context": "You can summarize this algorithm or this procedure as what's known as gradient descent.",
+    "status": true,
+    "explanation": "Gradient descent is an optimization algorithm that minimizes a function by iteratively moving in the direction of steepest descent, determined by the negative gradient of the function."
+  },
+  {
+    "id": 2,
+    "term": "pseudocode",
+    "context": "In pseudocode, it looks like this:",
+    "status": true,
+    "explanation": "Pseudocode is a simplified, human-readable way to describe the steps of an algorithm or program without using the exact syntax of any specific programming language. It helps outline the logic and flow of a solution in a clear and easy-to-understand manner."
+  },
+  {
+    "id": 3,
+    "term": "register allocation",
+    "context": "",
+    "status": true,
+    "explanation": "Register allocation is the process of assigning available CPU registers to variables in a program to optimize performance by reducing the need for memory access."
+  },
+  {
+    "id": 4,
+    "term": "weights",
+    "context": "We start by randomly initializing our weights.",
+    "status": true,
+    "explanation": "In the sentence, \"weights\" refer to the numerical values assigned to connections in a neural network, which determine how input data influences the output during calculations. These values are initially set randomly and then adjusted through training."
+  },
+  {
+    "id": 5,
+    "term": "loss landscape",
+    "context": "This means we randomly pick a place in our loss landscape.",
+    "status": true,
+    "explanation": "A loss landscape is a visual representation of how the loss function changes across different values of the model's parameters, showing the \"height\" of the loss at each point."
+  },
+  {
+    "id": 6,
+    "term": "\u03c0J/\u2202W",
+    "context": "Next, we compute the gradient here, called \u2202J/\u2202W.",
+    "status": true,
+    "explanation": "\"\u03c0J/\u2202W\" represents the rate of change of the cost function J with respect to the weight matrix W, indicating how much J changes as the weights W change. It is used to guide the adjustment of weights during training in neural networks."
+  },
+  {
+    "id": 7,
+    "term": "loss",
+    "context": "But since we want to decrease the loss, we take a small step in the opposite direction.",
+    "status": true,
+    "explanation": "In this context, \"loss\" refers to a measure of how wrong a prediction is, and we try to reduce it by adjusting our model's parameters."
+  },
+  {
+    "id": 8,
+    "term": "gradient",
+    "context": "We multiply the gradient by negative one to go in the opposite direction.",
+    "status": true,
+    "explanation": "A gradient is a measure of how much a function's value changes as you move in different directions, indicating the direction of the steepest increase."
+  },
+  {
+    "id": 9,
+    "term": "Eta",
+    "context": "Eta here is how far we move in that direction.",
+    "status": true,
+    "explanation": "Eta refers to the distance moved in a specific direction, indicating how far something has traveled along that path. It measures the actual movement in the chosen direction."
+  },
+  {
+    "id": 10,
+    "term": "direction term",
+    "context": "Now, I want to draw your attention to this term: this is the direction term.",
+    "status": true,
+    "explanation": "A direction term is a word or phrase that indicates the direction or orientation of something, such as \"up,\" \"down,\" \"left,\" or \"right.\""
+  },
+  {
+    "id": 11,
+    "term": "compute",
+    "context": "But I never actually told you how to compute this, right?",
+    "status": true,
+    "explanation": "\"Compute\" means to calculate or determine something using mathematical steps or logical processes. It refers to the action of finding an answer through calculation or reasoning."
+  },
+  {
+    "id": 12,
+    "term": "backpropagation",
+    "context": "I think it would be helpful to walk through a step-by-step example of how backpropagation works.",
+    "status": true,
+    "explanation": "Backpropagation is a method used in training neural networks where the error from the output is propagated backward through the network to adjust the weights and improve the model's predictions."
+  },
+  {
+    "id": 13,
+    "term": "neural network",
+    "context": "We'll see how to compute the gradient for a particular neural network.",
+    "status": true,
+    "explanation": "A neural network is a computational model inspired by the human brain, consisting of layers of interconnected nodes that process information and learn patterns from data."
+  },
+  {
+    "id": 14,
+    "term": "neuron",
+    "context": "It consists of one input, one output, and one hidden neuron in the middle.",
+    "status": true,
+    "explanation": "A neuron is a single cell in the nervous system that processes and transmits information through electrical and chemical signals."
+  },
+  {
+    "id": 15,
+    "term": "W\u2082",
+    "context": "That means: how much does a small change in W\u2082 affect our loss?",
+    "status": true,
+    "explanation": "W\u2082 is a parameter in a model that represents the weight connecting the second layer to the third layer, and the question is asking how changing W\u2082 impacts the model's loss."
+  },
+  {
+    "id": 16,
+    "term": "chain rule",
+    "context": "Then we can use the chain rule to decompose it.",
+    "status": true,
+    "explanation": "The chain rule is a method used to find the derivative of a composite function by multiplying the derivative of the outer function by the derivative of the inner function."
+  }
+]

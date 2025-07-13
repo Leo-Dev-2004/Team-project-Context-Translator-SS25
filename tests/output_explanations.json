@@ -1,0 +1,702 @@
+[
+  {
+    "id": 1,
+    "term": "Java",
+    "context": "I had an issue with Java recently.",
+    "status": true,
+    "explanation": "Java is a programming language and computing platform used to develop a wide range of applications, including mobile apps, web applications, and enterprise software. It is known for its portability, security, and object-oriented features."
+  },
+  {
+    "id": 2,
+    "term": "Microservices",
+    "context": "Microservices plays a key role in performance.",
+    "status": true,
+    "explanation": "Microservices is an architectural style where an application is composed of small, independent services that communicate over well-defined APIs, allowing for greater flexibility and scalability. Each service is self-contained and can be developed, deployed, and scaled independently."
+  },
+  {
+    "id": 3,
+    "term": "Stack",
+    "context": "Understanding Stack is critical in tech.",
+    "status": true,
+    "explanation": "A stack is a data structure that stores elements in a last-in, first-out (LIFO) order, meaning the last element added is the first one removed. It is used in programming and systems to manage temporary data and function calls."
+  },
+  {
+    "id": 4,
+    "term": "Machine Learning",
+    "context": "Machine Learning plays a key role in performance.",
+    "status": true,
+    "explanation": "Machine Learning is a method that allows computers to learn from data and improve their performance over time without being explicitly programmed. It enables systems to identify patterns and make decisions with minimal human intervention."
+  },
+  {
+    "id": 5,
+    "term": "Scaling",
+    "context": "Understanding Scaling is critical in tech.",
+    "status": true,
+    "explanation": "Scaling refers to the ability of a system, process, or business to handle growth efficiently, whether that means supporting more users, processing more data, or expanding operations without a significant drop in performance or quality."
+  },
+  {
+    "id": 6,
+    "term": "JavaScript",
+    "context": "JavaScript plays a key role in performance.",
+    "status": true,
+    "explanation": "JavaScript is a programming language used to make web pages interactive and dynamic, and it plays a key role in performance by enabling efficient client-side operations."
+  },
+  {
+    "id": 7,
+    "term": "Python",
+    "context": "This is why Python is important in our systems.",
+    "status": true,
+    "explanation": "Python is a high-level programming language known for its simplicity and readability, making it widely used for web development, data analysis, automation, and more. It is important in our systems because it allows for efficient and easy-to-maintain code."
+  },
+  {
+    "id": 8,
+    "term": "FTP",
+    "context": "FTP was discussed in the last meeting.",
+    "status": true,
+    "explanation": "FTP stands for File Transfer Protocol, which is a standard method used to transfer files between computers over a network. It was discussed in the last meeting to address how files are shared and managed within the team."
+  },
+  {
+    "id": 9,
+    "term": "Inference",
+    "context": "Why Inference matters is often underestimated.",
+    "status": true,
+    "explanation": "Inference refers to the process of drawing conclusions or making judgments based on available evidence or reasoning. It matters because it shapes how we understand and interpret information."
+  },
+  {
+    "id": 10,
+    "term": "Proxy",
+    "context": "Our infrastructure depends heavily on Proxy.",
+    "status": true,
+    "explanation": "A Proxy is a server or system that acts as an intermediary between a user and another server, often used to enhance security, control access, or improve performance."
+  },
+  {
+    "id": 11,
+    "term": "Index",
+    "context": "Proper use of Index improves reliability.",
+    "status": true,
+    "explanation": "An index is a tool that helps quickly locate information, making data retrieval more efficient and reliable. It organizes data in a way that allows faster access and better performance."
+  },
+  {
+    "id": 12,
+    "term": "Backup",
+    "context": "Our infrastructure depends heavily on Backup.",
+    "status": true,
+    "explanation": "A backup is a copy of data or systems that can be used to restore information or operations in case of failure or loss. It ensures that critical data and services can be recovered quickly."
+  },
+  {
+    "id": 13,
+    "term": "SSH",
+    "context": "Why SSH matters is often underestimated.",
+    "status": true,
+    "explanation": "SSH stands for Secure Shell, which is a protocol used to securely access and manage remote computers over a network. It provides encrypted communication and secure authentication to protect data and prevent unauthorized access."
+  },
+  {
+    "id": 14,
+    "term": "Load Balancer",
+    "context": "Our infrastructure depends heavily on Load Balancer.",
+    "status": true,
+    "explanation": "A Load Balancer is a tool that distributes incoming network traffic across multiple servers to ensure no single server becomes overwhelmed, improving reliability and performance."
+  },
+  {
+    "id": 15,
+    "term": "Kubernetes",
+    "context": "This is why Kubernetes is important in our systems.",
+    "status": true,
+    "explanation": "Kubernetes is a system for automating the deployment, scaling, and management of containerized applications. It helps ensure applications run smoothly and efficiently in cloud environments."
+  },
+  {
+    "id": 16,
+    "term": "JWT",
+    "context": "This is why JWT is important in our systems.",
+    "status": true,
+    "explanation": "JWT stands for JSON Web Token, which is a compact, URL-safe way to transmit information between parties as a JSON object, commonly used for secure authentication and information exchange in web applications."
+  },
+  {
+    "id": 17,
+    "term": "List",
+    "context": "Why List matters is often underestimated.",
+    "status": true,
+    "explanation": "A \"List\" is a collection of items arranged in a specific order, often used to organize information or tasks. It helps people keep track of things they need to do or remember."
+  },
+  {
+    "id": 18,
+    "term": "C#",
+    "context": "Why C# matters is often underestimated.",
+    "status": true,
+    "explanation": "C# is a modern, object-oriented programming language developed by Microsoft, widely used for building applications on the .NET platform. It is known for its simplicity, versatility, and strong integration with Windows and cloud technologies."
+  },
+  {
+    "id": 19,
+    "term": "Debugger",
+    "context": "This is why Debugger is important in our systems.",
+    "status": true,
+    "explanation": "A Debugger is a tool that helps find and fix errors in computer programs by allowing developers to step through code and inspect its execution. It is important in our systems because it helps ensure programs work correctly and efficiently."
+  },
+  {
+    "id": 20,
+    "term": "UDP",
+    "context": "Our infrastructure depends heavily on UDP.",
+    "status": true,
+    "explanation": "UDP stands for User Datagram Protocol, which is a communication protocol used to send data across the internet without establishing a connection, making it faster but less reliable than TCP."
+  },
+  {
+    "id": 21,
+    "term": "Fork",
+    "context": "Fork was discussed in the last meeting.",
+    "status": true,
+    "explanation": "A \"fork\" in the context of the sentence refers to a branching point or decision, often used in discussions about splitting into different directions or options. It can also mean a division or split in a project or process."
+  },
+  {
+    "id": 22,
+    "term": "IDE",
+    "context": "IDE was discussed in the last meeting.",
+    "status": true,
+    "explanation": "IDE stands for Integrated Development Environment, which is a software application that provides comprehensive facilities for computer programming, including code editing, debugging, and compiling."
+  },
+  {
+    "id": 23,
+    "term": "Patch",
+    "context": "We should learn more about Patch.",
+    "status": true,
+    "explanation": "A \"Patch\" is a small update or fix applied to software to correct errors, improve functionality, or add new features. It is used to fix problems or enhance a program without replacing the entire software."
+  },
+  {
+    "id": 24,
+    "term": "Session",
+    "context": "Our infrastructure depends heavily on Session.",
+    "status": true,
+    "explanation": "A Session is a temporary interaction or connection between a user and a system, used to track and manage user activity during a specific period of time."
+  },
+  {
+    "id": 25,
+    "term": "Release",
+    "context": "Release was discussed in the last meeting.",
+    "status": true,
+    "explanation": "\"Release\" refers to the act of making something available or letting go of control, as discussed in the last meeting. It can mean launching a product, freeing someone from a situation, or ending a restriction."
+  },
+  {
+    "id": 26,
+    "term": "Dataset",
+    "context": "Our infrastructure depends heavily on Dataset.",
+    "status": true,
+    "explanation": "A Dataset is a collection of related data points or information that is organized and used for analysis, research, or processing. It serves as the foundation for many computational tasks and systems."
+  },
+  {
+    "id": 27,
+    "term": "Cache",
+    "context": "This is why Cache is important in our systems.",
+    "status": true,
+    "explanation": "Cache is a temporary storage area that holds frequently used data to speed up access and improve system performance. It reduces the need to retrieve data from slower sources, making operations faster and more efficient."
+  },
+  {
+    "id": 28,
+    "term": "NoSQL",
+    "context": "Our infrastructure depends heavily on NoSQL.",
+    "status": true,
+    "explanation": "NoSQL refers to a type of database that does not use the traditional structured query language (SQL) and is designed to handle large volumes of unstructured or semi-structured data. It is commonly used for applications that require high scalability and flexibility."
+  },
+  {
+    "id": 29,
+    "term": "Merge",
+    "context": "We should learn more about Merge.",
+    "status": true,
+    "explanation": "\"Merge\" means to combine two or more things into one unified whole. It refers to the action of joining separate elements together."
+  },
+  {
+    "id": 30,
+    "term": "TLS",
+    "context": "Understanding TLS is critical in tech.",
+    "status": true,
+    "explanation": "TLS stands for Transport Layer Security, a protocol used to secure communication over the internet, ensuring data privacy and integrity between a web browser and a server. It replaces SSL and is essential for secure online transactions and data transfer."
+  },
+  {
+    "id": 31,
+    "term": "AWS",
+    "context": "I had an issue with AWS recently.",
+    "status": true,
+    "explanation": "AWS stands for Amazon Web Services, which is a collection of cloud computing services provided by Amazon.com. It allows users to access computing resources like servers, storage, and databases over the internet."
+  },
+  {
+    "id": 32,
+    "term": "Client",
+    "context": "We should learn more about Client.",
+    "status": true,
+    "explanation": "A \"Client\" is a person or organization that uses a service or product, often in a business context, and relies on another party to provide that service or product."
+  },
+  {
+    "id": 33,
+    "term": "Restore",
+    "context": "This is why Restore is important in our systems.",
+    "status": true,
+    "explanation": "Restore is the process of returning a system or data to a previous working state after an error, failure, or data loss. It ensures that operations can continue smoothly by recovering lost or damaged information."
+  },
+  {
+    "id": 34,
+    "term": "Scrum",
+    "context": "Scrum was discussed in the last meeting.",
+    "status": true,
+    "explanation": "Scrum is a project management framework used to organize and manage complex projects, typically in software development, by breaking work into smaller, manageable tasks called sprints."
+  },
+  {
+    "id": 35,
+    "term": "Ping",
+    "context": "Understanding Ping is critical in tech.",
+    "status": true,
+    "explanation": "Ping is a tool used to check if a device or server is reachable over a network by sending a small signal and measuring the response time. It helps determine the speed and reliability of a network connection."
+  },
+  {
+    "id": 36,
+    "term": "HTTP",
+    "context": "Understanding HTTP is critical in tech.",
+    "status": true,
+    "explanation": "HTTP stands for Hypertext Transfer Protocol, which is the foundation of data communication on the web, allowing browsers to request and receive web pages from servers. It enables the transmission of hypertext documents like HTML across the internet."
+  },
+  {
+    "id": 37,
+    "term": "Cookie",
+    "context": "Cookie was discussed in the last meeting.",
+    "status": true,
+    "explanation": "A cookie is a small piece of data stored by a website on a user's device to remember information like login details or preferences. It was discussed in the last meeting."
+  },
+  {
+    "id": 38,
+    "term": "Commit",
+    "context": "Many developers use Commit for various tasks.",
+    "status": true,
+    "explanation": "A \"Commit\" is a record of changes made to a project's code, used to save and track modifications in version control systems. It helps developers keep track of what changes were made and when."
+  },
+  {
+    "id": 39,
+    "term": "HTML",
+    "context": "Proper use of HTML improves reliability.",
+    "status": true,
+    "explanation": "HTML stands for HyperText Markup Language, which is used to structure and format content on the web. It helps create the basic structure of web pages, making them more reliable and easier to navigate."
+  },
+  {
+    "id": 40,
+    "term": "PaaS",
+    "context": "PaaS plays a key role in performance.",
+    "status": true,
+    "explanation": "PaaS stands for Platform as a Service, which provides a framework for developers to build and deploy applications without managing the underlying infrastructure. It plays a key role in performance by offering scalable, efficient tools and environments for application development and management."
+  },
+  {
+    "id": 41,
+    "term": "Container",
+    "context": "We should learn more about Container.",
+    "status": true,
+    "explanation": "A Container is a standardized unit used to transport goods by sea, air, or land, making it easier to load, unload, and move cargo efficiently."
+  },
+  {
+    "id": 42,
+    "term": "Git",
+    "context": "Many developers use Git for various tasks.",
+    "status": true,
+    "explanation": "Git is a version control system that helps developers track changes to their code and collaborate on projects. It allows multiple people to work on the same codebase without overwriting each other's changes."
+  },
+  {
+    "id": 43,
+    "term": "C++",
+    "context": "Proper use of C++ improves reliability.",
+    "status": true,
+    "explanation": "C++ is a programming language that allows developers to write efficient and reliable software by providing control over system resources and enabling object-oriented programming features."
+  },
+  {
+    "id": 44,
+    "term": "Rust",
+    "context": "Understanding Rust is critical in tech.",
+    "status": true,
+    "explanation": "Rust is a programming language known for its focus on safety, speed, and efficiency, particularly in systems programming. It helps developers write reliable and high-performance code by preventing common errors at compile time."
+  },
+  {
+    "id": 45,
+    "term": "Go",
+    "context": "We should learn more about Go.",
+    "status": true,
+    "explanation": "\"Go\" is a programming language known for its simplicity, efficiency, and strong support for concurrent programming. It is often used for building reliable and efficient software systems."
+  },
+  {
+    "id": 46,
+    "term": "API",
+    "context": "API was discussed in the last meeting.",
+    "status": true,
+    "explanation": "An API, or Application Programming Interface, is a set of rules and tools that allows different software applications to communicate and interact with each other. It was discussed in the last meeting to address how systems can share data and functionality."
+  },
+  {
+    "id": 47,
+    "term": "Agile",
+    "context": "I had an issue with Agile recently.",
+    "status": true,
+    "explanation": "Agile is a flexible approach to project management and software development that emphasizes collaboration, adaptability, and delivering work in short cycles called sprints."
+  },
+  {
+    "id": 48,
+    "term": "ORM",
+    "context": "Many developers use ORM for various tasks.",
+    "status": true,
+    "explanation": "ORM stands for Object-Relational Mapping, which is a programming technique that allows developers to interact with databases using object-oriented languages by automatically converting data between the database and objects in the code."
+  },
+  {
+    "id": 49,
+    "term": "VPN",
+    "context": "Why VPN matters is often underestimated.",
+    "status": true,
+    "explanation": "A VPN, or Virtual Private Network, is a service that creates a secure and encrypted connection over the internet, allowing users to browse privately and access restricted content."
+  },
+  {
+    "id": 50,
+    "term": "HTTPS",
+    "context": "HTTPS was discussed in the last meeting.",
+    "status": true,
+    "explanation": "HTTPS stands for Hypertext Transfer Protocol Secure, which is a secure version of HTTP used to encrypt data transmitted between a web browser and a website, ensuring privacy and security during online communication."
+  },
+  {
+    "id": 51,
+    "term": "Interpreter",
+    "context": "Interpreter was discussed in the last meeting.",
+    "status": true,
+    "explanation": "An interpreter is a person who translates spoken or written language from one language to another, allowing communication between people who speak different languages."
+  },
+  {
+    "id": 52,
+    "term": "Switch",
+    "context": "I had an issue with Switch recently.",
+    "status": true,
+    "explanation": "A \"Switch\" is a gaming console developed by Nintendo that allows players to play games on both television and portable devices."
+  },
+  {
+    "id": 53,
+    "term": "Tree",
+    "context": "Proper use of Tree improves reliability.",
+    "status": true,
+    "explanation": "A \"Tree\" in this context refers to a data structure that organizes information in a hierarchical way, with a root node and branches leading to child nodes, which helps improve reliability by providing a structured and efficient way to manage data."
+  },
+  {
+    "id": 54,
+    "term": "TCP",
+    "context": "TCP plays a key role in performance.",
+    "status": true,
+    "explanation": "TCP is a communication protocol that ensures reliable and ordered data transfer between devices over a network. It helps maintain connection stability and data integrity during transmission."
+  },
+  {
+    "id": 55,
+    "term": "Repository",
+    "context": "Proper use of Repository improves reliability.",
+    "status": true,
+    "explanation": "A Repository is a system or location where data, code, or other resources are stored and managed, often providing tools for version control and access. Using a Repository properly helps ensure that information is accurate, consistent, and easy to maintain."
+  },
+  {
+    "id": 56,
+    "term": "OAuth",
+    "context": "This is why OAuth is important in our systems.",
+    "status": true,
+    "explanation": "OAuth is an open-standard protocol that allows users to grant applications access to their resources without sharing their password. It enables secure authorization by letting users delegate permissions to third-party services."
+  },
+  {
+    "id": 57,
+    "term": "Data Structure",
+    "context": "We should learn more about Data Structure.",
+    "status": true,
+    "explanation": "A data structure is a way of organizing and storing data in a computer so that it can be accessed and used efficiently. It defines how data is arranged and manipulated."
+  },
+  {
+    "id": 58,
+    "term": "GCP",
+    "context": "This is why GCP is important in our systems.",
+    "status": true,
+    "explanation": "GCP stands for Google Cloud Platform, which is a set of cloud computing services provided by Google to help organizations build and deploy applications and manage data efficiently."
+  },
+  {
+    "id": 59,
+    "term": "Router",
+    "context": "Router was discussed in the last meeting.",
+    "status": true,
+    "explanation": "A router is a device that connects multiple networks and directs data traffic between them. It helps manage and route data packets to their correct destinations."
+  },
+  {
+    "id": 60,
+    "term": "Docker",
+    "context": "Proper use of Docker improves reliability.",
+    "status": true,
+    "explanation": "Docker is a platform that allows developers to package applications and their dependencies into containers, ensuring consistent behavior across different environments. Using Docker properly helps ensure that applications run reliably by maintaining the same environment from development to production."
+  },
+  {
+    "id": 61,
+    "term": "IaaS",
+    "context": "Our infrastructure depends heavily on IaaS.",
+    "status": true,
+    "explanation": "IaaS stands for Infrastructure as a Service, which means a company uses remote servers, storage, and networking resources provided by a third-party provider over the internet."
+  },
+  {
+    "id": 62,
+    "term": "Version Control",
+    "context": "Version Control plays a key role in performance.",
+    "status": true,
+    "explanation": "Version Control is a system that helps track and manage changes to files, allowing users to review, revert, and compare different versions of a document or code. It ensures that all changes are recorded and accessible, making it easier to maintain and improve work over time."
+  },
+  {
+    "id": 63,
+    "term": "Thread",
+    "context": "Thread plays a key role in performance.",
+    "status": true,
+    "explanation": "A thread is a separate path of execution that allows a program to perform multiple tasks concurrently, improving efficiency and performance."
+  },
+  {
+    "id": 64,
+    "term": "Heap",
+    "context": "This is why Heap is important in our systems.",
+    "status": true,
+    "explanation": "A heap is a data structure that allows efficient insertion and retrieval of the maximum or minimum element, commonly used for managing priority queues and optimizing performance in various algorithms."
+  },
+  {
+    "id": 65,
+    "term": "Graph",
+    "context": "Graph plays a key role in performance.",
+    "status": true,
+    "explanation": "A graph is a visual representation of data that shows the relationship between different sets of information, often used to display trends, comparisons, or patterns."
+  },
+  {
+    "id": 66,
+    "term": "Bandwidth",
+    "context": "Bandwidth plays a key role in performance.",
+    "status": true,
+    "explanation": "Bandwidth refers to the maximum amount of data that can be transmitted over a network connection in a given time, which directly affects how quickly information can be sent and received."
+  },
+  {
+    "id": 67,
+    "term": "Ruby",
+    "context": "Ruby plays a key role in performance.",
+    "status": true,
+    "explanation": "Ruby is a programming language known for its simplicity and productivity, often used for building web applications and scripts. It plays a key role in performance due to its efficient syntax and powerful features."
+  },
+  {
+    "id": 68,
+    "term": "Pull Request",
+    "context": "Pull Request plays a key role in performance.",
+    "status": true,
+    "explanation": "A Pull Request is a way to suggest and collaborate on changes to a project by proposing code modifications for review and merging into the main codebase. It helps ensure that changes are tested and approved before they are integrated."
+  },
+  {
+    "id": 69,
+    "term": "SQL",
+    "context": "I had an issue with SQL recently.",
+    "status": true,
+    "explanation": "SQL stands for Structured Query Language, which is used to manage and manipulate data in relational databases. It allows users to perform tasks like querying, updating, and managing database information."
+  },
+  {
+    "id": 70,
+    "term": "Training",
+    "context": "We should learn more about Training.",
+    "status": true,
+    "explanation": "Training is the process of learning and practicing skills or knowledge to improve performance or achieve a specific goal. It helps people gain the ability to do something effectively."
+  },
+  {
+    "id": 71,
+    "term": "CRUD",
+    "context": "CRUD plays a key role in performance.",
+    "status": true,
+    "explanation": "CRUD refers to the basic operations of creating, reading, updating, and deleting data, which are essential for managing information in databases and applications. These operations are fundamental to how systems handle and manipulate data efficiently."
+  },
+  {
+    "id": 72,
+    "term": "Model",
+    "context": "Why Model matters is often underestimated.",
+    "status": true,
+    "explanation": "A model is a simplified representation of something complex, used to understand, predict, or explain real-world phenomena. It helps break down difficult ideas into more manageable parts."
+  },
+  {
+    "id": 73,
+    "term": "Binary",
+    "context": "We should learn more about Binary.",
+    "status": true,
+    "explanation": "Binary is a system that uses only two digits, 0 and 1, to represent all data and instructions in computers. It is the fundamental language of digital technology."
+  },
+  {
+    "id": 74,
+    "term": "Database",
+    "context": "We should learn more about Database.",
+    "status": true,
+    "explanation": "A Database is an organized collection of data stored and managed electronically, allowing for efficient retrieval, storage, and management of information. It helps keep data structured and accessible for use by applications and users."
+  },
+  {
+    "id": 75,
+    "term": "SSL",
+    "context": "Proper use of SSL improves reliability.",
+    "status": true,
+    "explanation": "SSL stands for Secure Sockets Layer, a protocol that encrypts data sent between a web browser and a website, ensuring secure and private communication. It helps improve reliability by protecting information from being intercepted or altered during transmission."
+  },
+  {
+    "id": 76,
+    "term": "Server",
+    "context": "Why Server matters is often underestimated.",
+    "status": true,
+    "explanation": "A server is a computer or program that provides resources, data, or services to other computers or devices over a network. It plays a crucial role in supporting websites, applications, and online communication."
+  },
+  {
+    "id": 77,
+    "term": "CI/CD",
+    "context": "CI/CD was discussed in the last meeting.",
+    "status": true,
+    "explanation": "CI/CD stands for Continuous Integration and Continuous Delivery, which are practices used to automate the process of integrating code changes and delivering software updates frequently and reliably."
+  },
+  {
+    "id": 78,
+    "term": "Token",
+    "context": "Token plays a key role in performance.",
+    "status": true,
+    "explanation": "A token is a symbol or unit used to represent something else, and in the context of performance, it refers to a measurable element that affects how well a system or process functions."
+  },
+  {
+    "id": 79,
+    "term": "Process",
+    "context": "Why Process matters is often underestimated.",
+    "status": true,
+    "explanation": "A process is a series of steps or actions taken to achieve a specific goal or outcome. It defines how something is done from start to finish."
+  },
+  {
+    "id": 80,
+    "term": "SaaS",
+    "context": "Proper use of SaaS improves reliability.",
+    "status": true,
+    "explanation": "SaaS stands for Software as a Service, which is a type of cloud computing where software applications are delivered over the internet, allowing users to access and use them without needing to install or maintain the software locally."
+  },
+  {
+    "id": 81,
+    "term": "Bug",
+    "context": "Many developers use Bug for various tasks.",
+    "status": true,
+    "explanation": "A \"Bug\" is an error or flaw in a computer program that causes it to behave incorrectly or unexpectedly. In the sentence, \"Bug\" is used metaphorically to refer to any problem or task that needs to be fixed or addressed."
+  },
+  {
+    "id": 82,
+    "term": "Branch",
+    "context": "This is why Branch is important in our systems.",
+    "status": true,
+    "explanation": "A branch is a separate version of code or data that allows for changes to be made without affecting the main version, enabling parallel development and testing."
+  },
+  {
+    "id": 83,
+    "term": "Monitoring",
+    "context": "Proper use of Monitoring improves reliability.",
+    "status": true,
+    "explanation": "Monitoring is the process of observing and checking systems or processes to ensure they are working correctly and efficiently. It helps identify issues early and maintain reliable performance."
+  },
+  {
+    "id": 84,
+    "term": "DevOps",
+    "context": "This is why DevOps is important in our systems.",
+    "status": true,
+    "explanation": "DevOps is a practice that combines software development (Dev) and IT operations (Ops) to improve collaboration, automate processes, and deliver high-quality applications faster and more reliably."
+  },
+  {
+    "id": 85,
+    "term": "Array",
+    "context": "We should learn more about Array.",
+    "status": true,
+    "explanation": "An Array is a data structure that stores a collection of elements, all of the same type, in a fixed size and ordered manner. It allows you to access elements quickly using their index position."
+  },
+  {
+    "id": 86,
+    "term": "Cloud",
+    "context": "I had an issue with Cloud recently.",
+    "status": true,
+    "explanation": "\"Cloud\" refers to a network of remote servers used to store, manage, and process data, allowing users to access information and applications over the internet instead of using a local computer."
+  },
+  {
+    "id": 87,
+    "term": "IP Address",
+    "context": "Understanding IP Address is critical in tech.",
+    "status": true,
+    "explanation": "An IP Address is a unique numerical label assigned to each device connected to a network, allowing it to be identified and communicate over the internet. It serves as the address that directs data to the correct device."
+  },
+  {
+    "id": 88,
+    "term": "Firewall",
+    "context": "Understanding Firewall is critical in tech.",
+    "status": true,
+    "explanation": "A Firewall is a security system that monitors and controls incoming and outgoing network traffic based on predetermined security rules, helping to protect computer systems and networks from unauthorized access."
+  },
+  {
+    "id": 89,
+    "term": "Gateway",
+    "context": "Understanding Gateway is critical in tech.",
+    "status": true,
+    "explanation": "A Gateway is a device or software that connects different networks or systems, allowing communication and data transfer between them. It acts as an entry point and often manages traffic, security, and protocol conversion."
+  },
+  {
+    "id": 90,
+    "term": "Kanban",
+    "context": "Our infrastructure depends heavily on Kanban.",
+    "status": true,
+    "explanation": "Kanban is a method used to manage and improve workflows by visualizing tasks, limiting work in progress, and maximizing efficiency. It helps teams organize and prioritize their work to deliver results more effectively."
+  },
+  {
+    "id": 91,
+    "term": "Algorithm",
+    "context": "Why Algorithm matters is often underestimated.",
+    "status": true,
+    "explanation": "An algorithm is a set of step-by-step instructions designed to solve a problem or perform a task. It is the foundation of how computers process information and make decisions."
+  },
+  {
+    "id": 92,
+    "term": "Azure",
+    "context": "This is why Azure is important in our systems.",
+    "status": true,
+    "explanation": "Azure is a cloud computing platform provided by Microsoft that offers a wide range of services for building, deploying, and managing applications and infrastructure. It is important in our systems because it provides scalable, secure, and reliable solutions for handling complex computing needs."
+  },
+  {
+    "id": 93,
+    "term": "Queue",
+    "context": "Many developers use Queue for various tasks.",
+    "status": true,
+    "explanation": "A Queue is a data structure that holds elements in an order where the first element added is the first one to be removed, following the First-In-First-Out (FIFO) principle. Developers use Queue to manage tasks that need to be processed in the order they are received."
+  },
+  {
+    "id": 94,
+    "term": "Executable",
+    "context": "Why Executable matters is often underestimated.",
+    "status": true,
+    "explanation": "An executable is a file that contains instructions a computer can run directly to perform a task or start a program. It is a type of software that can be executed or run immediately."
+  },
+  {
+    "id": 95,
+    "term": "Latency",
+    "context": "Latency plays a key role in performance.",
+    "status": true,
+    "explanation": "Latency refers to the delay or time it takes for a system or process to respond to a request or input. It directly affects how quickly a system can perform tasks, which is why it is important for performance."
+  },
+  {
+    "id": 96,
+    "term": "DNS",
+    "context": "I had an issue with DNS recently.",
+    "status": true,
+    "explanation": "DNS stands for Domain Name System, which is a system that translates human-readable domain names, like \"example.com,\" into IP addresses that computers use to identify each other on the internet."
+  },
+  {
+    "id": 97,
+    "term": "CSS",
+    "context": "Why CSS matters is often underestimated.",
+    "status": true,
+    "explanation": "CSS stands for Cascading Style Sheets, and it is used to style and layout web pages by controlling the appearance of HTML elements. It allows developers to separate the design of a website from its structure, making it easier to manage and maintain."
+  },
+  {
+    "id": 98,
+    "term": "Issue",
+    "context": "This is why Issue is important in our systems.",
+    "status": true,
+    "explanation": "An \"Issue\" is a problem or concern that needs to be addressed within a system. It refers to anything that affects the proper functioning or performance of a system."
+  },
+  {
+    "id": 99,
+    "term": "AI",
+    "context": "AI was discussed in the last meeting.",
+    "status": true,
+    "explanation": "AI stands for Artificial Intelligence, which refers to machines or software designed to perform tasks that typically require human intelligence, such as learning, problem-solving, and decision-making."
+  },
+  {
+    "id": 100,
+    "term": "Compiler",
+    "context": "Many developers use Compiler for various tasks.",
+    "status": true,
+    "explanation": "A compiler is a program that translates source code written in a high-level programming language into machine code that a computer can execute. It converts human-readable code into instructions that the computer's hardware can understand and run."
+  }
+]

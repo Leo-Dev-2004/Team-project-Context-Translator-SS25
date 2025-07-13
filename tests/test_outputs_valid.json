@@ -1,0 +1,17 @@
+
+[
+  {
+    "id": 1,
+    "term": "API",
+    "context": "The API allows systems to communicate.",
+    "status": true,
+    "explanation": "An API is a set of rules that allow programs to talk to each other."
+  },
+  {
+    "id": 2,
+    "term": "Machine Learning",
+    "context": "Machine Learning improves predictions over time.",
+    "status": true,
+    "explanation": "Machine learning enables systems to learn from data and make decisions."
+  }
+]

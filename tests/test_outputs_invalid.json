@@ -1,0 +1,44 @@
+
+[
+  {
+    "id": 1,
+    "term": "API",
+    "context": "The API allows systems to communicate.",
+    "status": true,
+    "explanation": ""
+  },
+  {
+    "id": 2,
+    "term": "Machine Learning",
+    "context": "ML helps improve performance.",
+    "status": true,
+    "explanation": ""
+  },
+  {
+    "id": 3,
+    "term": "Algorithm",
+    "context": "An algorithm is a sequence of steps.",
+    "status": true,
+    "explanation": "Algorithm"
+  },
+  {
+    "id": 4,
+    "term": "Data",
+    "context": "Data is raw information.",
+    "status": true,
+    "explanation": "A group"
+  },
+  {
+    "id": 5,
+    "term": "Model",
+    "context": "A model makes predictions.",
+    "status": false,
+    "explanation": "A model is a mathematical representation of a process."
+  },
+  {
+    "id": 6,
+    "term": "Training",
+    "status": true,
+    "explanation": "Training is essential for model performance."
+  }
+]

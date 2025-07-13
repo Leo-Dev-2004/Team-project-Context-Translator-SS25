@@ -1,0 +1,1212 @@
+
+[
+  {
+    "id": 1,
+    "term": "Java",
+    "context": "I had an issue with Java recently.",
+    "status": false
+  },
+  {
+    "id": 2,
+    "term": "Microservices",
+    "context": "Microservices plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 3,
+    "term": "Stack",
+    "context": "Understanding Stack is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 4,
+    "term": "Machine Learning",
+    "context": "Machine Learning plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 5,
+    "term": "Scaling",
+    "context": "Understanding Scaling is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 6,
+    "term": "JavaScript",
+    "context": "JavaScript plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 7,
+    "term": "Python",
+    "context": "This is why Python is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 8,
+    "term": "FTP",
+    "context": "FTP was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 9,
+    "term": "Inference",
+    "context": "Why Inference matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 10,
+    "term": "Proxy",
+    "context": "Our infrastructure depends heavily on Proxy.",
+    "status": false
+  },
+  {
+    "id": 11,
+    "term": "Index",
+    "context": "Proper use of Index improves reliability.",
+    "status": false
+  },
+  {
+    "id": 12,
+    "term": "Backup",
+    "context": "Our infrastructure depends heavily on Backup.",
+    "status": false
+  },
+  {
+    "id": 13,
+    "term": "SSH",
+    "context": "Why SSH matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 14,
+    "term": "Load Balancer",
+    "context": "Our infrastructure depends heavily on Load Balancer.",
+    "status": false
+  },
+  {
+    "id": 15,
+    "term": "Kubernetes",
+    "context": "This is why Kubernetes is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 16,
+    "term": "JWT",
+    "context": "This is why JWT is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 17,
+    "term": "List",
+    "context": "Why List matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 18,
+    "term": "C#",
+    "context": "Why C# matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 19,
+    "term": "Debugger",
+    "context": "This is why Debugger is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 20,
+    "term": "UDP",
+    "context": "Our infrastructure depends heavily on UDP.",
+    "status": false
+  },
+  {
+    "id": 21,
+    "term": "Fork",
+    "context": "Fork was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 22,
+    "term": "IDE",
+    "context": "IDE was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 23,
+    "term": "Patch",
+    "context": "We should learn more about Patch.",
+    "status": false
+  },
+  {
+    "id": 24,
+    "term": "Session",
+    "context": "Our infrastructure depends heavily on Session.",
+    "status": false
+  },
+  {
+    "id": 25,
+    "term": "Release",
+    "context": "Release was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 26,
+    "term": "Dataset",
+    "context": "Our infrastructure depends heavily on Dataset.",
+    "status": false
+  },
+  {
+    "id": 27,
+    "term": "Cache",
+    "context": "This is why Cache is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 28,
+    "term": "NoSQL",
+    "context": "Our infrastructure depends heavily on NoSQL.",
+    "status": false
+  },
+  {
+    "id": 29,
+    "term": "Merge",
+    "context": "We should learn more about Merge.",
+    "status": false
+  },
+  {
+    "id": 30,
+    "term": "TLS",
+    "context": "Understanding TLS is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 31,
+    "term": "AWS",
+    "context": "I had an issue with AWS recently.",
+    "status": false
+  },
+  {
+    "id": 32,
+    "term": "Client",
+    "context": "We should learn more about Client.",
+    "status": false
+  },
+  {
+    "id": 33,
+    "term": "Restore",
+    "context": "This is why Restore is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 34,
+    "term": "Scrum",
+    "context": "Scrum was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 35,
+    "term": "Ping",
+    "context": "Understanding Ping is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 36,
+    "term": "HTTP",
+    "context": "Understanding HTTP is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 37,
+    "term": "Cookie",
+    "context": "Cookie was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 38,
+    "term": "Commit",
+    "context": "Many developers use Commit for various tasks.",
+    "status": false
+  },
+  {
+    "id": 39,
+    "term": "HTML",
+    "context": "Proper use of HTML improves reliability.",
+    "status": false
+  },
+  {
+    "id": 40,
+    "term": "PaaS",
+    "context": "PaaS plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 41,
+    "term": "Container",
+    "context": "We should learn more about Container.",
+    "status": false
+  },
+  {
+    "id": 42,
+    "term": "Git",
+    "context": "Many developers use Git for various tasks.",
+    "status": false
+  },
+  {
+    "id": 43,
+    "term": "C++",
+    "context": "Proper use of C++ improves reliability.",
+    "status": false
+  },
+  {
+    "id": 44,
+    "term": "Rust",
+    "context": "Understanding Rust is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 45,
+    "term": "Go",
+    "context": "We should learn more about Go.",
+    "status": false
+  },
+  {
+    "id": 46,
+    "term": "API",
+    "context": "API was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 47,
+    "term": "Agile",
+    "context": "I had an issue with Agile recently.",
+    "status": false
+  },
+  {
+    "id": 48,
+    "term": "ORM",
+    "context": "Many developers use ORM for various tasks.",
+    "status": false
+  },
+  {
+    "id": 49,
+    "term": "VPN",
+    "context": "Why VPN matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 50,
+    "term": "HTTPS",
+    "context": "HTTPS was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 51,
+    "term": "Interpreter",
+    "context": "Interpreter was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 52,
+    "term": "Switch",
+    "context": "I had an issue with Switch recently.",
+    "status": false
+  },
+  {
+    "id": 53,
+    "term": "Tree",
+    "context": "Proper use of Tree improves reliability.",
+    "status": false
+  },
+  {
+    "id": 54,
+    "term": "TCP",
+    "context": "TCP plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 55,
+    "term": "Repository",
+    "context": "Proper use of Repository improves reliability.",
+    "status": false
+  },
+  {
+    "id": 56,
+    "term": "OAuth",
+    "context": "This is why OAuth is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 57,
+    "term": "Data Structure",
+    "context": "We should learn more about Data Structure.",
+    "status": false
+  },
+  {
+    "id": 58,
+    "term": "GCP",
+    "context": "This is why GCP is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 59,
+    "term": "Router",
+    "context": "Router was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 60,
+    "term": "Docker",
+    "context": "Proper use of Docker improves reliability.",
+    "status": false
+  },
+  {
+    "id": 61,
+    "term": "IaaS",
+    "context": "Our infrastructure depends heavily on IaaS.",
+    "status": false
+  },
+  {
+    "id": 62,
+    "term": "Version Control",
+    "context": "Version Control plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 63,
+    "term": "Thread",
+    "context": "Thread plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 64,
+    "term": "Heap",
+    "context": "This is why Heap is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 65,
+    "term": "Graph",
+    "context": "Graph plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 66,
+    "term": "Bandwidth",
+    "context": "Bandwidth plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 67,
+    "term": "Ruby",
+    "context": "Ruby plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 68,
+    "term": "Pull Request",
+    "context": "Pull Request plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 69,
+    "term": "SQL",
+    "context": "I had an issue with SQL recently.",
+    "status": false
+  },
+  {
+    "id": 70,
+    "term": "Training",
+    "context": "We should learn more about Training.",
+    "status": false
+  },
+  {
+    "id": 71,
+    "term": "CRUD",
+    "context": "CRUD plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 72,
+    "term": "Model",
+    "context": "Why Model matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 73,
+    "term": "Binary",
+    "context": "We should learn more about Binary.",
+    "status": false
+  },
+  {
+    "id": 74,
+    "term": "Database",
+    "context": "We should learn more about Database.",
+    "status": false
+  },
+  {
+    "id": 75,
+    "term": "SSL",
+    "context": "Proper use of SSL improves reliability.",
+    "status": false
+  },
+  {
+    "id": 76,
+    "term": "Server",
+    "context": "Why Server matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 77,
+    "term": "CI/CD",
+    "context": "CI/CD was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 78,
+    "term": "Token",
+    "context": "Token plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 79,
+    "term": "Process",
+    "context": "Why Process matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 80,
+    "term": "SaaS",
+    "context": "Proper use of SaaS improves reliability.",
+    "status": false
+  },
+  {
+    "id": 81,
+    "term": "Bug",
+    "context": "Many developers use Bug for various tasks.",
+    "status": false
+  },
+  {
+    "id": 82,
+    "term": "Branch",
+    "context": "This is why Branch is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 83,
+    "term": "Monitoring",
+    "context": "Proper use of Monitoring improves reliability.",
+    "status": false
+  },
+  {
+    "id": 84,
+    "term": "DevOps",
+    "context": "This is why DevOps is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 85,
+    "term": "Array",
+    "context": "We should learn more about Array.",
+    "status": false
+  },
+  {
+    "id": 86,
+    "term": "Cloud",
+    "context": "I had an issue with Cloud recently.",
+    "status": false
+  },
+  {
+    "id": 87,
+    "term": "IP Address",
+    "context": "Understanding IP Address is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 88,
+    "term": "Firewall",
+    "context": "Understanding Firewall is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 89,
+    "term": "Gateway",
+    "context": "Understanding Gateway is critical in tech.",
+    "status": false
+  },
+  {
+    "id": 90,
+    "term": "Kanban",
+    "context": "Our infrastructure depends heavily on Kanban.",
+    "status": false
+  },
+  {
+    "id": 91,
+    "term": "Algorithm",
+    "context": "Why Algorithm matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 92,
+    "term": "Azure",
+    "context": "This is why Azure is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 93,
+    "term": "Queue",
+    "context": "Many developers use Queue for various tasks.",
+    "status": false
+  },
+  {
+    "id": 94,
+    "term": "Executable",
+    "context": "Why Executable matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 95,
+    "term": "Latency",
+    "context": "Latency plays a key role in performance.",
+    "status": false
+  },
+  {
+    "id": 96,
+    "term": "DNS",
+    "context": "I had an issue with DNS recently.",
+    "status": false
+  },
+  {
+    "id": 97,
+    "term": "CSS",
+    "context": "Why CSS matters is often underestimated.",
+    "status": false
+  },
+  {
+    "id": 98,
+    "term": "Issue",
+    "context": "This is why Issue is important in our systems.",
+    "status": false
+  },
+  {
+    "id": 99,
+    "term": "AI",
+    "context": "AI was discussed in the last meeting.",
+    "status": false
+  },
+  {
+    "id": 100,
+    "term": "Compiler",
+    "context": "Many developers use Compiler for various tasks.",
+    "status": false
+  },
+  {
+
+    "id": 300,
+    "term": "SSL Certificate",
+    "context": "SSL Certificate is a critical component of our network.",
+    "status": false
+  },
+  {
+    "id": 301,
+    "term": "Product Diversification",
+    "context": "Product Diversification is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 302,
+    "term": "Sales Enablement",
+    "context": "Sales Enablement influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 303,
+    "term": "Sales Funnel",
+    "context": "Our strategy includes improvements to Sales Funnel.",
+    "status": false
+  },
+  {
+    "id": 304,
+    "term": "Market Research",
+    "context": "Our strategy includes improvements to Market Research.",
+    "status": false
+  },
+  {
+    "id": 305,
+    "term": "Gross Profit",
+    "context": "Last month's meeting covered updates on Gross Profit.",
+    "status": false
+  },
+  {
+    "id": 306,
+    "term": "HR Analytics",
+    "context": "HR Analytics influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 307,
+    "term": "Business Model",
+    "context": "The board mentioned Business Model during the financial report.",
+    "status": false
+  },
+  {
+    "id": 308,
+    "term": "Portfolio Management",
+    "context": "The board mentioned Portfolio Management during the financial report.",
+    "status": false
+  },
+  {
+    "id": 309,
+    "term": "Customer Journey",
+    "context": "Customer Journey influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 310,
+    "term": "Procurement Strategy",
+    "context": "The board mentioned Procurement Strategy during the financial report.",
+    "status": false
+  },
+  {
+    "id": 311,
+    "term": "Sales Performance",
+    "context": "Last month's meeting covered updates on Sales Performance.",
+    "status": false
+  },
+  {
+    "id": 312,
+    "term": "SWOT Analysis",
+    "context": "Our strategy includes improvements to SWOT Analysis.",
+    "status": false
+  },
+  {
+    "id": 313,
+    "term": "Value Proposition",
+    "context": "Value Proposition is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 314,
+    "term": "Service Level Agreement",
+    "context": "Our strategy includes improvements to Service Level Agreement.",
+    "status": false
+  },
+  {
+    "id": 315,
+    "term": "Digital Transformation",
+    "context": "Digital Transformation is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 316,
+    "term": "Brand Loyalty",
+    "context": "Brand Loyalty influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 317,
+    "term": "Client Onboarding",
+    "context": "Last month's meeting covered updates on Client Onboarding.",
+    "status": false
+  },
+  {
+    "id": 318,
+    "term": "Cost Leadership",
+    "context": "Cost Leadership influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 319,
+    "term": "Email Campaigns",
+    "context": "The board mentioned Email Campaigns during the financial report.",
+    "status": false
+  },
+  {
+    "id": 320,
+    "term": "Upselling",
+    "context": "Our strategy includes improvements to Upselling.",
+    "status": false
+  },
+  {
+    "id": 321,
+    "term": "Brand Awareness",
+    "context": "Brand Awareness influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 322,
+    "term": "Partnership Model",
+    "context": "Our strategy includes improvements to Partnership Model.",
+    "status": false
+  },
+  {
+    "id": 323,
+    "term": "Inventory Management",
+    "context": "Our strategy includes improvements to Inventory Management.",
+    "status": false
+  },
+  {
+    "id": 324,
+    "term": "Agile Methodology",
+    "context": "Last month's meeting covered updates on Agile Methodology.",
+    "status": false
+  },
+  {
+    "id": 325,
+    "term": "Digital Marketing",
+    "context": "Last month's meeting covered updates on Digital Marketing.",
+    "status": false
+  },
+  {
+    "id": 326,
+    "term": "Operational Efficiency",
+    "context": "Operational Efficiency influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 327,
+    "term": "Employer Branding",
+    "context": "Employer Branding influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 328,
+    "term": "Customer Retention",
+    "context": "Last month's meeting covered updates on Customer Retention.",
+    "status": false
+  },
+  {
+    "id": 329,
+    "term": "SEO Ranking",
+    "context": "Last month's meeting covered updates on SEO Ranking.",
+    "status": false
+  },
+  {
+    "id": 330,
+    "term": "Customer Onboarding",
+    "context": "Last month's meeting covered updates on Customer Onboarding.",
+    "status": false
+  },
+  {
+    "id": 331,
+    "term": "Organizational Culture",
+    "context": "The board mentioned Organizational Culture during the financial report.",
+    "status": false
+  },
+  {
+    "id": 332,
+    "term": "Content Strategy",
+    "context": "Our strategy includes improvements to Content Strategy.",
+    "status": false
+  },
+  {
+    "id": 333,
+    "term": "KPIs",
+    "context": "KPIs influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 334,
+    "term": "Workforce Planning",
+    "context": "Our strategy includes improvements to Workforce Planning.",
+    "status": false
+  },
+  {
+    "id": 335,
+    "term": "CRM System",
+    "context": "CRM System is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 336,
+    "term": "Sales Target",
+    "context": "Sales Target is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 337,
+    "term": "Strategic Planning",
+    "context": "Last month's meeting covered updates on Strategic Planning.",
+    "status": false
+  },
+  {
+    "id": 338,
+    "term": "Budgeting",
+    "context": "The board mentioned Budgeting during the financial report.",
+    "status": false
+  },
+  {
+    "id": 339,
+    "term": "Performance Review",
+    "context": "Our strategy includes improvements to Performance Review.",
+    "status": false
+  },
+  {
+    "id": 340,
+    "term": "Net Profit",
+    "context": "Last month's meeting covered updates on Net Profit.",
+    "status": false
+  },
+  {
+    "id": 341,
+    "term": "Go-to-Market Strategy",
+    "context": "Go-to-Market Strategy is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 342,
+    "term": "Outsourcing",
+    "context": "Our strategy includes improvements to Outsourcing.",
+    "status": false
+  },
+  {
+    "id": 343,
+    "term": "Cross-Selling",
+    "context": "Our strategy includes improvements to Cross-Selling.",
+    "status": false
+  },
+  {
+    "id": 344,
+    "term": "ROI",
+    "context": "ROI influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 345,
+    "term": "Cash Flow",
+    "context": "Our strategy includes improvements to Cash Flow.",
+    "status": false
+  },
+  {
+    "id": 346,
+    "term": "Conversion Rate",
+    "context": "Our strategy includes improvements to Conversion Rate.",
+    "status": false
+  },
+  {
+    "id": 347,
+    "term": "MVP",
+    "context": "Last month's meeting covered updates on MVP.",
+    "status": false
+  },
+  {
+    "id": 348,
+    "term": "Risk Assessment",
+    "context": "Risk Assessment is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 349,
+    "term": "Operating Margin",
+    "context": "Operating Margin is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 350,
+    "term": "Change Management",
+    "context": "Change Management influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 351,
+    "term": "B2C Marketing",
+    "context": "Last month's meeting covered updates on B2C Marketing.",
+    "status": false
+  },
+  {
+    "id": 352,
+    "term": "Break-Even Point",
+    "context": "Break-Even Point is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 353,
+    "term": "Forecast Accuracy",
+    "context": "Our strategy includes improvements to Forecast Accuracy.",
+    "status": false
+  },
+  {
+    "id": 354,
+    "term": "Affiliate Marketing",
+    "context": "Affiliate Marketing influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 355,
+    "term": "Account Management",
+    "context": "Account Management is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 356,
+    "term": "Profit Margin",
+    "context": "Profit Margin is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 357,
+    "term": "Revenue",
+    "context": "Our strategy includes improvements to Revenue.",
+    "status": false
+  },
+  {
+    "id": 358,
+    "term": "Succession Planning",
+    "context": "Last month's meeting covered updates on Succession Planning.",
+    "status": false
+  },
+  {
+    "id": 359,
+    "term": "Expense Management",
+    "context": "The board mentioned Expense Management during the financial report.",
+    "status": false
+  },
+  {
+    "id": 360,
+    "term": "Product-Market Fit",
+    "context": "Product-Market Fit is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 361,
+    "term": "Web Traffic",
+    "context": "Web Traffic influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 362,
+    "term": "Customer Lifetime Value",
+    "context": "Last month's meeting covered updates on Customer Lifetime Value.",
+    "status": false
+  },
+  {
+    "id": 363,
+    "term": "Social Media Engagement",
+    "context": "The board mentioned Social Media Engagement during the financial report.",
+    "status": false
+  },
+  {
+    "id": 364,
+    "term": "Brand Equity",
+    "context": "The board mentioned Brand Equity during the financial report.",
+    "status": false
+  },
+  {
+    "id": 365,
+    "term": "Freemium Model",
+    "context": "Last month's meeting covered updates on Freemium Model.",
+    "status": false
+  },
+  {
+    "id": 366,
+    "term": "Customer Advocacy",
+    "context": "Customer Advocacy is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 367,
+    "term": "Financial Forecast",
+    "context": "Financial Forecast influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 368,
+    "term": "Stakeholder",
+    "context": "Our strategy includes improvements to Stakeholder.",
+    "status": false
+  },
+  {
+    "id": 369,
+    "term": "Competitive Advantage",
+    "context": "Competitive Advantage is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 370,
+    "term": "Ad Spend",
+    "context": "Our strategy includes improvements to Ad Spend.",
+    "status": false
+  },
+  {
+    "id": 371,
+    "term": "Revenue Forecasting",
+    "context": "Revenue Forecasting influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 372,
+    "term": "Supply Chain",
+    "context": "Last month's meeting covered updates on Supply Chain.",
+    "status": false
+  },
+  {
+    "id": 373,
+    "term": "Lean Management",
+    "context": "Lean Management is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 374,
+    "term": "Revenue Streams",
+    "context": "Revenue Streams influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 375,
+    "term": "Leadership Development",
+    "context": "Last month's meeting covered updates on Leadership Development.",
+    "status": false
+  },
+  {
+    "id": 376,
+    "term": "Market Penetration",
+    "context": "The board mentioned Market Penetration during the financial report.",
+    "status": false
+  },
+  {
+    "id": 377,
+    "term": "Value Chain",
+    "context": "Value Chain is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 378,
+    "term": "Benchmarking",
+    "context": "Benchmarking is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 379,
+    "term": "Logistics",
+    "context": "Our strategy includes improvements to Logistics.",
+    "status": false
+  },
+  {
+    "id": 380,
+    "term": "Pricing Strategy",
+    "context": "Last month's meeting covered updates on Pricing Strategy.",
+    "status": false
+  },
+  {
+    "id": 381,
+    "term": "Omnichannel Strategy",
+    "context": "Omnichannel Strategy is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 382,
+    "term": "Negotiation Tactics",
+    "context": "Last month's meeting covered updates on Negotiation Tactics.",
+    "status": false
+  },
+  {
+    "id": 383,
+    "term": "B2B Sales",
+    "context": "Our strategy includes improvements to B2B Sales.",
+    "status": false
+  },
+  {
+    "id": 384,
+    "term": "Growth Strategy",
+    "context": "Last month's meeting covered updates on Growth Strategy.",
+    "status": false
+  },
+  {
+    "id": 385,
+    "term": "Click-Through Rate",
+    "context": "The board mentioned Click-Through Rate during the financial report.",
+    "status": false
+  },
+  {
+    "id": 386,
+    "term": "Revenue Growth",
+    "context": "The board mentioned Revenue Growth during the financial report.",
+    "status": false
+  },
+  {
+    "id": 387,
+    "term": "Sales Quota",
+    "context": "Our strategy includes improvements to Sales Quota.",
+    "status": false
+  },
+  {
+    "id": 388,
+    "term": "Customer Feedback",
+    "context": "Customer Feedback influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 389,
+    "term": "Churn Rate",
+    "context": "Churn Rate influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 390,
+    "term": "Lead Nurturing",
+    "context": "Lead Nurturing influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 391,
+    "term": "E-commerce Conversion",
+    "context": "Our strategy includes improvements to E-commerce Conversion.",
+    "status": false
+  },
+  {
+    "id": 392,
+    "term": "Balance Sheet",
+    "context": "Last month's meeting covered updates on Balance Sheet.",
+    "status": false
+  },
+  {
+    "id": 393,
+    "term": "Vendor Management",
+    "context": "Our strategy includes improvements to Vendor Management.",
+    "status": false
+  },
+  {
+    "id": 394,
+    "term": "Differentiation Strategy",
+    "context": "Differentiation Strategy is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 395,
+    "term": "Customer Segmentation",
+    "context": "Last month's meeting covered updates on Customer Segmentation.",
+    "status": false
+  },
+  {
+    "id": 396,
+    "term": "Channel Strategy",
+    "context": "The board mentioned Channel Strategy during the financial report.",
+    "status": false
+  },
+  {
+    "id": 397,
+    "term": "Market Share",
+    "context": "Market Share is one of the KPIs we track this quarter.",
+    "status": false
+  },
+  {
+    "id": 398,
+    "term": "Lead Generation",
+    "context": "The board mentioned Lead Generation during the financial report.",
+    "status": false
+  },
+  {
+    "id": 399,
+    "term": "Upsell Opportunities",
+    "context": "Upsell Opportunities influences our overall business growth.",
+    "status": false
+  },
+  {
+    "id": 400,
+    "term": "Innovation Management",
+    "context": "The board mentioned Innovation Management during the financial report.",
+    "status": false
+  }
+
+]
+
