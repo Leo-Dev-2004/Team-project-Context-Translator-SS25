@@ -1,0 +1,104 @@
+[
+  {
+    "id": 1,
+    "term": "gradient descent",
+    "context": "You can summarize this algorithm or this procedure as what's known as gradient descent.",
+    "status": false
+  },
+  {
+    "id": 2,
+    "term": "pseudocode",
+    "context": "In pseudocode, it looks like this:",
+    "status": false
+  },
+  {
+    "id": 3,
+    "term": "register allocation",
+    "context": "",
+    "status": false
+  },
+  {
+    "id": 4,
+    "term": "weights",
+    "context": "We start by randomly initializing our weights.",
+    "status": false
+  },
+  {
+    "id": 5,
+    "term": "loss landscape",
+    "context": "This means we randomly pick a place in our loss landscape.",
+    "status": false
+  },
+  {
+    "id": 6,
+    "term": "\u03b4J/\\u03c1W",
+    "context": "Next, we compute the gradient here, called \u2202J/\u2202W.",
+    "status": false
+  },
+  {
+    "id": 7,
+    "term": "loss",
+    "context": "This tells us how much a small change in our weights changes our loss.",
+    "status": false
+  },
+  {
+    "id": 8,
+    "term": "gradient",
+    "context": "We multiply the gradient by negative one to go in the opposite direction.",
+    "status": false
+  },
+  {
+    "id": 9,
+    "term": "eta",
+    "context": "Eta here is how far we move in that direction.",
+    "status": false
+  },
+  {
+    "id": 10,
+    "term": "loop",
+    "context": "We repeat this in a loop over and over again.",
+    "status": false
+  },
+  {
+    "id": 11,
+    "term": "direction term",
+    "context": "Now, I want to draw your attention to this term: this is the direction term.",
+    "status": false
+  },
+  {
+    "id": 12,
+    "term": "compute",
+    "context": "But I never actually told you how to compute this, right?",
+    "status": false
+  },
+  {
+    "id": 13,
+    "term": "backpropagation",
+    "context": "I think it would be helpful to walk through a step-by-step example of how backpropagation works.",
+    "status": false
+  },
+  {
+    "id": 14,
+    "term": "neural network",
+    "context": "We'll see how to compute the gradient for a particular neural network.",
+    "status": false
+  },
+  {
+    "id": 15,
+    "term": "neuron",
+    "context": "It consists of one input, one output, and one hidden neuron in the middle.",
+    "status": false
+  },
+  {
+    "id": 16,
+    "term": "W\u2082",
+    "context": "That means: how much does a small change in W\u2082 affect our loss?",
+    "status": false
+  },
+  {
+    "id": 17,
+    "term": "chain rule",
+    "context": "Then we can use the chain rule to decompose it.",
+    "status": false
+  }
+]

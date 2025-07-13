@@ -1,0 +1,33 @@
+You can summarize this algorithm or this procedure as what's known as gradient descent.
+In pseudocode, it looks like this:
+
+We start by randomly initializing our weights.
+This means we randomly pick a place in our loss landscape.
+Next, we compute the gradient here, called ∂J/∂W.
+This tells us how much a small change in our weights changes our loss.
+It gives us the direction in which we should change our weights to increase our loss.
+But since we want to decrease the loss, we take a small step in the opposite direction.
+We multiply the gradient by negative one to go in the opposite direction.
+Then, we multiply it by a small step size—let's call it eta (η).
+Eta here is how far we move in that direction.
+We repeat this in a loop over and over again.
+
+In TensorFlow, you can see this process represented in exactly the same way.
+Now, I want to draw your attention to this term: this is the direction term.
+It tells us the gradient.
+The gradient tells us which direction is going up—or which direction is going down, if we take the negative of it.
+But I never actually told you how to compute this, right?
+I just told you that we need to compute it.
+
+The process of computing the gradient in a neural network is called backpropagation.
+I think it would be helpful to walk through a step-by-step example of how backpropagation works.
+We'll see how to compute the gradient for a particular neural network.
+
+For demonstration, we'll start with the simplest neural network that exists.
+It consists of one input, one output, and one hidden neuron in the middle.
+You really can’t get a simpler network than this.
+
+We want to compute the gradient of our loss J with respect to W₂.
+That means: how much does a small change in W₂ affect our loss?
+We can write out this derivative in mathematical form.
+Then we can use the chain rule to decompose it.

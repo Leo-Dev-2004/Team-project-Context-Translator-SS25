@@ -1,0 +1,12 @@
+Today we’ll discuss Principal Component Analysis, a common technique for dimensionality reduction.
+PCA transforms the data to a new coordinate system using linear algebra.
+The principal components are the eigenvectors of the covariance matrix of the data.
+We begin by centering the data, subtracting the mean from each feature.
+Next, we compute the covariance matrix to capture the pairwise feature relationships.
+Eigen decomposition of this matrix reveals the directions of maximum variance.
+The eigenvalues indicate the amount of variance captured by each principal component.
+We sort the components by descending eigenvalue magnitude to prioritize important features.
+Projecting the data onto the top k components reduces dimensionality while preserving structure.
+This projection minimizes reconstruction error in the least-squares sense.
+PCA assumes linear relationships and may not perform well on highly non-linear data.
+
