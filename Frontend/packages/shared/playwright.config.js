@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   use: {
     // Make sure this matches your development server URL
-    baseURL: 'http://localhost:5175',
+    baseURL: 'http://localhost:5173',
     // Add longer timeouts for element operations
     actionTimeout: 10000,
     // Add timeout for expect operations
