@@ -7,6 +7,7 @@ import time
 import re
 import logging
 import websockets
+import sys
 import json
 from uuid import uuid4
 from faster_whisper import WhisperModel
@@ -93,6 +94,41 @@ async def send_websocket_message(websocket, msg_type, payload, client_id):
     }
     await websocket.send(json.dumps(message))
     logger.info(f"Gesendet an Backend ({msg_type}): {payload.get('text', str(payload))[:100]}...")
+
+# --- Nachrichten auf der Electron-Seite verarbeiten ---
+def process_electron_message(message_json):
+    try:
+        message = json.loads(message_json)
+        msg_type = message.get("type")
+        payload = message.get("payload", {})
+
+        if msg_type == "Session.start":
+            logger.info(f"Starting session with ID: {payload.get('sessionId')}")
+            #hier für meeting start
+        elif msg_type == "Session.join":
+            logger.info(f"Joining session with ID:{payload.get('sessionId')}")
+            #hier für meeting join
+        elif msg_type == "Message.send":
+            logger.info(f"Received message from {payload.get('senderId')}: {payload.get('content')}")
+            #hier für nachrichten senden
+        else:
+            logger.error(f"Unknown message type from Electron: {msg_type}")
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON received from Electron: {message_json}")
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+
+def listen_to_electron():
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line:
+                break
+            line = line.strip()
+            if line:
+                process_electron_message(line)
+        except Exception as e:
+            logger.error(f"Reading from stdin failed: {e}")
 
 
 # --- Transkriptions- und Sende-Funktion an Backend über WebSocket ---
@@ -223,6 +259,9 @@ async def transcribe_and_send_to_backend():
 
 # --- Hauptausführung ---
 if __name__ == "__main__":
+    listener_thread = threading.Thread(target=listen_to_electron, daemon=True)
+    listener_thread.start()
+
     try:
         asyncio.run(transcribe_and_send_to_backend())
     except KeyboardInterrupt:
