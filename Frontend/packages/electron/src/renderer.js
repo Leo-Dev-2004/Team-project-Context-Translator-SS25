@@ -46,6 +46,17 @@ class ElectronMyElement extends UI {
         const version = await window.electronAPI.getAppVersion();
         console.log('App version:', version);
 
+        window.electronAPI.onPythonResponse((event, msg) => {
+          console.log('Python antwortete:', msg);
+          this._showNotification(`Python: ${msg.message || 'Antwort erhalten'}`);
+        });
+
+        window.electronAPI.onPythonError((event, msg) => {
+          console.error('Fehler vom Python-Modul:', msg.message);
+          this._showNotification(`Python Fehler: ${msg.message}`, 'error');
+        });
+      
+
       } catch (error) {
         console.error('Electron initialization error:', error);
       }

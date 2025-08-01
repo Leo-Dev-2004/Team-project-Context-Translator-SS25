@@ -3,6 +3,10 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs/promises'
 import os from 'os'
+import { spawn } from 'child_process'
+import path from 'path'
+
+let pythonProcess = null
 
 console.log('--- main.js started executing ---'); // <<< FÜGEN SIE DIESE ZEILE HIER HINZU!
 
@@ -32,6 +36,49 @@ function createWindow() {
     icon: join(__dirname, '../assets/icon.png') // Add icon if available
   })
 
+function startPythonSTTProcess() {
+  if (pythonProcess) {
+    console.log('Python STT process already running.')
+    return
+  }
+
+  const pythonScriptPath = path.join(__dirname, '..', '..', 'Backend', 'STT', 'transcribe.py')
+
+  pythonProcess = spawn('python', [pythonScriptPath], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    cwd: path.dirname(pythonScriptPath),
+    env: process.env
+  })
+
+  pythonProcess.stdout.setEncoding('utf8')
+  pythonProcess.stdout.on('data', (data) => {
+    data.trim().split('\n').forEach(line => {
+      try {
+        const msg = JSON.parse(line)
+        console.log('Received from Python:', msg)
+        if (msg.status === 'success') {
+          mainWindow?.webContents.send('python-response', msg)
+        } else if (msg.status === 'error') {
+          console.error('Fehlermeldung von Python:', msg.message)
+          mainWindow?.webContents.send('python-error',msg)
+        } else {
+          mainWindow?.webContents.send('python-event', msg)
+        }
+      } catch (e) {
+        console.error('Error parsing Python stdout line:', line)
+      }
+    })
+  })
+  pythonProcess.stderr.setEncoding('utf8')
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`Python STDERR: ${data}`)
+  })
+
+  pythonProcess.on('close', (code) => {
+    console.log(`Python process exit with code ${code}`)
+    pythonProcess = null
+  })
+}
   // Load the app
   if (isDev) {
     mainWindow.loadURL('http://localhost:5174')
@@ -112,6 +159,8 @@ app.whenReady().then(() => {
   createWindow()
   createMenu()
 
+  startPythonSTTProcess()
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
@@ -176,4 +225,16 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   const { dialog } = await import('electron')
   const result = await dialog.showOpenDialog(mainWindow, options)
   return result
+})
+
+ipcMain.handle('send-python-command', (event, command, payload = {}) => {
+  if (!pythonProcess) {
+    console.error('Python process not running, cannot send command.')
+    return { success: false, error: 'Python process not running' }
+  }
+
+  const message = JSON.stringify({ command, ...payload }) + '\n'
+  pythonProcess.stdin.write(message)
+  console.log(`Sent to Python: ${message.trim()}`)
+  return { success: true }
 })

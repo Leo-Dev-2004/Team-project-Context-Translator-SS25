@@ -11,6 +11,8 @@ import sys
 import json
 from uuid import uuid4
 from faster_whisper import WhisperModel
+from Backend.core.Queues import queues
+from Backend.models.UniversalMessage import UniversalMessage
 
 # --- Configuration ---
 CHUNK_DURATION_SEC = 1.0  # Process smaller chunks more frequently for responsiveness
@@ -51,6 +53,9 @@ current_buffered_text = ""
 last_segment_end_time = 0.0 # Tracks the end time of the last processed segment
 last_transcription_send_time = time.time() # Tracks when the last full transcription was sent
 
+# --- Control variable for transcription ---
+transcription_active = False
+
 # --- Audioaufnahme-Funktion ---
 def record_audio():
     logger.info("Starte Audioaufnahme...")
@@ -69,7 +74,6 @@ def record_audio():
     finally:
         logger.info("Audioaufnahme beendet.")
 
-# Start the audio recording thread
 threading.Thread(target=record_audio, daemon=True).start()
 
 # --- Textbereinigungs-Funktion ---
@@ -82,43 +86,51 @@ def clean_transcription(text):
     text = re.sub(r'[\.,!?]$', '', text).strip() # Remove trailing . , ! ?
     return text if text else None
 
-# --- Helper to send messages over WebSocket ---
-async def send_websocket_message(websocket, msg_type, payload, client_id):
-    message = {
-        "id": str(uuid4()),
-        "type": msg_type,
-        "timestamp": time.time(),
-        "payload": payload,
-        "origin": "stt_module",
-        "client_id": client_id
-    }
-    await websocket.send(json.dumps(message))
-    logger.info(f"Gesendet an Backend ({msg_type}): {payload.get('text', str(payload))[:100]}...")
-
-# --- Nachrichten auf der Electron-Seite verarbeiten ---
+# --- listen to stdin to receive control commands from Electron
 def process_electron_message(message_json):
+    global transcription_active
     try:
         message = json.loads(message_json)
-        msg_type = message.get("type")
-        payload = message.get("payload", {})
+        command = message.get("command", "")
+        payload = {k: v for k, v in message.items() if k != "command"}
 
-        if msg_type == "Session.start":
-            logger.info(f"Starting session with ID: {payload.get('sessionId')}")
-            #hier für meeting start
-        elif msg_type == "Session.join":
-            logger.info(f"Joining session with ID:{payload.get('sessionId')}")
-            #hier für meeting join
-        elif msg_type == "Message.send":
-            logger.info(f"Received message from {payload.get('senderId')}: {payload.get('content')}")
-            #hier für nachrichten senden
+        if command == "start_transcription":
+            transcription_active = True
+            logger.info("Start-Patentbefehl empfangen")
+        elif command == "stop_transcription":
+            transcription_active = False
+            logger.info("Stop-Patentbefehl empfangen")
+        elif command == "send_data":
+            transcription_text = payload.get("text", "")
+            client_id = payload.get("client_id", "unknown")
+
+            message = UniversalMessage(
+                id=str(uuid4()),
+                type="stt.transcription",
+                origin="transcribe.py",
+                destination="backend.dispatcher",#hier
+                client_id=client_id,
+                payload={"text": transcription_text},
+                processing_path=[],
+                timestamp=time.time()
+            )
+
+            asyncio.create_task(queues.incoming.enqueue(message))
+            logger.info(f"Transcription message enqueued: {transcription_text[:100]}")
         else:
-            logger.error(f"Unknown message type from Electron: {msg_type}")
+            logger.warning(f"unbekannter Befehl: {command}")
+
+        # Bestätigungsnachricht an Electron zurücksenden
+        response = {"status": "success", "command":command}
+        print(json.dumps(response), flush=True) # in stdout schreiben und fluschen
+    
     except json.JSONDecodeError:
-        logger.error(f"Invalid JSON received from Electron: {message_json}")
+        logger.error(f"ungültige JSON_Nachricht empfangen: {message_json}")
     except Exception as e:
-        logger.error(f"Error processing message: {e}")
+        logger.error(f"Ausnahme bei der Verarbeitung von Electron-Nachricht: {e}", exc_info=True)
 
 def listen_to_electron():
+    logger.info("Electron-Befehle überwachen starten")
     while True:
         try:
             line = sys.stdin.readline()
@@ -129,6 +141,9 @@ def listen_to_electron():
                 process_electron_message(line)
         except Exception as e:
             logger.error(f"Reading from stdin failed: {e}")
+
+# --- Ein neuer Thread startet, um Electron-Nachrichten zu Überwachen ---
+threading.Thread(target=listen_to_electron, daemon=True).start()
 
 
 # --- Transkriptions- und Sende-Funktion an Backend über WebSocket ---
@@ -151,13 +166,24 @@ async def transcribe_and_send_to_backend():
     logger.info(f"Versuche, eine Verbindung zum WebSocket unter {websocket_uri_with_id} herzustellen...")
 
     while is_recording.is_set():
+        if not transcription_active:
+            await asyncio.sleep(0.1)
+            continue
+
         try:
             async with websockets.connect(websocket_uri_with_id) as websocket:
                 logger.info("WebSocket-Verbindung zum Backend hergestellt.")
 
                 # Initial message
                 initial_payload = {"message": "STT service connected"}
-                await send_websocket_message(websocket, "stt.init", initial_payload, stt_client_id)
+                await websocket.send(json.dumps({
+                    "id": str(uuid4()),
+                    "type": "stt.init",
+                    "timestamp": time.time(),
+                    "payload": initial_payload,
+                    "origin": "stt_module",
+                    "client_id": stt_client_id
+                }))
                 
                 # Reset buffers for new connection
                 current_buffered_text = ""
@@ -165,7 +191,7 @@ async def transcribe_and_send_to_backend():
                 last_transcription_send_time = time.time() # Reset this on reconnect too
 
 
-                while is_recording.is_set():
+                while is_recording.is_set() and transcription_active:
                     # --- Collect audio from queue ---
                     while not audio_queue.empty():
                         data = audio_queue.get()
@@ -223,21 +249,37 @@ async def transcribe_and_send_to_backend():
                                         "language": info.language if 'info' in locals() else LANGUAGE,
                                         "confidence": info.language_probability if 'info' in locals() else 1.0
                                     }
-                                    await send_websocket_message(websocket, "stt.transcription", payload, stt_client_id)
-                                    current_buffered_text = ""  # Clear buffer after sending
-                                    last_transcription_send_time = time.time() # Update last send time
+                                    await websocket.send(json.dumps({
+                                        "id": str(uuid4()),
+                                        "type": "stt.transcription",
+                                        "timestamp": time.time(),
+                                        "payload": payload,
+                                        "origin": "stt_module",
+                                        "client_id": stt_client_id
+                                    }))
+                                    logger.info(f"Transkribierten Text senden: {current_buffered_text[:100]}...")
+                                    current_buffered_text = ""
+                                    last_transcription_send_time = time.time()
 
                             # If no new speech was detected for a while, and there's buffered text, send it
                             # This handles cases where VAD_FILTER might be too aggressive or there's a long pause.
                             elif not has_new_speech and current_buffered_text and \
-                                 (time.time() - last_transcription_send_time > SILENCE_TIMEOUT_FOR_SEND_SEC):
+                                 (current_time - last_transcription_send_time > SILENCE_TIMEOUT_FOR_SEND_SEC):
                                 
                                 payload = {
                                     "text": current_buffered_text,
                                     "language": info.language if 'info' in locals() else LANGUAGE,
                                     "confidence": info.language_probability if 'info' in locals() else 1.0
                                 }
-                                await send_websocket_message(websocket, "stt.transcription", payload, stt_client_id)
+                                await websocket.send(json.dumps({
+                                        "id": str(uuid4()),
+                                        "type": "stt.transcription",
+                                        "timestamp": time.time(),
+                                        "payload": payload,
+                                        "origin": "stt_module",
+                                        "client_id": stt_client_id
+                                }))
+                                logger.info(f"bei längere Sprachepause gepufferten Text senden: {current_buffered_text[:100]}...")
                                 current_buffered_text = ""
                                 last_transcription_send_time = time.time()
                                 
@@ -259,9 +301,6 @@ async def transcribe_and_send_to_backend():
 
 # --- Hauptausführung ---
 if __name__ == "__main__":
-    listener_thread = threading.Thread(target=listen_to_electron, daemon=True)
-    listener_thread.start()
-
     try:
         asyncio.run(transcribe_and_send_to_backend())
     except KeyboardInterrupt:

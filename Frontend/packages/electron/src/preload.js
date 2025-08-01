@@ -35,3 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log when preload script is loaded
 console.log('Preload script loaded (using CommonJS syntax)');
+
+contextBridge.exposeInIsolatedWorld('electronAPI', {
+  sendPythonCommand: (command, payload) => ipcRenderer.invoke('send-python-command', command, payload),
+  onPythonResponse: (callback) => ipcRenderer.on('python-response', callback),
+  onPythonError: (callback) => ipcRenderer.on('python-error', callback),
+  onPythonEvent: (callback) => ipcRenderer.on('python-event', callback)
+})
