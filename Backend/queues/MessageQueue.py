@@ -96,7 +96,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
         Retrieves a UniversalMessage object from the queue.
         Blocks until an item is available. Updates the message's forwarding path.
         """
-        logger.debug(f"Queue '{self.name}' empty, waiting to dequeue..." if self.empty() else f"Dequeuing from '{self.name}', size: {self.qsize()}")
+        # TOO MANY SPAM MESSAGES       logger.debug(f"Queue '{self.name}' empty, waiting to dequeue..." if self.empty() else f"Dequeuing from '{self.name}', size: {self.qsize()}")
 
         item: UniversalMessage = await self.get()
         
