@@ -193,6 +193,10 @@ export class UI extends LitElement {
                 <md-outlined-button @click=${this._resetSettings}>
                   Reset to Defaults
                 </md-outlined-button>
+                
+                <md-filled-button id="send-demo-button" @click=${this._sendDemoSTTMessage}>
+                  Sende Demo-Nachricht
+                </md-filled-button>
               </div>
             </div>
           </div>
@@ -239,6 +243,8 @@ export class UI extends LitElement {
         return html`<div class="tab-panel">Select a tab</div>`
     }
   }
+
+  // ... (Der Rest der UI-Klasse bleibt unverändert, aber du musst die _sendDemoSTTMessage-Methode in der ElectronMyElement-Klasse haben, wie in der letzten Korrektur besprochen.)
 
   /**
    * Tab change event handler

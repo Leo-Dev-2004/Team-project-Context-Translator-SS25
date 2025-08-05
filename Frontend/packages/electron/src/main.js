@@ -1,9 +1,9 @@
 // src/main.js
-import { app, BrowserWindow, ipcMain, Menu, session, dialog } from 'electron'; // << Added session and dialog here
+import { app, BrowserWindow, ipcMain, Menu, session, dialog } from 'electron';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path'; // `path` is already imported from Node.js
+import { dirname, join } from 'path';
 import os from 'os';
-import fs from 'fs/promises'; // << Import fs with promises for async operations
+import fs from 'fs/promises';
 
 // ESM equivalent of __filename and __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -24,29 +24,40 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      // Path to the bundled preload script (esbuild outputs CommonJS)
       preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-      webSecurity: isDev ? false : true, // Disable webSecurity in dev for easier local testing, enable in prod
+      webSecurity: isDev ? false : true,
     },
     titleBarStyle: 'default',
     show: false,
-    icon: join(__dirname, '../assets/icon.png') // Add icon if available
+    icon: join(__dirname, '../assets/icon.png')
+  });
+
+  // NEUE LOGIK FÜR LOG-WEITERLEITUNG
+  // Weiterleitung der Renderer-Konsolenlogs an den Main-Prozess-Log
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    // Leite die Logs an stdout/stderr weiter, damit der Python-Prozess sie sieht
+    const logPrefix = `[Renderer]`;
+    if (level === 0) { // log
+      console.log(`${logPrefix} ${message}`);
+    } else if (level === 1) { // warn
+      console.warn(`${logPrefix} ${message}`);
+    } else if (level === 2) { // error
+      console.error(`${logPrefix} ${message}`);
+    }
   });
 
   // CSP headers for security within session.defaultSession.webRequest.onHeadersReceived
-  // This block must be *inside* createWindow and *after* mainWindow is created,
-  // but *before* loading the URL, as it affects headers of the loaded content.
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           `default-src 'self' data: blob:;` +
-          `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174;` + // 'unsafe-eval' often needed for Vite HMR
-          `font-src 'self' data: https://fonts.gstatic.com;` + // <<< Added fonts.gstatic.com
-          `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` + // <<< Added fonts.googleapis.com
+          `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174;` +
+          `font-src 'self' data: https://fonts.gstatic.com;` +
+          `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` +
           `img-src 'self' data:;` +
-          `connect-src 'self' ws://localhost:5174 http://localhost:5174;` // ws:// needed for Vite HMR
+          `connect-src 'self' ws://localhost:5174 http://localhost:5174;`
         ]
       }
     });
@@ -57,7 +68,6 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5174');
     mainWindow.webContents.openDevTools();
   } else {
-    // Correct path for production build
     mainWindow.loadFile(join(__dirname, '../renderer/dist/index.html'));
   }
 
@@ -66,7 +76,6 @@ function createWindow() {
     
     if (isDev) {
       // DevTools are already opened if isDev
-      // mainWindow.webContents.openDevTools(); 
     }
   });
 
@@ -188,13 +197,11 @@ ipcMain.handle('load-settings', async () => {
   }
 });
 
-// `dialog` is now imported at the top, no need for dynamic import here
 ipcMain.handle('show-save-dialog', async (event, options) => {
   const result = await dialog.showSaveDialog(mainWindow, options);
   return result;
 });
 
-// `dialog` is now imported at the top
 ipcMain.handle('show-open-dialog', async (event, options) => {
   const result = await dialog.showOpenDialog(mainWindow, options);
   return result;

@@ -1,0 +1,42 @@
+
+# 2025-08-04 17:04:33.291807
++y
+
+# 2025-08-04 17:06:35.014773
++in Frontend/packages/electron/src/main.js Frontend/packages/electron/src/renderer.js Frontend/packages/electron/src/preload.js there are changes to incorporate a IPC communication channel with a python child process. How to test them out?
+
+# 2025-08-04 17:06:36.469315
++a
+
+# 2025-08-04 17:06:54.399869
++n
+
+# 2025-08-04 17:07:07.152354
++in Frontend/packages/electron/src/main.js Frontend/packages/electron/src/renderer.js Frontend/packages/elect
++> ron/src/preload.js there are changes to incorporate a IPC communication channel with a python child process.
++>  How to test them out? 
+
+# 2025-08-04 17:07:09.095035
++a
+
+# 2025-08-04 17:07:39.327500
++n
+
+# 2025-08-04 17:07:41.972954
++in Frontend/packages/electron/src/main.js Frontend/packages/electron/src/renderer.js Frontend/packages/elect
++> ron/src/preload.js there are changes to incorporate a IPC communication channel with a python child process.
++>  How to test them out? 
+
+# 2025-08-04 17:07:43.267828
++a
+
+# 2025-08-04 17:08:41.421878
++n
+
+# 2025-08-04 17:08:44.659360
++in Frontend/packages/electron/src/main.js Frontend/packages/electron/src/renderer.js Frontend/packages/elect
++> ron/src/preload.js there are changes to incorporate a IPC communication channel with a python child process.
++>  How to test them out? 
+
+# 2025-08-04 17:08:45.772899
++a
