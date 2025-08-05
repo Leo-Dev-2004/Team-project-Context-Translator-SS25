@@ -169,16 +169,13 @@ async def send_queue_status_to_frontend():
                             processing_path=[], 
                         )
 
-                        if hasattr(websocket_manager_instance_local, 'send_message_to_client'):
-                            await websocket_manager_instance_local.send_message_to_client(client_id_str, queue_status_universal_message)
-                            logger.debug(f"Sent queue status (UniversalMessage) to client {client_id_str}")
-                        elif websocket_manager_instance_local.connections.get(client_id_str):
+                        if websocket_manager_instance_local.connections.get(client_id_str):
                             await websocket_manager_instance_local.connections[client_id_str].send_text(
                                 queue_status_universal_message.model_dump_json() 
                             )
                             logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
                         else:
-                            logger.warning(f"No suitable method or active connection for {client_id_str} to send queue status.")
+                            logger.warning(f"No active connection for {client_id_str} to send queue status.")
 
                     except Exception as client_send_error:
                         logger.error(f"Error sending queue_status_update to client {client_id_str}: {client_send_error}", exc_info=True)
