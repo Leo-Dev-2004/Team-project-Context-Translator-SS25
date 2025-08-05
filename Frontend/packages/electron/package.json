@@ -4,12 +4,13 @@
   "description": "Context Translator Desktop App",
   "main": "src/main.js",
   "type": "module",
-  "scripts": {
-    "dev": "concurrently \"npm run dev:renderer\" \"npm run build:preload-dev && wait-on http://localhost:5174 && cross-env NODE_ENV=development electron .\"",
-    "dev:renderer": "vite",
-    "dev:main": "cross-env NODE_ENV=development electron .",
-    "build:preload-dev": "esbuild src/preload.js --bundle --platform=node --format=cjs --outfile=dist-electron/preload.js --external:electron",
-    "build": "npm run build:renderer && npm run build:main",
+ "scripts": {
+  "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
+  "dev:renderer": "vite",
+  "dev:main": "npm run build:preload-dev && wait-on http://localhost:5174 && cross-env NODE_ENV=development electron .",
+  "build:preload-dev": "esbuild src/preload.js --bundle --platform=node --format=cjs --outfile=dist-electron/preload.js --external:electron",
+
+  "build": "npm run build:renderer && npm run build:main",
     "build:renderer": "vite build",
     "build:main": "electron-builder",
     "start": "electron .",

@@ -1,4 +1,4 @@
-# run_electron.py (Finale Version mit extra Logging)
+# run_electron.py (Korrigierte Version)
 
 import uvicorn
 import logging
@@ -43,7 +43,7 @@ class SystemRunner:
         self.frontend_dev_port = 5174
         self.processes = []
         self.running = True
-        self.vite_ready_event = threading.Event()
+        # Die vite_ready_event Logik ist nicht mehr notwendig.
         self.electron_test_results = Queue()
         logger.debug("SystemRunner: Initialization complete.")
 
@@ -100,29 +100,27 @@ class SystemRunner:
     def run_vite_dev_server(self):
         logger.debug("SystemRunner: Starting Vite dev server process.")
         try:
-            vite_process = subprocess.Popen(VITE_DEV_COMMAND, cwd=str(ELECTRON_APP_CWD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True if sys.platform == "win32" else False, bufsize=1)
+            # Das 'shell=True' für Windows ist eine gute Praxis.
+            use_shell = sys.platform == "win32"
+            vite_process = subprocess.Popen(
+                VITE_DEV_COMMAND, 
+                cwd=str(ELECTRON_APP_CWD), 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True, 
+                shell=use_shell,
+                bufsize=1
+            )
             self.processes.append(vite_process)
             logger.info(f"SystemRunner: Vite dev server process started with PID: {vite_process.pid}")
-    
-            def log_and_check_output(pipe, prefix):
-                try:
-                    for line in iter(pipe.readline, ''):
-                        logger.info(f"[{prefix}]: {line.strip()}")
-                        if "Local:" in line:
-                            self.vite_ready_event.set()
-                            logger.info("SystemRunner: Vite dev server is ready! (Detected from log output)")
-                except ValueError:
-                    logger.debug(f"[{prefix}]: Pipe closed unexpectedly.")
-                except Exception as e:
-                    logger.error(f"[{prefix}]: Error reading from pipe: {e}", exc_info=True)
+
+            # Wir leiten die Logs weiterhin um, damit wir sehen, was passiert.
+            self._start_logging(vite_process, "Vite")
+
+            # Die explizite Warte-Logik (vite_ready_event) wird entfernt.
+            # Das 'Warten' wird jetzt vom 'npm run dev:main'-Skript via 'wait-on' übernommen.
+            logger.info("SystemRunner: Vite dev server process launched. Waiting is handled by the Electron start script.")
             
-            threading.Thread(target=log_and_check_output, args=(vite_process.stdout, "Vite stdout"), daemon=True).start()
-            threading.Thread(target=log_and_check_output, args=(vite_process.stderr, "Vite stderr"), daemon=True).start()
-    
-            logger.info("SystemRunner: Waiting for Vite dev server readiness...")
-            if not self.vite_ready_event.wait(timeout=60):
-                logger.critical("SystemRunner: Vite dev server did not become ready within the timeout period.")
-                raise RuntimeError("Vite server failed to start.")
         except Exception as e:
             logger.critical(f"SystemRunner: Failed to start Vite server: {e}", exc_info=True)
             raise
@@ -130,7 +128,16 @@ class SystemRunner:
     def run_electron_app(self, test_mode=False):
         logger.debug("SystemRunner: Starting Electron app process.")
         try:
-            electron_process = subprocess.Popen(ELECTRON_MAIN_COMMAND, cwd=str(ELECTRON_APP_CWD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=0)
+            use_shell = sys.platform == "win32"
+            electron_process = subprocess.Popen(
+                ELECTRON_MAIN_COMMAND, 
+                cwd=str(ELECTRON_APP_CWD), 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True, 
+                shell=use_shell,
+                bufsize=1 # Geändert von 0 auf 1 für line-buffering
+            )
             self.processes.append(electron_process)
             logger.info(f"SystemRunner: Electron app process started with PID: {electron_process.pid}")
     
@@ -214,14 +221,24 @@ class SystemRunner:
         self.running = False
         for p in reversed(self.processes):
             if p.poll() is None:
-                logger.info(f"SystemRunner: Terminating process {p.pid} ({p.args[0] if p.args else 'Unknown'})...")
+                logger.info(f"SystemRunner: Terminating process {p.pid} ({p.args[0] if isinstance(p.args, list) else 'Unknown'})...")
                 try:
-                    p.terminate()
-                    p.wait(timeout=10)
-                    if p.poll() is None:
-                        logger.warning(f"SystemRunner: Process {p.pid} did not terminate gracefully, killing it.")
-                        p.kill()
-                        p.wait(timeout=5)
+                    # Parent- und alle Child-Prozesse beenden (wichtig bei `shell=True`)
+                    parent = psutil.Process(p.pid)
+                    children = parent.children(recursive=True)
+                    for child in children:
+                        logger.debug(f"Terminating child process {child.pid} of {p.pid}")
+                        child.terminate()
+                    parent.terminate()
+                    
+                    gone, still_alive = psutil.wait_procs([parent] + children, timeout=10)
+                    
+                    if still_alive:
+                        logger.warning(f"SystemRunner: Processes {still_alive} did not terminate gracefully, killing them.")
+                        for proc in still_alive:
+                            proc.kill()
+                        psutil.wait_procs(still_alive, timeout=5)
+
                 except psutil.NoSuchProcess:
                     logger.debug(f"SystemRunner: Process {p.pid} already gone.")
                 except Exception as e:
@@ -252,8 +269,6 @@ def run_tests(runner):
         logger.debug("Test-Workflow: Step 5 - Starting Electron app in test mode.")
         runner.run_electron_app(test_mode=True)
         
-        # Warten 5 Sekunden, bevor wir die Logs scannen.
-        # Das gibt dem Electron-Renderer genug Zeit, die Tests zu starten.
         logger.info("Test-Workflow: Warte 5 Sekunden, um dem Electron-Renderer Zeit für die Testausführung zu geben.")
         time.sleep(5)
         
@@ -261,7 +276,7 @@ def run_tests(runner):
         test_ipc_ok = False
         test_ws_ok = False
         start_time = time.time()
-        timeout = 60  # Timeout für alle Tests
+        timeout = 60
 
         while time.time() - start_time < timeout:
             if not runner.electron_test_results.empty():
@@ -287,37 +302,27 @@ def run_tests(runner):
         print("✅ Alle System-Tests erfolgreich abgeschlossen!")
     except Exception as e:
         logger.critical(f"❌ System-Tests fehlgeschlagen: {e}", exc_info=True)
-        raise
+        # Hier nicht direkt raisen, damit finally ausgeführt wird
     finally:
         logger.debug("Test-Workflow: Executing final shutdown.")
         runner.shutdown()
 
 if __name__ == "__main__":
-    logger.debug("Main: Starting script execution.")
     runner = SystemRunner()
-    
-    if '--test' in sys.argv:
-        logger.debug("Main: '--test' flag detected. Running tests.")
-        try:
+    try:
+        if '--test' in sys.argv:
+            logger.debug("Main: '--test' flag detected. Running tests.")
             run_tests(runner)
-        except (KeyboardInterrupt, RuntimeError, TimeoutError) as e:
-            logger.critical(f"Main: Abbruch des Testworkflows: {e}")
-        except Exception as e:
-            logger.critical(f"Main: Ein unerwarteter Fehler im Test-Workflow: {e}", exc_info=True)
-        finally:
-            logger.debug("Main: Final shutdown from main block.")
-            runner.shutdown()
-    else:
-        logger.debug("Main: No '--test' flag detected. Running in normal mode.")
-        try:
+        else:
+            logger.debug("Main: No '--test' flag detected. Running in normal mode.")
             runner.run_backend_server()
             if not runner.check_backend_ready():
-                runner.shutdown()
-                sys.exit(1)
+                raise RuntimeError("Backend server failed to start.")
 
-            time.sleep(2)
+            time.sleep(1) # Kurze Pause
             runner.run_stt_module()
-            time.sleep(2)
+            time.sleep(1) # Kurze Pause
+            
             runner.run_vite_dev_server()
             runner.run_electron_app()
             
@@ -325,14 +330,17 @@ if __name__ == "__main__":
             while runner.running:
                 for p in runner.processes:
                     if p.poll() is not None:
-                        logger.critical(f"Managed process {p.args[0] if p.args else 'Unknown'} (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}.")
-                        runner.shutdown()
-                        sys.exit(1)
+                        logger.critical(f"Managed process '{p.args[0] if isinstance(p.args, list) else 'Unknown'}' (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}.")
+                        raise RuntimeError("A critical process has died.")
                 time.sleep(3)
-        except KeyboardInterrupt:
+
+    except (KeyboardInterrupt, RuntimeError) as e:
+        if isinstance(e, KeyboardInterrupt):
             logger.info("Ctrl+C detected. Initiating graceful shutdown.")
-            runner.shutdown()
-        except Exception as e:
-            logger.critical(f"An unexpected error occurred in SystemRunner's main execution block: {e}", exc_info=True)
-            runner.shutdown()
-            sys.exit(1)
+        else:
+            logger.critical(f"A runtime error occurred: {e}", exc_info=True)
+    except Exception as e:
+        logger.critical(f"An unexpected error occurred in main execution block: {e}", exc_info=True)
+    finally:
+        logger.info("Main execution block finished. Shutting down...")
+        runner.shutdown()
