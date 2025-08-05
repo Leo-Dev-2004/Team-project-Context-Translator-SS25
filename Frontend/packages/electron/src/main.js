@@ -69,7 +69,7 @@ function createWindow() {
           `font-src 'self' data: https://fonts.gstatic.com;` +
           `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` +
           `img-src 'self' data:;` +
-          `connect-src 'self' ws://localhost:5174 http://localhost:5174;`
+          `connect-src 'self' ws://localhost:5174 http://localhost:5174 ws://localhost:8000 http://localhost:8000;`
         ]
       }
     });
