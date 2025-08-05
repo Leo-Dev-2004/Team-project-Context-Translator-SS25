@@ -1,4 +1,4 @@
-# run_electron.py (Korrigierte Version)
+# run_electron.py (Verbesserte Version)
 
 import uvicorn
 import logging
@@ -11,7 +11,6 @@ import os
 import psutil
 import asyncio
 from pathlib import Path
-import re
 from queue import Queue
 
 # Configure logging
@@ -32,9 +31,29 @@ FRONTEND_DIR = ROOT_DIR / "Frontend"
 STT_SCRIPT_PATH = BACKEND_DIR / "STT" / "transcribe.py"
 
 # --- ELECTRON APP CONFIGURATION ---
+ELECTRON_APP_CWD = FRONTEND_DIR / "packages" / "electron"
 VITE_DEV_COMMAND = ["npm", "run", "dev:renderer"]
 ELECTRON_MAIN_COMMAND = ["npm", "run", "dev:main"]
-ELECTRON_APP_CWD = FRONTEND_DIR / "packages" / "electron"
+
+# Prozess-Verwaltung Konstanten
+PROCESS_START_TIMEOUT = 60
+SERVICE_POLLING_INTERVAL = 1
+
+def clear_log_files(log_paths):
+    """Löscht den Inhalt der angegebenen Log-Dateien."""
+    logger.info("SystemRunner: Clearing log files...")
+    for log_path in log_paths:
+        log_file = Path(log_path)
+        if log_file.exists():
+            try:
+                # Öffnet die Datei im Schreibmodus ('w'), um den Inhalt zu löschen
+                with open(log_file, 'w', encoding='utf-8') as f:
+                    f.truncate(0)
+                logger.info(f"SystemRunner: Cleared content of {log_file}")
+            except IOError as e:
+                logger.error(f"SystemRunner: Could not clear log file {log_file}: {e}")
+
+
 
 class SystemRunner:
     def __init__(self):
@@ -43,7 +62,7 @@ class SystemRunner:
         self.frontend_dev_port = 5174
         self.processes = []
         self.running = True
-        # Die vite_ready_event Logik ist nicht mehr notwendig.
+        self.vite_ready_event = threading.Event()
         self.electron_test_results = Queue()
         logger.debug("SystemRunner: Initialization complete.")
 
@@ -67,6 +86,24 @@ class SystemRunner:
         logger.debug(f"SystemRunner: Port availability check finished. All ports free: {all_ports_free}")
         return all_ports_free
 
+    def _wait_for_service(self, url, timeout=PROCESS_START_TIMEOUT, service_name="Service"):
+        """Generische Hilfsmethode zum Warten auf eine HTTP-Service-Bereitschaft."""
+        start_time = time.time()
+        logger.info(f"SystemRunner: Waiting for {service_name} to be ready at {url} (timeout {timeout}s)...")
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(url, timeout=2)
+                if response.status_code == 200:
+                    logger.info(f"SystemRunner: {service_name} is ready!")
+                    return True
+                else:
+                    logger.debug(f"SystemRunner: {service_name} responded with status {response.status_code}. Retrying...")
+            except requests.exceptions.RequestException as e:
+                logger.debug(f"SystemRunner: Connection to {service_name} at {url} refused/timed out: {e}. Retrying...")
+            time.sleep(SERVICE_POLLING_INTERVAL)
+        logger.critical(f"SystemRunner: {service_name} did not become ready within the timeout period.")
+        return False
+
     def run_backend_server(self):
         logger.debug("SystemRunner: Starting backend server process.")
         env = os.environ.copy()
@@ -85,11 +122,11 @@ class SystemRunner:
         logger.debug("SystemRunner: Starting STT module process.")
         if not STT_SCRIPT_PATH.exists():
             logger.error(f"SystemRunner: STT script not found: {STT_SCRIPT_PATH}. Cannot start STT module.")
-            return
+            raise FileNotFoundError(f"STT script not found at {STT_SCRIPT_PATH}")
         try:
             env = os.environ.copy()
             env["PYTHONPATH"] = str(ROOT_DIR) + os.pathsep + env.get("PYTHONPATH", "")
-            stt_process = subprocess.Popen([sys.executable, str(STT_SCRIPT_PATH)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(STT_SCRIPT_PATH.parent), env=env, bufsize=1)
+            stt_process = subprocess.Popen([sys.executable, str(STT_SCRIPT_PATH)], cwd=str(STT_SCRIPT_PATH.parent), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
             self.processes.append(stt_process)
             logger.info(f"SystemRunner: STT module process started with PID: {stt_process.pid}")
             self._start_logging(stt_process, "STT_Module")
@@ -100,27 +137,29 @@ class SystemRunner:
     def run_vite_dev_server(self):
         logger.debug("SystemRunner: Starting Vite dev server process.")
         try:
-            # Das 'shell=True' für Windows ist eine gute Praxis.
-            use_shell = sys.platform == "win32"
-            vite_process = subprocess.Popen(
-                VITE_DEV_COMMAND, 
-                cwd=str(ELECTRON_APP_CWD), 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE, 
-                text=True, 
-                shell=use_shell,
-                bufsize=1
-            )
+            vite_process = subprocess.Popen(VITE_DEV_COMMAND, cwd=str(ELECTRON_APP_CWD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True if sys.platform == "win32" else False, bufsize=1)
             self.processes.append(vite_process)
             logger.info(f"SystemRunner: Vite dev server process started with PID: {vite_process.pid}")
-
-            # Wir leiten die Logs weiterhin um, damit wir sehen, was passiert.
-            self._start_logging(vite_process, "Vite")
-
-            # Die explizite Warte-Logik (vite_ready_event) wird entfernt.
-            # Das 'Warten' wird jetzt vom 'npm run dev:main'-Skript via 'wait-on' übernommen.
-            logger.info("SystemRunner: Vite dev server process launched. Waiting is handled by the Electron start script.")
+    
+            def log_and_check_output(pipe, prefix):
+                try:
+                    for line in iter(pipe.readline, ''):
+                        logger.info(f"[{prefix}]: {line.strip()}")
+                        if "Local:" in line:
+                            self.vite_ready_event.set()
+                            logger.info("SystemRunner: Vite dev server is ready! (Detected from log output)")
+                except ValueError:
+                    logger.debug(f"[{prefix}]: Pipe closed unexpectedly.")
+                except Exception as e:
+                    logger.error(f"[{prefix}]: Error reading from pipe: {e}", exc_info=True)
             
+            threading.Thread(target=log_and_check_output, args=(vite_process.stdout, "Vite stdout"), daemon=True).start()
+            threading.Thread(target=log_and_check_output, args=(vite_process.stderr, "Vite stderr"), daemon=True).start()
+    
+            logger.info("SystemRunner: Waiting for Vite dev server readiness...")
+            if not self.vite_ready_event.wait(timeout=PROCESS_START_TIMEOUT):
+                logger.critical("SystemRunner: Vite dev server did not become ready within the timeout period.")
+                raise RuntimeError("Vite server failed to start.")
         except Exception as e:
             logger.critical(f"SystemRunner: Failed to start Vite server: {e}", exc_info=True)
             raise
@@ -128,16 +167,7 @@ class SystemRunner:
     def run_electron_app(self, test_mode=False):
         logger.debug("SystemRunner: Starting Electron app process.")
         try:
-            use_shell = sys.platform == "win32"
-            electron_process = subprocess.Popen(
-                ELECTRON_MAIN_COMMAND, 
-                cwd=str(ELECTRON_APP_CWD), 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE, 
-                text=True, 
-                shell=use_shell,
-                bufsize=1 # Geändert von 0 auf 1 für line-buffering
-            )
+            electron_process = subprocess.Popen(ELECTRON_MAIN_COMMAND, cwd=str(ELECTRON_APP_CWD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=0)
             self.processes.append(electron_process)
             logger.info(f"SystemRunner: Electron app process started with PID: {electron_process.pid}")
     
@@ -152,6 +182,7 @@ class SystemRunner:
             raise
 
     def _start_logging(self, process, prefix):
+        # ... (Methodeninhalt bleibt unverändert)
         if process.poll() is not None:
             logger.warning(f"SystemRunner: Attempted to start logging for already dead process {prefix} (PID: {process.pid}).")
             return
@@ -166,7 +197,9 @@ class SystemRunner:
         threading.Thread(target=log_output, args=(process.stdout, f"{prefix} stdout"), daemon=True).start()
         threading.Thread(target=log_output, args=(process.stderr, f"{prefix} stderr"), daemon=True).start()
 
+
     def _start_test_logging(self, process):
+        # ... (Methodeninhalt bleibt unverändert)
         if process.poll() is not None:
             logger.warning(f"SystemRunner: Attempted to start test logging for already dead process (PID: {process.pid}).")
             return
@@ -193,52 +226,25 @@ class SystemRunner:
         threading.Thread(target=log_test_output, args=(process.stdout, "Electron stdout (Test)"), daemon=True).start()
         threading.Thread(target=log_test_output, args=(process.stderr, "Electron stderr (Test)"), daemon=True).start()
 
-    def check_backend_ready(self, timeout=60):
-        logger.debug("SystemRunner: Starting backend readiness check.")
+
+    def check_backend_ready(self, timeout=PROCESS_START_TIMEOUT):
         url = f"http://127.0.0.1:{self.backend_port}/"
-        start_time = time.time()
-        logger.info(f"SystemRunner: Waiting for backend to be ready at {url} (timeout {timeout}s)...")
-        while time.time() - start_time < timeout:
-            try:
-                response = requests.get(url, timeout=2)
-                if response.status_code == 200:
-                    logger.info("SystemRunner: Backend is ready!")
-                    return True
-                else:
-                    logger.debug(f"SystemRunner: Backend responded with status {response.status_code}. Retrying...")
-            except requests.exceptions.ConnectionError:
-                logger.debug(f"SystemRunner: Connection to backend at {url} refused. Retrying...")
-            except requests.exceptions.Timeout:
-                logger.debug(f"SystemRunner: Backend request timed out. Retrying...")
-            except Exception as e:
-                logger.debug(f"SystemRunner: An unexpected error occurred while checking backend: {e}")
-            time.sleep(1)
-        logger.critical("SystemRunner: Backend did not become ready within the timeout period.")
-        return False
-    
+        return self._wait_for_service(url, timeout, "Backend")
+
     def shutdown(self):
+        # ... (Methodeninhalt bleibt unverändert)
         logger.info("SystemRunner: Initiating shutdown for all managed processes...")
         self.running = False
         for p in reversed(self.processes):
             if p.poll() is None:
-                logger.info(f"SystemRunner: Terminating process {p.pid} ({p.args[0] if isinstance(p.args, list) else 'Unknown'})...")
+                logger.info(f"SystemRunner: Terminating process {p.pid} ({p.args[0] if p.args else 'Unknown'})...")
                 try:
-                    # Parent- und alle Child-Prozesse beenden (wichtig bei `shell=True`)
-                    parent = psutil.Process(p.pid)
-                    children = parent.children(recursive=True)
-                    for child in children:
-                        logger.debug(f"Terminating child process {child.pid} of {p.pid}")
-                        child.terminate()
-                    parent.terminate()
-                    
-                    gone, still_alive = psutil.wait_procs([parent] + children, timeout=10)
-                    
-                    if still_alive:
-                        logger.warning(f"SystemRunner: Processes {still_alive} did not terminate gracefully, killing them.")
-                        for proc in still_alive:
-                            proc.kill()
-                        psutil.wait_procs(still_alive, timeout=5)
-
+                    p.terminate()
+                    p.wait(timeout=10)
+                    if p.poll() is None:
+                        logger.warning(f"SystemRunner: Process {p.pid} did not terminate gracefully, killing it.")
+                        p.kill()
+                        p.wait(timeout=5)
                 except psutil.NoSuchProcess:
                     logger.debug(f"SystemRunner: Process {p.pid} already gone.")
                 except Exception as e:
@@ -291,6 +297,7 @@ def run_tests(runner):
                     raise RuntimeError("Ein Fehler wurde in den Renderer-Tests festgestellt.")
             
             if test_ipc_ok and test_ws_ok:
+                logger.info("Test-Workflow: Alle Testergebnisse empfangen. Beende Warte-Loop.")
                 break
             
             time.sleep(0.5)
@@ -302,27 +309,42 @@ def run_tests(runner):
         print("✅ Alle System-Tests erfolgreich abgeschlossen!")
     except Exception as e:
         logger.critical(f"❌ System-Tests fehlgeschlagen: {e}", exc_info=True)
-        # Hier nicht direkt raisen, damit finally ausgeführt wird
+        raise
     finally:
         logger.debug("Test-Workflow: Executing final shutdown.")
         runner.shutdown()
 
 if __name__ == "__main__":
+    logger.debug("Main: Starting script execution.")
+
+    clear_log_files([
+        'system.log',
+        'backend.log' # weitere Log-Dateien zum flushen können hier hinzugefügt werden
+    ])
     runner = SystemRunner()
-    try:
-        if '--test' in sys.argv:
-            logger.debug("Main: '--test' flag detected. Running tests.")
+    
+    if '--test' in sys.argv:
+        logger.debug("Main: '--test' flag detected. Running tests.")
+        try:
             run_tests(runner)
-        else:
-            logger.debug("Main: No '--test' flag detected. Running in normal mode.")
+        except (KeyboardInterrupt, RuntimeError, TimeoutError) as e:
+            logger.critical(f"Main: Abbruch des Testworkflows: {e}")
+        except Exception as e:
+            logger.critical(f"Main: Ein unerwarteter Fehler im Test-Workflow: {e}", exc_info=True)
+        finally:
+            logger.debug("Main: Final shutdown from main block.")
+            runner.shutdown()
+    else:
+        logger.debug("Main: No '--test' flag detected. Running in normal mode.")
+        try:
             runner.run_backend_server()
             if not runner.check_backend_ready():
-                raise RuntimeError("Backend server failed to start.")
+                runner.shutdown()
+                sys.exit(1)
 
-            time.sleep(1) # Kurze Pause
+            time.sleep(2)
             runner.run_stt_module()
-            time.sleep(1) # Kurze Pause
-            
+            time.sleep(2)
             runner.run_vite_dev_server()
             runner.run_electron_app()
             
@@ -330,17 +352,14 @@ if __name__ == "__main__":
             while runner.running:
                 for p in runner.processes:
                     if p.poll() is not None:
-                        logger.critical(f"Managed process '{p.args[0] if isinstance(p.args, list) else 'Unknown'}' (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}.")
-                        raise RuntimeError("A critical process has died.")
+                        logger.critical(f"Managed process {p.args[0] if p.args else 'Unknown'} (PID: {p.pid}) has terminated unexpectedly with exit code {p.returncode}.")
+                        runner.shutdown()
+                        sys.exit(1)
                 time.sleep(3)
-
-    except (KeyboardInterrupt, RuntimeError) as e:
-        if isinstance(e, KeyboardInterrupt):
+        except KeyboardInterrupt:
             logger.info("Ctrl+C detected. Initiating graceful shutdown.")
-        else:
-            logger.critical(f"A runtime error occurred: {e}", exc_info=True)
-    except Exception as e:
-        logger.critical(f"An unexpected error occurred in main execution block: {e}", exc_info=True)
-    finally:
-        logger.info("Main execution block finished. Shutting down...")
-        runner.shutdown()
+            runner.shutdown()
+        except Exception as e:
+            logger.critical(f"An unexpected error occurred in SystemRunner's main execution block: {e}", exc_info=True)
+            runner.shutdown()
+            sys.exit(1)

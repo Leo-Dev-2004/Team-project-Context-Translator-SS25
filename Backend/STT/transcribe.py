@@ -1,4 +1,4 @@
-# Backend/STT/transcribe.py (REVISED)
+#  Backend/STT/transcribe.py
 
 import asyncio
 import numpy as np
@@ -26,11 +26,11 @@ CONFIG = {
 }
 
 # --- Logging konfigurieren ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name__s - %(levelname)s - %(message)s')
+# Entferne logging.basicConfig() hier, da es Konflikte verursacht.
+# Stattdessen nutzen wir das Standard-Logging und das Logging des parent-Prozesses (run_electron.py)
 logger = logging.getLogger(__name__)
 
 # --- Globale Variablen ---
-# Zugriff über das CONFIG-Dictionary
 model = WhisperModel(CONFIG["MODEL_SIZE"], device="cpu", compute_type="int8")
 audio_queue = queue.Queue()
 is_recording = threading.Event()
@@ -56,7 +56,7 @@ def record_audio():
 
     try:
         with sd.InputStream(samplerate=CONFIG["SAMPLE_RATE"], channels=CONFIG["CHANNELS"], callback=callback, blocksize=block_size) as stream:
-            logger.info(f"Aufnahme läuft mit Samplerate: {stream.samplerate}, Kanälen: {stream.channels}, Blocksize: {stream.block_size}...")
+            logger.info(f"Aufnahme läuft mit Samplerate: {stream.samplerate}, Kanälen: {stream.channels}, Blocksize: {block_size}...")
             while is_recording.is_set():
                 time.sleep(0.1)
     except Exception as e:
@@ -201,11 +201,14 @@ async def send_sentence(sentence, websocket, info, client_id):
             "client_id": client_id
         }
         await websocket.send(json.dumps(message))
-        logger.info(f"Gesendet an Backend (Satz): {sentence[:50]}...")
+        logger.debug(f"Gesendet an Backend (Satz): {sentence[:50]}...")
 
 # --- Hauptausführung ---
 if __name__ == "__main__":
     try:
+        # Starte den Audio-Aufnahme-Thread
+        threading.Thread(target=record_audio, daemon=True).start()
+        # Starte den Haupt-Transkriptions-Loop
         asyncio.run(transcribe_and_send_to_backend())
     except KeyboardInterrupt:
         logger.info("Skript durch Benutzer beendet.")
