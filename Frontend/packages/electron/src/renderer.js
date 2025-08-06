@@ -12,43 +12,8 @@ class ElectronMyElement extends UI {
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
 
-  _startSession() {
-    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
-      return this._showNotification('Keine Verbindung zum Backend', 'error');
-    }
-    console.log('Renderer: Sende "session.start"-Anfrage...');
-    const message = {
-      id: crypto.randomUUID(),
-      type: 'session.start',
-      payload: {},
-    };
-    this.backendWs.send(JSON.stringify(message));
-  }
+  // ### WebSocket & Nachrichten ###
 
-  _joinSession() {
-    const codeInput = this.shadowRoot.querySelector('#session-code-input');
-    const code = codeInput ? codeInput.value : '';
-
-    if (!code) {
-      return this._showNotification('Bitte einen Session-Code eingeben', 'error');
-    }
-    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
-      return this._showNotification('Keine Verbindung zum Backend', 'error');
-    }
-    
-    console.log(`Renderer: Sende "session.join"-Anfrage mit Code ${code}...`);
-    const message = {
-      id: crypto.randomUUID(),
-      type: 'session.join',
-      payload: { code: code },
-    };
-    this.backendWs.send(JSON.stringify(message));
-  }
-
-
-  /**
-   * Baut die WebSocket-Verbindung zum Backend auf und richtet die Event-Listener ein.
-   */
   _initializeWebSocket() {
     const clientId = `frontend_renderer_${crypto.randomUUID()}`;
     const wsUrl = `ws://localhost:8000/ws/${clientId}`;
@@ -69,11 +34,19 @@ class ElectronMyElement extends UI {
       try {
         const message = JSON.parse(event.data);
         
-        // Hier die Logik zur Verarbeitung von Nachrichten vom Backend
-        if (message.type === 'translation.result') {
-          this.addTranslation(message.payload); // Annahme: Methode aus der 'UI'-Basisklasse
+        // GEMERGED: Behandelt jetzt alle Nachrichtentypen
+        if (message.type === 'session.created') {
+            const code = message.payload.code;
+            this._showNotification(`Session erstellt! Code: ${code}`, 'success');
+            this.shadowRoot.querySelector('#session-code-input').value = code;
+        } else if (message.type === 'session.joined') {
+            this._showNotification(`Erfolgreich beigetreten zu Session ${message.payload.code}`, 'success');
+        } else if (message.type === 'session.error') {
+            this._showNotification(message.payload.error, 'error');
+        } else if (message.type === 'translation.result') {
+          this.addTranslation(message.payload); // Annahme aus UI-Basisklasse
         } else if (message.type === 'stt.transcription') {
-          this.addTranscription(message.payload); // Annahme: Methode aus der 'UI'-Basisklasse
+          this.addTranscription(message.payload); // Annahme aus UI-Basisklasse
         }
       } catch (error) {
         console.error('Renderer: ❌ Fehler beim Parsen der Backend-Nachricht:', error);
@@ -88,238 +61,164 @@ class ElectronMyElement extends UI {
     this.backendWs.onclose = (event) => {
       console.log('Renderer: ⚙️ WebSocket-Verbindung geschlossen.', `Code: ${event.code}`, `Grund: ${event.reason}`);
       this.backendWs = null;
-      // Optional: Logik für einen automatischen Wiederverbindungsversuch
-      // setTimeout(() => this._initializeWebSocket(), 5000);
     };
   }
 
-  /**
-   * Sendet eine Demo-Nachricht an das Backend.
-   * @param {string} text Der zu sendende Text
-   */
+  // ### Session & Demo Logik ###
+
+  _startSession() {
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('Keine Verbindung zum Backend', 'error');
+    }
+    console.log('Renderer: Sende "session.start"-Anfrage...');
+    this.backendWs.send(JSON.stringify({ type: 'session.start' }));
+  }
+
+  _joinSession() {
+    const codeInput = this.shadowRoot.querySelector('#session-code-input');
+    const code = codeInput ? codeInput.value.trim() : '';
+
+    if (!code) return this._showNotification('Bitte einen Session-Code eingeben', 'error');
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('Keine Verbindung zum Backend', 'error');
+    }
+    
+    console.log(`Renderer: Sende "session.join"-Anfrage mit Code ${code}...`);
+    this.backendWs.send(JSON.stringify({ type: 'session.join', payload: { code } }));
+  }
+  
   sendDemoSTTMessage(text) {
     if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
-      console.error('Renderer: ❌ WebSocket ist nicht verbunden. Kann Nachricht nicht senden.');
-      this._showNotification('Keine Verbindung zum Backend', 'error');
-      return;
+      return this._showNotification('Keine Verbindung zum Backend', 'error');
     }
-
-    const clientId = this.backendWs.url.split('/').pop();
-    const message = {
-      id: crypto.randomUUID(),
-      // Hinweis: 'stt.transcription' simuliert hier eine Nachricht, die normalerweise
-      // vom STT-Modul käme. Für echte Aktionen vom Frontend wären andere Typen
-      // wie 'simulation.start' oder 'user.input' besser geeignet.
-      type: 'stt.transcription',
-      timestamp: Date.now() / 1000,
-      payload: {
-        text: text,
-        language: 'de',
-        confidence: 0.99
-      },
-      origin: 'frontend_renderer',
-      client_id: clientId
-    };
-
+    const message = { type: 'stt.transcription', payload: { text } };
     this.backendWs.send(JSON.stringify(message));
-    console.log(`Renderer: 💡 Demo-Nachricht an Backend gesendet: ${text}`);
+    console.log(`Renderer: 💡 Demo-Nachricht gesendet: ${text}`);
   }
 
-  /**
-   * Wird aufgerufen, wenn das Element in das DOM eingefügt wird.
-   * Initialisiert die gesamte Anwendungslogik.
-   */
+  // ### Lifecycle & UI-Setup ###
+
   async connectedCallback() {
     console.log('Renderer: ⚙️ connectedCallback entered.');
     super.connectedCallback();
-    console.log('Renderer: ✅ super.connectedCallback() completed.');
 
-    // Initialisiert Electron-spezifische APIs und lädt Einstellungen
     await this._initializeElectron();
-    
-    // Baut die WebSocket-Verbindung zum Backend auf
     this._initializeWebSocket();
-    
-    // Führt initiale Kommunikationstests durch
     await this._runCommunicationTests();
     
-    // Fügt den Demo-Button zur UI hinzu
-    this._attachDemoButton();
+    // Ruft die neue, zentrale Methode zum Anhängen der Buttons auf.
+    this._attachActionButtons();
     
     console.log('Renderer: ⚙️ connectedCallback exited.');
   }
+
+  _attachActionButtons() {
+    console.log('Renderer: 💡 Hänge Action-Buttons an die UI an...');
+    const buttonContainer = this.shadowRoot.querySelector('div.action-buttons');
+    
+    if (buttonContainer) {
+      // Leert den Container, um doppelte Buttons zu vermeiden
+      buttonContainer.innerHTML = ''; 
+
+      // Demo-Nachricht Button
+      const demoButton = document.createElement('md-filled-button');
+      demoButton.textContent = 'Sende Demo-Nachricht';
+      demoButton.addEventListener('click', () => {
+        this.sendDemoSTTMessage('Das ist eine manuell ausgelöste Testnachricht.');
+      });
+
+      // Session Erstellen Button
+      const createButton = document.createElement('md-filled-button');
+      createButton.textContent = 'Session erstellen';
+      createButton.style.cssText = `margin-left: 20px;`;
+      createButton.addEventListener('click', () => this._startSession());
+
+      // Session Code Eingabefeld
+      const sessionCodeInput = document.createElement('md-outlined-text-field');
+      sessionCodeInput.label = 'Session Code';
+      sessionCodeInput.id = 'session-code-input';
+      sessionCodeInput.style.cssText = `margin: 0 12px;`;
+
+      // Session Beitreten Button
+      const joinButton = document.createElement('md-outlined-button');
+      joinButton.textContent = 'Session beitreten';
+      joinButton.addEventListener('click', () => this._joinSession());
+      
+      buttonContainer.append(demoButton, createButton, sessionCodeInput, joinButton);
+      console.log('Renderer: ✅ Action-Buttons erfolgreich angehängt.');
+    } else {
+      console.error('Renderer: ❌ Button-Container mit Klasse "action-buttons" nicht gefunden.');
+    }
+  }
   
-  /**
-   * Initialisiert die Electron-Schnittstelle und lädt gespeicherte Einstellungen.
-   */
+  // ### Electron & Hilfsfunktionen ###
+
   async _initializeElectron() {
     console.log('Renderer: ⚙️ _initializeElectron entered.');
     if (window.electronAPI) {
-      console.log('Renderer: ✅ window.electronAPI ist verfügbar.');
       try {
-        const platformInfo = await window.electronAPI.getPlatform();
-        console.log('Renderer: ✅ Platform-Info geladen:', platformInfo);
-        
         const result = await window.electronAPI.loadSettings();
         if (result.success && result.settings) {
           this._loadSettingsFromElectron(result.settings);
-          console.log('Renderer: ✅ Einstellungen via Electron geladen.');
-        } else if (!result.success) {
-           console.error('Renderer: ❌ Fehler beim Laden der Einstellungen:', result.error);
         }
       } catch (error) {
         console.error('Renderer: ❌ Fehler bei der Electron-Initialisierung:', error);
       }
-    } else {
-        console.warn('Renderer: ⚠️ window.electronAPI nicht gefunden. Läuft nicht in Electron?');
     }
   }
-
-  /**
-   * Fügt den Demo-Button zum Testen der Nachrichtenübertragung hinzu.
-   */
-  _attachDemoButton() {
-    console.log('Renderer: 💡 Hänge Demo-Button an die UI an...');
-    const buttonContainer = this.shadowRoot.querySelector('div.action-buttons');
-    
-    if (buttonContainer) {
-      const demoButton = document.createElement('md-filled-button');
-      demoButton.textContent = 'Sende Demo-Nachricht';
-      demoButton.id = 'send-demo-button';
-      demoButton.style.cssText = `margin-left: 10px;`;
-      
-      demoButton.addEventListener('click', () => {
-        console.log('Renderer: 🚀 Demo-Button geklickt.');
-        this.sendDemoSTTMessage('Das ist eine manuell ausgelöste Testnachricht aus dem Frontend.');
-      });
-
-      buttonContainer.appendChild(demoButton);
-      console.log('Renderer: ✅ Demo-Button erfolgreich angehängt.');
-    } else {
-      console.error('Renderer: ❌ Button-Container mit Klasse "action-buttons" nicht im Shadow DOM gefunden.');
-    }
-  }
-
-  /**
-   * Führt eine Reihe von Selbsttests für die Kommunikation durch.
-   */
+  
   async _runCommunicationTests() {
-    console.log('Renderer: --- Starting Electron IPC Communication Tests ---');
+    console.log('Renderer: --- Starting Electron IPC & WS Communication Tests ---');
     await this._testElectronIPC();
-    console.log('Renderer: --- Electron IPC Communication Tests Finished ---');
-
-    console.log('Renderer: --- Starting Backend WebSocket Communication Tests ---');
     try {
         await this._testBackendWebSocket();
-        console.log('Renderer: --- Backend WebSocket Communication Tests Finished ---');
+        console.log('Renderer: --- Communication Tests Finished ---');
     } catch (error) {
-        console.error('Renderer: --- Backend WebSocket Communication Tests Failed ---', error);
+        console.error('Renderer: --- WS Communication Tests Failed ---', error);
     }
   }
 
-  /**
-   * Testet die grundlegende IPC-Kommunikation mit dem Electron Main-Prozess.
-   */
   async _testElectronIPC() {
     try {
       const version = await window.electronAPI.getAppVersion();
       console.log(`[IPC Test] App Version: ${version} (OK)`);
-      const platform = await window.electronAPI.getPlatform();
-      console.log(`[IPC Test] Platform: ${platform.platform} (OK)`);
     } catch (e) {
       console.error('[IPC Test] Failed:', e);
     }
   }
 
-  /**
-   * Testet die WebSocket-Verbindung, indem auf eine offene Verbindung gewartet wird.
-   */
   async _testBackendWebSocket() {
     return new Promise((resolve, reject) => {
-      const timeout = 5000;
-      const start = Date.now();
       const interval = setInterval(() => {
         if (this.backendWs && this.backendWs.readyState === WebSocket.OPEN) {
           clearInterval(interval);
           console.log('[WS Test] Connection is open. (OK)');
           resolve();
-        } else if (Date.now() - start > timeout) {
-          clearInterval(interval);
-          console.error('[WS Test] Timeout: Connection was not open within 5s.');
-          reject(new Error('WebSocket connection timeout'));
         }
       }, 100);
+      setTimeout(() => {
+        clearInterval(interval);
+        reject(new Error('WebSocket connection timeout'));
+      }, 5000);
     });
   }
 
-  /**
-   * Wendet geladene Einstellungen auf die UI an.
-   */
   _loadSettingsFromElectron(settings) {
     console.log('Renderer: Wende geladene Einstellungen an:', settings);
-    // Annahme: Es gibt eine Methode in der Basisklasse `UI` zum Anwenden der Einstellungen
-    // this.applySettings(settings); 
   }
 
-  /**
-   * Speichert die aktuellen UI-Einstellungen über die Electron-API.
-   */
-  async _saveSettings() {
-    // Annahme: Es gibt eine Methode zum Sammeln der aktuellen Einstellungen
-    // const currentSettings = this.collectSettings();
-    const currentSettings = { theme: 'dark', language: 'de' }; // Beispiel-Daten
-    console.log('Renderer: Speichere Einstellungen...', currentSettings);
-    const result = await window.electronAPI.saveSettings(currentSettings);
-    if (result.success) {
-      this._showNotification('Einstellungen gespeichert', 'success');
-    } else {
-      this._showNotification(`Fehler beim Speichern: ${result.error}`, 'error');
-    }
-  }
-
-  /**
-   * Öffnet einen Speichern-Dialog und exportiert Übersetzungen.
-   */
-  async _exportTranslations() {
-    const result = await window.electronAPI.showSaveDialog({
-      title: 'Übersetzungen exportieren',
-      defaultPath: 'translations.json',
-      filters: [{ name: 'JSON Files', extensions: ['json'] }]
-    });
-
-    if (!result.canceled && result.filePath) {
-      console.log(`Renderer: Exportiere nach ${result.filePath}`);
-      // Hier würde die Logik zum Sammeln und Speichern der Daten folgen.
-      // const dataToSave = JSON.stringify(this.translations, null, 2);
-      // await window.electronAPI.saveFile(result.filePath, dataToSave);
-      this._showNotification('Export erfolgreich (simuliert)', 'success');
-    }
-  }
-  
-  /**
-   * Zeigt eine kurze Benachrichtigung in der UI an.
-   */
   _showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.textContent = message;
     notification.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 10px 20px;
-      border-radius: 5px;
-      color: white;
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%); padding: 10px 20px;
+      border-radius: 5px; color: white;
       background-color: ${type === 'error' ? '#D32F2F' : '#388E3C'};
-      z-index: 1000;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      transition: opacity 0.5s;
+      z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     `;
     this.shadowRoot.appendChild(notification);
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => notification.remove(), 500);
-    }, 3000);
+    setTimeout(() => notification.remove(), 3000);
   }
 }
 
