@@ -5,6 +5,8 @@ import uuid
 import time
 from typing import Optional, cast 
 from starlette.websockets import WebSocketDisconnect, WebSocketState 
+from .dependencies import set_session_manager_instance
+from .core.session_manager import SessionManager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -232,5 +234,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 # --- Hauptausführungsblock (für direkte Skriptausführung mit Uvicorn) ---
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Running backend.py directly with Uvicorn.")
+    session_manager_instance = SessionManager()
+    set_session_manager_instance(session_manager_instance)      
+    logger.info("SessionManager initialisiert und gesetzt.")
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

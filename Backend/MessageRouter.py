@@ -13,11 +13,15 @@ from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
 from .AI.SmallModel import SmallModel
 from .dependencies import get_simulation_manager
+from .dependencies import get_session_manager_instance
+
 
 logger = logging.getLogger(__name__)
 
 class MessageRouter:
     def __init__(self):
+        self._session_manager = get_session_manager_instance()
+
         # Der Router lauscht auf ZWEI Queues: eine für externe und eine für interne Nachrichten
         self._client_incoming_queue: AbstractMessageQueue = queues.incoming
         self._service_outgoing_queue: AbstractMessageQueue = queues.outgoing
@@ -103,8 +107,42 @@ class MessageRouter:
                 response = self._create_pong_message(message)
             elif message.type == 'stt.init':
                 logger.info(f"STT module connected: {message.client_id}. No action needed.")
+            elif message.type == 'session.start':
+                if self._session_manager and message.client_id is not None:
+                    code = self._session_manager.create_session(creator_client_id=message.client_id)
+                    if code:
+                        response = UniversalMessage(
+                            type='session.created',
+                            payload={'code': code},
+                            destination=message.client_id,
+                            origin='MessageRouter',
+                            client_id=message.client_id
+                        )
+                    else:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Eine Session ist bereits aktiv.")
+                else:
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "SessionManager nicht verfügbar.")
+
+            elif message.type == 'session.join':
+                code_to_join = message.payload.get('code')
+                if self._session_manager and code_to_join and message.client_id is not None:
+                    success = self._session_manager.join_session(joiner_client_id=message.client_id, code=code_to_join)
+                    if success:
+                        response = UniversalMessage(
+                            type='session.joined',
+                            payload={'code': code_to_join, 'message': 'Erfolgreich beigetreten!'},
+                            destination=message.client_id,
+                            origin='MessageRouter',
+                            client_id=message.client_id
+                        )
+                    else:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Session-Code ist ungültig oder die Session existiert nicht.")
+                else:
+                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "SessionManager nicht verfügbar oder kein Code angegeben.")
             else:
                 response = self._create_error_message(message, ErrorTypes.UNKNOWN_MESSAGE_TYPE, f"Unknown message type: '{message.type}'")
+           
+
             
             if response:
                 await self._websocket_out_queue.enqueue(response)

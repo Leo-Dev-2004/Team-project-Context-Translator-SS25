@@ -12,6 +12,35 @@ class ElectronMyElement extends UI {
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
 
+  _startSession() {
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('Keine Verbindung zum Backend', 'error');
+    }
+    console.log('Renderer: Sende "session.start"-Anfrage...');
+    const message = { type: 'session.start' };
+    this.backendWs.send(JSON.stringify(message));
+  }
+
+  _joinSession() {
+    const codeInput = this.shadowRoot.querySelector('#session-code-input');
+    const code = codeInput ? codeInput.value : '';
+
+    if (!code) {
+      return this._showNotification('Bitte einen Session-Code eingeben', 'error');
+    }
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('Keine Verbindung zum Backend', 'error');
+    }
+    
+    console.log(`Renderer: Sende "session.join"-Anfrage mit Code ${code}...`);
+    const message = {
+      type: 'session.join',
+      payload: { code: code },
+    };
+    this.backendWs.send(JSON.stringify(message));
+  }
+
+
   /**
    * Baut die WebSocket-Verbindung zum Backend auf und richtet die Event-Listener ein.
    */
