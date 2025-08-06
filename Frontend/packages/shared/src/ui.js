@@ -169,6 +169,12 @@ export class UI extends LitElement {
 
   // ### Event Handlers & Methods ###
 
+  _startSession() {
+    alert("FEHLER: Die alte _startSession in ui.js wird aufgerufen!");
+    console.warn('UI: _startSession() clicked, but not implemented...');
+}
+
+
   _onTabChange(event) {
     this.activeTab = event.target.activeTabIndex;
   }
@@ -241,4 +247,4 @@ export class UI extends LitElement {
   ];
 }
 
-window.customElements.define('my-element', UI);
+// window.customElements.define('my-element', UI);

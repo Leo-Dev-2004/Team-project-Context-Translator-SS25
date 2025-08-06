@@ -66,13 +66,17 @@ class ElectronMyElement extends UI {
 
   // ### Session & Demo Logik ###
 
-  _startSession() {
-    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
-      return this._showNotification('Keine Verbindung zum Backend', 'error');
-    }
-    console.log('Renderer: Sende "session.start"-Anfrage...');
-    this.backendWs.send(JSON.stringify({ type: 'session.start' }));
+// In Ihrer renderer.js Datei
+
+_startSession() {
+  alert("ERFOLG: Die korrekte _startSession in renderer.js wird aufgerufen!");
+  
+  if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+    return this._showNotification('Keine Verbindung zum Backend', 'error');
   }
+  console.log('Renderer: Sende "session.start"-Anfrage...');
+  this.backendWs.send(JSON.stringify({ type: 'session.start' }));
+}
 
   _joinSession() {
     const codeInput = this.shadowRoot.querySelector('#session-code-input');
