@@ -99,6 +99,7 @@ function createWindow() {
 app.whenReady().then(() => {
   console.log('Main: ✅ App is ready. Calling createWindow...');
   createWindow();
+  // Korrektur: createMenu wird hier aufgerufen, nachdem das Fenster erstellt wurde.
   createMenu();
 
   app.on('activate', () => {

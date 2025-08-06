@@ -35,9 +35,6 @@ from .MessageRouter import MessageRouter # Importiere die MessageRouter-Klasse (
 # WICHTIG: Dateiname ist 'SimulationManager.py' (Großbuchstaben), daher hier auch Großbuchstaben
 from .core.simulator import SimulationManager 
 
-# Importiere BackendServiceDispatcher direkt
-from .core.BackendServiceDispatcher import BackendServiceDispatcher
-
 # Importiere WebSocketManager
 from .services.WebSocketManager import WebSocketManager
 
@@ -47,10 +44,6 @@ from .dependencies import (
     get_simulation_manager, 
     set_websocket_manager_instance, 
     get_websocket_manager_instance,
-
-    # SICHERSTELLEN: Diese sind korrekt in Backend/dependencies.py definiert
-    set_backend_service_dispatcher_instance, 
-    get_backend_service_dispatcher_instance 
 )
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
@@ -119,11 +112,7 @@ async def startup_event():
     # 3. BackendServiceDispatcher wird NICHT MEHR initialisiert. <-- ENTFERNEN
 
     # 4. SimulationManager bleibt wie er ist.
-    simulation_manager_instance = SimulationManager(
-        incoming_queue=queues.incoming,
-        outgoing_queue=queues.outgoing,
-        websocket_out_queue=queues.websocket_out
-    )
+    simulation_manager_instance = SimulationManager()
     set_simulation_manager_instance(simulation_manager_instance)
     logger.info("SimulationManager initialisiert und gesetzt.")
 
@@ -144,45 +133,43 @@ async def send_queue_status_to_frontend():
             incoming_q: AbstractMessageQueue = queues.incoming
             websocket_out_q: AbstractMessageQueue = queues.websocket_out
 
-            incoming_q_size = incoming_q.qsize()
-            websocket_out_q_size = websocket_out_q.qsize()
-
+            # ... (Logik zum Sammeln der Queue-Größen)
+            # Sammle die Queue-Größen als Dictionary
             status_message_data = {
-                "from_frontend_q_size": incoming_q_size,      
-                "to_frontend_q_size": websocket_out_q_size
+                "incoming_queue_size": incoming_q.qsize() if hasattr(incoming_q, "qsize") else None,
+                "websocket_out_queue_size": websocket_out_q.qsize() if hasattr(websocket_out_q, "qsize") else None,
+                "timestamp": time.time()
             }
-            logger.info(f"Sending queue status update with payload: {status_message_data}")
 
             websocket_manager_instance_local: Optional[WebSocketManager] = get_websocket_manager_instance() 
 
-            if websocket_manager_instance_local and websocket_manager_instance_local.connections: 
-                for client_id_str in list(websocket_manager_instance_local.connections.keys()):
-                    try:
-                        queue_status_universal_message = UniversalMessage(
-                            id=str(uuid.uuid4()),
-                            type="system.queue_status_update",
-                            origin="backend.system_monitor",
-                            destination="frontend",
-                            timestamp=time.time(),
-                            client_id=client_id_str, 
-                            payload=status_message_data,
-                            processing_path=[], 
-                        )
+            if websocket_manager_instance_local:
+                all_client_ids = list(websocket_manager_instance_local.connections.keys())
 
-                        if websocket_manager_instance_local.connections.get(client_id_str):
-                            await websocket_manager_instance_local.connections[client_id_str].send_text(
-                                queue_status_universal_message.model_dump_json() 
-                            )
-                            logger.debug(f"Sent queue status directly via WS (JSON) to {client_id_str}")
-                        else:
-                            logger.warning(f"No active connection for {client_id_str} to send queue status.")
+                for client_id_str in all_client_ids:
+                    # Statt einer send_message-Methode, erstellen wir die Nachricht und
+                    # legen sie direkt in die ausgehende Queue.
+                    if client_id_str.startswith("frontend_renderer_"):
+                        try:
+                            queue_status_universal_message = UniversalMessage(
+                                    client_id=client_id_str,
+                                    destination=client_id_str, # Wichtig: Ziel ist der spezifische Client
+                                    type="system.queue_status_update",
+                                    origin="backend",
+                                    payload=status_message_data # Füge die Payload hinzu
+                                )
+                            
+                            await websocket_out_q.enqueue(queue_status_universal_message)
+                            logger.debug(f"Queued message {queue_status_universal_message.id} for client {client_id_str} to websocket_out_queue.")
 
-                    except Exception as client_send_error:
-                        logger.error(f"Error sending queue_status_update to client {client_id_str}: {client_send_error}", exc_info=True)
+                        except Exception as e:
+                            logger.error(f"Error enqueuing queue status to client {client_id_str}: {e}")
+            
+            await asyncio.sleep(1) # Kurze Pause, damit der Task nicht den CPU blockiert
 
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
-        await asyncio.sleep(1) 
+            await asyncio.sleep(5)
 
 # --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT (KORRIGIERT) ---
 @app.on_event("shutdown")

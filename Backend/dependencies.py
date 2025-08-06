@@ -1,6 +1,5 @@
 # Backend/dependencies.py
 from typing import Optional
-from .core.BackendServiceDispatcher import BackendServiceDispatcher
 from .services.WebSocketManager import WebSocketManager
 from .core.simulator import SimulationManager
 
@@ -23,16 +22,6 @@ def set_simulation_manager_instance(instance: SimulationManager):
 
 def get_simulation_manager() -> Optional[SimulationManager]:
     return _global_simulation_manager_instance
-
-# === NEU HINZUZUFÜGENDE ABSCHNITT FÜR BackendServiceDispatcher ===
-_global_backend_service_dispatcher_instance: Optional[BackendServiceDispatcher] = None
-
-def set_backend_service_dispatcher_instance(instance: BackendServiceDispatcher):
-    global _global_backend_service_dispatcher_instance
-    _global_backend_service_dispatcher_instance = instance
-
-def get_backend_service_dispatcher_instance() -> Optional[BackendServiceDispatcher]:
-    return _global_backend_service_dispatcher_instance
 
 # Du kannst hier auch weitere Instanzen für andere Services hinzufügen
 # Beispiel:
