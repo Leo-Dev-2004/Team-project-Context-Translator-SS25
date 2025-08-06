@@ -17,7 +17,11 @@ class ElectronMyElement extends UI {
       return this._showNotification('Keine Verbindung zum Backend', 'error');
     }
     console.log('Renderer: Sende "session.start"-Anfrage...');
-    const message = { type: 'session.start' };
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'session.start',
+      payload: {},
+    };
     this.backendWs.send(JSON.stringify(message));
   }
 
@@ -34,6 +38,7 @@ class ElectronMyElement extends UI {
     
     console.log(`Renderer: Sende "session.join"-Anfrage mit Code ${code}...`);
     const message = {
+      id: crypto.randomUUID(),
       type: 'session.join',
       payload: { code: code },
     };
