@@ -127,10 +127,11 @@ async def startup_event():
     logger.info("Anwendungsstart abgeschlossen.")
 
 
+
 async def send_queue_status_to_frontend():
     logger.info("send_queue_status_to_frontend task started.")
     while True:
-        await asyncio.sleep(1) # Sleep at the beginning of the loop
+        await asyncio.sleep(1) 
         try:
             websocket_manager = get_websocket_manager_instance()
             if not websocket_manager or not websocket_manager.connections:
@@ -140,24 +141,19 @@ async def send_queue_status_to_frontend():
                 "from_frontend_q_size": queues.incoming.qsize(),
                 "to_frontend_q_size": queues.websocket_out.qsize()
             }
-
-            # Create a copy of connection keys to iterate safely
-            all_client_ids = list(websocket_manager.connections.keys())
-
-            for client_id in all_client_ids:
-                # HIER IST DIE NEUE LOGIK:
-                # Send status updates only to clients identified as frontends.
+            
+            # Iteriere sicher über die verbundenen Clients
+            for client_id in list(websocket_manager.connections.keys()):
+                # Sende nur an Frontend-Clients
                 if client_id.startswith("frontend_renderer_"):
                     status_message = UniversalMessage(
                         type="system.queue_status_update",
                         payload=status_payload,
-                        destination=client_id, # Send to the specific client
+                        destination=client_id,  # WICHTIG: Sende an die spezifische ID
                         origin="backend.monitor",
-                        client_id=client_id,
+                        client_id=client_id
                     )
-                    # Use the websocket_out_queue to send the message
                     await queues.websocket_out.enqueue(status_message)
-                    logger.debug(f"Enqueued queue status for frontend client {client_id}")
 
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)

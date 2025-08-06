@@ -1,6 +1,5 @@
 /**
  * UI Component Module - Main Application Interface
- * ... (header comments remain the same) ...
  */
 
 import { LitElement, css, html } from 'lit';
@@ -80,8 +79,7 @@ export class UI extends LitElement {
               <div class="input-section">
                 <h3 class="title-medium section-title">Domain Description</h3>
                 <p class="body-medium section-description">
-                  Describe your field or context to improve translation accuracy
-                  (e.g., "CS student", "primary school teacher", "medical professional")
+                  Describe your field or context to improve translation accuracy.
                 </p>
                 <div class="domain-input-group">
                   <md-outlined-text-field
@@ -110,13 +108,11 @@ export class UI extends LitElement {
                   <md-filled-button id="start-session-button" @click=${this._startSession}>
                     Session erstellen
                   </md-filled-button>
-
                   <md-outlined-text-field
                     id="session-code-input"
                     label="Session Code"
                     placeholder="Code eingeben..."
                   ></md-outlined-text-field>
-
                   <md-outlined-button id="join-session-button" @click=${this._joinSession}>
                     Session beitreten
                   </md-outlined-button>
@@ -126,10 +122,45 @@ export class UI extends LitElement {
           </div>
         `;
       case 1:
-        // ... (Der "Explanations"-Tab bleibt unverändert) ...
+        // WIEDERHERGESTELLT: Vollständige UI für den "Explanations"-Tab
         return html`
           <div class="tab-panel explanations-panel">
+            <div class="explanations-header">
+              <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
+              <p class="body-large">Terms and concepts explained during your meetings</p>
+                <div class="explanations-controls">
+                <md-text-button @click=${this._clearAllExplanations}>
+                  <span class="material-icons">delete</span> Clear All
+                </md-text-button>
+                <md-filled-button @click=${this._addTestExplanation}>
+                  <span class="material-icons">add</span> Add Test
+                </md-filled-button>
+              </div>
             </div>
+
+            <div class="explanations-content">              
+              ${this.explanations.length === 0 
+                ? html`
+                  <div class="empty-state">
+                    <h3 class="title-medium">No explanations yet</h3>
+                    <p class="body-medium">Join a meeting and our AI will automatically explain complex terms and concepts.</p>
+                  </div>
+                `
+                : html`
+                  <div class="explanations-list">
+                    ${this.explanations.map(explanation => html`
+                      <explanation-item
+                        .explanation=${explanation}
+                        .onPin=${this._handlePin.bind(this)}
+                        .onDelete=${this._handleDelete.bind(this)}
+                        .onCopy=${this._handleCopy.bind(this)}
+                      ></explanation-item>
+                    `)}
+                  </div>
+                `
+              }
+            </div>
+          </div>
         `;
       default:
         return html`<div class="tab-panel">Select a tab</div>`;
@@ -154,7 +185,6 @@ export class UI extends LitElement {
     this.domainValue = '';
   }
 
-  // NEU: Platzhalter-Methoden für die Session-Steuerung
   _startSession() {
     console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.');
   }
@@ -163,13 +193,42 @@ export class UI extends LitElement {
     console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.');
   }
 
-  // ... (restliche Methoden wie _handlePin, _addTestExplanation etc. bleiben unverändert) ...
+  // WIEDERHERGESTELLT: Fehlende Methoden für den "Explanations"-Tab
+  _handlePin(id) {
+    explanationManager.pinExplanation(id);
+  }
 
+  _handleDelete(id) {
+    explanationManager.deleteExplanation(id);
+  }
+
+  _handleCopy(explanation) {
+    const textToCopy = `**${explanation.title}**\n\n${explanation.content}`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      // Annahme: _showNotification existiert in der erbenden Klasse renderer.js
+      this._showNotification?.('Explanation copied!');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+    });
+  }
+
+  _clearAllExplanations() {
+    if (confirm('Are you sure you want to clear all explanations?')) {
+      explanationManager.clearAll();
+    }
+  }
+
+  _addTestExplanation() {
+    explanationManager.addExplanation(
+      "Test Explanation",
+      "This is the content for the test explanation added via the UI button."
+    );
+  }
+  
   // ### Styles ###
   static styles = [
     sharedStyles,
     css`
-      /* NEU: Styling für die Session-Steuerungselemente */
       .session-controls {
         display: flex;
         align-items: center;
