@@ -19,7 +19,7 @@ CONFIG = {
     "SAMPLE_RATE": 16000,
     "CHANNELS": 1,
     "MODEL_SIZE": "medium",
-    "LANGUAGE": "de",
+    "LANGUAGE": "en",
     "WEBSOCKET_URI": "ws://localhost:8000/ws",
     "MIN_WORDS_PER_SENTENCE": 3,
     "MAX_SENTENCE_DURATION_SECONDS": 15

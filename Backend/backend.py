@@ -126,50 +126,40 @@ async def startup_event():
 
 
 async def send_queue_status_to_frontend():
-    logger.info("send_queue_status_to_frontend: Funktion sofort betreten. (Test 2)")
-
+    logger.info("send_queue_status_to_frontend task started.")
     while True:
+        await asyncio.sleep(1) # Sleep at the beginning of the loop
         try:
-            incoming_q: AbstractMessageQueue = queues.incoming
-            websocket_out_q: AbstractMessageQueue = queues.websocket_out
+            websocket_manager = get_websocket_manager_instance()
+            if not websocket_manager or not websocket_manager.connections:
+                continue
 
-            # ... (Logik zum Sammeln der Queue-Größen)
-            # Sammle die Queue-Größen als Dictionary
-            status_message_data = {
-                "incoming_queue_size": incoming_q.qsize() if hasattr(incoming_q, "qsize") else None,
-                "websocket_out_queue_size": websocket_out_q.qsize() if hasattr(websocket_out_q, "qsize") else None,
-                "timestamp": time.time()
+            status_payload = {
+                "from_frontend_q_size": queues.incoming.qsize(),
+                "to_frontend_q_size": queues.websocket_out.qsize()
             }
 
-            websocket_manager_instance_local: Optional[WebSocketManager] = get_websocket_manager_instance() 
+            # Create a copy of connection keys to iterate safely
+            all_client_ids = list(websocket_manager.connections.keys())
 
-            if websocket_manager_instance_local:
-                all_client_ids = list(websocket_manager_instance_local.connections.keys())
-
-                for client_id_str in all_client_ids:
-                    # Statt einer send_message-Methode, erstellen wir die Nachricht und
-                    # legen sie direkt in die ausgehende Queue.
-                    if client_id_str.startswith("frontend_renderer_"):
-                        try:
-                            queue_status_universal_message = UniversalMessage(
-                                    client_id=client_id_str,
-                                    destination=client_id_str, # Wichtig: Ziel ist der spezifische Client
-                                    type="system.queue_status_update",
-                                    origin="backend",
-                                    payload=status_message_data # Füge die Payload hinzu
-                                )
-                            
-                            await websocket_out_q.enqueue(queue_status_universal_message)
-                            logger.debug(f"Queued message {queue_status_universal_message.id} for client {client_id_str} to websocket_out_queue.")
-
-                        except Exception as e:
-                            logger.error(f"Error enqueuing queue status to client {client_id_str}: {e}")
-            
-            await asyncio.sleep(1) # Kurze Pause, damit der Task nicht den CPU blockiert
+            for client_id in all_client_ids:
+                # HIER IST DIE NEUE LOGIK:
+                # Send status updates only to clients identified as frontends.
+                if client_id.startswith("frontend_renderer_"):
+                    status_message = UniversalMessage(
+                        type="system.queue_status_update",
+                        payload=status_payload,
+                        destination=client_id, # Send to the specific client
+                        origin="backend.monitor",
+                        client_id=client_id,
+                    )
+                    # Use the websocket_out_queue to send the message
+                    await queues.websocket_out.enqueue(status_message)
+                    logger.debug(f"Enqueued queue status for frontend client {client_id}")
 
         except Exception as e:
             logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
-            await asyncio.sleep(5)
+
 
 # --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT (KORRIGIERT) ---
 @app.on_event("shutdown")

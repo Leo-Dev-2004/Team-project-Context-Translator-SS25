@@ -1,4 +1,4 @@
-# Backend/services/WebSocketManager.py (Final Refactored Version)
+# Backend/services/WebSocketManager.py
 
 import asyncio
 import json
@@ -79,7 +79,6 @@ class WebSocketManager:
                 del self.client_tasks[client_id]
             logger.info(f"Connection for {client_id} cleaned up. Remaining connections: {len(self.connections)}")
 
-    # GEÄNDERT: Der Dispatcher kann jetzt Gruppen-Adressen verarbeiten
     async def _message_dispatcher(self):
         """Reads from the outgoing queue and dispatches messages to clients or groups."""
         logger.info("Message dispatcher loop started.")
@@ -88,11 +87,12 @@ class WebSocketManager:
                 message = await self.websocket_out_queue.dequeue()
                 destination = message.destination
 
-                # Fall 1: Nachricht an eine spezifische, verbundene Client-ID
+                # Case 1: Message is for a specific, connected client ID
                 if destination and destination in self.connections:
                     await self._send_to_websocket(self.connections[destination], message)
+                    logger.debug(f"Dispatched message '{message.type}' to client {destination}")
 
-                # Fall 2: NEU - Nachricht an die Gruppe aller Frontends
+                # Case 2: Message is for the group of all frontend clients
                 elif destination == "all_frontends":
                     frontend_clients = [
                         ws for cid, ws in self.connections.items() if cid.startswith("frontend_")
@@ -101,8 +101,6 @@ class WebSocketManager:
                         logger.debug(f"Broadcasting message '{message.type}' to {len(frontend_clients)} frontend clients.")
                         send_tasks = [self._send_to_websocket(ws, message) for ws in frontend_clients]
                         await asyncio.gather(*send_tasks)
-
-                # Hier könnten weitere Gruppen definiert werden, z.B. "all_stt_clients"
                 
                 else:
                     logger.warning(f"Could not dispatch message: Destination '{destination}' not found or not a valid group.")
@@ -114,13 +112,13 @@ class WebSocketManager:
                 logger.error(f"Error in message dispatcher loop: {e}", exc_info=True)
                 await asyncio.sleep(1)
 
-    # NEU: Eine Hilfsfunktion für sauberes Senden
     async def _send_to_websocket(self, websocket: WebSocket, message: UniversalMessage):
         """Safely sends a message to a single WebSocket connection."""
         try:
             if websocket.client_state == WebSocketState.CONNECTED:
                 await websocket.send_text(message.model_dump_json())
         except (WebSocketDisconnect, RuntimeError) as e:
+            # This is a non-critical error that happens when a client disconnects mid-send
             client_id = next((cid for cid, ws in self.connections.items() if ws is websocket), "unknown")
             logger.warning(f"Failed to send to client {client_id} (likely disconnected): {e}")
 
@@ -131,6 +129,8 @@ class WebSocketManager:
                 data = await websocket.receive_text()
                 try:
                     message = UniversalMessage.model_validate(json.loads(data))
+                    
+                    # Ensure metadata is correctly assigned
                     message.client_id = client_id
                     message.origin = "websocket_client"
                     
@@ -139,7 +139,7 @@ class WebSocketManager:
                         status="received",
                         timestamp=time.time(),
                         completed_at=time.time(),
-                        details=dict(client_id=client_id, data_length=len(data))
+                        details=dict(client_id=client_id, websocket_state=websocket.client_state.name)
                     ))
                     
                     await self.incoming_queue.enqueue(message)
@@ -151,6 +151,6 @@ class WebSocketManager:
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected.")
         except asyncio.CancelledError:
-            pass  # Normal on shutdown
+            pass  # Normal during a graceful shutdown
         except Exception as e:
             logger.error(f"Unexpected error in receiver for {client_id}: {e}", exc_info=True)
