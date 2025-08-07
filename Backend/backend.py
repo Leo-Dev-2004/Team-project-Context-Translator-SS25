@@ -95,36 +95,37 @@ message_router_instance: Optional[MessageRouter] = None
 @app.on_event("startup")
 async def startup_event():
     logger.info("Application startup event triggered.")
-    # ... (global-Deklarationen anpassen)
+    global simulation_manager_instance, websocket_manager_instance, message_router_instance
+    global queue_status_sender_task
 
-    # 1. WebSocketManager bleibt wie er ist.
+    # Step 1: Initialize all standalone services FIRST.
+    # These services do not depend on others during their __init__.
     websocket_manager_instance = WebSocketManager(
         incoming_queue=queues.incoming,
         outgoing_queue=queues.websocket_out,
     )
     set_websocket_manager_instance(websocket_manager_instance)
-    await websocket_manager_instance.start()
-    logger.info("WebSocketManager initialisiert und gestartet.")
+    logger.info("WebSocketManager initialized and set.")
 
-    # 2. MessageRouter ist jetzt der zentrale Prozessor.
-    message_router_instance = MessageRouter() # Er holt sich die Queues selbst.
-    await message_router_instance.start()
-    logger.info("MessageRouter initialisiert und gestartet.")
-
-    # 3. BackendServiceDispatcher wird NICHT MEHR initialisiert. <-- ENTFERNEN
-
-    # 4. SimulationManager bleibt wie er ist.
     simulation_manager_instance = SimulationManager()
     set_simulation_manager_instance(simulation_manager_instance)
-    logger.info("SimulationManager initialisiert und gesetzt.")
+    logger.info("SimulationManager initialized and set.")
 
-    # 5. SmallModel-Instanziierung hier entfernen. <-- ENTFERNEN
+    session_manager_instance = SessionManager()
+    set_session_manager_instance(session_manager_instance)
+    logger.info("SessionManager initialized and set.")
 
-    # 6. Queue-Status-Sender bleibt.
+    # Step 2: NOW initialize the MessageRouter, which depends on the services above.
+    # Its __init__ can now safely call get_session_manager_instance().
+    message_router_instance = MessageRouter()
+    logger.info("MessageRouter initialized with dependencies.")
+
+    # Step 3: Start all background tasks.
+    await websocket_manager_instance.start()
+    await message_router_instance.start()
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())
-    logger.info("Queue status sender task gestartet.")
-
-    logger.info("Anwendungsstart abgeschlossen.")
+    
+    logger.info("Application startup complete. All services started.")
 
 
 
