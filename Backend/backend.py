@@ -50,7 +50,7 @@ from .dependencies import (
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
 logging.basicConfig(
-    level=logging.DEBUG, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
+    level=logging.INFO, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),

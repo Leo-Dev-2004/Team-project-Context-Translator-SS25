@@ -69,15 +69,16 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
                 details={"info": "enqueued"}
             ))
 
-            logger.debug(
-                f"Putting item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
-                f"into '{self.name}' queue. Current size before put: {self.qsize()}"
-            )
+            if item.type is not "system.queue_status_update":
+                logger.debug(
+                    f"Putting item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
+                    f"into '{self.name}' queue. Current size before put: {self.qsize()}"
+                )
             await self.put(item)  # Use asyncio.Queue's put method
-            logger.debug(
+            if item.type is not "system.queue_status_update":
+                logger.debug(
                 f"Item put into '{self.name}' queue. "
-                f"Current size after put: {self.qsize()}"
-            )
+                f"Current size after put: {self.qsize()}")
         except asyncio.QueueFull:
             logger.warning(
                 f"Queue '{self.name}' is full. Message (ID: {item.id}) "
@@ -109,7 +110,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
         # However, this delay will make the *entire system* slow down when consuming messages.
         # The effect on *queue size* visibility is indirect, but it makes the processing
         # visually slower.
-        await asyncio.sleep(2) # Adjust delay as needed (e.g., 0.5 to 2.0 seconds)
+        await asyncio.sleep(1) # Adjust delay as needed (e.g., 0.5 to 2.0 seconds)
 
         
         self.task_done() # Signal that a task processing this item is complete
@@ -123,7 +124,8 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
             details={"status": "dequeued"}
         ))
 
-        logger.debug(
+        if item.type is not "system.queue_status_update":
+            logger.debug(
             f"Dequeued item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
             f"from '{self.name}' queue. Current size: {self.qsize()}"
         )

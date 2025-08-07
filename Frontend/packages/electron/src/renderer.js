@@ -25,21 +25,23 @@ class ElectronMyElement extends UI {
     this.backendWs.onopen = () => console.log('Renderer: ✅ WebSocket-Verbindung zum Backend erfolgreich hergestellt.');
 
     this.backendWs.onmessage = (event) => {
-      console.log(`Renderer: 💡 Nachricht vom Backend empfangen:`, event.data);
-      try {
-        const message = JSON.parse(event.data);
-        
-        if (message.type === 'session.created') {
-            const code = message.payload.code;
-            this._showNotification(`Session erstellt! Code: ${code}`, 'success');
-            this.shadowRoot.querySelector('#session-code-input').value = code;
-        } else if (message.type === 'session.joined') {
-            this._showNotification(`Erfolgreich beigetreten zu Session ${message.payload.code}`, 'success');
-        } else if (message.type === 'session.error') {
-            this._showNotification(message.payload.error, 'error');
-        } // ... other message handlers
-      } catch (error) {
-        console.error('Renderer: ❌ Fehler beim Parsen der Backend-Nachricht:', error);
+      if (event.type !== 'system.queue_status_update') {
+        console.log(`Renderer: 💡 Nachricht vom Backend empfangen:`, event.data);
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'session.created') {
+              const code = message.payload.code;
+              this._showNotification(`Session erstellt! Code: ${code}`, 'success');
+              this.shadowRoot.querySelector('#session-code-input').value = code;
+          } else if (message.type === 'session.joined') {
+              this._showNotification(`Erfolgreich beigetreten zu Session ${message.payload.code}`, 'success');
+          } else if (message.type === 'session.error') {
+              this._showNotification(message.payload.error, 'error');
+          } // ... other message handlers
+        } catch (error) {
+          console.error('Renderer: ❌ Fehler beim Parsen der Backend-Nachricht:', error);
+        }
       }
     };
 
