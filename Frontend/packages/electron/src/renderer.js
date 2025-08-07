@@ -25,7 +25,8 @@ class ElectronMyElement extends UI {
     this.backendWs.onopen = () => console.log('Renderer: ✅ WebSocket-Verbindung zum Backend erfolgreich hergestellt.');
 
     this.backendWs.onmessage = (event) => {
-      if (event.type !== 'system.queue_status_update') {
+      const message = JSON.parse(event.data);
+      if (message.type !== 'system.queue_status_update') {
         console.log(`Renderer: 💡 Nachricht vom Backend empfangen:`, event.data);
         try {
           const message = JSON.parse(event.data);
