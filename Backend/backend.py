@@ -130,7 +130,6 @@ async def startup_event():
 
 
 async def send_queue_status_to_frontend():
-    logger.info("send_queue_status_to_frontend task started.")
     while True:
         await asyncio.sleep(1) 
         try:
@@ -143,21 +142,21 @@ async def send_queue_status_to_frontend():
                 "to_frontend_q_size": queues.websocket_out.qsize()
             }
             
-            # Iteriere sicher über die verbundenen Clients
+            # Iterate over a copy of the client IDs
             for client_id in list(websocket_manager.connections.keys()):
-                # Sende nur an Frontend-Clients
+                # Only send to clients that are identified as frontends
                 if client_id.startswith("frontend_renderer_"):
                     status_message = UniversalMessage(
                         type="system.queue_status_update",
                         payload=status_payload,
-                        destination=client_id,  # WICHTIG: Sende an die spezifische ID
+                        destination=client_id,  # Use the specific client_id
                         origin="backend.monitor",
                         client_id=client_id
                     )
                     await queues.websocket_out.enqueue(status_message)
 
         except Exception as e:
-            logger.error(f"Error in send_queue_status_to_frontend task: {e}", exc_info=True)
+            logger.error(f"Error in status sending task: {e}", exc_info=True)
 
 
 # --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT (KORRIGIERT) ---

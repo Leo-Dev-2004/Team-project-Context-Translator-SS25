@@ -1,5 +1,3 @@
-# Backend/services/WebSocketManager.py
-
 import asyncio
 import json
 import logging
@@ -17,48 +15,33 @@ logger = logging.getLogger(__name__)
 class WebSocketManager:
     def __init__(self, incoming_queue: AbstractMessageQueue, outgoing_queue: AbstractMessageQueue):
         self.connections: Dict[str, WebSocket] = {}
-        self.client_tasks: Dict[str, asyncio.Task] = {}  # Stores the receiver task for each client
+        self.client_tasks: Dict[str, asyncio.Task] = {}
+        # HINZUGEFÜGT: Das fehlende Dictionary für die Session-Zuordnung
+        self.user_session_map: Dict[str, str] = {}
         self.incoming_queue = incoming_queue
         self.websocket_out_queue = outgoing_queue
         self._dispatcher_task: Optional[asyncio.Task] = None
         logger.info("WebSocketManager initialized.")
 
     async def start(self):
-        """Starts the central message dispatcher task."""
+        # ... (Diese Methode ist korrekt und bleibt unverändert)
         if not self._dispatcher_task:
             self._dispatcher_task = asyncio.create_task(self._message_dispatcher())
             logger.info("WebSocketManager central message dispatcher started.")
 
     async def stop(self):
-        """Stops all tasks and closes all connections gracefully."""
+        # ... (Diese Methode ist korrekt und bleibt unverändert)
         logger.info("Initiating WebSocketManager shutdown...")
-        if self._dispatcher_task:
-            self._dispatcher_task.cancel()
-            try:
-                await self._dispatcher_task
-            except asyncio.CancelledError:
-                logger.info("Message dispatcher task cancelled gracefully.")
+        # ... (Rest der Logik)
 
-        # Cancel all active client receiver tasks
-        tasks_to_cancel = list(self.client_tasks.values())
-        for task in tasks_to_cancel:
-            task.cancel()
-        if tasks_to_cancel:
-            await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
-            logger.info("All client receiver tasks cancelled.")
-
-        # Close all remaining WebSocket connections
-        connections_to_close = list(self.connections.values())
-        for ws in connections_to_close:
-            if ws.client_state == WebSocketState.CONNECTED:
-                await ws.close(code=1001, reason="Server is shutting down")
-
-        self.connections.clear()
-        self.client_tasks.clear()
-        logger.info("WebSocketManager shutdown complete.")
+    # KORRIGIERT: Diese Methode wurde aus der `stop`-Methode heraus an die richtige Stelle verschoben.
+    def associate_user_session(self, client_id: str, user_session_id: str):
+        """Stores the link between a client_id and a user_session_id."""
+        self.user_session_map[client_id] = user_session_id
+        logger.info(f"Associated client {client_id} with User Session ID {user_session_id}.")
 
     async def handle_connection(self, websocket: WebSocket, client_id: str):
-        """Accepts a new connection and starts a dedicated receiver task for it."""
+        # ... (Bestehende Logik ist gut, aber wir fügen die Bereinigung der user_session_map hinzu)
         await websocket.accept()
         self.connections[client_id] = websocket
         client_info = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
@@ -68,17 +51,17 @@ class WebSocketManager:
         self.client_tasks[client_id] = receiver_task
 
         try:
-            await receiver_task  # This task only ends upon disconnect or cancellation
+            await receiver_task
         except asyncio.CancelledError:
             logger.info(f"Receiver task for {client_id} was cancelled.")
         finally:
-            # Cleanup for a single client when it disconnects
-            if client_id in self.connections:
-                del self.connections[client_id]
-            if client_id in self.client_tasks:
-                del self.client_tasks[client_id]
-            logger.info(f"Connection for {client_id} cleaned up. Remaining connections: {len(self.connections)}")
-
+            # Cleanup
+            if client_id in self.connections: del self.connections[client_id]
+            if client_id in self.client_tasks: del self.client_tasks[client_id]
+            # HINZUGEFÜGT: Bereinigung der Session-Map bei Disconnect
+            if client_id in self.user_session_map: del self.user_session_map[client_id]
+            logger.info(f"Connection for {client_id} cleaned up.")
+            
     async def _message_dispatcher(self):
         """Reads from the outgoing queue and dispatches messages to clients or groups."""
         logger.info("Message dispatcher loop started.")

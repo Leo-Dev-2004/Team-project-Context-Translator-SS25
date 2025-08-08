@@ -147,3 +147,4 @@ class ErrorTypes(str, Enum):
     VALIDATION_ERROR = "error.message_validation"
     PROCESSING_ERROR = "error.processing"
     INVALID_INPUT = "error.invalid_input"
+    INVALID_ACTION = "error.invalid_action"

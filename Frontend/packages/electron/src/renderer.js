@@ -10,11 +10,48 @@ class ElectronMyElement extends UI {
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
 
+  // ### Lifecycle & UI Setup ###
+
+  async connectedCallback() {
+    super.connectedCallback();
+    console.log('Renderer: ⚙️ connectedCallback entered.');
+    await this._initializeElectron();
+    this._initializeWebSocket();
+    // this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
+    console.log('Renderer: ⚙️ connectedCallback exited.');
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.backendWs) {
+      this.backendWs.close();
+    }
+    console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection cleaned up.');
+  }
+
+  _attachActionListeners() {
+    console.log('Renderer: 💡 Attaching event listeners to action buttons...');
+    
+    const createSessionButton = this.shadowRoot.querySelector('#start-session-button');
+    const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
+
+    if (createSessionButton) {
+      createSessionButton.addEventListener('click', () => this._startSession());
+    } else {
+      console.error("Renderer: ❌ 'Create Session' button not found.");
+    }
+    
+    if (joinSessionButton) {
+      joinSessionButton.addEventListener('click', () => this._joinSession());
+    } else {
+      console.error("Renderer: ❌ 'Join Session' button not found.");
+    }
+
+    console.log('Renderer: ✅ Event listeners successfully attached.');
+  }
+
   // ### WebSocket & Messaging ###
 
-  /**
-   * Initializes the WebSocket connection to the backend and sets up event listeners.
-   */
   _initializeWebSocket() {
     const clientId = `frontend_renderer_${crypto.randomUUID()}`;
     const wsUrl = `ws://localhost:8000/ws/${clientId}`;
@@ -24,25 +61,29 @@ class ElectronMyElement extends UI {
     
     this.backendWs = new WebSocket(wsUrl);
 
-    this.backendWs.onopen = () => console.log('Renderer: ✅ WebSocket connection established.');
+    this.backendWs.onopen = () => {
+      console.log('Renderer: ✅ WebSocket connection established.');
+      this._performHandshake();
+    };
 
-    // REFACTORED: This handler now parses the message only once and filters noisy updates.
     this.backendWs.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
         
-        // Filter out noisy status updates from the main log
-        if (message.type === 'system.queue_status_update') {
-          return;
-        }
+        if (message.type === 'system.queue_status_update') return;
         
         console.log(`Renderer: 💡 Message received from backend:`, message);
 
         if (message.type === 'session.created') {
             const code = message.payload.code;
-            this._showNotification(`Session created! Code: ${code}`, 'success');
-            const codeInput = this.shadowRoot.querySelector('#session-code-input');
-            if (codeInput) codeInput.value = code;
+            this.shadowRoot.querySelector('#session-code-input').value = code;
+            
+            const dialog = this.shadowRoot.querySelector('#session-dialog');
+            const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
+            if (dialog && codeDisplay) {
+                codeDisplay.textContent = code;
+                dialog.show(); // Use .show() for non-modal
+            }
         } else if (message.type === 'session.joined') {
             this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
         } else if (message.type === 'session.error') {
@@ -57,11 +98,28 @@ class ElectronMyElement extends UI {
     this.backendWs.onclose = () => console.log('Renderer: ⚙️ WebSocket connection closed.');
   }
 
+  async _performHandshake() {
+    if (!window.electronAPI) {
+        return console.error("Renderer: Electron API not available for handshake.");
+    }
+    const userSessionId = await window.electronAPI.getUserSessionId();
+    
+    if (!userSessionId) {
+        return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
+    }
+
+    console.log(`Renderer: 🚀 Sending "frontend.init" with User Session ID: ${userSessionId}`);
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'frontend.init',
+      timestamp: Date.now() / 1000,
+      payload: { user_session_id: userSessionId }
+    };
+    this.backendWs.send(JSON.stringify(message));
+  }
+  
   // ### Session Logic ###
 
-  /**
-   * Sends a message to the backend to create a new session.
-   */
   _startSession() {
     if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
       return this._showNotification('No connection to backend', 'error');
@@ -76,9 +134,6 @@ class ElectronMyElement extends UI {
     this.backendWs.send(JSON.stringify(message));
   }
 
-  /**
-   * Sends a message to the backend to join an existing session with a code.
-   */
   _joinSession() {
     const codeInput = this.shadowRoot.querySelector('#session-code-input');
     const code = codeInput ? codeInput.value.trim() : '';
@@ -97,63 +152,9 @@ class ElectronMyElement extends UI {
     };
     this.backendWs.send(JSON.stringify(message));
   }
-  
-  // ### Lifecycle & UI Setup ###
 
-  async connectedCallback() {
-    super.connectedCallback();
-    console.log('Renderer: ⚙️ connectedCallback entered.');
-    await this._initializeElectron();
-    this._initializeWebSocket();
-    console.log('Renderer: ⚙️ connectedCallback exited.');
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this.backendWs) {
-      this.backendWs.close();
-    }
-    console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection closed.');
-  }
-
-  _attachActionButtons() {
-    console.log('Renderer: 💡 Attaching event listeners to action buttons...');
-    const buttonContainer = this.shadowRoot.querySelector('div.action-buttons');
-    
-    if (!buttonContainer) {
-      console.error("Renderer: ❌ Could not find the '.action-buttons' container.");
-      return;
-    }
-
-    // Find the buttons that were rendered by ui.js
-    const saveButton = this.shadowRoot.querySelector('md-filled-button'); // This is a bit fragile, better to add IDs in ui.js
-    const resetButton = this.shadowRoot.querySelector('md-outlined-button');
-    const createSessionButton = this.shadowRoot.querySelector('#start-session-button');
-    const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
-
-    // Attach our renderer-specific logic to them
-    if (saveButton) {
-      // Note: The UI class has a _saveSettings method. If you need special
-      // logic in Electron, you would add the listener here.
-      // For now, the one from ui.js is likely sufficient.
-    }
-    
-    if (createSessionButton) {
-      createSessionButton.addEventListener('click', () => this._startSession());
-    }
-    
-    if (joinSessionButton) {
-      joinSessionButton.addEventListener('click', () => this._joinSession());
-    }
-
-    console.log('Renderer: ✅ Event listeners successfully attached.');
-  }
-  
   // ### Electron & Helper Functions ###
   
-  /**
-   * Initializes Electron-specific APIs and loads saved settings.
-   */
   async _initializeElectron() {
     console.log('Renderer: ⚙️ Initializing Electron APIs...');
     if (window.electronAPI) {
@@ -170,20 +171,11 @@ class ElectronMyElement extends UI {
     }
   }
 
-  /**
-   * Applies settings loaded from the main process.
-   * @param {object} settings The settings object.
-   */
   _loadSettingsFromElectron(settings) {
     console.log('Renderer: Applying loaded settings:', settings);
     // Example: this.domainValue = settings.domain || '';
   }
 
-  /**
-   * Displays a temporary notification at the bottom of the screen.
-   * @param {string} message The message to display.
-   * @param {'success'|'error'} type The type of notification.
-   */
   _showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.textContent = message;
@@ -193,7 +185,6 @@ class ElectronMyElement extends UI {
       border-radius: 8px; color: white; font-family: 'Roboto', sans-serif;
       background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
       z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      transition: opacity 0.3s ease-in-out;
     `;
     this.shadowRoot.appendChild(notification);
     setTimeout(() => notification.remove(), 4000);

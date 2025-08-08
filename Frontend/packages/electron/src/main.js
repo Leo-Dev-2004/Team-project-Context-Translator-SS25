@@ -11,6 +11,14 @@ const __dirname = dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 
+// NEU: Lese die user_session_id aus den Kommandozeilen-Argumenten
+const userSessionIdArg = process.argv.find(arg => arg.startsWith('--user-session-id='));
+const userSessionId = userSessionIdArg ? userSessionIdArg.split('=')[1] : null;
+if (userSessionId) {
+  console.log(`Main: User Session ID found: ${userSessionId}`);
+}
+
+
 const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 
 function createWindow() {
@@ -97,6 +105,11 @@ function createWindow() {
 
 // App event handlers
 app.whenReady().then(() => {
+    // Erstelle den IPC-Handler, bevor das Fenster erstellt wird
+  ipcMain.handle('get-user-session-id', () => {
+    return userSessionId;
+  });
+
   console.log('Main: ✅ App is ready. Calling createWindow...');
   createWindow();
   // Korrektur: createMenu wird hier aufgerufen, nachdem das Fenster erstellt wurde.

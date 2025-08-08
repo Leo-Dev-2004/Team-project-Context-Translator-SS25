@@ -18,6 +18,8 @@ import_electron.contextBridge.exposeInMainWorld("electronAPI", {
     node: process.versions.node,
     chrome: process.versions.chrome,
     electron: process.versions.electron
-  }
+  },
+  // Mache den Handler für die User Session ID verfügbar
+  getUserSessionId: () => import_electron.ipcRenderer.invoke("get-user-session-id")
 });
 console.log("Preload script loaded");
