@@ -1,25 +1,28 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-import fs from 'fs/promises'
-import os from 'os'
-import { spawn } from 'child_process'
-import path from 'path'
+// src/main.js
+import { app, BrowserWindow, ipcMain, Menu, session, dialog } from 'electron';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import os from 'os';
+import fs from 'fs/promises';
 
-let pythonProcess = null
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-console.log('--- main.js started executing ---'); // <<< FÜGEN SIE DIESE ZEILE HIER HINZU!
+const isDev = process.env.NODE_ENV === 'development';
+let mainWindow;
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+// NEU: Lese die user_session_id aus den Kommandozeilen-Argumenten
+const userSessionIdArg = process.argv.find(arg => arg.startsWith('--user-session-id='));
+const userSessionId = userSessionIdArg ? userSessionIdArg.split('=')[1] : null;
+if (userSessionId) {
+  console.log(`Main: User Session ID found: ${userSessionId}`);
+}
 
-const isDev = process.env.NODE_ENV === 'development'
-let mainWindow
 
-// Settings storage path
-const settingsPath = join(os.homedir(), '.context-translator-settings.json')
+const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 
 function createWindow() {
+  console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -28,77 +31,156 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: join(__dirname, 'preload.js'),
-      webSecurity: true
+      preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
+      webSecurity: isDev ? false : true,
     },
     titleBarStyle: 'default',
     show: false,
-    icon: join(__dirname, '../assets/icon.png') // Add icon if available
-  })
+    icon: join(__dirname, '../assets/icon.png')
+  });
+  console.log('Main: ✅ Main window created.');
 
-function startPythonSTTProcess() {
-  if (pythonProcess) {
-    console.log('Python STT process already running.')
-    return
-  }
+  // Weiterleitung der Renderer-Konsolenlogs an den Main-Prozess-Log
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const logPrefix = `[Renderer]`;
+    if (level === 0) {
+      console.log(`${logPrefix} ${message}`);
+    } else if (level === 1) {
+      console.warn(`${logPrefix} ${message}`);
+    } else if (level === 2) {
+      console.error(`${logPrefix} ${message}`);
+    }
+  });
 
-  const pythonScriptPath = path.join(__dirname, '..', '..', 'Backend', 'STT', 'transcribe.py')
+  // Hinzugefügtes Logging für den Lade-Prozess
+  mainWindow.webContents.on('did-start-loading', () => {
+    console.log('Main: 💡 WebContents started loading...');
+  });
+  mainWindow.webContents.on('did-stop-loading', () => {
+    console.log('Main: ✅ WebContents stopped loading.');
+  });
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Main: ✅ WebContents finished loading successfully.');
+  });
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    console.error(`Main: ❌ Failed to load URL: ${validatedURL}, ErrorCode: ${errorCode}, Description: ${errorDescription}`);
+    mainWindow.loadURL(`data:text/html,<h1>Failed to load: ${errorDescription}</h1>`);
+  });
 
-  pythonProcess = spawn('python', [pythonScriptPath], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    cwd: path.dirname(pythonScriptPath),
-    env: process.env
-  })
-
-  pythonProcess.stdout.setEncoding('utf8')
-  pythonProcess.stdout.on('data', (data) => {
-    data.trim().split('\n').forEach(line => {
-      try {
-        const msg = JSON.parse(line)
-        console.log('Received from Python:', msg)
-        if (msg.status === 'success') {
-          mainWindow?.webContents.send('python-response', msg)
-        } else if (msg.status === 'error') {
-          console.error('Fehlermeldung von Python:', msg.message)
-          mainWindow?.webContents.send('python-error',msg)
-        } else {
-          mainWindow?.webContents.send('python-event', msg)
-        }
-      } catch (e) {
-        console.error('Error parsing Python stdout line:', line)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          `default-src 'self' data: blob:;` +
+          `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174;` +
+          `font-src 'self' data: https://fonts.gstatic.com;` +
+          `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` +
+          `img-src 'self' data:;` +
+          `connect-src 'self' ws://localhost:5174 http://localhost:5174 ws://localhost:8000 http://localhost:8000;`
+        ]
       }
-    })
-  })
-  pythonProcess.stderr.setEncoding('utf8')
-  pythonProcess.stderr.on('data', (data) => {
-    console.error(`Python STDERR: ${data}`)
-  })
+    });
+  });
 
-  pythonProcess.on('close', (code) => {
-    console.log(`Python process exit with code ${code}`)
-    pythonProcess = null
-  })
-}
-  // Load the app
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5174')
-    mainWindow.webContents.openDevTools()
+    console.log('Main: 💡 Running in development mode. Loading Vite URL...');
+    mainWindow.loadURL('http://localhost:5174');
+    mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+    console.log('Main: 💡 Running in production mode. Loading file...');
+    mainWindow.loadFile(join(__dirname, '../renderer/dist/index.html'));
   }
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
-    
-    if (isDev) {
-      mainWindow.webContents.openDevTools()
-    }
-  })
+    console.log('Main: ✅ Window is ready to show. Showing window.');
+    mainWindow.show();
+  });
 
   mainWindow.on('closed', () => {
-    mainWindow = null
-  })
+    console.log('Main: ⚙️ Main window closed. Setting mainWindow to null.');
+    mainWindow = null;
+  });
 }
+
+// App event handlers
+app.whenReady().then(() => {
+    // Erstelle den IPC-Handler, bevor das Fenster erstellt wird
+  ipcMain.handle('get-user-session-id', () => {
+    return userSessionId;
+  });
+
+  console.log('Main: ✅ App is ready. Calling createWindow...');
+  createWindow();
+  // Korrektur: createMenu wird hier aufgerufen, nachdem das Fenster erstellt wurde.
+  createMenu();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      console.log('Main: ⚙️ App activated, no windows open. Creating a new one.');
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  console.log('Main: ⚙️ All windows closed. Quitting app if not on macOS.');
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// IPC handlers
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('get-platform', () => {
+  return {
+    platform: process.platform,
+    arch: process.arch,
+    version: process.getSystemVersion()
+  };
+});
+
+ipcMain.handle('save-settings', async (event, settings) => {
+  try {
+    const settingsData = {
+      ...settings,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await fs.writeFile(settingsPath, JSON.stringify(settingsData, null, 2));
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-settings', async () => {
+  try {
+    const data = await fs.readFile(settingsPath, 'utf8');
+    return { success: true, settings: JSON.parse(data) };
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return { success: true, settings: null };
+    }
+    console.error('Failed to load settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('show-save-dialog', async (event, options) => {
+  const result = await dialog.showSaveDialog(mainWindow, options);
+  return result;
+});
+
+ipcMain.handle('show-open-dialog', async (event, options) => {
+  const result = await dialog.showOpenDialog(mainWindow, options);
+  return result;
+});
+
 
 function createMenu() {
   const template = [
@@ -148,93 +230,8 @@ function createMenu() {
         { role: 'close' }
       ]
     }
-  ]
+  ];
 
-  const menu = Menu.buildFromTemplate(template)
-  Menu.setApplicationMenu(menu)
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
-
-// App event handlers
-app.whenReady().then(() => {
-  createWindow()
-  createMenu()
-
-  startPythonSTTProcess()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
-  })
-})
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-
-// IPC handlers
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion()
-})
-
-ipcMain.handle('get-platform', () => {
-  return {
-    platform: process.platform,
-    arch: process.arch,
-    version: process.getSystemVersion()
-  }
-})
-
-ipcMain.handle('save-settings', async (event, settings) => {
-  try {
-    const settingsData = {
-      ...settings,
-      lastUpdated: new Date().toISOString()
-    }
-    
-    await fs.writeFile(settingsPath, JSON.stringify(settingsData, null, 2))
-    return { success: true }
-  } catch (error) {
-    console.error('Failed to save settings:', error)
-    return { success: false, error: error.message }
-  }
-})
-
-ipcMain.handle('load-settings', async () => {
-  try {
-    const data = await fs.readFile(settingsPath, 'utf8')
-    return { success: true, settings: JSON.parse(data) }
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return { success: true, settings: null } // No settings file yet
-    }
-    console.error('Failed to load settings:', error)
-    return { success: false, error: error.message }
-  }
-})
-
-ipcMain.handle('show-save-dialog', async (event, options) => {
-  const { dialog } = await import('electron')
-  const result = await dialog.showSaveDialog(mainWindow, options)
-  return result
-})
-
-ipcMain.handle('show-open-dialog', async (event, options) => {
-  const { dialog } = await import('electron')
-  const result = await dialog.showOpenDialog(mainWindow, options)
-  return result
-})
-
-ipcMain.handle('send-python-command', (event, command, payload = {}) => {
-  if (!pythonProcess) {
-    console.error('Python process not running, cannot send command.')
-    return { success: false, error: 'Python process not running' }
-  }
-
-  const message = JSON.stringify({ command, ...payload }) + '\n'
-  pythonProcess.stdin.write(message)
-  console.log(`Sent to Python: ${message.trim()}`)
-  return { success: true }
-})

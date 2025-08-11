@@ -30,8 +30,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     node: process.versions.node,
     chrome: process.versions.chrome,
     electron: process.versions.electron
-  }
-});
+  },
+
+  // Mache den Handler für die User Session ID verfügbar
+  getUserSessionId: () => ipcRenderer.invoke('get-user-session-id')
+})
 
 // Log when preload script is loaded
 console.log('Preload script loaded (using CommonJS syntax)');

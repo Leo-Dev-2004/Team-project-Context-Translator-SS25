@@ -1,14 +1,16 @@
 import { UI } from '../../shared/src/index.js';
 import '../../shared/src/index.css';
-import { initializeApplication } from '../../shared/app.js'; // Correct path to app.js
 
-// Electron-enhanced element
 class ElectronMyElement extends UI {
   constructor() {
     super();
     this.platform = 'electron';
     this.isElectron = true;
+    this.backendWs = null;
+    console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
+
+  // ### Lifecycle & UI Setup ###
 
   // Use firstUpdated for main application initialization
   async firstUpdated(changedProperties) {
@@ -26,148 +28,185 @@ class ElectronMyElement extends UI {
   // connectedCallback is still useful for handlers, but main app init is in firstUpdated
   async connectedCallback() {
     super.connectedCallback();
-    this.saveSettingsHandler = this._saveSettings.bind(this);
-    this.exportTranslationsHandler = this._exportTranslations.bind(this);
+    console.log('Renderer: ⚙️ connectedCallback entered.');
+    await this._initializeElectron();
+    this._initializeWebSocket();
+    // this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
+    console.log('Renderer: ⚙️ connectedCallback exited.');
   }
 
-  // ... (rest of ElectronMyElement methods) ...
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.backendWs) {
+      this.backendWs.close();
+    }
+    console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection cleaned up.');
+  }
 
+  _attachActionListeners() {
+    console.log('Renderer: 💡 Attaching event listeners to action buttons...');
+    
+    const createSessionButton = this.shadowRoot.querySelector('#start-session-button');
+    const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
+
+    if (createSessionButton) {
+      createSessionButton.addEventListener('click', () => this._startSession());
+    } else {
+      console.error("Renderer: ❌ 'Create Session' button not found.");
+    }
+    
+    if (joinSessionButton) {
+      joinSessionButton.addEventListener('click', () => this._joinSession());
+    } else {
+      console.error("Renderer: ❌ 'Join Session' button not found.");
+    }
+
+    console.log('Renderer: ✅ Event listeners successfully attached.');
+  }
+
+  // ### WebSocket & Messaging ###
+
+  _initializeWebSocket() {
+    const clientId = `frontend_renderer_${crypto.randomUUID()}`;
+    const wsUrl = `ws://localhost:8000/ws/${clientId}`;
+    console.log(`Renderer: ⚙️ Attempting WebSocket connection to ${wsUrl}...`);
+
+    if (this.backendWs) this.backendWs.close();
+    
+    this.backendWs = new WebSocket(wsUrl);
+
+    this.backendWs.onopen = () => {
+      console.log('Renderer: ✅ WebSocket connection established.');
+      this._performHandshake();
+    };
+
+    this.backendWs.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'system.queue_status_update') return;
+        
+        console.log(`Renderer: 💡 Message received from backend:`, message);
+
+        if (message.type === 'session.created') {
+            const code = message.payload.code;
+            this.shadowRoot.querySelector('#session-code-input').value = code;
+            
+            const dialog = this.shadowRoot.querySelector('#session-dialog');
+            const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
+            if (dialog && codeDisplay) {
+                codeDisplay.textContent = code;
+                dialog.show(); // Use .show() for non-modal
+            }
+        } else if (message.type === 'session.joined') {
+            this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
+        } else if (message.type === 'session.error') {
+            this._showNotification(message.payload.error, 'error');
+        }
+      } catch (error) {
+        console.error('Renderer: ❌ Failed to parse message from backend:', error, event.data);
+      }
+    };
+
+    this.backendWs.onerror = (error) => this._showNotification('WebSocket connection failed', 'error');
+    this.backendWs.onclose = () => console.log('Renderer: ⚙️ WebSocket connection closed.');
+  }
+
+  async _performHandshake() {
+    if (!window.electronAPI) {
+        return console.error("Renderer: Electron API not available for handshake.");
+    }
+    const userSessionId = await window.electronAPI.getUserSessionId();
+    
+    if (!userSessionId) {
+        return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
+    }
+
+    console.log(`Renderer: 🚀 Sending "frontend.init" with User Session ID: ${userSessionId}`);
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'frontend.init',
+      timestamp: Date.now() / 1000,
+      payload: { user_session_id: userSessionId }
+    };
+    this.backendWs.send(JSON.stringify(message));
+  }
+  
+  // ### Session Logic ###
+
+  _startSession() {
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('No connection to backend', 'error');
+    }
+    console.log('Renderer: Sending "session.start" request...');
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'session.start',
+      timestamp: Date.now() / 1000,
+      payload: {},
+    };
+    this.backendWs.send(JSON.stringify(message));
+  }
+
+  _joinSession() {
+    const codeInput = this.shadowRoot.querySelector('#session-code-input');
+    const code = codeInput ? codeInput.value.trim() : '';
+
+    if (!code) return this._showNotification('Please enter a session code', 'error');
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('No connection to backend', 'error');
+    }
+    
+    console.log(`Renderer: Sending "session.join" request with code ${code}...`);
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'session.join',
+      timestamp: Date.now() / 1000,
+      payload: { code: code },
+    };
+    this.backendWs.send(JSON.stringify(message));
+  }
+
+  // ### Electron & Helper Functions ###
+  
   async _initializeElectron() {
+    console.log('Renderer: ⚙️ Initializing Electron APIs...');
     if (window.electronAPI) {
       try {
-        const platformInfo = await window.electronAPI.getPlatform();
-        console.log('Platform:', platformInfo);
-
         const result = await window.electronAPI.loadSettings();
         if (result.success && result.settings) {
           this._loadSettingsFromElectron(result.settings);
         }
-
-        const version = await window.electronAPI.getAppVersion();
-        console.log('App version:', version);
-
-        window.electronAPI.onPythonResponse((event, msg) => {
-          console.log('Python antwortete:', msg);
-          this._showNotification(`Python: ${msg.message || 'Antwort erhalten'}`);
-        });
-
-        window.electronAPI.onPythonError((event, msg) => {
-          console.error('Fehler vom Python-Modul:', msg.message);
-          this._showNotification(`Python Fehler: ${msg.message}`, 'error');
-        });
-      
-
       } catch (error) {
-        console.error('Electron initialization error:', error);
+        console.error('Renderer: ❌ Error during Electron initialization:', error);
       }
     } else {
-        console.warn('Electron API not available on window.electronAPI. Running in web mode fallback.');
+      console.warn("Renderer: ⚠️ window.electronAPI not found. Not running in Electron?");
     }
   }
 
   _loadSettingsFromElectron(settings) {
-    this.domainValue = settings.domain || '';
-    this.selectedLanguage = settings.language || 'en';
-    this.autoSave = settings.autoSave || false;
-    console.log('Settings loaded from Electron:', settings);
-  }
-
-  async _saveSettings() {
-    const settings = {
-      domain: this.domainValue,
-      language: this.selectedLanguage,
-      autoSave: this.autoSave,
-      platform: this.platform,
-      timestamp: new Date().toISOString()
-    };
-
-    if (window.electronAPI) {
-      try {
-        const result = await window.electronAPI.saveSettings(settings);
-        if (result.success) {
-          console.log('Settings saved via Electron API:', settings);
-          this._showNotification('Settings saved to file system!');
-        } else {
-          console.error('Failed to save settings:', result.error);
-          this._showNotification('Failed to save settings', 'error');
-        }
-      } catch (error) {
-        console.error('Error saving settings:', error);
-        this._showNotification('Error saving settings', 'error');
-      }
-    } else {
-      try {
-        localStorage.setItem('context-translator-settings', JSON.stringify(settings));
-        console.log('Settings saved to localStorage (fallback):', settings);
-        this._showNotification('Settings saved to localStorage!');
-      } catch (error) {
-        console.error('Error saving settings to localStorage:', error);
-        this._showNotification('Error saving settings to localStorage', 'error');
-      }
-    }
-  }
-
-  async _exportTranslations() {
-    if (window.electronAPI) {
-      const result = await window.electronAPI.showSaveDialog({
-        title: 'Export Translations',
-        defaultPath: `context-translator-export-${new Date().toISOString().split('T')[0]}.json`,
-        filters: [
-          { name: 'JSON Files', extensions: ['json'] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!result.canceled) {
-        const data = {
-          settings: {
-            domain: this.domainValue,
-            language: this.selectedLanguage,
-            autoSave: this.autoSave
-          },
-          platform: 'electron',
-          exportedAt: new Date().toISOString(),
-          filePath: result.filePath
-        };
-
-        console.log('Export to:', result.filePath);
-        console.log('Export data:', data);
-
-        this._showNotification(`Export saved to ${result.filePath}`);
-      }
-    } else {
-      super._exportTranslations();
-    }
+    console.log('Renderer: Applying loaded settings:', settings);
+    // Example: this.domainValue = settings.domain || '';
   }
 
   _showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.textContent = message;
     notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      background-color: ${type === 'error' ? '#ef4444' : '#10b981'};
-      z-index: 1000;
-      font-family: var(--md-sys-typescale-body-large-font);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%); padding: 12px 24px;
+      border-radius: 8px; color: white; font-family: 'Roboto', sans-serif;
+      background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
+      z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 4000);
+    this.shadowRoot.appendChild(notification);
+    setTimeout(() => notification.remove(), 4000);
   }
 }
 
 if (!customElements.get('my-element')) {
-  customElements.define('my-element', ElectronMyElement);
+  window.customElements.define('my-element', ElectronMyElement);
 } else {
-  console.warn('Attempted to define "my-element" again. Skipping.');
+  console.warn("Renderer: Custom element 'my-element' is already defined.");
 }
