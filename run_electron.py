@@ -10,7 +10,8 @@ import uuid  # Importiere uuid für die Generierung von User Session IDs
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', 
+                    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler('system.log', mode='w')])
 logger = logging.getLogger('SystemRunner')
 
 # Project paths
@@ -85,7 +86,7 @@ class SystemRunner:
     def run_electron_app(self, user_session_id: str):
         logger.debug("SystemRunner: Starting Electron app process.")
         
-        # NEU: Fügt das Kommandozeilen-Argument an den npm-Befehl an
+        # Fügt das Kommandozeilen-Argument an den npm-Befehl an
         electron_command = ELECTRON_MAIN_COMMAND + [
             "--",
             f"--user-session-id={user_session_id}"
@@ -141,7 +142,7 @@ class SystemRunner:
 def main():
     runner = SystemRunner()
     
-    # NEU: Generiere die User Session ID hier
+    # Generiere die User Session ID hier
     user_session_id = f"user_{uuid.uuid4()}"
     logger.info(f"Generated User Session ID: {user_session_id}")
     
@@ -150,7 +151,7 @@ def main():
         if not runner.check_backend_ready():
             raise RuntimeError("Backend failed to start.")
 
-        # GEÄNDERT: Übergebe die ID an die Methoden
+        # Übergebe die ID an die Methoden
         runner.run_stt_module(user_session_id=user_session_id)
         runner.run_vite_dev_server()
         runner.run_electron_app(user_session_id=user_session_id)
