@@ -98,7 +98,7 @@ const MessagingService = (() => {
             ...optionalFields // Allow additional fields like 'original_id' for responses
         };
         _toBackendQueue.enqueue(message);
-        console.log('MessagingService: Enqueued message to backend:', message);
+        // console.log('MessagingService: Enqueued message to backend:', message);
         updateSystemLog(`Sent: ${messageType} (ID: ${message.id.substring(0,8)})`);
     };
 

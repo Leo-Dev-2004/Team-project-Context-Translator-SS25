@@ -1,55 +1,62 @@
-// frontend/src/app.js
+// frontend/packages/shared/app.js
 
-import MessageQueue from './modules/MessageQueue.js';
-import { WebSocketManager } from './modules/WebSocketManager.js'; // Imports the singleton instance
-import { initializeEventListeners, setQueuesAndManager as setEventListenersQueuesAndManager } from './modules/EventListeners.js';
-import { updateSystemLog } from './modules/QueueDisplay.js'; // Only import necessary logging functions
+import MessageQueue from './src/modules/MessageQueue.js';
+import { WebSocketManager } from './src/modules/WebSocketManager.js';
+import { initializeEventListeners, setQueuesAndManager as setEventListenersQueuesAndManager } from './src/modules/EventListeners.js';
+import { updateSystemLog } from './src/modules/QueueDisplay.js';
+import { UniversalMessageParser } from './src/universal-message-parser.js'; // Corrected path
+import { explanationManager } from './src/explanation-manager.js'; // Corrected path
 
 // --- NEW: Generate a unique client ID for this session ---
 const CLIENT_ID = 'client_' + Date.now().toString() + Math.random().toString(36).substring(2, 8);
 console.log('Frontend Client ID:', CLIENT_ID);
 // ---------------------------------------------------------
 
+// Initialize Parser
+window.UniversalMessageParser = UniversalMessageParser;
+
 // Global Queue Instances - CREATED HERE AND ONLY HERE
-// These are the frontend's specific queues for its internal message flow.
-const frontendDisplayQueue = new MessageQueue('frontendDisplayQueue'); // Messages processed for frontend display (e.g., UI updates)
-const frontendActionQueue = new MessageQueue('frontendActionQueue'); // Messages representing actions initiated by the frontend
-const toBackendQueue = new MessageQueue('toBackendQueue');           // Messages explicitly destined TO the backend
-const fromBackendQueue = new MessageQueue('fromBackendQueue');         // Messages explicitly received FROM the backend
+const frontendDisplayQueue = new MessageQueue('frontendDisplayQueue');
+const frontendActionQueue = new MessageQueue('frontendActionQueue');
+const toBackendQueue = new MessageQueue('toBackendQueue');
+const fromBackendQueue = new MessageQueue('fromBackendQueue');
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Add a guard to prevent multiple initializations from DOMContentLoaded
-    if (document.body.dataset.initialized) {
-        console.warn('app.js: DOMContentLoaded fired again, but already initialized. Skipping.');
-        return;
-    }
-    document.body.dataset.initialized = 'true'; // Set flag to indicate initialization
-
-    console.log('app.js: DOMContentLoaded (first time)');
-    // Initialize the main application flow
-    initializeApplication();
-});
+// REMOVE THIS DOMContentLoaded LISTENER FROM APP.JS
+// document.addEventListener('DOMContentLoaded', () => {
+//     if (document.body.dataset.initialized) {
+//         console.warn('app.js: DOMContentLoaded fired again, but already initialized. Skipping.');
+//         return;
+//     }
+//     document.body.dataset.initialized = 'true';
+//     console.log('app.js: DOMContentLoaded (first time)');
+//     initializeApplication(); // This call will now be removed
+// });
 
 /**
  * Initializes the entire frontend application, including queues,
  * WebSocket communication, and event listeners.
- * @param {Object} [observer=null] - An optional observer object for WebSocket messages.
+ * This function should be called ONCE, and passed the main UI component instance.
+ * @param {Object} uiComponent - The instance of the main UI component (ElectronMyElement).
  */
-export function initializeApplication(observer = null) {
-    console.log('app.js: Initializing application...');
+export function initializeApplication(uiComponent) { // uiComponent is now REQUIRED
+    console.log('app.js: Initializing application with UI component...');
     updateSystemLog('Application starting initialization...');
 
-    const webSocketManager = WebSocketManager; // Use the imported singleton instance directly
+    const webSocketManager = WebSocketManager;
 
-    // If an observer is provided (e.g., for global logging or specific message handling), set it.
-    if (observer) {
-        webSocketManager.setObserver(observer);
+    // Set the UI component reference in the WebSocketManager FIRST.
+    // This is crucial for WebSocketManager to find UI elements in the shadow DOM.
+    if (!uiComponent) {
+        console.error('app.js: initializeApplication called without a UI component instance. Cannot proceed with UI updates.');
+        updateSystemLog('Application initialization failed: UI component missing.');
+        return; // Halt initialization if UI component is not provided
     }
+    webSocketManager.setUIComponent(uiComponent);
+    console.log('app.js: UI component instance set in WebSocketManager.');
 
-    // Set the client ID in the WebSocketManager
-    webSocketManager.setClientId(CLIENT_ID); // <-- Set the generated client ID
 
-    // Centralize all queue instances into a single object for easy passing
+    webSocketManager.setClientId(CLIENT_ID);
+
     const queues = {
         frontendDisplayQueue,
         frontendActionQueue,
@@ -57,45 +64,15 @@ export function initializeApplication(observer = null) {
         fromBackendQueue
     };
 
-    // Pass queue instances to WebSocketManager.
-    // WebSocketManager will handle:
-    // 1. Enqueuing outgoing messages to `toBackendQueue` before sending.
-    // 2. Enqueuing incoming messages to `fromBackendQueue` for processing.
-    // 3. Subscribing to `toBackendQueue` and `fromBackendQueue` for their own UI display updates.
-    // 4. Handling backend queue status updates (`queue_status_update` type) and updating `QueueDisplay` directly.
     webSocketManager.setQueues(queues);
-    console.log('app.js: Queues passed to WebSocketManager for internal management.');
 
-    // Pass queues and WebSocketManager to EventListeners module.
-    // EventListeners will:
-    // 1. Set up UI event handlers (button clicks, form submissions).
-    // 2. Potentially dequeue from `fromBackendQueue` for processing.
-    // 3. Enqueue to `toBackendQueue` when sending user-initiated actions.
-    setEventListenersQueuesAndManager(queues, webSocketManager);
-    console.log('app.js: Queues and WebSocketManager passed to EventListeners for UI interaction.');
+    // Pass uiComponent to EventListeners as well, if it needs to access shadow DOM elements
+    setEventListenersQueuesAndManager(queues, webSocketManager, uiComponent);
 
-    // No need to pass queues to QueueDisplay directly here via `setQueueDisplayQueues`.
-    // The `QueueDisplay` module's `updateQueueDisplay` function is now designed to be called
-    // by `WebSocketManager` for backend queue updates and by the `MessageQueue` instances
-    // themselves (via their `subscribe` method, which is set up in `WebSocketManager.setQueues`).
-    console.log('app.js: QueueDisplay module will be updated via WebSocketManager and MessageQueue subscriptions.');
+    initializeEventListeners(); // This might need to be adjusted if it relies on uiComponent directly
 
-
-    // Initialize core event listeners (e.g., button states, initial UI setup)
-    initializeEventListeners();
-    console.log('app.js: Event listeners initialized.');
-
-    // Initiate the WebSocket connection.
-    // The webSocketManager.connect() method will now internally use the CLIENT_ID
-    // that was set via `setClientId`. The default URL in `connect` is fine.
-    webSocketManager.connect(); // No need to pass the URL here, as it's handled internally.
+    webSocketManager.connect();
     console.log('app.js: WebSocket connection initiated.');
-
-    // No need for `requestAnimationFrame(updateAllQueueDisplays)` here.
-    // QueueDisplay updates are now event-driven:
-    // - Frontend queue changes trigger `MessageQueue`'s `notifyListeners` (which calls `updateQueueDisplay`).
-    // - Backend queue status messages are handled directly by `WebSocketManager` which calls `updateQueueDisplay`.
-    console.log('app.js: Queue display updates are now event-driven.');
 
     console.log('app.js: Application initialization complete.');
     updateSystemLog('Application initialized and ready.');

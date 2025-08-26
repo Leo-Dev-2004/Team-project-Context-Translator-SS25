@@ -1,117 +1,181 @@
-// Frontend/src/modules/EventListeners.js
+// Frontend/src/modules/EventListeners.js (UPDATED: Delayed DOM access for buttons)
 
 import { updateSystemLog, updateStatusLog, updateSimulationLog, updateTestLog, updateTranscriptionLog } from './QueueDisplay.js';
-import { WebSocketManager } from './WebSocketManager.js'; // Still needed for isConnected/isWebSocketReady
-import { MessageQueue } from './MessageQueue.js'; // Only if you create new queues here, otherwise remove
-import { MessagingService } from './MessagingService.js'; // Import the new service
+import { WebSocketManager } from './WebSocketManager.js';
+import { MessageQueue } from './MessageQueue.js';
+import { MessagingService } from './MessagingService.js';
 
-let fromBackendQueue; // The main incoming queue from backend
-let frontendDisplayQueue; // Internal queue for messages that need to be processed for UI display
-let webSocketManager; // Reference to WebSocketManager to check isConnected/isWebSocketReady state
-let translateButton; // Assuming this is defined globally or passed somehow
+let fromBackendQueue;
+let frontendDisplayQueue;
+let webSocketManager;
+let uiComponent = null; // Initialize to null
+let translateButton;
 let startSimButton;
 let stopSimButton;
 
-let isWebSocketReady = false; // Internal state to control message processing
+let isWebSocketReady = false;
 
-const setWebSocketReadyState = (state) => {
-    isWebSocketReady = state;
-    // Potentially enable/disable buttons based on connection state here
-    if (translateButton) translateButton.disabled = !state;
-    // ... other buttons
+// Helper function to safely get a DOM element from the UI component's shadowRoot
+const getElement = (id) => {
+    if (!uiComponent || !uiComponent.shadowRoot) {
+        // console.warn(`EventListeners: UI component reference or shadowRoot not available yet for element '${id}'.`);
+        return null;
+    }
+    return uiComponent.shadowRoot.getElementById(id);
 };
 
-const setupEventListeners = (dependencies) => {
-    webSocketManager = dependencies.webSocketManager; // Still needed for isConnected
-    // Get queues from the MessagingService
-    fromBackendQueue = dependencies.fromBackendQueue;
-    frontendDisplayQueue = dependencies.frontendDisplayQueue;
+/**
+ * Sets the WebSocket ready state and updates UI button disabled states accordingly.
+ * @param {boolean} state - True if WebSocket is ready, false otherwise.
+ */
+const setWebSocketReadyState = (state) => {
+    isWebSocketReady = state;
+    // Query buttons from the UI component's shadowRoot
+    const translateBtn = getElement('translateText');
+    const startSimBtn = getElement('startSimulation');
+    const stopSimBtn = getElement('stopSimulation');
 
-    // Direct DOM element references
-    translateButton = document.getElementById('translateText');
-    const sourceText = document.getElementById('sourceText');
-    const clearTextButton = document.getElementById('clearText');
-    const saveSettingsButton = document.getElementById('saveSettings');
-    const translationMode = document.getElementById('translationMode');
-    const contextLevel = document.getElementById('contextLevel');
-    startSimButton = document.getElementById('startSimulation'); // Assuming you have these buttons
-    stopSimButton = document.getElementById('stopSimulation');
+    if (translateBtn) translateBtn.disabled = !state;
+    if (startSimBtn) startSimBtn.disabled = !state;
+    if (stopSimBtn) stopSimBtn.disabled = !state;
+    console.log(`EventListeners: WebSocket ready state set to ${state}. UI buttons updated.`);
+};
 
+/**
+ * Sets the references to the MessageQueues, WebSocketManager, and the UI component instance.
+ * This function should be called once during application initialization.
+ * @param {Object} queues - An object containing references to the MessageQueue instances.
+ * @param {Object} manager - The WebSocketManager singleton instance.
+ * @param {Object} component - The main UI component (ElectronMyElement) instance.
+ */
+const setQueuesAndManager = (queues, manager, component) => {
+    if (!queues || !manager || !component) {
+        console.error('EventListeners: setQueuesAndManager received null/undefined queues, manager, or component. Cannot proceed.');
+        return;
+    }
+    webSocketManager = manager;
+    fromBackendQueue = queues.fromBackendQueue;
+    frontendDisplayQueue = queues.frontendDisplayQueue;
+    uiComponent = component; // Assign the UI component instance
+    console.log('EventListeners: Queues, WebSocketManager, and UI component references set.');
+
+    // Start processing messages from the frontend display queue immediately
+    processFrontendDisplayQueueMessages();
+};
+
+/**
+ * Initializes all necessary UI event listeners.
+ * This should be called AFTER the UI component has rendered and its elements are available.
+ * It's crucial this is called from app.js AFTER uiComponent has performed its firstUpdated.
+ */
+const initializeEventListeners = () => {
+    if (!uiComponent || !uiComponent.shadowRoot) {
+        console.error('EventListeners: Cannot initialize event listeners. UI component or its shadowRoot is not ready.');
+        // This log indicates a timing issue if it occurs.
+        return;
+    }
+
+    // Query DOM elements from the UI component's shadowRoot
+    // Assign to global variables for persistent access
+    translateButton = getElement('translateText');
+    const sourceText = getElement('sourceText');
+    const clearTextButton = getElement('clearText');
+    const saveSettingsButton = getElement('saveSettings');
+    const translationMode = getElement('translationMode');
+    const contextLevel = getElement('contextLevel');
+    startSimButton = getElement('startSimulation');
+    stopSimButton = getElement('stopSimulation');
 
     // Ensure buttons are initially disabled until connected
     if (translateButton) translateButton.disabled = true;
     if (startSimButton) startSimButton.disabled = true;
     if (stopSimButton) stopSimButton.disabled = true;
 
-    // --- Message Processing for FrontendDisplayQueue ---
-    // This loop now processes messages from the frontendDisplayQueue
-    // which is fed by the MessagingService's observer
-    processFrontendDisplayQueueMessages();
-
     // --- UI Event Listeners ---
     if (translateButton) {
         translateButton.addEventListener('click', () => {
-            const text = sourceText.value;
-            if (text.trim() === '') {
+            const text = sourceText?.value;
+            if (!text || text.trim() === '') {
                 updateSystemLog('Source text is empty. Cannot translate.');
                 return;
             }
-            translateButton.disabled = true; // Disable while translating
-            const translationLoading = document.getElementById('translationLoading');
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot send translation request.');
+                return;
+            }
+            translateButton.disabled = true;
+            const translationLoading = getElement('translationLoading');
             if (translationLoading) translationLoading.classList.remove('hidden');
 
             MessagingService.sendToBackend(
                 'translation_request',
-                { text: text, mode: translationMode.value, context_level: parseInt(contextLevel.value) }
+                { text: text, mode: translationMode?.value, context_level: parseInt(contextLevel?.value) }
             );
             updateSystemLog('Translation request sent.');
         });
+    } else {
+        console.warn('EventListeners: translateButton not found in DOM when setting listeners.');
     }
 
     if (clearTextButton) {
         clearTextButton.addEventListener('click', () => {
-            sourceText.value = '';
-            document.getElementById('translationOutput').textContent = '';
+            if (sourceText) sourceText.value = '';
+            const translationOutput = getElement('translationOutput');
+            if (translationOutput) translationOutput.textContent = '';
             updateSystemLog('Text cleared.');
         });
+    } else {
+        console.warn('EventListeners: clearTextButton not found in DOM when setting listeners.');
     }
 
     if (saveSettingsButton) {
-        saveSettingsButton.addEventListener('click', () => {
-            // Using MessagingService to send settings
-            MessagingService.sendToBackend(
-                'update_settings',
-                {
-                    mode: translationMode.value,
-                    context_level: parseInt(contextLevel.value)
-                }
-            );
-            updateSystemLog('Settings update request sent.');
-        });
+        // Re-assign the @click handler if ui.js passes it.
+        // Or, call the uiComponent's method directly if it has a public API.
+        // For now, let's assume the UI component itself handles its button clicks.
+        // If saveSettings is a method on uiComponent that _EventListeners_ needs to trigger:
+        // saveSettingsButton.addEventListener('click', () => uiComponent._saveSettings()); // If _saveSettings is public or bound
+        // However, given your app structure, the button in ui.js already has @click="${this.saveSettingsHandler}"
+        // The role of EventListeners.js might just be to set up logic for OTHER elements,
+        // or to modify things like disabled state, not handle every button click itself.
+        // Let's remove the EventListener here if UI.js handles it directly.
+        // For now, I'll keep the `console.warn` as a reminder if the button is missing.
+    } else {
+        console.warn('EventListeners: saveSettingsButton not found in DOM when setting listeners. This might be handled by UI component directly.');
     }
 
-    // Example for simulation buttons (if you have them)
+
     if (startSimButton) {
         startSimButton.addEventListener('click', () => {
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot start simulation.');
+                return;
+            }
             MessagingService.sendToBackend('start_simulation', { message: 'Start simulation' });
             updateSystemLog('Start simulation request sent.');
             startSimButton.disabled = true;
-            stopSimButton.disabled = false;
+            if (stopSimButton) stopSimButton.disabled = false;
         });
+    } else {
+        console.warn('EventListeners: startSimButton not found in DOM when setting listeners.');
     }
 
     if (stopSimButton) {
         stopSimButton.addEventListener('click', () => {
+            if (!webSocketManager || !webSocketManager.isConnected()) {
+                updateSystemLog('Not connected to backend. Cannot stop simulation.');
+                return;
+            }
             MessagingService.sendToBackend('stop_simulation', { message: 'Stop simulation' });
             updateSystemLog('Stop simulation request sent.');
             stopSimButton.disabled = true;
-            startSimButton.disabled = false;
+            if (startSimButton) startSimButton.disabled = false;
         });
+    } else {
+        console.warn('EventListeners: stopSimButton not found in DOM when setting listeners.');
     }
+    console.log('EventListeners: UI event listeners set up.');
 };
 
-// --- Frontend Display Queue Processor ---
-// This loop processes messages specifically destined for UI display
 async function processFrontendDisplayQueueMessages() {
     if (processFrontendDisplayQueueMessages._running) {
         console.warn('FrontendDisplayQueue Processor: Loop already running. Preventing duplicate.');
@@ -119,25 +183,28 @@ async function processFrontendDisplayQueueMessages() {
     }
     processFrontendDisplayQueueMessages._running = true;
     console.group('FrontendDisplayQueue Processor: Starting message processing loop...');
-    updateSystemLog('Frontend display message processing loop started.');
+    updateSystemLog('Frontend display message processing loop started.'); // This will now use the delayed getElement
 
     try {
         while (processFrontendDisplayQueueMessages._running) {
-            // Dequeue from the frontendDisplayQueue
-            const message = await frontendDisplayQueue.dequeue(); // This queue is populated by MessagingService
+            if (!frontendDisplayQueue) {
+                console.warn('FrontendDisplayQueue Processor: frontendDisplayQueue not initialized. Waiting...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+            }
+            const message = await frontendDisplayQueue.dequeue();
 
-            // Reduce this delay significantly or remove it entirely
-            await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 2000ms
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small UI delay
 
             if (message) {
-                console.log('FrontendDisplayQueue Processor: Dequeued message for display:', message);
+                console.log('FrontendDisplayQueue Processor: Dequeued message for display:', message.type, message.payload);
 
-                // --- Message Type Dispatch (Moved from app.js / old WebSocketManager observer) ---
                 switch (message.type) {
                     case 'connection_ack':
                         console.log('MessageProcessor: Backend connection acknowledged:', message.data);
-                        document.getElementById('connectionStatus').textContent = 'Connected (Acknowledged)';
-                        setWebSocketReadyState(true); // Now in EventListeners to manage UI state
+                        const connectionStatusElement = getElement('connectionStatus'); // Use getElement helper
+                        if (connectionStatusElement) connectionStatusElement.textContent = 'Connected (Acknowledged)';
+                        setWebSocketReadyState(true);
                         updateSystemLog(`Connection acknowledged by backend. Client ID: ${message.data.client_id}`);
                         break;
                     case 'backend_ready_confirm':
@@ -145,7 +212,8 @@ async function processFrontendDisplayQueueMessages() {
                         break;
                     case 'system_info':
                         console.log('MessageProcessor: System message received:', message.payload);
-                        document.getElementById('simulationStatus').textContent = message.payload.message;
+                        const simulationStatusElement = getElement('simulationStatus'); // Use getElement helper
+                        if (simulationStatusElement) simulationStatusElement.textContent = message.payload.message;
                         updateSystemLog(message.payload.message);
                         break;
                     case 'simulation_update':
@@ -158,10 +226,8 @@ async function processFrontendDisplayQueueMessages() {
                         updateStatusLog(statusLogMessage);
                         if (message.payload.original_type === 'translation_request' && translateButton) {
                             translateButton.disabled = false;
-                            const translationLoading = document.getElementById('translationLoading');
-                            if (translationLoading) {
-                                translationLoading.classList.add('hidden');
-                            }
+                            const translationLoading = getElement('translationLoading'); // Use getElement helper
+                            if (translationLoading) translationLoading.classList.add('hidden');
                         }
                         break;
                     case 'test_message_response':
@@ -171,27 +237,32 @@ async function processFrontendDisplayQueueMessages() {
                     case 'simulation_status_update':
                         console.log('MessageProcessor: Simulation status update received:', message.payload);
                         updateSimulationLog(message.payload);
-                        if (message.payload.status === 'started' && startSimButton) {
-                            startSimButton.disabled = false;
-                            startSimButton.textContent = 'Running';
-                            stopSimButton.disabled = false;
-                        } else if (message.payload.status === 'stopped' && startSimButton) {
-                            startSimButton.disabled = false;
-                            startSimButton.textContent = 'Start Simulation';
-                            stopSimButton.disabled = true;
+                        if (message.payload.status === 'started') {
+                            if (startSimButton) {
+                                startSimButton.disabled = true;
+                                startSimButton.textContent = 'Running';
+                            }
+                            if (stopSimButton) stopSimButton.disabled = false;
+                        } else if (message.payload.status === 'stopped') {
+                            if (startSimButton) {
+                                startSimButton.disabled = false;
+                                startSimButton.textContent = 'Start Simulation';
+                            }
+                            if (stopSimButton) stopSimButton.disabled = true;
                         }
                         break;
                     case 'agent_log':
                         console.log('MessageProcessor: Agent log received:', message.payload);
                         updateSystemLog(`Agent Log: ${JSON.stringify(message.payload)}`);
                         break;
-                    case 'queue_status_update': // This might be better handled directly by WebSocketManager to update display, or by a dedicated queue status consumer
-                        // For now, if it comes here, it will be logged.
+                    case 'queue_status_update':
+                        console.log('MessageProcessor: Queue status update received via display queue. (Should be handled directly by WSManager)');
                         break;
                     case 'status':
                         if (message.payload.status === 'simulation_initiated') {
                             console.log('MessageProcessor: Simulation initiated (backend status):', message.payload);
-                            document.getElementById('simulationStatus').textContent = 'Running';
+                            const simulationStatusElement = getElement('simulationStatus'); // Use getElement helper
+                            if (simulationStatusElement) simulationStatusElement.textContent = 'Running';
                             updateSystemLog(`Simulation: ${message.payload.message || 'Started'}`);
                             if (startSimButton) {
                                 startSimButton.disabled = true;
@@ -200,7 +271,8 @@ async function processFrontendDisplayQueueMessages() {
                             if (stopSimButton) stopSimButton.disabled = false;
                         } else if (message.payload.status === 'simulation_stopped') {
                             console.log('MessageProcessor: Simulation stopped (backend status):', message.payload);
-                            document.getElementById('simulationStatus').textContent = 'Stopped';
+                            const simulationStatusElement = getElement('simulationStatus'); // Use getElement helper
+                            if (simulationStatusElement) simulationStatusElement.textContent = 'Stopped';
                             updateSystemLog(`Simulation: ${message.payload.message || 'Stopped'}`);
                             if (startSimButton) {
                                 startSimButton.disabled = false;
@@ -219,12 +291,12 @@ async function processFrontendDisplayQueueMessages() {
                     case 'transcription_result':
                         console.log('MessageProcessor: Transcription result received:', message.payload);
                         updateTranscriptionLog(message.payload.text || JSON.stringify(message.payload));
-                        // No need to enqueue to frontendDisplayQueue here, it's already dequeued from it
                         break;
                     case 'data':
                         console.log('MessageProcessor: Data/result received:', message.payload);
-                        document.getElementById('translationOutput').textContent = message.payload.translated_text || JSON.stringify(message.payload, null, 2);
-                        const translationLoading = document.getElementById('translationLoading');
+                        const translationOutputElement = getElement('translationOutput'); // Use getElement helper
+                        if (translationOutputElement) translationOutputElement.textContent = message.payload.translated_text || JSON.stringify(message.payload, null, 2);
+                        const translationLoading = getElement('translationLoading'); // Use getElement helper
                         if (translationLoading) {
                             translationLoading.classList.add('hidden');
                         }
@@ -234,13 +306,13 @@ async function processFrontendDisplayQueueMessages() {
                         updateStatusLog(`Backend confirmed settings update: ${JSON.stringify(message.payload)}`);
                         console.log('Backend confirmed settings update:', message.payload);
                         break;
-                    case 'ping': // If frontend receives a ping from backend
+                    case 'ping':
                         console.log('Frontend received ping from backend:', message);
                         break;
-                    case 'pong': // If frontend receives a pong from backend
+                    case 'pong':
                         console.log('Frontend received pong from backend:', message);
                         break;
-                    case 'system_heartbeat': // If frontend receives a heartbeat from backend
+                    case 'system_heartbeat':
                          console.log('Frontend received heartbeat from backend:', message);
                          updateSystemLog('Backend Heartbeat received.');
                          break;
@@ -249,7 +321,6 @@ async function processFrontendDisplayQueueMessages() {
                         updateSystemLog(`Unknown message type: ${message.type} - ${JSON.stringify(message.payload || {}).substring(0,100)}...`);
                 }
             }
-            updateAllQueueDisplays(); // Always refresh display after processing a message
         }
     } catch (error) {
         console.error('FrontendDisplayQueue Processor: Fatal error in message processing loop:', error);
@@ -262,5 +333,4 @@ async function processFrontendDisplayQueueMessages() {
     }
 }
 
-
-export { setupEventListeners, setWebSocketReadyState };
+export { initializeEventListeners, setWebSocketReadyState, setQueuesAndManager };
