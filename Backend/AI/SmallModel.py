@@ -44,14 +44,14 @@ class SmallModel:
             # -----------------------------
 
             # Create a new message to send back as the response
+
+            # INSTEAD OF RETURNING THE FOLLOWING RESPONSE_MESSAGE, FORWARD THE DETECTED WORD TO THE MAIN MODEL
             response_message = UniversalMessage(
                 type="ai.processed_text",
                 payload={"text": processed_text, "original_message_id": message.id},
                 origin="small_model",
-                # KORREKTUR: The destination is the client_id of the original message.
                 destination=message.client_id,
                 client_id=message.client_id
-
             )
             return response_message
 
