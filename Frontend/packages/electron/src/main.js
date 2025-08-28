@@ -32,7 +32,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-      webSecurity: isDev ? false : true,
+  webSecurity: true,
+  allowRunningInsecureContent: false,
     },
     titleBarStyle: 'default',
     show: false,
@@ -72,12 +73,7 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          `default-src 'self' data: blob:;` +
-          `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174;` +
-          `font-src 'self' data: https://fonts.gstatic.com;` +
-          `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` +
-          `img-src 'self' data:;` +
-          `connect-src 'self' ws://localhost:5174 http://localhost:5174 ws://localhost:8000 http://localhost:8000;`
+          `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';`
         ]
       }
     });
