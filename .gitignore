@@ -43,6 +43,7 @@ veny/ # Assuming 'veny' is your virtual environment directory
 
 # Build artifacts and packaging
 dist/
+dist-electron/
 build/
 *.egg-info/
 .eggs/
