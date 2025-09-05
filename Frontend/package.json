@@ -1,10 +1,57 @@
 {
-  "private": true,
-  "name": "context-translator-root",
+  "name": "@context-translator/electron",
   "version": "1.0.0",
+  "description": "Context Translator Desktop App",
+  "main": "src/main.js",
+  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "cd packages/electron && npm run dev",
-    "build": "cd packages/electron && npm run build",
-    "clean": "cd packages/electron && npm run clean"
+    "dev": "concurrently -k -n preload,renderer,main -c yellow,cyan,green \"npm:dev:preload\" \"npm:dev:renderer\" \"npm:dev:main\"",
+    "dev:preload": "esbuild src/preload.js --bundle --platform=node --format=cjs --outfile=dist-electron/preload.js --external:electron --watch",
+    "dev:renderer": "vite",
+    "dev:main": "wait-on dist-electron/preload.js http://localhost:5174 && cross-env NODE_ENV=development electron .",
+    "build": "npm run build:clean && npm run build:preload && npm run build:renderer && npm run build:main",
+    "build:preload": "esbuild src/preload.js --bundle --platform=node --format=cjs --minify --outfile=dist-electron/preload.js --external:electron",
+    "build:renderer": "vite build",
+    "build:main": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+    "package": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+    "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
+    "start": "electron .",
+    "clean": "rimraf dist dist-electron",
+    "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0"
+  },
+  "dependencies": {
+    "@material/web": "^2.3.0",
+    "lit": "^3.3.0",
+    "marked": "^15.0.12"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^29.1.6",
+    "electron-builder": "^24.6.4",
+    "esbuild": "^0.25.8",
+    "rimraf": "^5.0.5",
+    "vite": "^6.3.5",
+    "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "com.contexttranslator.app",
+    "productName": "Context Translator",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main.js",
+      "dist-electron/preload.js",
+      "package.json"
+    ],
+    "win": {
+      "sign": false
+    },
+    "extraMetadata": {
+      "main": "src/main.js"
+    }
   }
 }
