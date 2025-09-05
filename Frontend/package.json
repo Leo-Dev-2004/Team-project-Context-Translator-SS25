@@ -1,22 +1,14 @@
 {
-  "name": "@context-translator/electron",
+  "private": true,
+  "name": "context-translator-root",
   "version": "1.0.0",
-  "description": "...",
-  "main": "dist-electron/main/index.js",
+  "workspaces": [
+    "packages/electron",
+    "packages/shared"
+  ],
   "scripts": {
-    "dev:renderer": "vite",
-    "dev:main": "cross-env NODE_ENV=development node --unbuffered node_modules/electron/cli.js .",
-    "dev": "npm run dev:renderer & npm run dev:main",
-    "build:main": "...",
-    "build:renderer": "...",
-    "build": "...",
-    "test": "node --unbuffered node_modules/electron/cli.js ."
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "electron": "^29.1.6",
-    "vite": "^5.2.11"
+    "dev": "npm --workspace packages/electron run dev",
+    "build": "npm --workspace packages/electron run build",
+    "clean": "npm --workspace packages/electron run clean"
   }
 }

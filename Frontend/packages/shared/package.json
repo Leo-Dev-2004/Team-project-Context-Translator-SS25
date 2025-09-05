@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "Shared components and styles for Context Translator",
   "type": "module",
-  "main": "index.js",  "exports": {
-    ".": "./index.js",
-    "./styles": "./src/index.css",
-    "./src/*": "./src/*"
+  "main": "index.js",
+  "exports": {
+  ".": "./index.js",
+  "./styles": "./src/index.css",
+  "./src/*": "./src/*"
   },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "dependencies": {
     "@material/web": "^2.3.0",
     "lit": "^3.3.0",
