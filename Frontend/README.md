@@ -1,3 +1,5 @@
+DEPRECATED, FIND USEFULL ITEMS AND DELETE
+
 # Context Translator Frontend
 
 ## Overview
