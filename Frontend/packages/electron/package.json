@@ -12,15 +12,17 @@
   "build": "npm run build:clean && npm run build:preload && npm run build:renderer && npm run build:main",
   "build:preload": "esbuild src/preload.js --bundle --platform=node --format=cjs --minify --outfile=dist-electron/preload.js --external:electron",
   "build:renderer": "vite build",
-  "build:main": "electron-builder",
-  "package": "electron-builder --dir",
-  "dist": "electron-builder",
+  "build:main": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+  "package": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+  "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
   "start": "electron .",
   "clean": "rimraf dist dist-electron",
   "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0"
   },
   "dependencies": {
-    "@context-translator/shared": "file:../shared"
+  "@material/web": "^2.3.0",
+  "lit": "^3.3.0",
+  "marked": "^15.0.12"
   },
   "devDependencies": {
   "concurrently": "^8.2.2",
@@ -44,6 +46,9 @@
       "dist-electron/preload.js",
       "package.json"
     ],
+    "win": {
+      "sign": false
+    },
     "extraMetadata": {
       "main": "src/main.js"
     }

@@ -2,13 +2,9 @@
   "private": true,
   "name": "context-translator-root",
   "version": "1.0.0",
-  "workspaces": [
-    "packages/electron",
-    "packages/shared"
-  ],
   "scripts": {
-    "dev": "npm --workspace packages/electron run dev",
-    "build": "npm --workspace packages/electron run build",
-    "clean": "npm --workspace packages/electron run clean"
+    "dev": "cd packages/electron && npm run dev",
+    "build": "cd packages/electron && npm run build",
+    "clean": "cd packages/electron && npm run clean"
   }
 }
