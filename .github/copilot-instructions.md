@@ -1,86 +1,74 @@
-# AI Coding Agent Instructions (Frontend Focus)
+# AI Coding Agent Instructions (Frontend)
 
-Concise, project-specific guidance for automated changes. Keep edits minimal, preserve behavior, prefer deletion of dead code over refactors.
+Surgical, project-specific guidance for automated changes to the Electron Frontend. Keep edits minimal, preserve behavior, and favor deleting dead code over refactors.
 
-## Big Picture
-- Product: Desktop-only (Electron) real-time meeting assistant producing AI "explanations". (Former web build path has been discontinued; `packages/web` is deprecated and can be removed.) Backend (FastAPI/WebSocket :8000) <-> Electron renderer via structured JSON messages.
-- Frontend code now centers on two active areas: `packages/shared` (core logic + Lit UI + queues) and `packages/electron` (Electron main/preload/renderer glue). Eliminate assumptions of a browser/PWA build.
-- Core domain objects: UniversalMessage (backend JSON) → parsed by `UniversalMessageParser` → stored in singleton `ExplanationManager` → rendered as `<explanation-item>` within `<my-element>` (base class `UI`, subclassed in Electron).
-- Messaging pipeline: queues abstract async flow: outbound (`toBackendQueue`) + inbound (`fromBackendQueue`) plus internal display/action queues. `WebSocketManager` bridges queues <-> WebSocket; `MessagingService` (partially unused) provides ping + high-level send. Legacy direct WebSocket in `electron/src/renderer.js` still duplicates session logic (target for consolidation).
+## Big picture
+- Product: Desktop-only Electron app showing real-time AI "explanations" from the backend over WebSocket (ws://localhost:8000).
+- Frontend code lives entirely under `Frontend/` with:
+	- `src/main.js` (Electron main)
+	- `src/preload.js` (CommonJS, bundled to `dist-electron/preload.js`)
+	- `src/renderer.js` (renderer entry and Electron-specific `<my-element>`)
+	- `src/shared/*` (Lit UI, styles, explanation manager, parser)
+- Core domain: UniversalMessage (backend JSON) → optional parsing by `UniversalMessageParser` → stored via `ExplanationManager` → rendered as `<explanation-item>` inside the base `UI` class (extended by the Electron renderer).
 
-## Runtime Flows
-1. Electron startup: `electron/src/main.js` creates window, preload exposes `electronAPI` (settings, version, user session id).
-2. Renderer loads `renderer.js` which imports `shared/src/index.js` (barrel) and calls `initializeApplication(this)` from `shared/app.js` inside `firstUpdated()`.
-3. `app.js` sets up queues, assigns UI component to `WebSocketManager`, wires event listeners (`EventListeners.js`), starts WebSocket.
-4. `WebSocketManager` maintains connection, enqueues incoming messages, dequeues outbound loop. Queue size UI updates via `QueueDisplay.js` (shadowRoot lookups).
-5. `EventListeners.js` consumes `frontendDisplayQueue` in a loop, routes message types to UI/log updates.
-6. Explanation messages (future) should be parsed -> `ExplanationManager.addExplanation()` then Lit re-renders.
+## Runtime flow
+1. Main creates `BrowserWindow`, configures CSP, wires IPC (`get-app-version`, `get-platform`, settings read/write, `get-user-session-id`).
+2. Preload exposes a minimal `window.electronAPI` (app info, dialogs, settings, user session id).
+3. Renderer (`renderer.js`) defines and registers `<my-element>`, initializes Electron specifics, and opens a direct WebSocket to the backend.
+4. UI (`ui.js`) renders tabs (Setup, Explanations), session controls, and the explanations list.
+5. Explanations are managed in `explanation-manager.js` and rendered via `explanation-item.js` (Markdown with `marked`).
 
-## Key Modules & Responsibilities
-- `shared/src/ui.js`: Base Lit component (tabs, session buttons, explanation list). Child overrides session actions.
-- `shared/src/explanation-manager.js`: Singleton store + sorting/pinning + sessionStorage persistence.
-- `shared/src/explanation-item.js`: Individual explanation card (expand, pin, delete, copy).
-- `shared/src/universal-message-parser.js`: Heuristics mapping heterogeneous backend messages into explanation items.
-- `shared/src/modules/MessageQueue.js`: Async blocking queue with listener subscription (dequeue waits via promise + wakes on enqueue).
-- `shared/src/modules/WebSocketManager.js`: Connection lifecycle, reconnection, queue bridging, UI update hooks (direct DOM shadow queries) + sends initial `frontend.ready_ack`.
-- `shared/src/modules/MessagingService.js`: High-level send + ping loop. (Currently unused in Electron renderer’s direct WebSocket path.)
-- `shared/src/modules/EventListeners.js`: Attaches button handlers (translation, simulation), processes display queue messages (state machine for UI logs & statuses).
-- `shared/src/modules/QueueDisplay.js`: Indirection layer to update shadow DOM safely after component mount.
-- `electron/src/renderer.js`: Electron-specific subclass, duplicates some WebSocket/session logic outside queue system (candidate for consolidation).
-
-## Current Duplication / Cleanup Targets
-1. Dual WebSocket paths: remove manual WebSocket in `renderer.js`; migrate session start/join into queue-driven messaging.
-2. Session management: unify into queue/event pipeline (`MessagingService.sendToBackend('session.start'| 'session.join')`).
-3. Empty placeholder: `packages/shared/index.js` — remove or re-export barrel of `src/index.js`.
-4. Remove dead listener code in `EventListeners.js` referencing non-existent IDs (translation/simulation artifacts).
-5. Deprecate/delete `packages/web` folder (no longer shipped). Ensure docs / scripts have no references.
-6. Keep CSS centralized (`styles.js` + `index.css`).
+## Key modules
+- `src/main.js`: window lifecycle, CSP for localhost:5174 and :8000, IPC handlers, app menu.
+- `src/preload.js`: CommonJS bridge exposing safe APIs; bundled by esbuild to `dist-electron/preload.js`.
+- `src/renderer.js`: Electron-specific subclass of `UI`, connects WebSocket, handles `session.start`/`session.join` and backend responses (`session.created`, `session.joined`, `session.error`).
+- `src/shared/ui.js`: Base component with session UI; child should override `_startSession` and `_joinSession`.
+- `src/shared/explanation-manager.js`: Singleton store, pinning, sorting, sessionStorage persistence.
+- `src/shared/universal-message-parser.js`: Heuristics to convert incoming universal messages into explanation items.
+- `src/shared/explanation-item.js`: Expand/collapse, pin, delete, copy; Markdown rendering with `marked`.
+- `src/shared/styles.js` + `src/shared/index.css`: Style system.
 
 ## Conventions
-- Use ES modules in shared package (`type": "module"`); Electron preload uses CommonJS intentionally.
-- Message shape: `{ id, type, timestamp (sec or ms), payload, client_id, origin, destination }`; queues may augment with `status`.
-- Explanation ordering: pinned first (recent pinned first), then unpinned newest-first.
-- Shadow DOM access must go through component reference; avoid direct global `document.getElementById` in shared modules (migrate remaining occurrences).
+- ES modules across the renderer and main; preload uses CommonJS by design.
+- Message shape: `{ id, type, timestamp (sec or ms as number), payload, client_id, origin, destination }`.
+- Explanation ordering: pinned first (most recent pinned first), then unpinned newest-first.
+- Access UI through the component instance and `shadowRoot`; avoid global `document.getElementById` in shared modules.
 
-## Safe Operation Guidelines for Agents
-- Prefer removal of clearly dead code over partial rewrites (e.g., if an element ID is never rendered in `ui.js`, remove its handler & references).
-- When touching WebSocket logic, keep queue contract: outbound = `toBackendQueue`, inbound = `fromBackendQueue`; never block main thread—use existing async dequeue loop.
-- Don’t introduce new framework layers; stay with Lit + existing singleton patterns.
-- Keep preload surface minimal; no direct exposing of fs APIs beyond existing settings pattern.
-- If adding new message types, extend switch in `EventListeners.processFrontendDisplayQueueMessages` and (optionally) parser mapping.
+## Safe operation guidelines
+- Keep preload surface small; do not expose Node or fs directly beyond current handlers.
+- When touching WebSocket logic, keep it non-blocking and on the renderer side; reuse the current `renderer.js` connection pattern.
+- Prefer small additions over structural rewrites; do not introduce new frameworks.
+- If enhancing explanation handling, consider `UniversalMessageParser.parseAndAddToManager(message, explanationManager)` when messages contain explanation data.
 
-## Typical Commands (Electron Only)
-- Development: from `Frontend/packages/electron`: `npm install` (first time) then `npm run dev` (Vite + Electron)
-- (Optional) Build (when implemented): `npm run build` inside `packages/electron` (replace "..." placeholders before relying on CI)
-- Remove any references to `dev:web` or `build:web` in higher-level docs/scripts.
+## Typical commands
+- Development from `Frontend/`: `npm install` then `npm run dev` (starts Vite, builds preload in watch, launches Electron).
+- Build: `npm run build` (renderer + preload + package via electron-builder `--dir`).
+- Package/distribute: `npm run dist`.
 
-## Integration Points
-- Backend WebSocket: ws://localhost:8000/ws/{client_id}
-- Simulation REST (if still supported): POST http://localhost:8000/simulation/{start|stop}
-- Settings persistence: Electron main writes JSON to user home (`~/.context-translator-settings.json`). (Browser storage fallback dropped with web removal.)
+## Integration points
+- Backend WebSocket: `ws://localhost:8000/ws/{client_id}` (renderer).
+- Settings persistence: JSON under the user home (handled by main process).
+- CSP allows `localhost:5174` (dev) and `localhost:8000` for WebSocket/HTTP connections.
 
-## Prioritized Cleanup Suggestions (Electron-Only)
-1. Remove legacy WebSocket + session code from `renderer.js`; replace with queue-backed calls.
-2. Wire explanation parsing: in display queue loop, detect explanation messages → `UniversalMessageParser.parseAndAddToManager`.
-3. Delete `packages/web` (or keep temporarily with CLEAR `DEPRECATED.md`).
-4. Prune unused DOM ID handlers in `EventListeners.js` & any simulation/translation UI not rendered.
-5. Replace empty `packages/shared/index.js` with proper re-export or delete.
-6. Add message type registry doc (list type → handler module) to README.
+## Cleanup and improvement targets
+1. Keep message parsing centralized: extend `renderer.js` to invoke `UniversalMessageParser` for explanation-like messages when the backend sends them.
+2. Avoid duplicating session logic between UI and renderer; base UI methods should be overridden once in the Electron subclass.
+3. Remove dead code paths or element IDs that aren’t rendered by `ui.js`.
+4. Ensure all shared modules are exported via `src/shared/index.js` and imported from there in the renderer.
 
-## When Adding Files
-- Place shared logic under `packages/shared/src/...`; Electron-only wrappers in `packages/electron/src`.
-- Export new shared modules via `shared/src/index.js` barrel.
-- Maintain German copy consistency where already used (e.g., session buttons).
+## When adding files
+- Place renderer-visible, shared UI in `src/shared/` and export through `src/shared/index.js`.
+- Electron-only integrations belong in `src/renderer.js` (renderer) or `src/main.js` (main). Update preload if new safe APIs are required.
+- Keep German copy consistent where it already appears (e.g., session button labels).
 
-## Non-Goals
-- Do not resurrect web build path without architectural review.
-- No TypeScript introduction unless explicitly requested.
-- Avoid broad refactors of queues/WebSocket unless fixing concrete bugs.
-- Don’t rewrite Lit components into React/Vue.
+## Non-goals
+- Don’t add a web/PWA build without explicit approval.
+- Don’t convert to TypeScript unless asked.
+- Don’t replace Lit with other UI frameworks.
 
-## Example: Adding a New Explanation Message Type
-1. Backend emits `explanation.term` with payload `{ term, definition }`.
-2. `EventListeners` display loop sees message, calls `UniversalMessageParser.parseAndAddToManager(message, explanationManager)` if `isExplanationMessage`.
-3. UI auto-updates through listener binding.
+## Example: parsing an incoming explanation
+1. Backend sends a universal message like `{ type: 'explanation.generated', payload: { title, content }, ... }`.
+2. In `renderer.js` WebSocket `onmessage`, call `UniversalMessageParser.parseAndAddToManager(message, explanationManager)` if `UniversalMessageParser.isExplanationMessage(message)` is true.
+3. The UI list updates automatically via the manager listener.
 
-Keep changes surgical, documented in PR description, and update `README.md` if build or run workflow changes.
+Document any behavior changes in PR descriptions and update `Frontend/README.md` if commands or run steps change.

@@ -1,5 +1,5 @@
-import { UI } from '../../shared/src/index.js';
-import '../../shared/src/index.css';
+import { UI } from './shared/index.js';
+import './shared/index.css';
 
 class ElectronMyElement extends UI {
   constructor() {

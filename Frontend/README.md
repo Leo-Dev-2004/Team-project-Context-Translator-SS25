@@ -1,195 +1,184 @@
-DEPRECATED, FIND USEFULL ITEMS AND DELETE
+## Context Translator Frontend (Electron)
 
-# Context Translator Frontend
+Desktop-only Electron app rendering real-time AI explanations from the backend. This folder contains the complete Electron app (main, preload, renderer) plus shared Lit components and styles.
 
-## Overview
+Tip: The old web/PWA path is removed. Everything here targets Electron.
 
-Real-time meeting translation powered by AI - Available as Web App and Desktop Application.
+## Quickstart
 
-The project uses a **2-way development path** with both web and desktop implementations sharing common components.
+Prerequisites
+- Node.js LTS (18+ recommended)
+- npm
+- Backend available at ws://localhost:8000 (see project root README for backend setup)
 
-## 🚀 Getting Started
+Install and run (from this Frontend folder)
 
-### Prerequisites
-- Node.js (latest LTS version recommended)
-- npm (comes with Node.js)
-- Git for version control
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd my-lit-app
-   ```
-
-2. Install all dependencies for the monorepo:
-   ```bash
-   npm install
-   ```
-
-### Quick Start Guide
-
-1. **Install dependencies**: `npm install`
-2. **Start development**: Choose `npm run dev:web` or `npm run dev:electron`
-3. **Configure settings**: Use the "Settings" tab in the app to set your preferences
-4. **Start translating**: Switch to the "Translator" tab and begin!
-
-Both versions share the same UI and core functionality, with platform-specific enhancements.
-
-## 🏗️ Project Architecture
-
-### Monorepo Structure
-
-```
-my-lit-app/
-├── packages/
-│   ├── shared/       # Shared Lit components and styles
-│   ├── web/          # Web app (browser-based)
-│   └── electron/     # Desktop app (Electron-based)
-├── public/           # Public assets (shared across apps)
-├── package.json      # Monorepo configuration and scripts
-└── README.md         # Project documentation
+```powershell
+npm install
+npm run dev
 ```
 
-### Package Details
+This starts:
+- Vite dev server on http://localhost:5174 for the renderer
+- esbuild watch for the preload script
+- Electron with live-reload
 
-#### `packages/shared/`
-- Contains reusable Lit components and Material Design styles
-- Example components:
-  - `MyElement`: The main app component
-- Example styles:
-  - `index.css`: Shared CSS variables and global styles
+(For Electron developement only. Will not start the Backend and a Websocket connections will not be possible. Use `run_electron.py` script in root folder instead.)
 
-#### `packages/web/`
-- Web app implementation
-- Uses `localStorage` for settings and supports Google Meet integration
-- Progressive Web App (PWA) ready
+## Folder structure
 
-#### `packages/electron/`
-- Desktop app implementation
-- Uses Electron APIs for native features like file dialogs and persistent settings storage
-- Auto-updater ready
-
-## 🛠️ Development Workflow
-
-### Development Commands
-
-| Command                | Description                                      |
-|------------------------|--------------------------------------------------|
-| `npm run dev:web`      | Start the web app in development mode           |
-| `npm run dev:electron` | Start the desktop app in development mode       |
-| `npm run build:web`    | Build the web app for production                |
-| `npm run build:electron` | Build the desktop app for production          |
-| `npm run build:all`    | Build both the web and desktop apps             |
-| `npm run clean`        | Clean all build outputs                         |
-
-### Development Modes
-
-#### Run the Web App (Browser)
-```bash
-npm run dev:web
 ```
-- Opens the web app at [http://localhost:5173](http://localhost:5173)
-
-#### Run the Desktop App (Electron)
-```bash
-npm run dev:electron
-```
-- Opens the Electron desktop app
-
-### Building for Production
-
-#### Build the Web App
-```bash
-npm run build:web
-```
-- Outputs the production build to `packages/web/dist`
-
-#### Build the Desktop App
-```bash
-npm run build:electron
-```
-- Outputs the production build to `packages/electron/dist-electron`
-
-#### Build Everything
-```bash
-npm run build:all
-```
-- Builds both the web and desktop apps
-
-### Cleaning Build Artifacts
-To clean all build outputs:
-```bash
-npm run clean
+Frontend/
+├─ index.html                # Renderer entry (loaded by Vite in dev, by file in prod)
+├─ package.json              # App metadata, scripts, electron-builder config
+├─ vite.config.js            # Vite config (renderer dev/build)
+└─ src/
+   ├─ main.js               # Electron main process (creates window, CSP, menus)
+   ├─ preload.js            # Preload (CommonJS) exposing safe Electron APIs
+   ├─ renderer.js           # Renderer entry; defines <my-element> for Electron
+   └─ shared/               # UI & logic shared within the renderer
+      ├─ index.js           # Barrel exports
+      ├─ index.css          # Global styles consumed via styles.js
+      ├─ styles.js          # Lit css import and export
+      ├─ ui.js              # Base Lit component (tabs, session UI, list)
+      ├─ explanation-item.js
+      ├─ explanation-manager.js
+      └─ universal-message-parser.js
 ```
 
-## 🌟 Platform Features
+(All folder named something like `dist` are generated by the electron build process and should not be edited/committed to Git.)
 
-### Web Version
-- Browser `localStorage` for settings
-- Progressive Web App (PWA) ready
-- Responsive design
-- Cross-platform compatibility
+## Architecture overview
 
-### Desktop Version
-- Persistent settings storage in the file system
-- Native file dialogs for import/export
-- System menu integration
-- Offline functionality
-- Auto-updater ready
-- Native OS notifications
+- Main process: `src/main.js`
+  - Creates the `BrowserWindow`, sets CSP, logs renderer console output, and exposes IPC handlers (settings, version, platform, user session id).
+  - In dev, loads http://localhost:5174. In production, loads the built `dist/index.html` file.
+- Preload: `src/preload.js`
+  - CommonJS bundle exposed via `contextBridge` as `window.electronAPI` (get/save settings, dialogs, app info, user session id).
+- Renderer: `src/renderer.js`
+  - Defines `ElectronMyElement` extending the shared `UI` base; registers `<my-element>`.
+  - Establishes a WebSocket to `ws://localhost:8000/ws/{client_id}` and handles session start/join flows.
+  - Uses the shared styles and components.
+- Shared UI and logic: `src/shared/*`
+  - `ui.js`: tabs, session code UI, buttons wiring (base methods `_startSession`/`_joinSession` to override)
+  - `explanation-item.js`: a markdown-capable card (expand, pin, delete, copy)
+  - `explanation-manager.js`: singleton store with pinning/sorting and sessionStorage persistence
+  - `universal-message-parser.js`: converts backend UniversalMessage shapes into explanation items
 
-## UI Design
+Data flow (today)
+- Renderer opens WebSocket and forwards session actions (`session.start`, `session.join`).
+- Incoming messages are handled in `renderer.js` (e.g., `session.created`, `session.joined`).
+- Explanations can be added through `explanationManager.addExplanation(...)` or by using `UniversalMessageParser`.
 
-- Design Mockup in FigJam: https://www.figma.com/file/lNu6mryCnWlOjguu0iT9dm?node-id=0-1&p=f&t=daVSVvT5MOhVv0bV-0&type=whiteboard
+Note: Parser integration for incoming explanation messages can be extended by calling `UniversalMessageParser.parseAndAddToManager(message, explanationManager)` when appropriate.
 
-## 📚 Documentation and Technologies
+## Scripts and commands
 
-### Core Technology Stack
+From the `Frontend` directory:
 
-- **Frontend Framework**: Lit (lightweight web components)
-- **Build Tool**: Vite (fast development and building)
-- **Desktop Runtime**: Electron (cross-platform desktop apps)
-- **Package Management**: npm workspaces (monorepo management)
-- **Styling**: Material Design 3 (modern design system)
+- Development
+  - `npm run dev` — concurrent dev (preload watch, Vite on 5174, Electron)
+  - `npm run dev:renderer` — Vite dev server only
+  - `npm run dev:preload` — esbuild watch for preload only
+  - `npm run dev:main` — start Electron after dev assets are ready
+- Build
+  - `npm run build` — clean + build preload + renderer + package metadata
+  - `npm run build:preload` — bundle preload (CJS) to `dist-electron/preload.js`
+  - `npm run build:renderer` — Vite build to `dist`
+  - `npm run build:main` — package skeleton via electron-builder (`--dir`)
+- Packaging
+  - `npm run package` — create unpacked build in `dist-electron`
+  - `npm run dist` — create distributables (platform-specific)
+- Utilities
+  - `npm run start` — run Electron using current files (no watchers)
+  - `npm run clean` / `npm run build:clean` — remove `dist` and `dist-electron`
 
-### Architecture References
+Ports
+- Renderer dev server: 5174 (see `vite.config.js`)
+- Backend WebSocket: 8000 (see `src/renderer.js` and CSP in `src/main.js`)
 
-- **Miro Board**: Detailed architecture diagrams (found at main README)
+## Installation and running
 
-### Primary Documentation
+1) Install dependencies
 
-#### Framework & Build Tools
-- **Vite**: https://vite.dev/guide/ - Fast build tool with hot module replacement
-- **npm**: https://docs.npmjs.com/getting-started/ - Package manager and workspace configuration
-- **Node.js**: https://nodejs.org/en - JavaScript runtime environment
-- **Lit Framework**: https://lit.dev/ - Simple, fast, web components library
+```powershell
+cd .\Frontend
+npm install
+```
 
-#### UI Components & Design
-- **Google Material Web Components**: https://material-web.dev/ - Note: Support paused, but still functional
-- **Web Components Guide**: https://developer.mozilla.org/en-US/docs/Web/API/Web_components - Standard web component APIs
-- **Material 3 Design System**: https://m3.material.io/develop/web - Modern design principles and guidelines
+2) Start the frontend in development
 
-### Learning Resources
+```powershell
+npm run dev
+```
 
-#### Web Development Fundamentals
-- **MDN Web Docs**: https://developer.mozilla.org/en-US/docs/Learn_web_development - Comprehensive web development learning path
-- **First Website Tutorial**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Your_first_website/Creating_the_content
-- **MDN Core Modules**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Core - Essential web technologies
-- **Google Fonts**: https://fonts.google.com/ - Typography resources
+3) Ensure the backend is running at ws://localhost:8000. The renderer will connect automatically.
 
-#### Command Line & Development Environment
-- **Command Line Basics**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Environment_setup/Command_line - Essential terminal skills
+Optional: Pass a user session id to Electron on startup. The main process reads `--user-session-id=...` and exposes it to the renderer via `electronAPI.getUserSessionId()`.
 
-#### JavaScript & Package Management
-- **Package Management Deep Dive**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Client-side_tools/Package_management#what_exactly_is_a_package_manager
-- **MDN JavaScript Course**: https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting - Complete JS fundamentals
-- **Node.js Documentation**: https://nodejs.org/en/ - Server-side JavaScript runtime
+## Tech stack
 
-### Development Tools & Quality Assurance
+- Electron (main, preload, renderer)
+- Lit (web components)
+- Material Web (M3 components)
+- Vite (renderer dev/build)
+- esbuild (preload bundling)
+- electron-builder (packaging)
 
-- **Vite Build Tool**: https://vite.dev/guide/ - Modern build tooling with fast HMR
-- **ESLint**: Code linting and style enforcement
-- **Material Design**: Consistent UI/UX patterns
-- **TypeScript**: Optional static typing (if implemented)
+## Packages
+
+Runtime
+- @material/web ^2.3.0
+- lit ^3.3.0
+- marked ^15.0.12
+
+Dev
+- electron ^29.1.6
+- vite ^6.3.5
+- esbuild ^0.25.8
+- electron-builder ^24.6.4
+- concurrently ^8.2.2
+- cross-env ^7.0.3
+- rimraf ^5.0.5
+- wait-on ^7.0.1
+
+## Files of interest
+
+- `src/main.js` — app lifecycle, window, CSP, IPC, menus
+- `src/preload.js` — safe API surface to the renderer (CommonJS)
+- `src/renderer.js` — WebSocket session logic + custom element definition
+- `src/shared/ui.js` — base component with tabs and session controls
+- `src/shared/explanation-manager.js` — centralized store
+- `src/shared/universal-message-parser.js` — map backend messages to explanations
+- `src/shared/explanation-item.js` — markdown rendering and actions
+- `src/shared/styles.js` and `src/shared/index.css` — styles system
+
+## Backend integration
+
+- WebSocket URL pattern: `ws://localhost:8000/ws/{client_id}`
+- Message types handled in the renderer today: `frontend.init` (out), `session.start` (out), `session.join` (out), `session.created` (in), `session.joined` (in), `session.error` (in)
+- Content Security Policy allows connections to localhost:5174 and localhost:8000 (see `src/main.js`).
+
+## Troubleshooting
+
+- Electron opens a blank window in dev:
+  - Verify Vite is on 5174 and `dist-electron/preload.js` exists (created by `dev:preload`).
+- WebSocket fails to connect:
+  - Ensure the backend is running and reachable at `ws://localhost:8000`.
+- Icons or fonts missing:
+  - Internet connectivity is required for Google Fonts in `index.html` during development.
+
+## Documentation and links
+
+- Frontend architecture: This document
+- Project root README: one level up at `../README.md`
+- Lit docs: https://lit.dev/
+- Vite docs: https://vite.dev/guide/
+- Electron docs: https://www.electronjs.org/docs/latest
+- Material Web: https://material-web.dev/
+
+## Contributing notes
+
+- Preload is generated into `dist-electron/preload.js` — edit `src/preload.js` instead.
+- Keep shared logic within `src/shared` and export via `src/shared/index.js`.
+- Avoid introducing new frameworks; prefer small, focused changes.
