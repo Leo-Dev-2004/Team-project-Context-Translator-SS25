@@ -22,7 +22,7 @@ STT_SCRIPT_PATH = ROOT_DIR / "Backend" / "STT" / "transcribe.py"
 # --- CONFIGURATION ---
 VITE_DEV_COMMAND = ["npm", "run", "dev:renderer"]
 ELECTRON_MAIN_COMMAND = ["npm", "run", "dev:main"]
-ELECTRON_APP_CWD = FRONTEND_DIR / "packages" / "electron"
+ELECTRON_APP_CWD = FRONTEND_DIR
 
 class SystemRunner:
     def __init__(self):

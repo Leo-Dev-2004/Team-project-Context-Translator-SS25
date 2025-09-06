@@ -1,3 +1,5 @@
+Somewhat deprecated, Please update and store files in sperate folder.
+
 # Team Project - Summer 25: Real-time Virtual Meeting Assistant
 ![Header](./header.png)
 

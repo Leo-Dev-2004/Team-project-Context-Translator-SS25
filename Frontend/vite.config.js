@@ -13,10 +13,5 @@ export default defineConfig({
   },
   server: {
     port: 5174
-  },  resolve: {
-    alias: {
-      '@context-translator/shared': resolve(__dirname, '../shared/src/index.js'),
-      '@context-translator/shared/styles': resolve(__dirname, '../shared/src/index.css')
-    }
   }
 })
