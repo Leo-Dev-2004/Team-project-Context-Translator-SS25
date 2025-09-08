@@ -33,7 +33,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Mache den Handler für die User Session ID verfügbar
-  getUserSessionId: () => ipcRenderer.invoke('get-user-session-id')
+  getUserSessionId: () => ipcRenderer.invoke('get-user-session-id'),
+
+  // Window controls
+  windowControls: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    unmaximize: () => ipcRenderer.invoke('window:unmaximize'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    close: () => ipcRenderer.invoke('window:close'),
+    onMaximized: (cb) => ipcRenderer.on('window:maximized', cb),
+    onUnmaximized: (cb) => ipcRenderer.on('window:unmaximized', cb)
+  }
 })
 
 // Log when preload script is loaded
