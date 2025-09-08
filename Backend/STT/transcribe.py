@@ -66,15 +66,23 @@ def record_audio():
         logger.info("Audio recording stopped.")
 
 # --- WEBSOCKET & TRANSCRIPTION LOGIC ---
-async def send_sentence(websocket, sentence, info, client_id):
+async def send_sentence(websocket, sentence, info, client_id, current_sentence_words):
     """Formats and sends a transcribed sentence over the WebSocket."""
     if sentence:
         transcription_logger.info(sentence)
+
+        start_time = current_sentence_words[0].start if current_sentence_words else None
+        end_time = current_sentence_words[-1].end if current_sentence_words else None
+
         message = {
             "id": str(uuid4()),
             "type": "stt.transcription",
             "timestamp": time.time(),
-            "payload": {"text": sentence, "language": info.language, "confidence": info.language_probability},
+            "payload": {"text": sentence, 
+                        "language": info.language, 
+                        "confidence": info.language_probability,
+                        "start_time": start_time,
+                        "end_time": end_time},
             "origin": "stt_module",
             "client_id": client_id
         }
@@ -119,22 +127,45 @@ async def run_transcription_service(user_session_id: str):
                 logger.warning(f"Heartbeat failed: {e}")
                 break
 
+    last_sentences = deque(maxlen=5)
+
     async def process_audio_loop(websocket):
+        sentence_start_time = time.monotonic()
         """Processes audio from the queue and performs transcription using a rolling window."""
         nonlocal total_frames, stt_client_id
-        
+
         rolling_buffer = np.array([], dtype=np.float32)
+        max_samples = int(CONFIG["TRANSCRIPTION_WINDOW_SECONDS"] * CONFIG["SAMPLE_RATE"])
+        logger.debug(f"Queue size: {audio_queue.qsize()}, buffer length: {len(rolling_buffer)}")
+        if len(rolling_buffer) > max_samples * 2:
+            rolling_buffer = rolling_buffer[-max_samples:]
+        samples_per_chunk = int(CONFIG["CHUNK_DURATION_SEC"] * CONFIG["SAMPLE_RATE"])
+        volume_threshold = 0.01
+
         current_sentence_words = []
         last_word_timestamp = time.monotonic()
-        
-        samples_per_chunk = int(CONFIG["CHUNK_DURATION_SEC"] * CONFIG["SAMPLE_RATE"])
+    
 
         logger.info(f"Audio processing configured for {CONFIG['TRANSCRIPTION_WINDOW_SECONDS']}s windows.")
 
+        reconnect_attempts = 0
+
         while is_recording.is_set():
-            if not transcription_active:
-                await asyncio.sleep(0.1)
-                continue
+            frame_energy = np.sqrt(np.mean(np.square(rolling_buffer[-samples_per_chunk:])))
+            is_silence = frame_energy < volume_threshold
+            if is_silence:
+                silence_frames += 1
+            total_frames += 1
+            try:
+                if not transcription_active:
+                    await asyncio.sleep(0.1)
+                    continue
+                reconnect_attempts = 0
+            except Exception as e:
+                reconnect_attempts += 1
+                backoff = min(30, 2 ** reconnect_attempts)
+                logger.warning(f"WebSocket failed, retrying in {backoff}s (attempt {reconnect_attempts})")
+                await asyncio.sleep(backoff)
             
             # --- Part 1: Process any new audio from the queue ---
             try:
@@ -144,17 +175,31 @@ async def run_transcription_service(user_session_id: str):
 
                 if len(rolling_buffer) >= samples_per_chunk:
                     audio_to_process = rolling_buffer.astype(np.float32)
+                    proc_start = time.monotonic()
                     segments, info = model.transcribe(
                         audio_to_process, 
                         language=CONFIG["LANGUAGE"], 
                         word_timestamps=True,
                         initial_prompt=" ".join(w.word for w in current_sentence_words)
                     )
+                    proc_end = time.monotonic()
+                    duration_audio = len(audio_to_process) / CONFIG["SAMPLE_RATE"]
+                    proc_ms = (proc_end - proc_start) * 1000
+                    rtf = (proc_end - proc_start) / duration_audio if duration_audio > 0 else None
+
+                    logger.info(json.dumps({
+                        "event": "chunk_processed",
+                        "duration_s": duration_audio,
+                        "proc_ms": proc_ms,
+                        "rtf": rtf
+                    }))
                     
                     new_words_found = False
                     existing_words_set = {w.word.strip().lower() for w in current_sentence_words}
 
                     for segment in segments:
+                        if hasattr(segment, 'avg_logprob') and segment.avg_logprob is not None:
+                            confidence_history.append(np.exp(segment.avg_logprob))
                         if not segment.words: continue
                         for word in segment.words:
                             if word.word.strip().lower() not in existing_words_set:
@@ -176,18 +221,38 @@ async def run_transcription_service(user_session_id: str):
                 continue
 
             # --- Part 2: Check for sentence completion (runs every loop) ---
+            elapsed_time = time.monotonic() - sentence_start_time
+            duration_limit_reached = elapsed_time > CONFIG["MAX_SENTENCE_DURATION_SECONDS"]
+
             time_since_last_word = time.monotonic() - last_word_timestamp
-            sentence_is_ready = current_sentence_words and time_since_last_word > CONFIG["SENTENCE_COMPLETION_TIMEOUT_SEC"]
+            sentence_is_ready = current_sentence_words and (
+                time_since_last_word > CONFIG["SENTENCE_COMPLETION_TIMEOUT_SEC"]
+                or duration_limit_reached
+            )
 
             if sentence_is_ready:
                 full_sentence = " ".join(w.word for w in current_sentence_words).strip()
                 
                 if len(full_sentence.split()) >= CONFIG["MIN_WORDS_PER_SENTENCE"]:
-                    class DummyInfo:
-                        language = CONFIG["LANGUAGE"]
-                        language_probability = 1.0
+                    if full_sentence in last_sentences:
+                        logger.info("Skipping duplicate sentence: " + full_sentence)
+
+                    else:
+                        last_sentences.append(full_sentence)
+                        
+                        class DummyInfo:
+                            language = CONFIG["LANGUAGE"]
+                            language_probability = 1.0
                     
-                    await send_sentence(websocket, full_sentence, DummyInfo(), stt_client_id)
+                    await send_sentence(websocket, full_sentence, DummyInfo(), stt_client_id, current_sentence_words)
+
+                if time_since_last_word > CONFIG["SENTENCE_COMPLETION_TIMEOUT_SEC"]:
+                    reason = "timeout"
+                elif duration_limit_reached:
+                    reason = "max_duration"
+                else:
+                    reason = "unknown"
+                logger.info(f"Sending sentence due to: {reason} | Words: {len(current_sentence_words)}")
 
                 # Reset for the next sentence
                 current_sentence_words.clear()
