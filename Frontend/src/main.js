@@ -32,7 +32,9 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-      webSecurity: isDev ? false : true,
+  // Security hardening
+  webSecurity: true,
+  allowRunningInsecureContent: false,
     },
     titleBarStyle: 'default',
     show: false,
@@ -67,18 +69,44 @@ function createWindow() {
     mainWindow.loadURL(`data:text/html,<h1>Failed to load: ${errorDescription}</h1>`);
   });
 
+  // Strict, environment-aware Content Security Policy
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const devCsp = [
+      "default-src 'self' data: blob:",
+      // Vite dev server needs inline/eval for HMR
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob:",
+      // Allow ws/http to vite and backend in dev
+      "connect-src 'self' ws://localhost:5174 http://localhost:5174 ws://localhost:8000 http://localhost:8000",
+      // Extra hardening
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'"
+    ].join('; ');
+
+    const prodCsp = [
+      "default-src 'self' data: blob:",
+      // No inline/eval scripts in production
+      "script-src 'self'",
+      // Allow Google Fonts CSS; keep inline styles if components rely on them
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob:",
+      // Backend local API/WS endpoints
+      "connect-src 'self' ws://localhost:8000 http://localhost:8000",
+      // Extra hardening
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'"
+    ].join('; ');
+
+    const csp = isDev ? devCsp : prodCsp;
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': [
-          `default-src 'self' data: blob:;` +
-          `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174;` +
-          `font-src 'self' data: https://fonts.gstatic.com;` +
-          `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;` +
-          `img-src 'self' data:;` +
-          `connect-src 'self' ws://localhost:5174 http://localhost:5174 ws://localhost:8000 http://localhost:8000;`
-        ]
+        'Content-Security-Policy': [csp]
       }
     });
   });
