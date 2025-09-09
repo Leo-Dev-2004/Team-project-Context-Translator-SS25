@@ -80,8 +80,8 @@ function createWindow() {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const devCsp = [
       "default-src 'self' data: blob:",
-      // Vite dev server needs inline/eval for HMR
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5174",
+      // Vite dev server: erlaub Inline für Styles, aber kein 'unsafe-eval' (vermeidet Warnung)
+      "script-src 'self' http://localhost:5174",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",

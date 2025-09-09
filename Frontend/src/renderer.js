@@ -15,14 +15,8 @@ class ElectronMyElement extends UI {
   // Use firstUpdated for main application initialization
   async firstUpdated(changedProperties) {
     super.firstUpdated(changedProperties); // Call super.firstUpdated first
-
-    // Call initializeApplication with 'this' (the instance of ElectronMyElement)
-    // This ensures app.js gets the correct UI component reference.
-    initializeApplication(this); // <--- THIS IS THE SOLE CALL NOW
-    console.log('renderer.js: initializeApplication called after first render.');
-
-    // Electron-specific initialization
-    await this._initializeElectron();
+  // Hauptinitialisierung erfolgt über connectedCallback (Electron/WebSocket)
+  // Entfernt: initializeApplication (nicht definiert) und doppelte Electron-Init
   }
 
   // connectedCallback is still useful for handlers, but main app init is in firstUpdated
