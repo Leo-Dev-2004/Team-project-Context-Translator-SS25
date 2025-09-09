@@ -69,13 +69,13 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
                 details={"info": "enqueued"}
             ))
 
-            if item.type is not "system.queue_status_update":
+            if item.type != "system.queue_status_update":
                 logger.debug(
                     f"Putting item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
                     f"into '{self.name}' queue. Current size before put: {self.qsize()}"
                 )
             await self.put(item)  # Use asyncio.Queue's put method
-            if item.type is not "system.queue_status_update":
+            if item.type != "system.queue_status_update":
                 logger.debug(
                 f"Item put into '{self.name}' queue. "
                 f"Current size after put: {self.qsize()}")
@@ -100,19 +100,8 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
         # TOO MANY SPAM MESSAGES       logger.debug(f"Queue '{self.name}' empty, waiting to dequeue..." if self.empty() else f"Dequeuing from '{self.name}', size: {self.qsize()}")
 
         item: UniversalMessage = await self.get()
-        
-        # --- ADD THE DELAY HERE! ---
-        # This simulates the time it takes to process the message *after* it has been
-        # taken from the queue but *before* the dequeue operation is fully complete
-        # or before the caller gets control back and potentially calls task_done().
-        # IMPORTANT: The qsize will show -1 immediately after self.get().
-        # To actually see a backlog, messages must be *added* faster than they are removed.
-        # However, this delay will make the *entire system* slow down when consuming messages.
-        # The effect on *queue size* visibility is indirect, but it makes the processing
-        # visually slower.
         await asyncio.sleep(1) # Adjust delay as needed (e.g., 0.5 to 2.0 seconds)
 
-        
         self.task_done() # Signal that a task processing this item is complete
 
         # Add to forwarding path
@@ -124,7 +113,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
             details={"status": "dequeued"}
         ))
 
-        if item.type is not "system.queue_status_update":
+        if item.type != "system.queue_status_update":
             logger.debug(
             f"Dequeued item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
             f"from '{self.name}' queue. Current size: {self.qsize()}"

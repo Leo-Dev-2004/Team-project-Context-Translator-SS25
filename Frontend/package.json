@@ -27,7 +27,7 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^29.1.6",
+    "electron": "^38.1.0",
     "electron-builder": "^24.6.4",
     "esbuild": "^0.25.8",
     "rimraf": "^5.0.5",
