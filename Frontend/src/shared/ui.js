@@ -16,11 +16,24 @@ import '@material/web/select/select-option.js';
 import '@material/web/dialog/dialog.js';
 
 export class UI extends LitElement {
-  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array } };
-  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
+  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean } };
+  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
   disconnectedCallback() { super.disconnectedCallback(); explanationManager.removeListener(this._explanationListener); }
   render() {
     return html`<div class="ui-host">
+      ${this.isWindows ? html`<div class="titlebar" part="titlebar">
+        <div class="window-controls">
+          <button class="win-btn minimize" title="Minimize" @click=${this._winMinimize}>
+            <span class="material-icons">remove</span>
+          </button>
+          <button class="win-btn maximize" title="Maximize" @click=${this._winToggleMaximize}>
+            <span class="material-icons" id="maximize-icon">crop_square</span>
+          </button>
+          <button class="win-btn close" title="Close" @click=${this._winClose}>
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+      </div>` : ''}
       <md-dialog id="session-dialog">
         <div slot="headline">Session Created!</div>
         <div slot="content">Share this code with other participants to join:
@@ -98,8 +111,67 @@ export class UI extends LitElement {
   _handleCopy(explanation){ const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
   _clearAllExplanations(){ if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
   _addTestExplanation(){ explanationManager.addExplanation('Test','This is a test explanation.'); }
+  // Window control handlers
+  async _winMinimize(){ try{ await window.electronAPI?.windowControls?.minimize(); }catch(e){} }
+  async _winToggleMaximize(){
+    try{
+      const isMax = await window.electronAPI?.windowControls?.isMaximized?.();
+      if (isMax) await window.electronAPI?.windowControls?.unmaximize();
+      else await window.electronAPI?.windowControls?.maximize();
+    }catch(e){}
+  }
+  async _winClose(){ try{ await window.electronAPI?.windowControls?.close(); }catch(e){} }
+
+  async firstUpdated(changed){
+    super.firstUpdated?.(changed);
+    // Plattform prüfen (nur Windows)
+    try{
+      this.isWindows = (window.electronAPI?.platform === 'win32');
+      // Hole Details, ob frameless aktiv ist
+      const plat = await window.electronAPI?.getPlatform?.();
+      if (plat && typeof plat.frameless === 'boolean') {
+        this.isWindows = this.isWindows && plat.frameless;
+      }
+    }catch(_){}
+    this.requestUpdate();
+    // Reagiere auf Maximierungsstatus, um Icon zu wechseln
+    const iconEl = () => this.renderRoot?.querySelector?.('#maximize-icon');
+    window.electronAPI?.windowControls?.onMaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'filter_none'; });
+    window.electronAPI?.windowControls?.onUnmaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'crop_square'; });
+    // Initialen Zustand setzen
+    window.electronAPI?.windowControls?.isMaximized?.().then(isMax => {
+      const el = iconEl(); if (el) el.textContent = isMax ? 'filter_none' : 'crop_square';
+    }).catch(()=>{});
+  }
+
   static styles = [ sharedStyles, css`
-    .session-controls { display: flex; align-items: center; gap: 12px; margin-top: 24px; border-top: 1px solid var(--md-sys-color-outline-variant); padding-top: 24px; }
+    /* Custom Titlebar */
+    .titlebar { height: 32px; display: flex; align-items: center; justify-content: flex-end; background: var(--md-sys-color-surface-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant); position: sticky; top: 0; z-index: 100; -webkit-app-region: drag; }
+    .window-controls { display: flex; gap: 4px; padding-right: 6px; -webkit-app-region: no-drag; }
+    .win-btn { width: 36px; height: 24px; display:flex; align-items:center; justify-content:center; border:none; background: transparent; color: var(--md-sys-color-on-surface); border-radius: 4px; cursor: pointer; }
+    .win-btn:hover { background: var(--md-sys-color-outline-variant); }
+    .win-btn.close:hover { background: #ef4444; color: white; }
+    /* Session controls layout */
+    .session-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      padding-top: 24px;
+      flex-wrap: wrap; /* Kleine Fenster -> umbrechen statt überlaufen */
+    }
+    .session-controls md-outlined-text-field {
+      flex: 1 1 220px; /* füllt den verfügbaren Platz */
+      min-width: 180px;
+      width: auto; /* überschreibt globales width:100% */
+      margin: 0; /* Ausrichtung in der Zeile */
+    }
+    .session-controls md-filled-button,
+    .session-controls md-outlined-button {
+      flex: 0 0 auto;
+      white-space: nowrap; /* Button-Text nicht umbrechen */
+    }
     .dialog-code { color: var(--md-sys-color-primary); font-family: 'Roboto Mono', monospace; letter-spacing: 2px; font-size: 2em; text-align: center; margin-top: 8px; user-select: all; }
   ` ];
 }

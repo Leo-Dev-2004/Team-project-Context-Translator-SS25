@@ -10,6 +10,7 @@ const __dirname = dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
+const isFrameless = process.platform === 'win32' && !isDev;
 
 // NEU: Lese die user_session_id aus den Kommandozeilen-Argumenten
 const userSessionIdArg = process.argv.find(arg => arg.startsWith('--user-session-id='));
@@ -24,10 +25,11 @@ const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    // Vertikale, seitenleistenartige Standardgröße
+    width: 420,
+    height: 820,
+    minWidth: 320,
+    minHeight: 500,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -36,11 +38,16 @@ function createWindow() {
   webSecurity: true,
   allowRunningInsecureContent: false,
     },
-    titleBarStyle: 'default',
+  // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
+  frame: isFrameless ? false : true,
+  titleBarStyle: isFrameless ? 'hidden' : 'default',
+    autoHideMenuBar: true,
     show: false,
     icon: join(__dirname, '../assets/icon.png')
   });
   console.log('Main: ✅ Main window created.');
+  // Sicherstellen, dass die Menüleiste ausgeblendet ist (Windows Alt-Taste)
+  try { mainWindow.setMenuBarVisibility(false); } catch {}
 
   // Weiterleitung der Renderer-Konsolenlogs an den Main-Prozess-Log
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
@@ -129,6 +136,14 @@ function createWindow() {
     console.log('Main: ⚙️ Main window closed. Setting mainWindow to null.');
     mainWindow = null;
   });
+
+  // Fensterstatus an Renderer melden (für Maximize-Button-Zustand)
+  mainWindow.on('maximize', () => {
+    if (mainWindow) mainWindow.webContents.send('window:maximized');
+  });
+  mainWindow.on('unmaximize', () => {
+    if (mainWindow) mainWindow.webContents.send('window:unmaximized');
+  });
 }
 
 // App event handlers
@@ -140,8 +155,12 @@ app.whenReady().then(() => {
 
   console.log('Main: ✅ App is ready. Calling createWindow...');
   createWindow();
-  // Korrektur: createMenu wird hier aufgerufen, nachdem das Fenster erstellt wurde.
-  createMenu();
+  // In Dev das Menü behalten, in Prod entfernen für aufgeräumtes UI
+  if (isDev) {
+    createMenu();
+  } else {
+    Menu.setApplicationMenu(null);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -167,7 +186,8 @@ ipcMain.handle('get-platform', () => {
   return {
     platform: process.platform,
     arch: process.arch,
-    version: process.getSystemVersion()
+  version: process.getSystemVersion(),
+  frameless: isFrameless
   };
 });
 
@@ -207,6 +227,23 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
 ipcMain.handle('show-open-dialog', async (event, options) => {
   const result = await dialog.showOpenDialog(mainWindow, options);
   return result;
+});
+
+// Fenstersteuerungs-IPC
+ipcMain.handle('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow && !mainWindow.isMaximized()) mainWindow.maximize();
+});
+ipcMain.handle('window:unmaximize', () => {
+  if (mainWindow && mainWindow.isMaximized()) mainWindow.unmaximize();
+});
+ipcMain.handle('window:isMaximized', () => {
+  return mainWindow ? mainWindow.isMaximized() : false;
+});
+ipcMain.handle('window:close', () => {
+  if (mainWindow) mainWindow.close();
 });
 
 
