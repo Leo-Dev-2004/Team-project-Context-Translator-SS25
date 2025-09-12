@@ -17,11 +17,14 @@
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@web/test-runner-playwright": "^0.11.1",
+    "cross-env": "^7.0.3",
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0"
   },
   "scripts": {
     "test": "playwright test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:web": "playwright test --config=../../playwright.config.js --project=web",
+    "test:e2e:electron": "playwright test --config=../../playwright.config.js --project=electron"
   }
 }

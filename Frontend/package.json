@@ -15,10 +15,14 @@
     "build:electron": "npm run build --workspace=packages/electron",
     "build:all": "npm run build:web && npm run build:electron",
     "start:electron": "npm run start --workspace=packages/electron",
-    "clean": "npm run clean --workspace=packages/web && npm run clean --workspace=packages/electron"
+    "clean": "npm run clean --workspace=packages/web && npm run clean --workspace=packages/electron",
+    "test:e2e": "playwright test",
+    "test:e2e:electron": "playwright test electron.spec.js",
+    "test:e2e:web": "playwright test ui.spec.js"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^37.2.4"
   },
   "engines": {
     "node": ">=18.0.0",

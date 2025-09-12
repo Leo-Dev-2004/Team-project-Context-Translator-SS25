@@ -25,6 +25,9 @@
     "wait-on": "^7.0.1",
     "cross-env": "^7.0.3"
   },
+  "author": {
+    "name": "Context Translator Team"
+  },
   "build": {
     "appId": "com.contexttranslator.app",
     "productName": "Context Translator",
@@ -39,6 +42,19 @@
     ],
     "extraMetadata": {
       "main": "src/main.js"
+    },
+    "electronVersion": "28.0.0",
+    "win": {
+      "target": ["portable", "nsis"],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Development",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": ["dmg"]
     }
   }
 }
