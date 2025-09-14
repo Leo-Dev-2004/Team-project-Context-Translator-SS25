@@ -3,7 +3,9 @@ import { app, BrowserWindow, ipcMain, Menu, session, dialog } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import os from 'os';
-import fs from 'fs/promises';
+//import fs from 'fs/promises';
+import * as fs from 'fs'; // <-- normales fs, nicht promises (evtl. später wieder zu promises ändern, wenn andere logs beheben werden sollen)
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,11 +35,15 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-  // Security hardening
-  webSecurity: true,
-  allowRunningInsecureContent: false,
+      // Pfad zur Preload-Datei je nach Modus
+      preloadPath : isDev
+      ? path.join(__dirname, '../src/preload.js')         // Dev: Vite Dev Server
+      : path.join(__dirname, '../dist-electron/preload.js'), // Prod: gebaute Datei
+      // Security hardening
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
+   
   // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
   frame: isFrameless ? false : true,
   titleBarStyle: isFrameless ? 'hidden' : 'default',
@@ -45,6 +51,11 @@ function createWindow() {
     show: false,
     icon: join(__dirname, '../assets/icon.png')
   });
+
+  // Debugging: Überprüfe, ob die Preload-Datei existiert
+  console.log("Preload path:", path.join(app.getAppPath(), 'dist-electron', 'preload.js'));
+  console.log("Exists?", fs.existsSync(path.join(app.getAppPath(), 'dist-electron', 'preload.js')));
+ 
   console.log('Main: ✅ Main window created.');
   // Sicherstellen, dass die Menüleiste ausgeblendet ist (Windows Alt-Taste)
   try { mainWindow.setMenuBarVisibility(false); } catch {}
