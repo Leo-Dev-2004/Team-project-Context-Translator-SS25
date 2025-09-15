@@ -1,9 +1,5 @@
-// frontend/src/modules/preload.js (UMGESTELLTE VERSION MIT require())
-
-// Verwenden Sie require() anstelle von import für Electron-Module
-// Dies ist notwendig, wenn Ihr Electron-Hauptprozess (oder der Kontext, in dem preload.js läuft)
-// nicht explizit als ES-Modul konfiguriert ist oder wenn ein Bundler
-// die import-Statements nicht korrekt verarbeitet.
+// frontend/src/modules/preload.js (CommonJS)
+// Hinweis: Preload läuft im isolierten Kontext. Wir exponieren gezielt nur eine kleine, sichere API.
 const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods that allow the renderer process to use
@@ -49,10 +45,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log when preload script is loaded
 console.log('Preload script loaded (using CommonJS syntax)');
-
-contextBridge.exposeInIsolatedWorld('electronAPI', {
-  sendPythonCommand: (command, payload) => ipcRenderer.invoke('send-python-command', command, payload),
-  onPythonResponse: (callback) => ipcRenderer.on('python-response', callback),
-  onPythonError: (callback) => ipcRenderer.on('python-error', callback),
-  onPythonEvent: (callback) => ipcRenderer.on('python-event', callback)
-})
+// Hinweis: Die frühere Verwendung von exposeInIsolatedWorld war fehlerhaft (falsche Argumente)
+// und führte zu einem Preload-Crash. Falls zukünftig zusätzliche Kanäle nötig sind,
+// diese bitte ebenfalls über exposeInMainWorld bereitstellen.
