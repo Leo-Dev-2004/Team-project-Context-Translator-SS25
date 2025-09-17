@@ -7,11 +7,18 @@ from typing import Optional, cast
 from starlette.websockets import WebSocketDisconnect, WebSocketState 
 from .dependencies import set_session_manager_instance
 from .core.session_manager import SessionManager
+from .shared.communications.ConnectionManager import ConnectionManager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from .AI.SmallModel import SmallModel
+from .AI.MainModel import MainModel 
+from .AI.SmallModel import SmallModel 
+main_model_instance: Optional[MainModel] = None
+small_model_instance: Optional[SmallModel] = None 
+explanation_queue: Optional[asyncio.Queue] = None 
+
+connection_manager_instance: Optional[ConnectionManager] = None
 
 # Import all message-related models from message_types.py
 # Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
@@ -43,9 +50,11 @@ from .services.WebSocketManager import WebSocketManager
 # Importiere die Funktionen zum Setzen und Holen von Instanzen aus dependencies.py
 from .dependencies import (
     set_simulation_manager_instance, 
-    get_simulation_manager, 
+    get_simulation_manager_instance, 
     set_websocket_manager_instance, 
     get_websocket_manager_instance,
+    set_connection_manager_instance,
+    get_connection_manager_instance
 )
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
@@ -91,15 +100,30 @@ websocket_manager_instance: Optional[WebSocketManager] = None
 message_router_instance: Optional[MessageRouter] = None 
 
 
-# --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
+# --- FASTAPI-ANWENDU NGS-STARTUP-EVENT ---
 @app.on_event("startup")
 async def startup_event():
+    """
+    Initializes all backend services, injects dependencies, and starts background tasks.
+    The order of operations is critical.
+    """
     logger.info("Application startup event triggered.")
+    
+    # Make all service instance variables modifiable within this function
     global simulation_manager_instance, websocket_manager_instance, message_router_instance
-    global queue_status_sender_task
+    global connection_manager_instance, main_model_instance, small_model_instance
+    global explanation_queue, queue_status_sender_task
 
-    # Step 1: Initialize all standalone services FIRST.
-    # These services do not depend on others during their __init__.
+    # --- Step 1: Initialize Shared Components and Standalone Services ---
+    # These have no dependencies on other custom services.
+    
+    explanation_queue = asyncio.Queue()
+    logger.info("Explanation queue for AI models created.")
+
+    connection_manager_instance = ConnectionManager()
+    set_connection_manager_instance(connection_manager_instance) #<-- For consistency
+    logger.info("ConnectionManager initialized and set.")
+
     websocket_manager_instance = WebSocketManager(
         incoming_queue=queues.incoming,
         outgoing_queue=queues.websocket_out,
@@ -115,18 +139,38 @@ async def startup_event():
     set_session_manager_instance(session_manager_instance)
     logger.info("SessionManager initialized and set.")
 
-    # Step 2: NOW initialize the MessageRouter, which depends on the services above.
-    # Its __init__ can now safely call get_session_manager_instance().
-    message_router_instance = MessageRouter()
+    # --- Step 2: Initialize Dependent Services ---
+    # These services depend on the components created in Step 1.
+
+    main_model_instance = MainModel(
+        queue=explanation_queue,
+        connection_manager=connection_manager_instance # Pass the correct manager
+    )
+    logger.info("MainModel initialized.")
+
+    small_model_instance = SmallModel(main_model_queue=explanation_queue)
+    logger.info("SmallModel initialized.")
+
+    message_router_instance = MessageRouter(small_model=small_model_instance)
     logger.info("MessageRouter initialized with dependencies.")
 
-    # Step 3: Start all background tasks.
-    await websocket_manager_instance.start()
-    await message_router_instance.start()
+    # --- Step 3: Start All Background Tasks ---
+    # Launch the long-running processes for each service.
+    
+    if websocket_manager_instance:
+        await websocket_manager_instance.start()
+
+    if message_router_instance:
+        await message_router_instance.start()
+        
+    if main_model_instance:
+        asyncio.create_task(main_model_instance.run())
+    else:
+        logger.error("MainModel instance is None. Cannot start MainModel processing loop.")
+                     
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())
     
-    logger.info("Application startup complete. All services started.")
-
+    logger.info("Application startup complete. All services and background tasks started.")
 
 
 async def send_queue_status_to_frontend():
@@ -207,30 +251,38 @@ async def shutdown_event():
     logger.info("Application shutdown complete.")
 
 
-# --- WebSocket-Endpunkt (KORRIGIERT) ---
+# --- WebSocket-Endpunkt ---
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     logger.info(f"Incoming WebSocket connection for client_id: {client_id}")
 
+    # Ensure our managers exist before proceeding
     ws_manager = get_websocket_manager_instance()
-    if ws_manager:
-        try:
-            # Die gesamte Verbindungs-Logik wird an den Manager übergeben
-            await ws_manager.handle_connection(websocket, client_id)
-        except WebSocketDisconnect:
-            # Dieser Log ist nützlich, um Disconnects auf der Endpoint-Ebene zu sehen
-            logger.info(f"WebSocket disconnected for client_id: {client_id} (handled by manager).")
-        except Exception as e:
-            logger.error(f"Unhandled error in WebSocket endpoint for {client_id}: {e}", exc_info=True)
-    else:
-        # Fallback, falls der Manager beim Start nicht initialisiert werden konnte
-        logger.error("WebSocketManager not initialized. Closing connection.")
-        await websocket.close(code=1011, reason="Server internal error: WebSocketManager not ready.")
+    # Note: We access the global connection_manager_instance directly here
+    if not ws_manager or not connection_manager_instance:
+        logger.error("A manager is not initialized. Closing connection.")
+        await websocket.close(code=1011, reason="Server internal error: Manager not ready.")
+        return
+
+    # Register the connection with the ConnectionManager
+    await connection_manager_instance.connect(websocket, client_id)
+    
+    try:
+        # Hand off to the queue-based manager to handle the main message loop
+        await ws_manager.handle_connection(websocket, client_id)
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for client_id: {client_id}.")
+    except Exception as e:
+        logger.error(f"Unhandled error in WebSocket endpoint for {client_id}: {e}", exc_info=True)
+    finally:
+        # CRITICAL: Always unregister the client from the ConnectionManager on disconnect
+        connection_manager_instance.disconnect(client_id)
+
 
 # --- Hauptausführungsblock (für direkte Skriptausführung mit Uvicorn) ---
 if __name__ == "__main__":
     import uvicorn
-    session_manager_instance = SessionManager()
-    set_session_manager_instance(session_manager_instance)      
-    logger.info("SessionManager initialisiert und gesetzt.")
+    # The startup_event will handle all initializations.
+    # No need to create managers here.
+    logger.info("Starting Uvicorn server...")
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

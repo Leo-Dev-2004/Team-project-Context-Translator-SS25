@@ -1,43 +1,41 @@
-# Backend/dependencies.py
+# In Backend/dependencies.py (Refined for consistency)
+
 from typing import Optional
 from .services.WebSocketManager import WebSocketManager
 from .core.simulator import SimulationManager
 from .core.session_manager import SessionManager
+from .shared.communications.ConnectionManager import ConnectionManager
 
-_global_session_manager_instance: Optional[SessionManager] = None
+# --- Module-level variables with a consistent '_' prefix ---
+_session_manager_instance: Optional[SessionManager] = None
+_websocket_manager_instance: Optional[WebSocketManager] = None
+_simulation_manager_instance: Optional[SimulationManager] = None
+_connection_manager_instance: Optional[ConnectionManager] = None
 
+# --- Session Manager ---
 def set_session_manager_instance(instance: SessionManager):
-    global _global_session_manager_instance
-    _global_session_manager_instance = instance
-
+    global _session_manager_instance
+    _session_manager_instance = instance
 def get_session_manager_instance() -> Optional[SessionManager]:
-    return _global_session_manager_instance
+    return _session_manager_instance
 
-# Global instance for WebSocketManager
-_global_ws_manager_instance: Optional[WebSocketManager] = None
-
+# --- WebSocket Manager ---
 def set_websocket_manager_instance(instance: WebSocketManager):
-    global _global_ws_manager_instance
-    _global_ws_manager_instance = instance
-
+    global _websocket_manager_instance
+    _websocket_manager_instance = instance
 def get_websocket_manager_instance() -> Optional[WebSocketManager]:
-    return _global_ws_manager_instance
+    return _websocket_manager_instance
 
-# Global instance for SimulationManager
-_global_simulation_manager_instance: Optional[SimulationManager] = None
-
+# --- Simulation Manager ---
 def set_simulation_manager_instance(instance: SimulationManager):
-    global _global_simulation_manager_instance
-    _global_simulation_manager_instance = instance
+    global _simulation_manager_instance
+    _simulation_manager_instance = instance
+def get_simulation_manager_instance() -> Optional[SimulationManager]: # Renamed for consistency
+    return _simulation_manager_instance
 
-def get_simulation_manager() -> Optional[SimulationManager]:
-    return _global_simulation_manager_instance
-
-# Du kannst hier auch weitere Instanzen für andere Services hinzufügen
-# Beispiel:
-# _global_message_router_instance: Optional[MessageRouter] = None
-# def set_message_router_instance(instance: MessageRouter):
-#     global _global_message_router_instance
-#     _global_message_router_instance = instance
-# def get_message_router_instance() -> Optional[MessageRouter]:
-#     return _global_message_router_instance
+# --- Connection Manager ---
+def set_connection_manager_instance(instance: ConnectionManager):
+    global _connection_manager_instance
+    _connection_manager_instance = instance
+def get_connection_manager_instance() -> Optional[ConnectionManager]:
+    return _connection_manager_instance

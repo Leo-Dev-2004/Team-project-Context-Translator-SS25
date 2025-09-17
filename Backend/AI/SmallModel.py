@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Dict, Any, Optional
 from uuid import uuid4
+import asyncio
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
 
@@ -14,7 +15,11 @@ class SmallModel:
     A dummy AI model that processes a UniversalMessage via a direct function call
     and returns a UniversalMessage. It does NOT manage its own queues or run loop.
     """
-    def __init__(self):
+    def __init__(self, main_model_queue: asyncio.Queue):
+        """ Initializes the SmallModel.
+            Args:
+                main_model_queue: The asyncio queue to send tasks to the MainModel. """
+        self.main_model_queue = main_model_queue
         logger.info("SmallModel initialized (as a direct message processor).")
 
     async def process_message(self, message: UniversalMessage) -> UniversalMessage:

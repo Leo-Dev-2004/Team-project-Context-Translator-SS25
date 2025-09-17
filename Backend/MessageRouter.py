@@ -8,24 +8,25 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
+from .models.UniversalMessage import UniversalMessage, ErrorTypes
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
+from .dependencies import get_simulation_manager_instance, get_session_manager_instance, get_websocket_manager_instance
+
 from .AI.SmallModel import SmallModel
-from .dependencies import get_simulation_manager, get_session_manager_instance, get_websocket_manager_instance
 
 logger = logging.getLogger(__name__)
 
 class MessageRouter:
-    def __init__(self):
+    def __init__(self, small_model: SmallModel):
         self._client_incoming_queue: AbstractMessageQueue = queues.incoming
         self._service_outgoing_queue: AbstractMessageQueue = queues.outgoing
         self._websocket_out_queue: AbstractMessageQueue = queues.websocket_out
         
         self._running = False
         self._router_task: Optional[asyncio.Task] = None
-        self._small_model: SmallModel = SmallModel()
-        self._simulation_manager = get_simulation_manager()
+        self._small_model: SmallModel = small_model
+        self._simulation_manager = get_simulation_manager_instance()
         self._session_manager = get_session_manager_instance()
         self._websocket_manager = get_websocket_manager_instance()
 
@@ -102,7 +103,8 @@ class MessageRouter:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Init message missing user_session_id.")
             
             elif message.type == 'stt.transcription':
-                response = await self._small_model.process_message(message)
+                await self._small_model.process_message(message)
+                response = None # Response will be handled by the SmallModel putting explanation tasks into queue for main MainModel
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:

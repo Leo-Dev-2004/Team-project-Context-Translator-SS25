@@ -1,138 +1,139 @@
+import logging
 import json
-import requests
+import asyncio
 import os
-import time
+import httpx  # Use httpx for asynchronous requests
 
-# === Config ===
-INPUT_FILE = "output_queue.json"
-OUTPUT_FILE = "output_explanations.json"
+# Assuming these are in your project structure
+from ..shared.communications.ConnectionManager import ConnectionManager
+from ..models.UniversalMessage import UniversalMessage
+
+logger = logging.getLogger(__name__)
+
+# === Config (can be moved to a central config file later) ===
 CACHE_FILE = "explanation_cache.json"
-MODEL = "qwen3" 
+MODEL = "qwen3"
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
 
-# === Helper functions ===
+# === Helper Functions (kept separate for clarity) ===
 
 def clean_output(text: str) -> str:
-    """Säubert den Rohtext vom LLM."""
-    return (
-        text.replace("<think>", "")
-            .replace("</think>", "")
-            .replace("### Response:", "")
-            .replace("**Explanation:**", "")
-            .strip()
-    )
+    """Cleans the raw text from the LLM."""
+    return text.replace("### Response:", "").replace("**Explanation:**", "").strip()
 
 def build_prompt(term: str, context: str) -> list:
-    """Erstellt die Anfrage für das LLM."""
+    """Builds the request for the LLM."""
     return [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant explaining terms in simple, clear language."
-        },
-        {
-            "role": "user",
-            "content": f"""Please directly explain the term "{term}" in the following sentence:
-"{context}"
-
-Your answer must be a short, clear definition only. Do not include any reasoning, steps, or thoughts. Just the explanation in 1-2 sentences. /no_think."""
-        }
+        {"role": "system", "content": "You are a helpful assistant explaining terms in simple, clear language."},
+        {"role": "user", "content": f'Please directly explain the term "{term}" in the context of the sentence: "{context}". Your answer must be a short, clear definition only in 1-2 sentences.'}
     ]
 
-def query_llm(messages: list, model=MODEL) -> str | None:
+async def query_llm(messages: list, model=MODEL) -> str | None:
+    """Asynchronously queries the LLM using httpx."""
     try:
-        response = requests.post(
-            "http://localhost:11434/api/chat",
-            json={"model": model, "messages": messages, "stream": False}
-        )
-        response.raise_for_status()
-        raw_response = response.json()["message"]["content"].strip()
-        return clean_output(raw_response)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                OLLAMA_API_URL,
+                json={"model": model, "messages": messages, "stream": False}
+            )
+            response.raise_for_status()
+            raw_response = response.json()["message"]["content"].strip()
+            return clean_output(raw_response)
+    except httpx.RequestError as e:
+        logger.error(f"LLM query failed (HTTP request error): {e}")
+        return None
     except Exception as e:
-        print(f"--> Fehler bei der LLM-Anfrage: {e}")
+        logger.error(f"LLM query failed (general error): {e}")
         return None
 
-def update_entry(entry: dict, explanation: str):
-    """Aktualisiert einen Eintrag mit der Erklärung und setzt den Status."""
-    entry["explanation"] = explanation
-    entry["status"] = True
+# === MainModel Class ===
 
-# === Main processing function ===
+class MainModel:
+    """
+    Runs as a background service to generate explanations for terms received from a queue.
+    """
+    def __init__(self, queue: asyncio.Queue, connection_manager: ConnectionManager):
+        self.queue = queue
+        self.connection_manager = connection_manager
+        self.model = MODEL
+        self.cache_file = CACHE_FILE
+        self.explanation_cache = self._load_cache()
+        logger.info("MainModel initialized with in-memory explanation cache.")
 
-def process_queue():
-    """Liest die Warteschlange, verarbeitet neue Einträge und speichert die Ergebnisse."""
-    
-    # --- Load processing queue ---
-    if not os.path.exists(INPUT_FILE):
-        return
-        
-    try:
-        with open(INPUT_FILE, "r", encoding='utf-8') as f:
-            detection_queue = json.load(f)
-    except json.JSONDecodeError:
-        print(f"--> Fehler: '{INPUT_FILE}' ist keine valide JSON-Datei. Überspringe Durchlauf.")
-        return
+    def _load_cache(self) -> dict:
+        """Loads the explanation cache from disk at startup."""
+        if os.path.exists(self.cache_file):
+            try:
+                with open(self.cache_file, "r", encoding='utf-8') as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                logger.error(f"Could not decode JSON from cache file: {self.cache_file}")
+                return {}
+        return {}
 
-    # --- Load or create cache ---
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r", encoding='utf-8') as f:
-            explanation_cache = json.load(f)
-    else:
-        explanation_cache = {}
-
-    something_was_processed = False
-
-    # --- Process each queue entry ---
-    for entry in detection_queue:
-        # Only process if not ready
-        # .get() is more secure if status is missing
-        if not entry.get("status", False):
-            something_was_processed = True
-            term = entry["term"]
-            print(f"Verarbeite neuen Begriff: {term}")
-
-            if term in explanation_cache:
-                explanation = explanation_cache[term]
-                print(f"-> Erklärung aus dem Cache für '{term}' geladen.")
-            else:
-                print(f"-> Fordere neue Erklärung für '{term}' vom LLM an...")
-                messages = build_prompt(term, entry["context"])
-                explanation = query_llm(messages)
-
-                if explanation:
-                    explanation_cache[term] = explanation
-                    print(f"-> Erklärung generiert.")
-                    # Save cache immediately to save progress
-                    with open(CACHE_FILE, "w", encoding='utf-8') as f:
-                        json.dump(explanation_cache, f, indent=2, ensure_ascii=False)
-                else:
-                    print(f"-> Konnte keine Erklärung für '{term}' erhalten. Überspringe.")
-                    continue
-            
-            update_entry(entry, explanation)
-
-    # --- Save final results list if changes were made ---
-    if something_was_processed:
-        with open(OUTPUT_FILE, "w", encoding='utf-8') as f:
-            json.dump(detection_queue, f, indent=2, ensure_ascii=False)
-        print(f"\nFortschritt in '{OUTPUT_FILE}' gespeichert.")
-    else:
-        print("Keine neuen Aufgaben gefunden.")
-
-
-# === Infinite loop ===
-
-if __name__ == "__main__":
-    print("Starting asynchronous explanation loop...")
-    print(f"Surveiling: {INPUT_FILE}")
-    
-    while True:
+    def _save_cache(self):
+        """Saves the current state of the cache to disk."""
         try:
-            process_queue()
-            # Wait 1 second between checks
-            time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nSkript wird beendet.")
-            break
+            with open(self.cache_file, "w", encoding='utf-8') as f:
+                json.dump(self.explanation_cache, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"Unexpected error happened: {e}")
-            print("Waiting for 30s and retrying ...")
-            time.sleep(30)
+            logger.error(f"Failed to save explanation cache: {e}")
+
+    async def run(self):
+        """The main loop to consume tasks from the queue and process them."""
+        logger.info("MainModel background task started. Waiting for explanation tasks...")
+        while True:
+            try:
+                # 1. Wait for a task from the SmallModel
+                task = await self.queue.get()
+                
+                term = task.get("term")
+                context = task.get("context")
+                client_id = task.get("client_id")
+
+                if not all([term, context, client_id]):
+                    logger.warning(f"Invalid task received, missing keys: {task}")
+                    self.queue.task_done()
+                    continue
+                
+                logger.info(f"Dequeued task: Explain '{term}' for client {client_id}")
+
+                # 2. Check cache or query the LLM
+                if term in self.explanation_cache:
+                    explanation = self.explanation_cache[term]
+                    logger.info(f"Found explanation for '{term}' in cache.")
+                else:
+                    logger.info(f"Querying LLM for new explanation of '{term}'...")
+                    messages = build_prompt(term, context)
+                    explanation = await query_llm(messages, self.model)
+
+                    if explanation:
+                        self.explanation_cache[term] = explanation
+                        self._save_cache() # Save immediately to persist progress
+                    else:
+                        explanation = f"Sorry, I could not generate an explanation for '{term}'."
+
+                # 3. Create the response message
+                response_message = UniversalMessage(
+                    type="ai.explanation",
+                    payload={"term": term, "explanation": explanation},
+                    origin="main_model",
+                    destination=client_id,
+                    client_id=client_id
+                )
+
+                # 4. Send the explanation back to the specific client
+                await self.connection_manager.send_to_client(
+                    client_id,
+                    response_message.model_dump_json()
+                )
+
+                self.queue.task_done()
+
+            except asyncio.CancelledError:
+                logger.info("MainModel task is shutting down.")
+                break
+            except Exception as e:
+                logger.error(f"Error in MainModel run loop: {e}", exc_info=True)
+                # Avoid crashing the loop on an unexpected error
+                await asyncio.sleep(5)
