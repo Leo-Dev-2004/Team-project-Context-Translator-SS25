@@ -16,7 +16,24 @@ export class ExplanationManager {
       ? Math.max(0, Math.min(1, confidence))
       : null;
     const explanation = { id: this._generateId(), title, content, timestamp, confidence: normConfidence, isPinned: false, isDeleted: false, createdAt: Date.now() };
-    this.explanations.unshift(explanation); this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); return explanation;
+    this.explanations.unshift(explanation); 
+    
+    // Limit total explanations to prevent memory issues (keep last 1000)
+    const maxExplanations = 1000;
+    if (this.explanations.length > maxExplanations) {
+      // Remove oldest unpinned explanations
+      const pinnedCount = this.explanations.filter(e => e.isPinned && !e.isDeleted).length;
+      if (this.explanations.length - pinnedCount > maxExplanations) {
+        this.explanations = this.explanations.filter(e => e.isPinned || e.isDeleted)
+          .concat(this.explanations.filter(e => !e.isPinned && !e.isDeleted).slice(0, maxExplanations - pinnedCount));
+        console.log(`ExplanationManager: Trimmed explanations to limit memory usage`);
+      }
+    }
+    
+    this._sortExplanations(); 
+    this.saveToStorage(); 
+    this.notifyListeners(); 
+    return explanation;
   }
   updateExplanation(id, updates) {
     const i = this.explanations.findIndex(e => e.id === id);
@@ -37,7 +54,31 @@ export class ExplanationManager {
     }
     return null;
   }
-  deleteExplanation(id) { const i = this.explanations.findIndex(e => e.id === id); if (i !== -1) { this.explanations[i].isDeleted = true; this.saveToStorage(); this.notifyListeners(); } }
+  deleteExplanation(id) { 
+    const i = this.explanations.findIndex(e => e.id === id); 
+    if (i !== -1) { 
+      this.explanations[i].isDeleted = true; 
+      this.saveToStorage(); 
+      this.notifyListeners(); 
+      
+      // Schedule cleanup if we have too many deleted items
+      if (this.explanations.filter(e => e.isDeleted).length > 50) {
+        this._cleanupDeletedExplanations();
+      }
+    } 
+  }
+  
+  _cleanupDeletedExplanations() {
+    const originalLength = this.explanations.length;
+    this.explanations = this.explanations.filter(e => !e.isDeleted);
+    const removedCount = originalLength - this.explanations.length;
+    
+    if (removedCount > 0) {
+      console.log(`ExplanationManager: Cleaned up ${removedCount} deleted explanations`);
+      this.saveToStorage();
+      // No need to notify listeners as this doesn't affect visible explanations
+    }
+  }
   pinExplanation(id) { const e = this.explanations.find(e => e.id === id); if (e) { e.isPinned = !e.isPinned; this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); } }
   _sortExplanations() { this.explanations.sort((a,b)=> (a.isPinned===b.isPinned ? b.createdAt-a.createdAt : a.isPinned?-1:1)); }
   getVisibleExplanations() { return this.explanations.filter(e => !e.isDeleted); }

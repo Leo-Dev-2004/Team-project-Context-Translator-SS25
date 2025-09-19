@@ -17,8 +17,35 @@ import '@material/web/dialog/dialog.js';
 
 export class UI extends LitElement {
   static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean } };
-  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
-  disconnectedCallback() { super.disconnectedCallback(); explanationManager.removeListener(this._explanationListener); }
+  constructor() { 
+    super(); 
+    this.activeTab = 0; 
+    this.domainValue=''; 
+    this.explanations=[]; 
+    this.isWindows=false; 
+    this._lastExplanationUpdate = 0;
+    this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
+    this._explanationListener=(exps)=>{ 
+      const now = Date.now();
+      if (now - this._lastExplanationUpdate >= this._explanationUpdateThrottle) {
+        this.explanations=[...exps]; 
+        this._lastExplanationUpdate = now;
+      } else {
+        // Debounce rapid updates
+        clearTimeout(this._explanationUpdateTimeout);
+        this._explanationUpdateTimeout = setTimeout(() => {
+          this.explanations=[...exps];
+          this._lastExplanationUpdate = Date.now();
+        }, this._explanationUpdateThrottle);
+      }
+    }; 
+    explanationManager.addListener(this._explanationListener); 
+  }
+  disconnectedCallback() { 
+    super.disconnectedCallback(); 
+    explanationManager.removeListener(this._explanationListener); 
+    clearTimeout(this._explanationUpdateTimeout);
+  }
   render() {
     return html`<div class="ui-host">
       ${this.isWindows ? html`<div class="titlebar" part="titlebar">
@@ -110,7 +137,6 @@ export class UI extends LitElement {
   _handleDelete(id){ explanationManager.deleteExplanation(id); }
   _handleCopy(explanation){ const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
   _clearAllExplanations(){ if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
-  _addTestExplanation(){ explanationManager.addExplanation('Test','This is a test explanation.'); }
   _addTestExplanation(){
     const rand = Math.random() * 0.6 + 0.2; // 0.2 - 0.8 for variety
     explanationManager.addExplanation('Test', 'This is a test explanation.', Date.now(), rand);

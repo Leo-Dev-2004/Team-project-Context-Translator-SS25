@@ -1,4 +1,5 @@
 import { UI } from './shared/index.js';
+import { explanationManager } from './shared/explanation-manager.js';
 import './shared/index.css';
 
 class ElectronMyElement extends UI {
@@ -7,6 +8,12 @@ class ElectronMyElement extends UI {
     this.platform = 'electron';
     this.isElectron = true;
     this.backendWs = null;
+    this.activeNotifications = new Set(); // Track active notifications
+    this.maxNotifications = 3; // Limit concurrent notifications
+    this.messageQueue = []; // Queue for processing messages
+    this.isProcessingMessages = false; // Flag to prevent concurrent processing
+    this.lastExplanationTime = 0; // Throttle explanations
+    this.explanationThrottleMs = 1000; // Minimum time between explanation notifications
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
 
@@ -31,10 +38,26 @@ class ElectronMyElement extends UI {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    
+    // Clean up WebSocket connection
     if (this.backendWs) {
       this.backendWs.close();
+      this.backendWs = null;
     }
-    console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection cleaned up.');
+    
+    // Clear message queue
+    this.messageQueue = [];
+    this.isProcessingMessages = false;
+    
+    // Clean up active notifications
+    this.activeNotifications.forEach(notification => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    });
+    this.activeNotifications.clear();
+    
+    console.log('Renderer: ⚙️ disconnectedCallback: All resources cleaned up.');
   }
 
   _attachActionListeners() {
@@ -60,6 +83,52 @@ class ElectronMyElement extends UI {
 
   // ### WebSocket & Messaging ###
 
+  async _processMessageQueue() {
+    if (this.isProcessingMessages || this.messageQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingMessages = true;
+
+    try {
+      while (this.messageQueue.length > 0) {
+        const message = this.messageQueue.shift();
+        console.log(`Renderer: 💡 Processing message from backend:`, message);
+
+        await this._handleMessage(message);
+
+        // Small delay to prevent blocking the UI thread
+        if (this.messageQueue.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+    } catch (error) {
+      console.error('Renderer: ❌ Error processing message queue:', error);
+    } finally {
+      this.isProcessingMessages = false;
+    }
+  }
+
+  async _handleMessage(message) {
+    if (message.type === 'session.created') {
+      const code = message.payload.code;
+      this.shadowRoot.querySelector('#session-code-input').value = code;
+      
+      const dialog = this.shadowRoot.querySelector('#session-dialog');
+      const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
+      if (dialog && codeDisplay) {
+        codeDisplay.textContent = code;
+        dialog.show(); // Use .show() for non-modal
+      }
+    } else if (message.type === 'session.joined') {
+      this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
+    } else if (message.type === 'session.error') {
+      this._showNotification(message.payload.error, 'error');
+    } else if (message.type === 'explanation.new') {
+      this._handleNewExplanation(message.payload.explanation);
+    }
+  }
+
   _initializeWebSocket() {
     const clientId = `frontend_renderer_${crypto.randomUUID()}`;
     const wsUrl = `ws://localhost:8000/ws/${clientId}`;
@@ -80,25 +149,9 @@ class ElectronMyElement extends UI {
         
         if (message.type === 'system.queue_status_update') return;
         
-        console.log(`Renderer: 💡 Message received from backend:`, message);
-
-        if (message.type === 'session.created') {
-            const code = message.payload.code;
-            this.shadowRoot.querySelector('#session-code-input').value = code;
-            
-            const dialog = this.shadowRoot.querySelector('#session-dialog');
-            const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
-            if (dialog && codeDisplay) {
-                codeDisplay.textContent = code;
-                dialog.show(); // Use .show() for non-modal
-            }
-        } else if (message.type === 'session.joined') {
-            this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
-        } else if (message.type === 'session.error') {
-            this._showNotification(message.payload.error, 'error');
-        } else if (message.type === 'explanation.new') {
-            this._handleNewExplanation(message.payload.explanation);
-        }
+        // Add message to queue for processing
+        this.messageQueue.push(message);
+        this._processMessageQueue();
       } catch (error) {
         console.error('Renderer: ❌ Failed to parse message from backend:', error, event.data);
       }
@@ -189,42 +242,59 @@ class ElectronMyElement extends UI {
   _handleNewExplanation(explanation) {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
-    // Import and use the explanationManager from the shared module
-    import('./shared/explanation-manager.js').then(({ explanationManager }) => {
-      if (explanation && explanation.term && explanation.content) {
-        // Add explanation to the manager
-        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
-        explanationManager.addExplanation(
-          explanation.term,
-          explanation.content,
-          explanation.timestamp * 1000, // Convert to milliseconds if needed
-          confidence
-        );
+    if (explanation && explanation.term && explanation.content) {
+      // Add explanation to the manager
+      const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+      explanationManager.addExplanation(
+        explanation.term,
+        explanation.content,
+        explanation.timestamp * 1000, // Convert to milliseconds if needed
+        confidence
+      );
 
-        // Show notification about new explanation
+      // Throttle notification display to prevent notification spam
+      const now = Date.now();
+      if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
         this._showNotification(`New explanation: ${explanation.term}`, 'success');
-
-        console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
-      } else {
-        console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
+        this.lastExplanationTime = now;
       }
-    }).catch(error => {
-      console.error('Renderer: ❌ Error importing explanation manager:', error);
-    });
+
+      console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
+    }
   }
 
   _showNotification(message, type = 'success') {
+    // Remove oldest notification if at limit
+    if (this.activeNotifications.size >= this.maxNotifications) {
+      const oldestNotification = this.activeNotifications.values().next().value;
+      if (oldestNotification && oldestNotification.parentNode) {
+        oldestNotification.remove();
+        this.activeNotifications.delete(oldestNotification);
+      }
+    }
+
     const notification = document.createElement('div');
     notification.textContent = message;
     notification.style.cssText = `
-      position: fixed; bottom: 20px; left: 50%;
+      position: fixed; bottom: ${20 + (this.activeNotifications.size * 60)}px; left: 50%;
       transform: translateX(-50%); padding: 12px 24px;
       border-radius: 8px; color: white; font-family: 'Roboto', sans-serif;
       background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
       z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
     `;
+    
     this.shadowRoot.appendChild(notification);
-    setTimeout(() => notification.remove(), 4000);
+    this.activeNotifications.add(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+      this.activeNotifications.delete(notification);
+    }, 4000);
   }
 }
 
