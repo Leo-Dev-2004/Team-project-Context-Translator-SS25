@@ -182,10 +182,11 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
         processed_terms = []
         for term_info in raw_terms:
             if isinstance(term_info, dict):
+                confidence = term_info.get("confidence")
                 processed_terms.append({
                     "term": term_info.get("term", ""),
                     "timestamp": term_info.get("timestamp", now),
-                    "confidence": round(term_info.get("confidence", 0.5), 2),
+                    "confidence": round(confidence if confidence is not None else 0.5, 2),
                     "context": term_info.get("context", sentence),
                 })
             elif isinstance(term_info, str):
