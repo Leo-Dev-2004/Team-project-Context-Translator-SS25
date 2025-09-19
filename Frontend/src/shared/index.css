@@ -228,6 +228,24 @@ md-tabs {
 	font-weight: 500;
 }
 
+/* Confidence badge */
+.confidence-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: var(--space-sm);
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1;
+	min-width: 34px;
+	user-select: none;
+}
+.confidence-badge.low { background: #D32F2F; color: #fff; }
+.confidence-badge.medium { background: #F59E0B; color: #111827; }
+.confidence-badge.high { background: #2E7D32; color: #fff; }
+
 .explanation-actions {
 	display: flex;
 	gap: var(--space-xs);
