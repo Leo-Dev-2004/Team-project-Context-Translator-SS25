@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import time
@@ -6,12 +5,14 @@ import aiofiles
 import re
 import httpx
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
-
-from ..models.UniversalMessage import UniversalMessage, ErrorTypes
-
+from ..models.UniversalMessage import UniversalMessage
 logger = logging.getLogger(__name__)
+
+Ollama_endpoint = "http://localhost:11434/api/chat"
+llama_model = "llama3.2"
+detections_queue_file_path = Path("Backend/AI/detections_queue.json")
 
 class SmallModel:
     """
@@ -20,7 +21,7 @@ class SmallModel:
     """
 
     def __init__(self):
-        self.detections_queue_file = Path("Backend/AI/detections_queue.json")
+        self.detections_queue_file = detections_queue_file_path
         self.confidence_threshold = 0.9
         self.cooldown_seconds = 300
         self.known_terms = {
@@ -70,7 +71,7 @@ class SmallModel:
 
             raise ValueError("No valid JSON array or object structure found in the response.")
 
-        except Exception as e:
+        except json.JSONDecodeError as e:
             # CRITICAL: Log the raw response that caused the error for debugging
             logger.error(f"Failed to extract JSON. Error: {e}")
             logger.error(f"LLM returned non-JSON response: {content}")
@@ -98,9 +99,9 @@ class SmallModel:
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
-                    "http://localhost:11434/api/chat",
+                    Ollama_endpoint,
                     json={
-                        "model": "llama3.2",
+                        "model": llama_model,
                         "messages": [{"role": "user", "content": prompt}],
                         "stream": False
                     }
@@ -121,7 +122,6 @@ class SmallModel:
             context_intro += f", considering the user is a '{user_role}'"
         context_intro += f": \"{sentence}\""
 
-        # REFACTOR: Added a clear example to the prompt to enforce the correct JSON structure.
         prompt = f"""
 Domain Term Extraction Prompt
 
@@ -134,19 +134,16 @@ Do not return anything else — no markdown, no comments, no prose.
 ---
 
 ### EXAMPLE of a PERFECT RESPONSE ###
-For the input sentence "We used TLS 1.3 to secure the RESTful API.", your entire output must be:
+For an input sentence like "This sentence has no technical terms.", your entire output must be:
+[]
+
+For an input sentence like "This has a [TECHNICAL TERM] within it.", your entire output must be:
 [
   {{
-    "term": "TLS 1.3",
-    "confidence": 0.2,
-    "context": "We used TLS 1.3 to secure the RESTful API.",
-    "timestamp": 1679616000
-  }},
-  {{
-    "term": "RESTful API",
-    "confidence": 0.35,
-    "context": "We used TLS 1.3 to secure the RESTful API.",
-    "timestamp": 1679616000
+    "term": "TECHNICAL TERM",
+    "confidence": 0.7,
+    "context": "This has a [TECHNICAL TERM] within it.",
+    "timestamp": 1234567890
   }}
 ]
 ########################################
@@ -161,13 +158,14 @@ Extract technical, domain-specific, or uncommon words/phrases.
 Output Format:
 Return a JSON **array of objects**. Each object must have these keys:
 - "term" (string)
-- "confidence" (float): 0.0 (very technical) to 0.99 (common)
+- "confidence" (float): 0.99 (very technical) to 0.01 (common) (default is 0.5 if unsure)
 - "context" (string): The full input sentence
 - "timestamp" (int): A Unix timestamp
 
 Important:
 - Only return a **raw JSON array**.
 - If no technical terms are present, return an empty array `[]` and nothing else.
+- Do not use the example terms in your output.
 
 ---
 
@@ -181,7 +179,6 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
         now = int(time.time())
         raw_terms = self.safe_json_extract(raw_response)
         
-        # This part handles both correct [{...}] and potentially incorrect ["..."] responses
         processed_terms = []
         for term_info in raw_terms:
             if isinstance(term_info, dict):
@@ -192,11 +189,10 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
                     "context": term_info.get("context", sentence),
                 })
             elif isinstance(term_info, str):
-                # Handle the case where the LLM returned a simple list of strings
                 processed_terms.append({
                     "term": term_info,
                     "timestamp": now,
-                    "confidence": 0.4, # Assign a default confidence
+                    "confidence": 0.4,
                     "context": sentence,
                 })
 
@@ -237,10 +233,15 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
             for term_data in detected_terms:
                 current_queue.append({
                     "id": str(uuid4()),
-                    "term": term_data["term"], "context": term_data["context"], "confidence": term_data["confidence"],
-                    "timestamp": term_data["timestamp"], "client_id": message.client_id,
+                    "term": term_data["term"], 
+                    "context": term_data["context"], 
+                    "confidence": term_data["confidence"],
+                    "timestamp": term_data["timestamp"], 
+                    "client_id": message.client_id,
                     "user_session_id": message.payload.get("user_session_id"),
-                    "original_message_id": message.id, "status": "pending", "explanation": None
+                    "original_message_id": message.id, 
+                    "status": "pending", 
+                    "explanation": None
                 })
 
             temp_file = self.detections_queue_file.with_suffix('.tmp')
@@ -281,7 +282,7 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
                 if self.should_pass_filters(confidence, term):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term.lower()] = time.time()
-                    logger.info(f"Accepted term: '{term}' for client {message.client_id}")
+                    logger.info(f"Accepted term: '{term}' for client {message.client_id} with confidence {confidence}")
 
             if filtered_terms:
                 await self.write_detection_to_queue(message, filtered_terms)

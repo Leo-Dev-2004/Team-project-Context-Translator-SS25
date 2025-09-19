@@ -158,7 +158,6 @@ async def send_queue_status_to_frontend():
                         destination=client_id,  # Use the specific client_id
                         origin="backend.monitor",
                         client_id=client_id,
-                        confidence=None
                     )
                     await queues.websocket_out.enqueue(status_message)
 

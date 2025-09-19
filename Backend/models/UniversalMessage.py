@@ -38,8 +38,6 @@ class UniversalMessage(BaseModel):
 
     client_id: Optional[str] = Field(None, description="Optional identifier for the client associated with this message, primarily for WebSocket clients.")
 
-    confidence: Optional[float] = Field(None, ge=0.0, le=1.0, description="Optional confidence score (0.0 to 1.0) associated with the message content, if applicable.")
-
     # Path tracking for debugging and auditing
     processing_path: List[ProcessingPathEntry] = Field(default_factory=list, description="Ordered list of processing steps the message has undergone.")
     forwarding_path: List[ForwardingPathEntry] = Field(default_factory=list, description="Ordered list of queue forwarding steps the message has undergone.")

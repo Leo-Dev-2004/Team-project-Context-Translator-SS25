@@ -26,7 +26,6 @@ async def test_smallmodel():
         client_id="test_client",
         origin="STT",
         destination="SmallModel",
-        confidence=None
     )
     
     print(f"Input: {test_message.payload.get('text', 'N/A')}")
