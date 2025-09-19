@@ -12,7 +12,7 @@ from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPat
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
 from .AI.SmallModel import SmallModel
-from .dependencies import get_session_manager_instance, get_websocket_manager_instance
+from .dependencies import get_simulation_manager, get_session_manager_instance, get_websocket_manager_instance
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class MessageRouter:
         self._running = False
         self._router_task: Optional[asyncio.Task] = None
         self._small_model: SmallModel = SmallModel()
+        self._simulation_manager = get_simulation_manager()
         self._session_manager = get_session_manager_instance()
         self._websocket_manager = get_websocket_manager_instance()
 
