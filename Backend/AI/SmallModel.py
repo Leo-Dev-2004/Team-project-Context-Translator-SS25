@@ -48,18 +48,32 @@ class SmallModel:
         logger.info("SmallModel initialized and ready to produce detections.")
 
     def safe_json_extract(self, content: str) -> List[Dict]:
-        """Safely extract JSON from LLM response."""
+        """
+        Safely and aggressively extracts a JSON array from a raw LLM response,
+        even if it's surrounded by other text or markdown.
+        """
         try:
-            content = re.sub(r"```(?:json)?", "", content).strip()
-            array_match = re.search(r"\[\s*{.*?}\s*.*?\]", content, re.DOTALL)
-            if array_match:
-                return json.loads(array_match.group(0))
+            # Find the start of the JSON array
+            start_index = content.find('[')
+            # Find the end of the JSON array (from the right)
+            end_index = content.rfind(']')
+
+            if start_index != -1 and end_index != -1 and end_index > start_index:
+                # Extract the JSON substring
+                json_str = content[start_index : end_index + 1]
+                return json.loads(json_str)
+            
+            # If no array is found, fall back to the old object-matching logic
             object_matches = re.findall(r"\{\s*\"term\".*?\}", content, re.DOTALL)
             if object_matches:
                 return [json.loads(obj) for obj in object_matches]
-            raise ValueError("No valid JSON structure found.")
+
+            raise ValueError("No valid JSON array or object structure found in the response.")
+
         except Exception as e:
-            logger.error(f"Failed to extract JSON: {e}")
+            # CRITICAL: Log the raw response that caused the error for debugging
+            logger.error(f"Failed to extract JSON. Error: {e}")
+            logger.error(f"LLM returned non-JSON response: {content}")
             return []
 
     def should_pass_filters(self, confidence: float, term: str) -> bool:
@@ -107,99 +121,57 @@ class SmallModel:
             context_intro += f", considering the user is a '{user_role}'"
         context_intro += f": \"{sentence}\""
 
+        # REFACTOR: Added a clear example to the prompt to enforce the correct JSON structure.
         prompt = f"""
 Domain Term Extraction Prompt
 
 {context_intro}
 
 MOST IMPORTANTLY:
-Extract technical or domain specific terms from the following sentence ONLY if it has any, and return ONLY a JSON array.
-Do not return anything else — no markdown, no comments.
+Extract technical or domain specific terms and return ONLY a valid JSON array of objects.
+Do not return anything else — no markdown, no comments, no prose.
+
+---
+
+### EXAMPLE of a PERFECT RESPONSE ###
+For the input sentence "We used TLS 1.3 to secure the RESTful API.", your entire output must be:
+[
+  {{
+    "term": "TLS 1.3",
+    "confidence": 0.2,
+    "context": "We used TLS 1.3 to secure the RESTful API.",
+    "timestamp": 1679616000
+  }},
+  {{
+    "term": "RESTful API",
+    "confidence": 0.35,
+    "context": "We used TLS 1.3 to secure the RESTful API.",
+    "timestamp": 1679616000
+  }}
+]
+########################################
 
 ---
 
 Goal:
-Extract technical, domain-specific, or uncommon/difficult words or phrases from the sentence (if they exist) — specifically those that might not be immediately understood by a general audience. The focus is on identifying terms that carry specialized meaning in professional, academic, or technical contexts.
+Extract technical, domain-specific, or uncommon words/phrases.
 
-What Does "May Not Be Understood by a General Audience" Mean?
-General audience = people without formal education or experience in the topic area (e.g., students, laypeople, non-specialists).
-Include terms if:
-- They require background knowledge to understand
-- They are acronyms, standards, or jargon
-- They are domain-specific verbs, adjectives, protocols, frameworks, or measurements
-
----
-
-What Counts as a Phrase?
-Extract phrases as a **single `term`** if:
-- They represent a unified domain-specific concept
-- Their meaning is lost if words are split
-- They include numeric or technical suffixes (e.g., "2.0", "4K", "802.11ac")
-
-Extract as:
-- "natural language processing"
-- "TLS 1.3"
-- "public key infrastructure"
-- "JSON Web Token"
-
-Do NOT split into:
-- "OAuth" and "2.0"
-- "neural" and "network"
-
-- If you have already extracted a word, but you see that word in combination with other words, you need to extract it in combination (as a phrase).
-Example: if you have already extracted the term "API", but you then see "RESTful API", you MUST extract "RESTful API" as a whole.
 ---
 
 Output Format:
-Return a JSON **array of objects**. Each object must have:
-
-- `term` (string): The word or phrase
-- `confidence` (float): Between 0.0 and 0.99 — lower means more confusing to non-experts
-- `context` (string): The full input sentence
-- `timestamp` (int): A Unix timestamp
+Return a JSON **array of objects**. Each object must have these keys:
+- "term" (string)
+- "confidence" (float): 0.0 (very technical) to 0.99 (common)
+- "context" (string): The full input sentence
+- "timestamp" (int): A Unix timestamp
 
 Important:
-- Do **not** return markdown (```json)
-- Do **not** include explanations or intro text
-- Only return a **raw JSON array**
+- Only return a **raw JSON array**.
+- If no technical terms are present, return an empty array `[]` and nothing else.
 
 ---
 
-Confidence Scoring Rules:
-
-"confidence" = how likely an average person (non-expert) would ALREADY understand this term without needing explanation.
-
-0.9 = common and familiar
-0.2 = domain specific, obscure, or technical
-
-Do NOT interpret "confidence" as how confident you are that this is a technical term.
-Lower confidence = needs explanation.
-Higher confidence = simple, familiar, everyday.
-
-Examples of **lower-confidence** technical terms:
-- "OAuth 2.0" → 0.25
-- "PostgreSQL" → 0.40
-- "JWT" → 0.30
-- "register allocation" → 0.30
-
-Examples of **high-confidence** terms (don't include unless justified):
-- "email", "file", "login", "text" → 0.75 to 0.95
-
----
-
-Final Notes:
-- Always return a JSON array — no markdown, prose, or explanation.
-- If no technical terms are present, return `[]` and nothing else.
-Adjust confidence dynamically based on `user_role`:
-- If the user is a beginner or student, assume lower prior knowledge.
-- If the user is a professor or expert, assume more familiarity.
-This should affect both which terms are included and their confidence levels.
-
----
-
-Repeat: the user's role is "{user_role}". Adjust the confidence accordingly:
-- If the user is a professor or expert, exclude common terms and raise confidence.
-- If the user is a beginner or student, include simpler terms and lower the confidence score.
+Repeat: the user's role is "{user_role}". Adjust the confidence and terms accordingly.
 """
 
         raw_response = await self._query_ollama_async(prompt)
@@ -209,17 +181,27 @@ Repeat: the user's role is "{user_role}". Adjust the confidence accordingly:
         now = int(time.time())
         raw_terms = self.safe_json_extract(raw_response)
         
-        return [
-            {
-                "term": term_info.get("term", ""),
-                "timestamp": term_info.get("timestamp", now),
-                "confidence": round(term_info.get("confidence", 0.5), 2),
-                "context": term_info.get("context", sentence),
-                "status": "pending",
-                "explanation": None
-            }
-            for term_info in raw_terms
-        ]
+        # This part handles both correct [{...}] and potentially incorrect ["..."] responses
+        processed_terms = []
+        for term_info in raw_terms:
+            if isinstance(term_info, dict):
+                processed_terms.append({
+                    "term": term_info.get("term", ""),
+                    "timestamp": term_info.get("timestamp", now),
+                    "confidence": round(term_info.get("confidence", 0.5), 2),
+                    "context": term_info.get("context", sentence),
+                })
+            elif isinstance(term_info, str):
+                # Handle the case where the LLM returned a simple list of strings
+                processed_terms.append({
+                    "term": term_info,
+                    "timestamp": now,
+                    "confidence": 0.4, # Assign a default confidence
+                    "context": sentence,
+                })
+
+        return processed_terms
+
 
     async def detect_terms_fallback(self, sentence: str) -> List[Dict]:
         """Fallback detection using basic patterns when AI is unavailable."""
