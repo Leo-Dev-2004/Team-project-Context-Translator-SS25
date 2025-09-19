@@ -24,7 +24,8 @@ async def test_smallmodel():
             "user_role": "Engineer"
         },
         client_id="test_client",
-        origin="STT"
+        origin="STT",
+        destination="SmallModel"
     )
     
     print(f"Input: {test_message.payload.get('text', 'N/A')}")

@@ -104,8 +104,7 @@ class WebSocketManager:
         while True:
             try:
                 message = await self.websocket_out_queue.dequeue()
-                logger.info(f"Dispatching message '{message.type}' to {message.destination}")
-                destination = "all_frontends" # message.destination   # for testing purposes
+                destination = message.destination
 
                 # Case 1: Message is for a specific, connected client ID
                 if destination and destination in self.connections:

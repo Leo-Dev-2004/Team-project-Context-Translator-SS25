@@ -12,6 +12,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from .AI.SmallModel import SmallModel
+from .AI.MainModel import MainModel
 
 # Import all message-related models from message_types.py
 # Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
@@ -24,7 +25,7 @@ from .models.UniversalMessage import (
 )
 
 # Import the API router
-from .api import endpoints # <--- ADDED THIS EXPLICIT IMPORT FOR ENDPOINTS
+from .api import endpoints 
 
 # Korrigierter Import für den abstrakten Queue-Typ (relativer Pfad und Kleinbuchstaben im Dateinamen)
 from .queues.QueueTypes import AbstractMessageQueue
@@ -87,6 +88,7 @@ websocket_manager_instance: Optional[WebSocketManager] = None
 message_router_instance: Optional[MessageRouter] = None
 explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
 
+main_model_instance: Optional[MainModel] = None
 
 # --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
 @app.on_event("startup")
@@ -94,6 +96,12 @@ async def startup_event():
     logger.info("Application startup event triggered.")
     global simulation_manager_instance, websocket_manager_instance, message_router_instance
     global queue_status_sender_task, explanation_delivery_service_instance
+    global main_model_instance
+
+    # Initialize MainModel and start its continuous processing loop
+    main_model_instance = MainModel()
+    asyncio.create_task(main_model_instance.run_continuous_processing())
+    
 
     # Step 1: Initialize all standalone services FIRST.
     # These services do not depend on others during their __init__.
