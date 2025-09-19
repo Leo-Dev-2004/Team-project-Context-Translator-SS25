@@ -135,7 +135,6 @@ class MessageRouter:
                         detected_terms = [{
                             "term": term,
                             "timestamp": int(time.time()),
-                            "confidence": 0.4,
                             "context": context,
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
