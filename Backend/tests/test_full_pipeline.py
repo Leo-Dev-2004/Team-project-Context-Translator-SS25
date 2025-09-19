@@ -41,7 +41,8 @@ async def test_full_pipeline():
         },
         client_id="pipeline_test",
         origin="STT",
-        destination="SmallModel"
+        destination="SmallModel",
+        confidence=None
     )
     
     print(f"Step 1: SmallModel processing...")

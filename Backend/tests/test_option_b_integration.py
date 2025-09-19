@@ -44,7 +44,8 @@ async def test_real_time_integration():
         },
         origin="test_script",
         destination="small_model",
-        client_id="integration_test"
+        client_id="integration_test",
+        confidence=None
     )
     
     logger.info(f"Processing test message: {test_message.payload['text']}")

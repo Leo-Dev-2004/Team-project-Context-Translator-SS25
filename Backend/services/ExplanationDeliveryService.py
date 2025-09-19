@@ -122,6 +122,7 @@ class ExplanationDeliveryService:
                 destination=explanation.get("client_id") if explanation.get("client_id", "").startswith("frontend_") else "all_frontends",
                 origin="explanation_delivery_service",
                 client_id=explanation.get("client_id"),
+                confidence = explanation.get("confidence", 1.0)
             )
             
             # Send to WebSocket queue for delivery
