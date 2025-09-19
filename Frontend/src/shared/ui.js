@@ -111,6 +111,10 @@ export class UI extends LitElement {
   _handleCopy(explanation){ const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
   _clearAllExplanations(){ if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
   _addTestExplanation(){ explanationManager.addExplanation('Test','This is a test explanation.'); }
+  _addTestExplanation(){
+    const rand = Math.random() * 0.6 + 0.2; // 0.2 - 0.8 for variety
+    explanationManager.addExplanation('Test', 'This is a test explanation.', Date.now(), rand);
+  }
   // Window control handlers
   async _winMinimize(){ try{ await window.electronAPI?.windowControls?.minimize(); }catch(e){} }
   async _winToggleMaximize(){

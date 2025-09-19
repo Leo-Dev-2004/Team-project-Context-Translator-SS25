@@ -21,6 +21,7 @@ export class ExplanationItem extends LitElement {
           <div class="explanation-title">
             ${this.explanation.isPinned ? html`<span class="pinned-indicator material-icons">push_pin</span>` : ''}
             ${this.explanation.title}
+            ${this._renderConfidenceBadge(this.explanation.confidence)}
           </div>
           <div class="explanation-actions" @click=${this._stopPropagation}>
             <button class="action-button pin-button ${this.explanation.isPinned ? 'pinned' : ''}" @click=${this._handlePin} title="${this.explanation.isPinned ? 'Unpin' : 'Pin'} explanation">
@@ -74,6 +75,20 @@ export class ExplanationItem extends LitElement {
     if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  _renderConfidenceBadge(confidence) {
+    if (typeof confidence !== 'number' || !isFinite(confidence)) return html``;
+    const clamped = Math.max(0, Math.min(1, confidence));
+    const pct = Math.round(clamped * 100);
+    const level = this._confidenceLevel(pct);
+    return html`<span class="confidence-badge ${level}" title="Confidence: ${pct}%">${pct}%</span>`;
+  }
+
+  _confidenceLevel(percent) {
+    if (percent >= 75) return 'high';
+    if (percent >= 50) return 'medium';
+    return 'low';
   }
 }
 customElements.define('explanation-item', ExplanationItem);

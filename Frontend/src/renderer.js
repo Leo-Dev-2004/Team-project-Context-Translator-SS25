@@ -193,10 +193,12 @@ class ElectronMyElement extends UI {
     import('./shared/explanation-manager.js').then(({ explanationManager }) => {
       if (explanation && explanation.term && explanation.content) {
         // Add explanation to the manager
+        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
         explanationManager.addExplanation(
           explanation.term,
           explanation.content,
-          explanation.timestamp * 1000 // Convert to milliseconds if needed
+          explanation.timestamp * 1000, // Convert to milliseconds if needed
+          confidence
         );
 
         // Show notification about new explanation

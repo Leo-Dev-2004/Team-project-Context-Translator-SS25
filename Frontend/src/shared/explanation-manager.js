@@ -10,11 +10,33 @@ export class ExplanationManager {
   addListener(cb) { this.listeners.push(cb); }
   removeListener(cb) { this.listeners = this.listeners.filter(l => l !== cb); }
   notifyListeners() { this.listeners.forEach(cb => cb(this.explanations)); }
-  addExplanation(title, content, timestamp = Date.now()) {
-    const explanation = { id: this._generateId(), title, content, timestamp, isPinned: false, isDeleted: false, createdAt: Date.now() };
+  addExplanation(title, content, timestamp = Date.now(), confidence = null) {
+    // Clamp and normalize confidence to [0,1] if provided
+    const normConfidence = (typeof confidence === 'number' && isFinite(confidence))
+      ? Math.max(0, Math.min(1, confidence))
+      : null;
+    const explanation = { id: this._generateId(), title, content, timestamp, confidence: normConfidence, isPinned: false, isDeleted: false, createdAt: Date.now() };
     this.explanations.unshift(explanation); this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); return explanation;
   }
-  updateExplanation(id, updates) { const i = this.explanations.findIndex(e => e.id === id); if (i !== -1) { this.explanations[i] = { ...this.explanations[i], ...updates }; this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); return this.explanations[i]; } return null; }
+  updateExplanation(id, updates) {
+    const i = this.explanations.findIndex(e => e.id === id);
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this.saveToStorage();
+      this.notifyListeners();
+      return this.explanations[i];
+    }
+    return null;
+  }
   deleteExplanation(id) { const i = this.explanations.findIndex(e => e.id === id); if (i !== -1) { this.explanations[i].isDeleted = true; this.saveToStorage(); this.notifyListeners(); } }
   pinExplanation(id) { const e = this.explanations.find(e => e.id === id); if (e) { e.isPinned = !e.isPinned; this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); } }
   _sortExplanations() { this.explanations.sort((a,b)=> (a.isPinned===b.isPinned ? b.createdAt-a.createdAt : a.isPinned?-1:1)); }
