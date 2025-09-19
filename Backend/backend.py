@@ -44,6 +44,8 @@ from .services.ExplanationDeliveryService import ExplanationDeliveryService
 from .dependencies import (
     set_websocket_manager_instance,
     get_websocket_manager_instance,
+    set_explanation_delivery_service_instance,
+    get_explanation_delivery_service_instance,
 )
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
@@ -123,6 +125,7 @@ async def startup_event():
     explanation_delivery_service_instance = ExplanationDeliveryService(
         outgoing_queue=queues.websocket_out
     )
+    set_explanation_delivery_service_instance(explanation_delivery_service_instance)
     logger.info("ExplanationDeliveryService initialized.")
 
     # Step 4: Start all background tasks.

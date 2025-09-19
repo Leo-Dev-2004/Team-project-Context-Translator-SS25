@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+import aiofiles
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -27,6 +28,7 @@ class ExplanationDeliveryService:
         self.delivered_explanations: Set[str] = set()  # Track delivered explanation IDs
         self._running = False
         self._task: Optional[asyncio.Task] = None
+        self._trigger_check = asyncio.Event()  # Event to trigger immediate check
         logger.info("ExplanationDeliveryService initialized")
 
     async def start(self):
@@ -68,8 +70,12 @@ class ExplanationDeliveryService:
                             # Mark as delivered in the queue file
                             await self._mark_as_delivered(explanation_id)
                 
-                # Check every 2 seconds for new explanations
-                await asyncio.sleep(0.5)
+                # Wait for either timeout or immediate trigger
+                try:
+                    await asyncio.wait_for(self._trigger_check.wait(), timeout=0.1)
+                    self._trigger_check.clear()  # Reset the event for next trigger
+                except asyncio.TimeoutError:
+                    pass  # Continue with normal polling
                 
             except asyncio.CancelledError:
                 break
@@ -80,8 +86,9 @@ class ExplanationDeliveryService:
     async def _load_ready_explanations(self) -> List[Dict]:
         """Load explanations with status 'ready_for_delivery' from the queue file"""
         try:
-            with open(self.explanations_file, 'r', encoding='utf-8') as f:
-                explanations = json.load(f)
+            async with aiofiles.open(self.explanations_file, 'r', encoding='utf-8') as f:
+                content = await f.read()
+                explanations = json.loads(content)
             
             # Filter for ready explanations that haven't been delivered
             ready_explanations = [
@@ -136,9 +143,10 @@ class ExplanationDeliveryService:
     async def _mark_as_delivered(self, explanation_id: str):
         """Mark an explanation as delivered in the queue file"""
         try:
-            # Read current explanations
-            with open(self.explanations_file, 'r', encoding='utf-8') as f:
-                explanations = json.load(f)
+            # Read current explanations using async I/O
+            async with aiofiles.open(self.explanations_file, 'r', encoding='utf-8') as f:
+                content = await f.read()
+                explanations = json.loads(content)
             
             # Update status to delivered
             for explanation in explanations:
@@ -147,13 +155,14 @@ class ExplanationDeliveryService:
                     explanation["delivered_at"] = time.time()
                     break
             
-            # Write back to file atomically
+            # Write back to file atomically using async I/O
             temp_file = self.explanations_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(explanations, f, indent=2, ensure_ascii=False)
+            async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(explanations, indent=2, ensure_ascii=False))
             
             # Atomic rename
-            temp_file.replace(self.explanations_file)
+            import os
+            os.replace(str(temp_file), str(self.explanations_file))
             
             logger.debug(f"Marked explanation {explanation_id} as delivered")
             
@@ -187,3 +196,9 @@ class ExplanationDeliveryService:
         """Reset delivered explanations tracking (useful for testing)"""
         self.delivered_explanations.clear()
         logger.info("Reset delivered explanations tracking")
+
+    def trigger_immediate_check(self):
+        """Trigger immediate check for new explanations (non-blocking)"""
+        if self._running:
+            self._trigger_check.set()
+            logger.debug("Triggered immediate explanation check")

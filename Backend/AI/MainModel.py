@@ -149,6 +149,17 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
             os.replace(str(temp_file), str(self.explanations_queue_file))
 
             logger.info(f"Successfully wrote explanation to queue for client {explanation_entry.get('client_id')}")
+            
+            # Trigger immediate delivery check
+            try:
+                from ..dependencies import get_explanation_delivery_service_instance
+                delivery_service = get_explanation_delivery_service_instance()
+                if delivery_service:
+                    delivery_service.trigger_immediate_check()
+                    logger.debug("Triggered immediate explanation delivery check")
+            except Exception as e:
+                logger.warning(f"Could not trigger immediate delivery check: {e}")
+            
             return True
 
         except Exception as e:
