@@ -93,18 +93,31 @@ export class UI extends LitElement {
                 .value=${this.manualTerm}
                 @input=${this._onManualTermInput}
                 @keydown=${this._onManualKeyDown}
-              ></md-outlined-text-field>
-              <md-filled-button
-                id="manual-send-button"
-                @click=${this._sendManualRequest}
-                ?disabled=${!(this.manualTerm && this.manualTerm.trim())}
-              >Explain</md-filled-button>
-              <md-text-button @click=${this._clearAllExplanations}><span class="material-icons">delete</span> Clear All</md-text-button>
-              <md-filled-button @click=${this._addTestExplanation}><span class="material-icons">add</span> Add Test</md-filled-button>
+              >
+                <md-icon-button
+                  id="manual-send-button"
+                  slot="trailing-icon"
+                  class="accent"
+                  title="Send"
+                  aria-label="Send"
+                  @click=${this._sendManualRequest}
+                  ?disabled=${!(this.manualTerm && this.manualTerm.trim())}
+                >
+                  <span class="material-icons">send</span>
+                </md-icon-button>
+              </md-outlined-text-field>
+              <md-outlined-button @click=${this._clearAllExplanations}>
+                <span class="material-icons" slot="icon">delete</span>
+                Clear All
+              </md-outlined-button>
+              <md-filled-button @click=${this._addTestExplanation}>
+                <span class="material-icons" slot="icon">add</span>
+                Add Test
+              </md-filled-button>
             </div>
           </div>
           <div class="explanations-content">
-            ${this.explanations.length===0 ? html`<div class="empty-state"><p>No explanations yet.</p></div>` : html`<div class="explanations-list">
+            ${this.explanations.length===0 ? html`<div class="empty-state"><p>No explanations yet. Ask for a explanation or wait for one to be generated.</p></div>` : html`<div class="explanations-list">
               ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)}></explanation-item>`) }
             </div>`}
           </div>
@@ -198,6 +211,6 @@ export class UI extends LitElement {
     .explanations-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .explanations-controls md-outlined-text-field.manual-term-input { flex: 1 1 280px; min-width: 220px; width: auto; margin: 0; }
     .explanations-controls md-filled-button,
-    .explanations-controls md-text-button { flex: 0 0 auto; white-space: nowrap; }
+    .explanations-controls md-outlined-button { flex: 0 0 auto; white-space: nowrap; }
   ` ];
 }
