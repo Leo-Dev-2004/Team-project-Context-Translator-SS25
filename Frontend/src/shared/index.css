@@ -343,4 +343,4 @@ md-outlined-text-field md-icon-button[slot="trailing-icon"] .material-icons {
 .expand-icon.expanded .material-icons { transform: rotate(180deg); }
 .copy-button .material-icons { font-size: 16px; }
 .empty-icon.material-icons { font-size: 72px; margin-bottom: var(--space-lg); opacity: 0.6; }
-md-text-button .material-icons, md-filled-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
+md-text-button .material-icons, md-filled-button .material-icons, md-outlined-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
