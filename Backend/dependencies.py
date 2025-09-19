@@ -26,8 +26,8 @@ def get_websocket_manager_instance() -> Optional[WebSocketManager]:
 #_global_simulation_manager_instance: Optional[SimulationManager] = None
 
 #def set_simulation_manager_instance(instance: SimulationManager):
-    global _global_simulation_manager_instance
-    _global_simulation_manager_instance = instance
+#    global _global_simulation_manager_instance
+#    _global_simulation_manager_instance = instance
 
 #def get_simulation_manager() -> Optional[SimulationManager]:
  #   return _global_simulation_manager_instance
