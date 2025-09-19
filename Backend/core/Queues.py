@@ -1,5 +1,4 @@
 # Backend/core/Queues.py
-# (Dies ist eine beispielhafte Struktur, passe sie an deine tatsächliche Queue-Implementierung an)
 from ..queues.QueueTypes import AbstractMessageQueue # Korrigierter Importpfad
 from ..queues.MessageQueue import MessageQueue # Korrigierter Importpfad
 import logging

@@ -12,7 +12,7 @@ from .shared.communications.ConnectionManager import ConnectionManager
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from .AI.MainModel import MainModel 
+from .AI.MainModel import MainModel
 from .AI.SmallModel import SmallModel 
 main_model_instance: Optional[MainModel] = None
 small_model_instance: Optional[SmallModel] = None 
@@ -31,10 +31,7 @@ from .models.UniversalMessage import (
 )
 
 # Import the API router 
-from .api import endpoints # <--- ADDED THIS EXPLICIT IMPORT FOR ENDPOINTS
-
-# Korrigierter Import für den abstrakten Queue-Typ (relativer Pfad und Kleinbuchstaben im Dateinamen)
-from .queues.QueueTypes import AbstractMessageQueue
+from .api import endpoints
 
 from .core.Queues import queues # Zugriff auf die vorinitialisierten Queues
 from .queues.MessageQueue import MessageQueue # Für Type Hinting (ebenfalls relativ, falls im selben Verzeichnis)
@@ -257,6 +254,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
     # Ensure our managers exist before proceeding
     ws_manager = get_websocket_manager_instance()
+    conn_manager = get_connection_manager_instance() # Use the getter
     # Note: We access the global connection_manager_instance directly here
     if not ws_manager or not connection_manager_instance:
         logger.error("A manager is not initialized. Closing connection.")

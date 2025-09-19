@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 from fastapi import WebSocket
+import asyncio # For async operations
 
 logger = logging.getLogger(__name__)
 
@@ -34,3 +35,17 @@ class ConnectionManager:
                 self.disconnect(client_id)
         else:
             logger.warning(f"Attempted to send message to disconnected or unknown client: {client_id}")
+
+    async def broadcast(self, message: str):
+        """Broadcasts a message to all active clients."""
+        if not self.active_connections:
+            return # No clients to send to
+
+        logger.info(f"Broadcasting message to {len(self.active_connections)} clients.")
+        # Create a list of tasks to send messages concurrently
+        send_tasks = [
+            self.send_to_client(client_id, message)
+            for client_id in self.active_connections.keys()
+        ]
+        # Run all send tasks in parallel
+        await asyncio.gather(*send_tasks)
