@@ -11,5 +11,29 @@ export class UniversalMessageParser {
   static generateExplanationId(id){ const clean=id.replace(/[^a-zA-Z0-9]/g,'').substring(0,8); return `exp_${Date.now()}_${clean}`; }
   static parseMultipleToExplanationItems(arr){ if(!Array.isArray(arr)) return []; return arr.map(m=>this.parseToExplanationItem(m)).filter(Boolean); }
   static parseAndAddToManager(m,manager){ const item=this.parseToExplanationItem(m); if(item&&manager){ return manager.addExplanation(item.title,item.content,item.timestamp,item.confidence); } return null; }
-  static createUniversalMessageFromExplanationItem(e){ return { id:e.originalMessageId||`um_${Date.now()}_${Math.random().toString(36).slice(2,11)}`, type:e.messageType||'explanation.item', payload:{ explanation:{ title:e.title, content:e.content }, metadata:{ isPinned:e.isPinned, isDeleted:e.isDeleted, createdAt:e.createdAt } }, timestamp:e.timestamp/1000, origin:e.origin||'frontend', destination:'backend', client_id:e.clientId }; }
+  static createUniversalMessageFromExplanationItem(e){
+    const explanation = {
+      title: e.title,
+      content: e.content
+    };
+    if (typeof e.confidence === 'number') {
+      explanation.confidence = Math.max(0, Math.min(1, e.confidence));
+    }
+    return {
+      id: e.originalMessageId || `um_${Date.now()}_${Math.random().toString(36).slice(2,11)}`,
+      type: e.messageType || 'explanation.item',
+      payload: {
+        explanation,
+        metadata: {
+          isPinned: e.isPinned,
+          isDeleted: e.isDeleted,
+          createdAt: e.createdAt
+        }
+      },
+      timestamp: e.timestamp / 1000,
+      origin: e.origin || 'frontend',
+      destination: 'backend',
+      client_id: e.clientId
+    };
+  }
 }
