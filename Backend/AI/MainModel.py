@@ -267,6 +267,9 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                 await self.process_detections_queue()
                 # Wait 2 seconds between checks
                 await asyncio.sleep(2)
+            except asyncio.CancelledError:
+                logger.info("MainModel processing cancelled by shutdown")
+                break
             except KeyboardInterrupt:
                 logger.info("MainModel processing stopped by user")
                 break
