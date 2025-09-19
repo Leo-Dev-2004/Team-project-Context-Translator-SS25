@@ -17,13 +17,13 @@ CONFIG = {
     "CHUNK_DURATION_SEC": 0.5,
     "SAMPLE_RATE": 16000,
     "CHANNELS": 1,
-    "MODEL_SIZE": "base",
+    "MODEL_SIZE": "medium",
     "LANGUAGE": "en",
     "WEBSOCKET_URI": "ws://localhost:8000/ws",
     "MIN_WORDS_PER_SENTENCE": 3,
     "MAX_SENTENCE_DURATION_SECONDS": 15,
-    "TRANSCRIPTION_WINDOW_SECONDS": 5,
-    "SENTENCE_COMPLETION_TIMEOUT_SEC": 1.5
+    "TRANSCRIPTION_WINDOW_SECONDS": 1.5,
+    "SENTENCE_COMPLETION_TIMEOUT_SEC": 0.75
 }
 
 # --- LOGGING SETUP ---
@@ -187,12 +187,12 @@ async def run_transcription_service(user_session_id: str):
                     proc_ms = (proc_end - proc_start) * 1000
                     rtf = (proc_end - proc_start) / duration_audio if duration_audio > 0 else None
 
-                    logger.info(json.dumps({
-                        "event": "chunk_processed",
-                        "duration_s": duration_audio,
-                        "proc_ms": proc_ms,
-                        "rtf": rtf
-                    }))
+                    #logger.info(json.dumps({
+                    #    "event": "chunk_processed",
+                    #    "duration_s": duration_audio,
+                    #    "proc_ms": proc_ms,
+                    #    "rtf": rtf
+                    #}))
                     
                     new_words_found = False
                     existing_words_set = {w.word.strip().lower() for w in current_sentence_words}

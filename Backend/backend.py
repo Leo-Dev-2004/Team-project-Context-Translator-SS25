@@ -33,10 +33,6 @@ from .core.Queues import queues # Zugriff auf die vorinitialisierten Queues
 from .queues.MessageQueue import MessageQueue # Für Type Hinting (ebenfalls relativ, falls im selben Verzeichnis)
 from .MessageRouter import MessageRouter # Importiere die MessageRouter-Klasse (Annahme: sie ist in Backend/)
 
-# Importiere die SimulationManager-Klasse (für Type Hinting und Instanziierung)
-# WICHTIG: Dateiname ist 'SimulationManager.py' (Großbuchstaben), daher hier auch Großbuchstaben
-from .core.simulator import SimulationManager
-
 # Importiere WebSocketManager
 from .services.WebSocketManager import WebSocketManager
 
@@ -45,8 +41,6 @@ from .services.ExplanationDeliveryService import ExplanationDeliveryService
 
 # Importiere die Funktionen zum Setzen und Holen von Instanzen aus dependencies.py
 from .dependencies import (
-    set_simulation_manager_instance,
-    get_simulation_manager,
     set_websocket_manager_instance,
     get_websocket_manager_instance,
 )
@@ -89,7 +83,6 @@ app.include_router(endpoints.router)
 # --- GLOBALE INSTANZEN für Hintergrundaufgaben ---
 # Diese werden während des Startup-Events gesetzt
 queue_status_sender_task: Optional[asyncio.Task] = None
-simulation_manager_instance: Optional[SimulationManager] = None
 websocket_manager_instance: Optional[WebSocketManager] = None
 message_router_instance: Optional[MessageRouter] = None
 explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
@@ -109,15 +102,9 @@ async def startup_event():
         outgoing_queue=queues.websocket_out,
     )
     set_websocket_manager_instance(websocket_manager_instance)
-    logger.info("WebSocketManager initialized and set.")
-
-    simulation_manager_instance = SimulationManager()
-    set_simulation_manager_instance(simulation_manager_instance)
-    logger.info("SimulationManager initialized and set.")
-
     session_manager_instance = SessionManager()
     set_session_manager_instance(session_manager_instance)
-    logger.info("SessionManager initialized and set.")
+    logger.info("SessionManager and WebSocketManager initialized and set.")
 
     # Step 2: NOW initialize the MessageRouter, which depends on the services above.
     # Its __init__ can now safely call get_session_manager_instance().
@@ -187,15 +174,6 @@ async def shutdown_event():
             await queue_status_sender_task
         except asyncio.CancelledError:
             logger.info("queue_status_sender_task cancelled gracefully.")
-
-    # 2. Logik-Module stoppen (SimulationManager, MessageRouter)
-    # Diese Dienste könnten noch versuchen, Nachrichten zu senden.
-    if simulation_manager_instance:
-        logger.info("Stopping SimulationManager...")
-        try:
-            await simulation_manager_instance.stop()
-        except Exception as e:
-            logger.error(f"Error during SimulationManager shutdown: {e}", exc_info=True)
 
     if message_router_instance:
         logger.info("Stopping MessageRouter...")

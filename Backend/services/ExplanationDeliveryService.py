@@ -69,7 +69,7 @@ class ExplanationDeliveryService:
                             await self._mark_as_delivered(explanation_id)
                 
                 # Check every 2 seconds for new explanations
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
                 
             except asyncio.CancelledError:
                 break
@@ -120,7 +120,8 @@ class ExplanationDeliveryService:
                 },
                 # Route to specific client if available and frontend, otherwise to all frontends
                 destination=explanation.get("client_id") if explanation.get("client_id", "").startswith("frontend_") else "all_frontends",
-                origin="explanation_delivery_service"
+                origin="explanation_delivery_service",
+                client_id=explanation.get("client_id"),
             )
             
             # Send to WebSocket queue for delivery
