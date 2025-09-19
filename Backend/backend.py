@@ -146,7 +146,6 @@ async def startup_event():
         queue=explanation_queue,
         connection_manager=connection_manager_instance # Pass the correct manager
     )
-    logger.info("MainModel initialized.")
 
     small_model_instance = SmallModel(main_model_queue=explanation_queue)
     logger.info("SmallModel initialized.")
