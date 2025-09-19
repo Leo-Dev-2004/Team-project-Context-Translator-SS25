@@ -43,7 +43,7 @@ async def test_real_time_integration():
             "user_role": "student"  # Lower role to detect more terms
         },
         origin="test_script",
-        destination="small_model",
+        destination="SmallModel",
         client_id="integration_test",
     )
     
