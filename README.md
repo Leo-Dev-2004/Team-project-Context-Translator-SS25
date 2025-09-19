@@ -1,5 +1,5 @@
 # 💡 Real-time Contextual Assistant
-
+<br \>
 <p align="center">
   <img src="./header.png" alt="Project Header Banner" width="800"/>
 </p>
@@ -7,10 +7,6 @@
 <p align="center">
   <strong>Ein KI-gestützter Desktop-Assistent, der in Echtzeit kontextbezogene Erklärungen während Live-Gesprächen liefert.</strong>
   <br />
-  <br />
-  <a href="https://github.com/your-repo/your-project/issues">Fehler melden</a>
-  ·
-  <a href="https://github.com/your-repo/your-project/issues">Funktion vorschlagen</a>
 </p>
 
 <p align="center">
@@ -29,7 +25,6 @@
     * [Voraussetzungen](#voraussetzungen)
     * [Installation & Setup](#installation--setup)
     * [Anwendung starten](#anwendung-starten)
-5.  [🤝 Mitwirken](#-mitwirken)
 
 ---
 
