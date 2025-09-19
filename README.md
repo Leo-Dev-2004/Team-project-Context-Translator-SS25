@@ -1,7 +1,7 @@
 # 💡 Real-time Contextual Assistant
 
 <p align="center">
-  <img src="./docs/images/header.png" alt="Project Header Banner" width="800"/>
+  <img src="./header.png" alt="Project Header Banner" width="800"/>
 </p>
 
 <p align="center">
