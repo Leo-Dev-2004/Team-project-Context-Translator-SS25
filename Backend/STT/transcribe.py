@@ -17,13 +17,13 @@ CONFIG = {
     "CHUNK_DURATION_SEC": 0.5,
     "SAMPLE_RATE": 16000,
     "CHANNELS": 1,
-    "MODEL_SIZE": "medium",
+    "MODEL_SIZE": "base",
     "LANGUAGE": "en",
     "WEBSOCKET_URI": "ws://localhost:8000/ws",
     "MIN_WORDS_PER_SENTENCE": 3,
     "MAX_SENTENCE_DURATION_SECONDS": 15,
-    "TRANSCRIPTION_WINDOW_SECONDS": 1.5,
-    "SENTENCE_COMPLETION_TIMEOUT_SEC": 0.75
+    "TRANSCRIPTION_WINDOW_SECONDS": 5,
+    "SENTENCE_COMPLETION_TIMEOUT_SEC": 1.5
 }
 
 # --- LOGGING SETUP ---
@@ -132,7 +132,7 @@ async def run_transcription_service(user_session_id: str):
     async def process_audio_loop(websocket):
         sentence_start_time = time.monotonic()
         """Processes audio from the queue and performs transcription using a rolling window."""
-        nonlocal total_frames, stt_client_id
+        nonlocal total_frames, silence_frames, stt_client_id
 
         rolling_buffer = np.array([], dtype=np.float32)
         max_samples = int(CONFIG["TRANSCRIPTION_WINDOW_SECONDS"] * CONFIG["SAMPLE_RATE"])

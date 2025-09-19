@@ -130,3 +130,9 @@ out/
 .env.production.local
 .env.local
 
+# AI Runtime Files (generated during execution)
+Backend/AI/detections_queue.json
+Backend/AI/explanations_queue.json
+Backend/AI/explanation_cache.json
+Backend/STT/transcription.log
+
