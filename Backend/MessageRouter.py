@@ -124,6 +124,29 @@ class MessageRouter:
                 else:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Kein Code angegeben oder SessionManager nicht verfügbar.")
 
+            elif message.type == 'manual.request':
+                # Allow users to manually request an explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
+                    else:
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "confidence": 0.4,
+                            "context": context,
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"manual.request accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue manual detection.")
+                except Exception as e:
+                    logger.error(f"Error handling manual.request: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during manual.request.")
+
             elif message.type == 'ping':
                 response = self._create_pong_message(message)
 
