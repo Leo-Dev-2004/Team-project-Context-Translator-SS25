@@ -1,114 +1,114 @@
-Somewhat deprecated, Please update and store files in sperate folder.
+# 💡 Real-time Contextual Assistant
+<p align="center">
+  <img src="./header.png" alt="Project Header Banner" width="1200"/>
+</p>
 
-# Team Project - Summer 25: Real-time Virtual Meeting Assistant
-![Header](./header.png)
+<p align="center">
+  <strong>Ein KI-gestützter Desktop-Assistent, der in Echtzeit kontextbezogene Erklärungen während Live-Gesprächen liefert.</strong>
+  <br />
+</p>
 
-## 🌟 About the Project
+<p align="center">
+  <img src="https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge" alt="Status" />
+</p>
 
-Welcome to the **Real-time Virtual Meeting Assistant**! Our goal is to revolutionize virtual meeting applications by enabling real-time interactions based on meeting context and user-specific knowledge. Imagine you're attending an online lecture and a complex concept you're unfamiliar with is mentioned – our assistant will instantly provide a concise, understandable explanation, allowing you to follow the rest of the session seamlessly.
+---
 
-# ([Access project board via Miro](https://miro.com/welcomeonboard/YnFMWXpjUjdaelJ3Q2pNb0lTVTczelRwTWUvUk9YTHNqOUtWZzdBM2lDa1VjZWZiNnNFSWtqMXRKS2xQd3pNa3VxQ25oTTBad2JLd2pJME5UTVRoeVVPRFZFWVF1dEpQcGJJbTFJa0R1ckRWaDlEZU1VQ0ZmdjFicndBazV5NHZhWWluRVAxeXRuUUgwWDl3Mk1qRGVRPT0hdjE=?share_link_id=674549526661))
+## 📋 Inhaltsverzeichnis
 
-This project originated from the idea of explaining complex concepts in real-time during virtual meetings and has since expanded to include a variety of dynamic content. This includes:
+1.  [🌟 Über das Projekt](#-über-das-projekt)
+2.  [🛠️ Tech-Stack](#-tech-stack)
+3.  [🏛️ Architektur](#-architektur)
+4.  [🚀 Erste Schritte](#-erste-schritte)
+    * [Voraussetzungen](#voraussetzungen)
+    * [Installation & Setup](#installation--setup)
+    * [Anwendung starten](#anwendung-starten)
 
-* **Real-time Explanations:** Instant clarification of jargon or complex topics.
-* **Live Bullet-Point Summaries:** Automatic generation of meeting highlights.
-* **Conversation Backtracing:** Easily follow discussion threads.
-* **Ideation Suggestions:** AI-powered prompts based on the conversation flow.
+---
 
-We leverage the power of modern Large Language Models (`LLMs`) and multi-modal models to realize these functionalities – features not yet fully supported even by leading platforms like Zoom AI. The key to all of this is **real-time capability**.
+## 🌟 Über das Projekt
 
-## 🚀 Implementation Approach
+Willkommen beim **Real-time Contextual Assistant**! Dieses Projekt ist eine eigenständige Desktop-Anwendung, die entwickelt wurde, um virtuelle Meetings, Vorlesungen und Präsentationen zu verbessern. Sie hört aktiv bei Gesprächen zu und liefert den Benutzern sofortige, kontextbezogene Informationen. Wenn beispielsweise ein komplexer Fachbegriff erwähnt wird, zeigt der Assistent sofort eine prägnante Erklärung an, sodass die Teilnehmer dem Gespräch ohne Unterbrechung folgen können.
 
-Our planned pipeline is as follows:
+Diese Echtzeitfähigkeit ist der Kern unserer Innovation und nutzt eine moderne, serviceorientierte Architektur, um Funktionen bereitzustellen, die selbst von führenden Plattformen noch nicht vollständig unterstützt werden.
 
-1.  **Access to Meeting Data:** Capture audio (and optionally screen) content from the virtual meeting application (specifically Google Meet).
-2.  **Speech-to-Text (`STT`):**
-    * For each participant's audio stream in the call, apply `STT` to audio segments.
-    * Split the transcribed text at sentence endings (e.g., ".", "!", "?").
-3.  **`LLM` Processing & Feature Generation:**
-    * Evaluate each sentence for domain-specific technical terms.
-    * For each detected technical term, send the sentence, the detected term, and relevant knowledge about other participants' backgrounds to the text inference model (`LLM`).
-    * A system prompt will guide the `LLM` to explain the term contextually.
-4.  **Content Display:**
-    * Send the `LLM`'s response (e.g., the explanation) to the Google Meet plugin.
-    * Display the information as a pop-up or appropriate in-app notification.
+---
 
-## 🛠️ Project Groups
+## 🛠️ Tech-Stack
 
-To implement this ambitious project, we have formed three specialized groups:
+Unser System basiert auf einem modernen, asynchronen Stack, der für hochleistungsfähige Echtzeit-KI-Verarbeitung ausgelegt ist.
 
-1.  **App Group:** Responsible for the integration with **Google Meet**. This includes developing a plugin/extension to access meeting content (audio streams) and to display the generated information (e.g., pop-ups with explanations) within the Google Meet interface.
+| Kategorie | Technologien |
+| :--- | :--- |
+| **Frontend** | <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=electron&logoColor=white" alt="Electron.js"/> <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/> <img src="https://img.shields.io/badge/Lit-324FFF?style=for-the-badge&logo=lit&logoColor=white" alt="Lit"/> |
+| **Backend** | <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/> <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/> |
+| **KI & Sprache** | <img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"/>  <img src="https://img.shields.io/badge/Whisper-faster--whisper-blueviolet?style=for-the-badge" alt="Faster Whisper"/> |
+| **Echtzeit-Kommunikation** | <img src="https://img.shields.io/badge/WebSockets-010101?style=for-the-badge&logo=websockets&logoColor=white" alt="WebSockets"/> |
 
-2.  **`STT` Group:** Focuses on the implementation and optimization of speech-to-text conversion from the Google Meet audio streams.
-    * **Technology:** Use of existing models, e.g., via [Hugging Face SpeechToText](https://huggingface.co/docs/transformers/en/model_doc/speech_to_text).
+---
 
-3.  **`LLM` Group:** Responsible for processing the transcribed text to identify technical terms and generate explanations or other desired outputs using `LLMs`. This includes crafting effective prompts and potentially fine-tuning models.
-    * **Possible Models:** Qwen 2.5-VL ([QwenLM/Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL)), Qwen 3 ([QwenLM/Qwen3](https://github.com/QwenLM/Qwen3)), or other models via frameworks like Hugging Face.
+## 🏛️ Architektur
 
-## 💻 Development Environment (Optional)
+Die Anwendung besteht aus einer Sammlung unabhängiger Dienste, die in Echtzeit kommunizieren. Dieses entkoppelte Design gewährleistet Stabilität und Skalierbarkeit.
 
-{deprecated} For computationally intensive tasks, especially `LLM` experiments, a workstation with an NVIDIA 3090 (24GB VRAM) is available. Access is via `SSH`. Team members will receive access credentials after submitting their public `SSH` key.
-For now, we'll use a cloud computing solution. 
-# ❗️Please fill in the details @Andrew @konstantin
 
-### 1. App Group (Frontend - Google Meet Integration)
 
-This group focuses on the interface and interaction within Google Meet, acting as the bridge between the user and the backend processing.
+Die Hauptkomponenten sind:
+1.  **System Runner:** Ein Master-Skript, das alle anderen Dienste startet, überwacht und herunterfährt.
+2.  **STT-Modul:** Ein dedizierter Prozess zur Erfassung von Mikrofon-Audio und zur Durchführung einer hochleistungsfähigen Speech-to-Text-Umwandlung.
+3.  **Backend (FastAPI):** Der zentrale Hub, der Clients verwaltet, Nachrichten weiterleitet und die KI-Pipeline orchestriert.
+4.  **Frontend (Electron):** Die benutzerseitige Desktop-Anwendung, die die Echtzeitinformationen anzeigt.
 
-* **Google Meet Integration:**
-    * Research and understand the capabilities and limitations of Google Meet extension/plugin APIs.
-    * Design and develop the architecture for a Google Meet browser extension or plugin.
-    * Implement functionality to access and capture audio streams from all meeting participants.
-    * (Optional) Implement functionality to capture screen content if deemed necessary for certain features (e.g., visual context).
-* **Data Handling:**
-    * Develop methods to reliably send captured audio data (or transcribed text, depending on the pipeline design) to the backend (likely the STT group initially).
-    * Implement mechanisms to receive processed information (like explanations, summaries, etc.) from the backend (from the LLM group).
-* **User Interface (UI):**
-    * Design and implement UI elements within the Google Meet interface to display the AI-generated information. This could involve pop-ups, sidebars, notifications, or overlays.
-    * Ensure the UI is non-intrusive and user-friendly during a live meeting.
-* **Communication Layer:**
-    * Establish a robust communication channel (e.g., WebSockets, HTTP requests) between the browser extension and your backend services.
+> Für einen tiefen Einblick in unsere technische Implementierung lesen Sie bitte unser detailliertes **[Architektur-Dokument](.ARCHITECTURE.md)**.
 
-### 2. STT Group (Speech-to-Text Processing)
+---
 
-This group is responsible for converting the raw audio from the meeting into accurate, structured text that the LLM group can process.
+## 🚀 Erste Schritte
 
-# ❗️@yihua bitte updaten
-* **Model Selection & Setup:**
-    * Research and select suitable Speech-to-Text models, prioritizing real-time performance and accuracy for conversational speech (e.g., exploring options on Hugging Face).
-    * Set up the necessary environment for running the chosen STT model(s), potentially leveraging the available GPU workstation.
-* **Audio Processing:**
-    * Develop code to receive audio data streams or chunks from the App group.
-    * Implement the STT inference process to transcribe the audio into text.
-    * Handle potential challenges like overlapping speech, background noise, and variations in speaker volume/accent.
-* **Text Structuring:**
-    * Implement logic to split the continuous transcription into individual sentences based on punctuation marks ('.', '!', '?').
-    * Ensure accurate segmentation to provide meaningful units of text to the LLM.
-* **Output & Integration:**
-    * Develop an API endpoint or communication method to send the transcribed and sentence-split text to the LLM group for further processing.
-    * Manage the processing of multiple participant audio streams simultaneously and associate the text with the correct speaker.
+Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
 
-### 3. LLM Group (Backend - Processing & Inference)
+### Voraussetzungen
+* Python 3.10+
+* Node.js 18+ und `npm`
+* [Ollama](https://ollama.com/) muss auf Ihrem lokalen Rechner installiert sein und laufen.
 
-This group forms the core intelligence of the project, processing the text, identifying key information, and generating relevant outputs using Large Language Models.
+### Installation & Setup
 
-* **Model Selection & Setup:**
-    * Research and select appropriate Large Language Models (LLMs) based on their capabilities for tasks like term identification, explanation, summarization, etc. (e.g., exploring Qwen variants, other models on Hugging Face).
-    * Set up the inference environment for the selected LLM(s), making effective use of the available GPU resources (NVIDIA 3090).
-* **Text Analysis:**
-    * Develop code to receive the transcribed and sentence-split text from the STT group.
-    * Implement logic or use LLM capabilities to identify domain-specific technical terms or concepts within the text.
-    * Potentially integrate external knowledge bases or participant-specific knowledge if the project aims for personalized explanations.
-* **Prompt Engineering & Inference:**
-    * Design effective system and user prompts for the LLM to generate desired outputs (e.g., clear and concise explanations of technical terms in context).
-    * Implement the calling and handling of the LLM inference process.
-* **Feature Generation:**
-    * Develop the logic to generate the specific outputs requested by the project, such as:
-        * Contextual explanations for identified terms.
-        * Real-time bullet-point summaries.
-        * Conversation backtracing points.
-        * Ideation suggestions.
-* **Output & Integration:**
-    * Develop an API endpoint or communication method to send the generated outputs (e.g., the explanation text) back to the App group for display in Google Meet.
-    * Manage the orchestration of the pipeline: receiving from STT, processing, and sending to the App group.
+1.  **Repository klonen:**
+    ```bash
+    git clone [https://github.com/your-repo/your-project.git](https://github.com/your-repo/your-project.git)
+    cd your-project
+    ```
+
+2.  **Backend einrichten (Python):**
+    ```bash
+    # Eine virtuelle Umgebung erstellen und aktivieren
+    python3 -m venv .venv
+    source .venv/bin/activate
+    
+    # Python-Abhängigkeiten aus dem Stammverzeichnis installieren
+    pip install -r requirements.txt
+    ```
+
+3.  **Frontend einrichten (Node.js):**
+    ```bash
+    # In das Frontend-Verzeichnis wechseln
+    cd Frontend
+    
+    # Node.js-Abhängigkeiten installieren
+    npm install
+    cd .. 
+    ```
+
+4.  **KI-Modell einrichten (Ollama):**
+    Laden Sie das erforderliche LLM herunter. Wir verwenden derzeit `llama3.2`.
+    ```bash
+    ollama pull llama3.2
+    ```
+
+### Anwendung starten
+
+Starten Sie das gesamte System mit dem Haupt-Runner-Skript aus dem **Stammverzeichnis** des Projekts:
+```bash
+python main.py
+Das Skript startet das Backend, das STT-Modul und die Electron-Anwendung.
