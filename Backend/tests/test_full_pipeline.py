@@ -12,9 +12,9 @@ import time
 
 sys.path.append(os.path.dirname(__file__))
 
-from ..AI.SmallModel import SmallModel
-from ..AI.MainModel import MainModel
-from ..models.UniversalMessage import UniversalMessage
+from Backend.AI.SmallModel import SmallModel
+from Backend.AI.MainModel import MainModel
+from Backend.models.UniversalMessage import UniversalMessage
 
 async def test_full_pipeline():
     """Test complete SmallModel → MainModel pipeline"""
@@ -40,8 +40,7 @@ async def test_full_pipeline():
             "user_role": "Student"
         },
         client_id="pipeline_test",
-        origin="STT",
-        destination="SmallModel",
+        origin="STT"
     )
     
     print(f"Step 1: SmallModel processing...")
