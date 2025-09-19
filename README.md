@@ -59,7 +59,7 @@ Die Hauptkomponenten sind:
 3.  **Backend (FastAPI):** Der zentrale Hub, der Clients verwaltet, Nachrichten weiterleitet und die KI-Pipeline orchestriert.
 4.  **Frontend (Electron):** Die benutzerseitige Desktop-Anwendung, die die Echtzeitinformationen anzeigt.
 
-> Für einen tiefen Einblick in unsere technische Implementierung lesen Sie bitte unser detailliertes **[Architektur-Dokument](./docs/ARCHITECTURE.md)**.
+> Für einen tiefen Einblick in unsere technische Implementierung lesen Sie bitte unser detailliertes **[Architektur-Dokument](.ARCHITECTURE.md)**.
 
 ---
 
