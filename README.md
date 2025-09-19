@@ -1,6 +1,6 @@
 # 💡 Real-time Contextual Assistant
 <p align="center">
-  <img src="./header.png" alt="Project Header Banner" width="800"/>
+  <img src="./header.png" alt="Project Header Banner" width="1200"/>
 </p>
 
 <p align="center">
@@ -10,7 +10,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge" alt="Status" />
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License" />
 </p>
 
 ---
