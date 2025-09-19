@@ -6,11 +6,14 @@ Simple integration test to verify backend task lifecycle
 import asyncio
 import sys
 from pathlib import Path
+import pytest
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+
+@pytest.mark.asyncio
 async def test_backend_integration():
     """Test backend startup and shutdown with MainModel task"""
     
