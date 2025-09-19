@@ -96,6 +96,8 @@ class ElectronMyElement extends UI {
             this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
         } else if (message.type === 'session.error') {
             this._showNotification(message.payload.error, 'error');
+        } else if (message.type === 'explanation.new') {
+            this._handleNewExplanation(message.payload.explanation);
         }
       } catch (error) {
         console.error('Renderer: ❌ Failed to parse message from backend:', error, event.data);
@@ -182,6 +184,31 @@ class ElectronMyElement extends UI {
   _loadSettingsFromElectron(settings) {
     console.log('Renderer: Applying loaded settings:', settings);
     // Example: this.domainValue = settings.domain || '';
+  }
+
+  _handleNewExplanation(explanation) {
+    console.log('Renderer: 📚 New explanation received:', explanation);
+
+    // Import and use the explanationManager from the shared module
+    import('./shared/explanation-manager.js').then(({ explanationManager }) => {
+      if (explanation && explanation.term && explanation.content) {
+        // Add explanation to the manager
+        explanationManager.addExplanation(
+          explanation.term,
+          explanation.content,
+          explanation.timestamp * 1000 // Convert to milliseconds if needed
+        );
+
+        // Show notification about new explanation
+        this._showNotification(`New explanation: ${explanation.term}`, 'success');
+
+        console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
+      } else {
+        console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
+      }
+    }).catch(error => {
+      console.error('Renderer: ❌ Error importing explanation manager:', error);
+    });
   }
 
   _showNotification(message, type = 'success') {
