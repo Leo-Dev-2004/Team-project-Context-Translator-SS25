@@ -1,5 +1,4 @@
 # 💡 Real-time Contextual Assistant
-<br \>
 <p align="center">
   <img src="./header.png" alt="Project Header Banner" width="800"/>
 </p>
