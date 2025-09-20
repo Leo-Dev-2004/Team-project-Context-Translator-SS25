@@ -71,6 +71,7 @@ class ElectronMyElement extends UI {
 
     this.backendWs.onopen = () => {
       console.log('Renderer: ✅ WebSocket connection established.');
+      this.updateBackendStatus('connected');
       this._performHandshake();
     };
 
@@ -104,8 +105,14 @@ class ElectronMyElement extends UI {
       }
     };
 
-    this.backendWs.onerror = (error) => this._showNotification('WebSocket connection failed', 'error');
-    this.backendWs.onclose = () => console.log('Renderer: ⚙️ WebSocket connection closed.');
+    this.backendWs.onerror = (error) => {
+      this.updateBackendStatus('trouble');
+      this._showNotification('WebSocket connection failed', 'error');
+    };
+    this.backendWs.onclose = () => {
+      this.updateBackendStatus('disconnected');
+      console.log('Renderer: ⚙️ WebSocket connection closed.');
+    };
   }
 
   async _performHandshake() {
