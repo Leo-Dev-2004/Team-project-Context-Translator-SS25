@@ -63,9 +63,12 @@ class WebSocketManager:
         if connections_to_close:
             logger.info(f"Closing {len(connections_to_close)} WebSocket connections...")
             for ws in connections_to_close:
-                # Use 'force=True' to ensure the connection is closed even if
-                # it's in a strange state.
-                await ws.close(code=1000)
+                # Attempt to close the WebSocket connection with code=1000.
+                # If the connection is in an unexpected state, log the error and continue.
+                try:
+                    await ws.close(code=1000)
+                except Exception as e:
+                    logger.error(f"Error closing WebSocket connection: {e}", exc_info=True)
         
         self.connections.clear()
         self.user_session_map.clear()
