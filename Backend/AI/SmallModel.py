@@ -82,8 +82,8 @@ class SmallModel:
         now = time.time()
         term_lower = term.lower()
 
-        if confidence >= self.confidence_threshold:
-            logger.debug(f"Filtered: '{term}' - confidence too high ({confidence})")
+        if confidence < self.confidence_threshold:
+            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence})")
             return False
         if term_lower in self.known_terms:
             logger.debug(f"Filtered: '{term}' - known common term")
