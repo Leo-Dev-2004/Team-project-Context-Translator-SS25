@@ -65,6 +65,7 @@ class WebSocketManager:
                        f"connections...")
             for ws in connections_to_close:
                 # Attempt to close the WebSocket connection with code=1000.
+                
                 # If the connection is in an unexpected state, log the error
                 # and continue.
                 try:
