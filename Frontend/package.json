@@ -24,9 +24,7 @@
   "dependencies": {
     "@material/web": "^2.3.0",
     "lit": "^3.3.0",
-    "marked": "^15.0.12"
-  },
-  "devDependencies": {
+    "marked": "^15.0.12",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^38.1.0",
@@ -34,9 +32,7 @@
     "esbuild": "^0.25.8",
     "rimraf": "^5.0.5",
     "vite": "^6.3.5",
-    "wait-on": "^7.0.1"
-  },
-  "devDependencies": {
+    "wait-on": "^7.0.1",
     "@open-wc/testing": "^4.0.0",
     "@web/test-runner": "^0.18.2",
     "chai": "^5.1.1"
