@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 
 export class StatusBar extends LitElement {
   static properties = {
-    backendStatus: { type: String },
+    serverStatus: { type: String },
     microphoneStatus: { type: String }
   };
 
@@ -10,28 +10,39 @@ export class StatusBar extends LitElement {
     :host {
       display: block;
       width: 100%;
-      margin: 0;
-      overflow-x: hidden;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      font-size: 12px; 
     }
     
     .status-container {
       display: flex;
-      width: 100vw;
       justify-content: center;
-      padding: 12px 0;
-      position: relative;
-      left: 25%;
-      right: 75%;
-      margin-left: 0;
-      margin-right: 0;
-      border: 1px solid #003366; /* Dünne dunkelblaue Linie */
+      align-items: center;
+
+      width: 330px;
+      margin: 0 auto 20px auto;
+
+      padding: 12px 24px;
+
+      background: var(--md-sys-color-surface);
+      border-radius: var(--radius-lg, 12px); /* 12px als Fallback-Wert */
+      box-shadow: var(--shadow-lg);
+
+      border: 1px solid var(--color-secondary); 
+    
     }
     
     .status-content {
       display: flex;
-      width: 100%;
+      align-items: center;
+      gap: 24px; /* Abstand zwischen den Statusanzeigen */
       padding: 0 16px;
-      position: relative;
     }
     
     .status-item {
@@ -39,16 +50,6 @@ export class StatusBar extends LitElement {
       align-items: center;
       gap: 8px;
       white-space: nowrap;
-      position: absolute;
-      transform: translateX(-50%);
-    }
-    
-    .status-item.backend {
-      left: 25%; /* Zentriert bei 1/4 der Fensterbreite */
-    }
-    
-    .status-item.microphone {
-      left: 75%; /* Zentriert bei 3/4 der Fensterbreite */
     }
     
     .status-indicator {
@@ -56,34 +57,50 @@ export class StatusBar extends LitElement {
       height: 8px;
       border-radius: 50%;
     }
+
+    .status-label {
+    /* Hält die Beschriftung lesbar und verhindert einen Zeilenumbruch */
+    white-space: nowrap;
+   }
+
+    .status-value {
+    /* Das ist der entscheidende Teil! */
+    min-width: 85px;     /* Feste Mindestbreite, um Springen zu verhindern */
+    text-align: left;    /* Stellt sicher, dass der Text linksbündig ist */
+    white-space: nowrap; /* Verhindert Zeilenumbruch bei längeren Status */
+    }
     
     .connected { background-color: #4caf50; }
-    .disconnected { background-color: #f44336; }
+    .muted { background-color: #2aa4b9ff; }
+    .not-found { background-color: #e6dd59ff; }
     .trouble { background-color: #ff9800; }
+    .denied { background-color: #f44336; }
+    .disconnected { background-color: #cd1d10ff; }
   `;
 
   constructor() {
     super();
-    this.backendStatus = 'disconnected';
+    this.serverStatus = 'disconnected';
     this.microphoneStatus = 'disconnected';
   }
 
   render() {
     return html`
-      <div class="status-container">
-        <div class="status-content">
-          <div class="status-item backend">
-            <div class="status-indicator ${this.backendStatus}"></div>
-            <span>Backend: ${this.backendStatus}</span>
-          </div>
-          <div class="status-item microphone">
-            <div class="status-indicator ${this.microphoneStatus}"></div>
-            <span>Microphone: ${this.microphoneStatus}</span>
-          </div>
+    <div class="status-container">
+      <div class="status-content">
+        <div class="status-item server">
+          <div class="status-indicator ${this.serverStatus}"></div>
+          <span class="status-label">Server:</span>
+          <span class="status-value">${this.serverStatus}</span>
+        </div>
+        <div class="status-item microphone">
+          <div class="status-indicator ${this.microphoneStatus}"></div>
+          <span class="status-label">Microphone:</span>
+          <span class="status-value">${this.microphoneStatus}</span>
         </div>
       </div>
-    `;
+    </div>
+  `;
   }
 }
-
 customElements.define('status-bar', StatusBar);

@@ -17,7 +17,9 @@
     "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
     "start": "electron .",
     "clean": "rimraf dist dist-electron",
-    "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0"
+    "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0",
+    "test": "web-test-runner",
+    "test:watch": "web-test-runner --watch"
   },
   "dependencies": {
     "@material/web": "^2.3.0",
@@ -33,6 +35,11 @@
     "rimraf": "^5.0.5",
     "vite": "^6.3.5",
     "wait-on": "^7.0.1"
+  },
+  "devDependencies": {
+    "@open-wc/testing": "^4.0.0",
+    "@web/test-runner": "^0.18.2",
+    "chai": "^5.1.1"
   },
   "build": {
     "appId": "com.contexttranslator.app",

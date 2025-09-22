@@ -17,8 +17,8 @@ import '@material/web/dialog/dialog.js';
 import './status-bar.js';
 
 export class UI extends LitElement {
-  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean }, backendStatus: { type: String }, microphoneStatus: { type: String } };
-  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this.backendStatus = 'disconnected'; this.microphoneStatus = 'disconnected'; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
+  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean }, serverStatus: { type: String }, microphoneStatus: { type: String } };
+  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this.serverStatus = 'disconnected'; this.microphoneStatus = 'disconnected'; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
   disconnectedCallback() { super.disconnectedCallback(); explanationManager.removeListener(this._explanationListener); }
   render() {
     return html`<div class="ui-host">
@@ -50,7 +50,7 @@ export class UI extends LitElement {
           <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
         </header>
         <status-bar 
-          .backendStatus=${this.backendStatus}
+          .serverStatus=${this.serverStatus}
           .microphoneStatus=${this.microphoneStatus}
         ></status-bar>
         <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
