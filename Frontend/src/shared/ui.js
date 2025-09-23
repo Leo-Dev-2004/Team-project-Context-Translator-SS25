@@ -89,15 +89,41 @@ export class UI extends LitElement {
       case 1:
         return html`<div class="tab-panel explanations-panel">
           <div class="explanations-header">
-            <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
             <div class="explanations-controls">
-              <md-text-button @click=${this._clearAllExplanations}><span class="material-icons">delete</span> Clear All</md-text-button>
-              <md-filled-button @click=${this._addTestExplanation}><span class="material-icons">add</span> Add Test</md-filled-button>
+              <md-outlined-text-field
+                id="manual-term-input"
+                class="manual-term-input"
+                label="Explain a term"
+                placeholder="e.g. OAuth, ROI, Kafka"
+                .value=${this.manualTerm}
+                @input=${this._onManualTermInput}
+                @keydown=${this._onManualKeyDown}
+              >
+                <md-icon-button
+                  id="manual-send-button"
+                  slot="trailing-icon"
+                  class="accent"
+                  title="Send"
+                  aria-label="Send"
+                  @click=${this._sendManualRequest}
+                  ?disabled=${!(this.manualTerm && this.manualTerm.trim())}
+                >
+                  <span class="material-icons">send</span>
+                </md-icon-button>
+              </md-outlined-text-field>
+              <md-outlined-button @click=${this._clearAllExplanations}>
+                <span class="material-icons" slot="icon">delete</span>
+                Clear All
+              </md-outlined-button>
+              <md-filled-button @click=${this._addTestExplanation}>
+                <span class="material-icons" slot="icon">add</span>
+                Add Test
+              </md-filled-button>
             </div>
           </div>
           <div class="explanations-content">
-            ${this.explanations.length===0 ? html`<div class="empty-state"><p>No explanations yet.</p></div>` : html`<div class="explanations-list">
-              ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)}></explanation-item>`)}
+            ${this.explanations.length===0 ? html`<div class="empty-state"><p>No explanations yet. Ask for a explanation or wait for one to be generated.</p></div>` : html`<div class="explanations-list">
+              ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)}></explanation-item>`) }
             </div>`}
           </div>
         </div>`;
@@ -111,11 +137,18 @@ export class UI extends LitElement {
   _resetSettings(){ this.domainValue=''; }
   _startSession(){ console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.'); }
   _joinSession(){ console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.'); }
+  _onManualTermInput(e){ this.manualTerm = e.target.value; }
+  _onManualKeyDown(e){ if(e.key === 'Enter'){ e.preventDefault(); this._sendManualRequest(); } }
+  _sendManualRequest(){ console.warn('UI: _sendManualRequest() called, but not implemented. Must be overridden in child class.'); }
   _handlePin(id){ explanationManager.pinExplanation(id); }
   _handleDelete(id){ explanationManager.deleteExplanation(id); }
   _handleCopy(explanation){ const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
   _clearAllExplanations(){ if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
   _addTestExplanation(){ explanationManager.addExplanation('Test','This is a test explanation.'); }
+  _addTestExplanation(){
+    const rand = Math.random() * 0.6 + 0.2; // 0.2 - 0.8 for variety
+    explanationManager.addExplanation('Test', 'This is a test explanation.', Date.now(), rand);
+  }
   // Window control handlers
   async _winMinimize(){ try{ await window.electronAPI?.windowControls?.minimize(); }catch(e){} }
   async _winToggleMaximize(){
@@ -191,5 +224,12 @@ export class UI extends LitElement {
     md-tabs {
       margin-top: 16px;
     }
+    
+    /* Explanations controls layout */
+    .explanations-header { margin-bottom: 12px; }
+    .explanations-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .explanations-controls md-outlined-text-field.manual-term-input { flex: 1 1 280px; min-width: 220px; width: auto; margin: 0; }
+    .explanations-controls md-filled-button,
+    .explanations-controls md-outlined-button { flex: 0 0 auto; white-space: nowrap; }
   ` ];
 }

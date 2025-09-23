@@ -195,6 +195,7 @@ class ElectronMyElement extends UI {
         return console.error("Renderer: Electron API not available for handshake.");
     }
     const userSessionId = await window.electronAPI.getUserSessionId();
+    this.userSessionId = userSessionId;
     
     if (!userSessionId) {
         return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
@@ -208,6 +209,41 @@ class ElectronMyElement extends UI {
       payload: { user_session_id: userSessionId }
     };
     this.backendWs.send(JSON.stringify(message));
+  }
+  
+  // ### Manual Request Logic ###
+  _sendManualRequest() {
+    const termInput = this.shadowRoot.querySelector('#manual-term-input');
+    const term = (termInput?.value || this.manualTerm || '').trim();
+
+    if (!term) {
+      return this._showNotification('Please enter a term to explain', 'error');
+    }
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('No connection to backend', 'error');
+    }
+
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'manual.request',
+      timestamp: Date.now() / 1000,
+      payload: {
+        term,
+        context: term, // placeholder; could be extended to use selected text or domain
+        user_session_id: this.userSessionId || null,
+      },
+    };
+
+    try {
+      this.backendWs.send(JSON.stringify(message));
+      this._showNotification(`Requested explanation for "${term}"`, 'success');
+      // Clear field in UI
+      if (termInput) termInput.value = '';
+      this.manualTerm = '';
+      this.requestUpdate?.();
+    } catch (e) {
+      this._showNotification('Failed to send manual request', 'error');
+    }
   }
   
   // ### Session Logic ###
@@ -275,10 +311,12 @@ class ElectronMyElement extends UI {
     import('./shared/explanation-manager.js').then(({ explanationManager }) => {
       if (explanation && explanation.term && explanation.content) {
         // Add explanation to the manager
+        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
         explanationManager.addExplanation(
           explanation.term,
           explanation.content,
-          explanation.timestamp * 1000 // Convert to milliseconds if needed
+          explanation.timestamp * 1000, // Convert to milliseconds if needed
+          confidence
         );
 
         // Show notification about new explanation

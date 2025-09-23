@@ -226,7 +226,8 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                         "client_id": client_id,
                         "user_session_id": user_session_id,
                         "original_detection_id": entry.get("id"),
-                        "status": "ready_for_delivery"
+                        "status": "ready_for_delivery",
+                        "confidence": entry.get("confidence", 0.5)  # Default confidence if not provided
                     }
 
                     # Write to explanations queue
@@ -276,7 +277,6 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
 
 
 if __name__ == "__main__":
-    import sys
     import logging
 
     # Setup logging

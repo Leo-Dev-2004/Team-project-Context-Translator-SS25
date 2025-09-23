@@ -25,6 +25,18 @@ This starts:
 
 (For Electron developement only. Will not start the Backend and a Websocket connections will not be possible. Use `run_electron.py` script in root folder instead.)
 
+## Manual Explain Feature
+
+In the Explanations tab, you can directly request an explanation for any term:
+
+- Enter a term in the "Explain a term" field and click "Explain" (or press Enter).
+- The app sends a `manual.request` message to the backend.
+- The backend enqueues the term into the detection pipeline; once processed, a new explanation appears automatically in the list.
+
+Notes:
+- Requires an active WebSocket connection to the backend at `ws://localhost:8000`.
+- The pipeline uses the same MainModel and ExplanationDeliveryService as automatic detections.
+
 ## Folder structure
 
 ```

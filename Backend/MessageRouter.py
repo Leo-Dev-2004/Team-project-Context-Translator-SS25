@@ -12,7 +12,7 @@ from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPat
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
 from .AI.SmallModel import SmallModel
-from .dependencies import get_simulation_manager, get_session_manager_instance, get_websocket_manager_instance
+from .dependencies import get_session_manager_instance, get_websocket_manager_instance
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ class MessageRouter:
         self._running = False
         self._router_task: Optional[asyncio.Task] = None
         self._small_model: SmallModel = SmallModel()
-        self._simulation_manager = get_simulation_manager()
         self._session_manager = get_session_manager_instance()
         self._websocket_manager = get_websocket_manager_instance()
 
@@ -124,6 +123,28 @@ class MessageRouter:
                         response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Session-Code ist ungültig.")
                 else:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Kein Code angegeben oder SessionManager nicht verfügbar.")
+
+            elif message.type == 'manual.request':
+                # Allow users to manually request an explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
+                    else:
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "context": context,
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"manual.request accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue manual detection.")
+                except Exception as e:
+                    logger.error(f"Error handling manual.request: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during manual.request.")
 
             elif message.type == 'ping':
                 response = self._create_pong_message(message)

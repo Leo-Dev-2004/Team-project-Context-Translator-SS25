@@ -12,6 +12,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from .AI.SmallModel import SmallModel
+from .AI.MainModel import MainModel
 
 # Import all message-related models from message_types.py
 # Annahme: UniversalMessage, DeadLetterMessage, ProcessingPathEntry,
@@ -24,7 +25,7 @@ from .models.UniversalMessage import (
 )
 
 # Import the API router
-from .api import endpoints # <--- ADDED THIS EXPLICIT IMPORT FOR ENDPOINTS
+from .api import endpoints 
 
 # Korrigierter Import für den abstrakten Queue-Typ (relativer Pfad und Kleinbuchstaben im Dateinamen)
 from .queues.QueueTypes import AbstractMessageQueue
@@ -32,10 +33,6 @@ from .queues.QueueTypes import AbstractMessageQueue
 from .core.Queues import queues # Zugriff auf die vorinitialisierten Queues
 from .queues.MessageQueue import MessageQueue # Für Type Hinting (ebenfalls relativ, falls im selben Verzeichnis)
 from .MessageRouter import MessageRouter # Importiere die MessageRouter-Klasse (Annahme: sie ist in Backend/)
-
-# Importiere die SimulationManager-Klasse (für Type Hinting und Instanziierung)
-# WICHTIG: Dateiname ist 'SimulationManager.py' (Großbuchstaben), daher hier auch Großbuchstaben
-from .core.simulator import SimulationManager
 
 # Importiere WebSocketManager
 from .services.WebSocketManager import WebSocketManager
@@ -45,8 +42,6 @@ from .services.ExplanationDeliveryService import ExplanationDeliveryService
 
 # Importiere die Funktionen zum Setzen und Holen von Instanzen aus dependencies.py
 from .dependencies import (
-    set_simulation_manager_instance,
-    get_simulation_manager,
     set_websocket_manager_instance,
     get_websocket_manager_instance,
 )
@@ -89,11 +84,12 @@ app.include_router(endpoints.router)
 # --- GLOBALE INSTANZEN für Hintergrundaufgaben ---
 # Diese werden während des Startup-Events gesetzt
 queue_status_sender_task: Optional[asyncio.Task] = None
-simulation_manager_instance: Optional[SimulationManager] = None
 websocket_manager_instance: Optional[WebSocketManager] = None
 message_router_instance: Optional[MessageRouter] = None
 explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
 
+main_model_instance: Optional[MainModel] = None
+main_model_task: Optional[asyncio.Task] = None
 
 # --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
 @app.on_event("startup")
@@ -101,6 +97,12 @@ async def startup_event():
     logger.info("Application startup event triggered.")
     global simulation_manager_instance, websocket_manager_instance, message_router_instance
     global queue_status_sender_task, explanation_delivery_service_instance
+    global main_model_instance, main_model_task
+
+    # Initialize MainModel and start its continuous processing loop
+    main_model_instance = MainModel()
+    main_model_task = asyncio.create_task(main_model_instance.run_continuous_processing())
+    
 
     # Step 1: Initialize all standalone services FIRST.
     # These services do not depend on others during their __init__.
@@ -109,15 +111,9 @@ async def startup_event():
         outgoing_queue=queues.websocket_out,
     )
     set_websocket_manager_instance(websocket_manager_instance)
-    logger.info("WebSocketManager initialized and set.")
-
-    simulation_manager_instance = SimulationManager()
-    set_simulation_manager_instance(simulation_manager_instance)
-    logger.info("SimulationManager initialized and set.")
-
     session_manager_instance = SessionManager()
     set_session_manager_instance(session_manager_instance)
-    logger.info("SessionManager initialized and set.")
+    logger.info("SessionManager and WebSocketManager initialized and set.")
 
     # Step 2: NOW initialize the MessageRouter, which depends on the services above.
     # Its __init__ can now safely call get_session_manager_instance().
@@ -162,7 +158,7 @@ async def send_queue_status_to_frontend():
                         payload=status_payload,
                         destination=client_id,  # Use the specific client_id
                         origin="backend.monitor",
-                        client_id=client_id
+                        client_id=client_id,
                     )
                     await queues.websocket_out.enqueue(status_message)
 
@@ -178,6 +174,7 @@ async def shutdown_event():
     # Zugriff auf die relevanten globalen Instanzen
     global simulation_manager_instance, websocket_manager_instance
     global queue_status_sender_task, message_router_instance, explanation_delivery_service_instance
+    global main_model_task
 
     # 1. Hintergrund-Tasks abbrechen (z.B. der Queue-Status-Sender)
     if queue_status_sender_task and not queue_status_sender_task.done():
@@ -188,14 +185,14 @@ async def shutdown_event():
         except asyncio.CancelledError:
             logger.info("queue_status_sender_task cancelled gracefully.")
 
-    # 2. Logik-Module stoppen (SimulationManager, MessageRouter)
-    # Diese Dienste könnten noch versuchen, Nachrichten zu senden.
-    if simulation_manager_instance:
-        logger.info("Stopping SimulationManager...")
+    # Cancel MainModel continuous processing task
+    if main_model_task and not main_model_task.done():
+        logger.info("Cancelling main_model_task...")
+        main_model_task.cancel()
         try:
-            await simulation_manager_instance.stop()
-        except Exception as e:
-            logger.error(f"Error during SimulationManager shutdown: {e}", exc_info=True)
+            await main_model_task
+        except asyncio.CancelledError:
+            logger.info("main_model_task cancelled gracefully.")
 
     if message_router_instance:
         logger.info("Stopping MessageRouter...")
