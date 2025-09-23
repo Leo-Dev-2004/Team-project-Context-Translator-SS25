@@ -86,7 +86,7 @@ class ExplanationDeliveryService:
                 self.delivered_explanations.add(explanation_id)
         
         # Mark all newly delivered items as "delivered" in a single file write.
-        await self._mark_batch_as_delivered([exp.get("id") for exp in ready_explanations])
+        await self._mark_batch_as_delivered( [exp.get("id") for exp in ready_explanations] ) # type: ignore
 
     async def _load_ready_explanations(self) -> List[Dict]:
         """Asynchronously load explanations with status 'ready_for_delivery'."""
