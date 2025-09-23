@@ -14,10 +14,11 @@ import '@material/web/switch/switch.js';
 import '@material/web/select/outlined-select.js';
 import '@material/web/select/select-option.js';
 import '@material/web/dialog/dialog.js';
+import './status-bar.js';
 
 export class UI extends LitElement {
-  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean }, manualTerm: { type: String } };
-  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this.manualTerm=''; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
+  static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean }, serverStatus: { type: String }, microphoneStatus: { type: String } };
+  constructor() { super(); this.activeTab = 0; this.domainValue=''; this.explanations=[]; this.isWindows=false; this.serverStatus = 'disconnected'; this.microphoneStatus = 'disconnected'; this._explanationListener=(exps)=>{ this.explanations=[...exps]; }; explanationManager.addListener(this._explanationListener); }
   disconnectedCallback() { super.disconnectedCallback(); explanationManager.removeListener(this._explanationListener); }
   render() {
     return html`<div class="ui-host">
@@ -48,6 +49,10 @@ export class UI extends LitElement {
           <h1 class="display-medium">Context Translator</h1>
           <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
         </header>
+        <status-bar 
+          .serverStatus=${this.serverStatus}
+          .microphoneStatus=${this.microphoneStatus}
+        ></status-bar>
         <md-tabs @change=${this._onTabChange} .activeTabIndex=${this.activeTab}>
           <md-primary-tab>Setup</md-primary-tab>
           <md-primary-tab>Explanations</md-primary-tab>
@@ -206,6 +211,20 @@ export class UI extends LitElement {
       white-space: nowrap; /* Button-Text nicht umbrechen */
     }
     .dialog-code { color: var(--md-sys-color-primary); font-family: 'Roboto Mono', monospace; letter-spacing: 2px; font-size: 2em; text-align: center; margin-top: 8px; user-select: all; }
+    
+    /* Status bar positioning */
+    status-bar {
+      margin: 16px auto;
+      width: 90%;
+      max-width: 400px;
+      display: block;
+    }
+    
+    /* Add spacing between status bar and tabs */
+    md-tabs {
+      margin-top: 16px;
+    }
+    
     /* Explanations controls layout */
     .explanations-header { margin-bottom: 12px; }
     .explanations-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
