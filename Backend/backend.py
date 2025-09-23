@@ -175,7 +175,16 @@ async def shutdown_event():
     global queue_status_sender_task, message_router_instance, explanation_delivery_service_instance
     global main_model_task
 
-    # 1. Hintergrund-Tasks abbrechen (z.B. der Queue-Status-Sender)
+    # 1. Hintergrund-Tasks abbrechen (z.B. der Queue-Status-Sender und MainModel-Task)
+    if main_model_task and not main_model_task.done():
+        logger.info("Cancelling main_model_task...")
+        main_model_task.cancel()
+        try:
+            await main_model_task
+        except asyncio.CancelledError:
+            logger.info("main_model_task cancelled gracefully.")
+
+
     if queue_status_sender_task and not queue_status_sender_task.done():
         logger.info("Cancelling queue_status_sender_task...")
         queue_status_sender_task.cancel()

@@ -255,7 +255,10 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                 await self.process_detections_queue()
                 await asyncio.sleep(2)
             except asyncio.CancelledError:
-                logger.info("MainModel processing task cancelled.")
+                logger.info("MainModel processing cancelled by shutdown")
+                break
+            except KeyboardInterrupt:
+                logger.info("MainModel processing stopped by user")
                 break
             except Exception as e:
                 logger.error(f"Unexpected error in MainModel run loop: {e}", exc_info=True)
