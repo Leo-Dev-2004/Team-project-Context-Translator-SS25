@@ -12,60 +12,59 @@ from uuid import uuid4
 from faster_whisper import WhisperModel
 from collections import deque
 from typing import Optional
+from pathlib import Path
 
 # --- CONFIGURATION ---
-# (Beibehalten, da es eine gute Praxis ist, Konfigurationen an einem Ort zu haben)
-CONFIG = {
-    "CHUNK_DURATION_SEC": 0.5,
-    "SAMPLE_RATE": 16000,
-    "CHANNELS": 1,
-    "MODEL_SIZE": "medium",
-    "LANGUAGE": "en",
-    "WEBSOCKET_URI": "ws://localhost:8000/ws",
-    "MIN_WORDS_PER_SENTENCE": 3,
-    "MAX_SENTENCE_DURATION_SECONDS": 15,
-    "TRANSCRIPTION_WINDOW_SECONDS": 1.5,
-    "SENTENCE_COMPLETION_TIMEOUT_SEC": 0.75,
-    "BEAM_SIZE": 3,
-    "USE_VAD": True,
-    "VAD_ENERGY_THRESHOLD": 0.01
-}
+# Using a more structured config for clarity and easier modification
+class Config:
+    SAMPLE_RATE = 16000
+    CHANNELS = 1
+    MODEL_SIZE = "medium"
+    LANGUAGE = "en"
+    WEBSOCKET_URI = "ws://localhost:8000/ws"
+    MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
+    
+    # VAD (Voice Activity Detection) settings are key for responsiveness
+    VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
+    VAD_SILENCE_DURATION_S = 1.0 # How long of a pause indicates end of sentence
+    VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 transcription_logger = logging.getLogger('TranscriptionLog')
-transcription_logger.setLevel(logging.INFO)
-t_handler = logging.FileHandler('transcription.log', mode='w', encoding='utf-8')
+transcription_logger.setLevel(logging.DEBUG)
+log_file = Path("transcription.log")
+log_file.touch()
+t_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
 t_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 transcription_logger.addHandler(t_handler)
 
 
 class STTService:
     """
-    Encapsulates the entire Speech-to-Text functionality, managing audio capture,
-    AI transcription, and WebSocket communication in a robust, class-based structure.
+    Encapsulates the entire Speech-to-Text functionality using a robust,
+    VAD-based "record-then-transcribe" architecture for real-time responsiveness.
     """
     def __init__(self, user_session_id: str):
         self.user_session_id = user_session_id
         self.stt_client_id = f"stt_instance_{uuid4()}"
-        self.model = WhisperModel(CONFIG["MODEL_SIZE"], device="cpu", compute_type="int8")
+        logger.info(f"Loading Whisper model '{Config.MODEL_SIZE}'...")
+        self.model = WhisperModel(Config.MODEL_SIZE, device="cpu", compute_type="int8")
+        logger.info("Whisper model loaded.")
         self.audio_queue = queue.Queue()
         self.is_recording = threading.Event()
         self.is_recording.set()
-        self.last_sentences = deque(maxlen=5)
         logger.info(f"STTService initialized for session {self.user_session_id}")
 
     def _record_audio_thread(self):
-        """[Thread Target] Captures audio and puts it into a thread-safe queue."""
-        block_size = int(CONFIG["SAMPLE_RATE"] * 0.05)
+        """[Thread Target] Captures audio from microphone into a thread-safe queue."""
         def callback(indata, frames, time_info, status):
             if status: logger.warning(f"Recording status: {status}")
             if self.is_recording.is_set(): self.audio_queue.put(indata.copy())
             
         try:
-            with sd.InputStream(samplerate=CONFIG["SAMPLE_RATE"], channels=CONFIG["CHANNELS"], callback=callback, blocksize=block_size) as stream:
+            with sd.InputStream(samplerate=Config.SAMPLE_RATE, channels=Config.CHANNELS, callback=callback, dtype='float32') as stream:
                 logger.info(f"Recording active: {stream.samplerate}Hz, {stream.channels}ch")
                 while self.is_recording.is_set(): time.sleep(0.1)
         except Exception as e:
@@ -73,18 +72,16 @@ class STTService:
         finally:
             logger.info("Audio recording stopped.")
 
-    async def _send_sentence(self, websocket, sentence: str, words: list):
+    async def _send_sentence(self, websocket, sentence: str):
         """Formats and sends a transcribed sentence over the WebSocket."""
-        if not sentence: return
+        if not sentence or not sentence.strip(): return
 
         transcription_logger.info(sentence)
         message = {
             "id": str(uuid4()), "type": "stt.transcription", "timestamp": time.time(),
             "payload": {
-                "text": sentence, "language": CONFIG["LANGUAGE"],
-                "start_time": words[0].start if words else None,
-                "end_time": words[-1].end if words else None,
-                "user_session_id": self.user_session_id # Wichtig für die Zuordnung im Backend
+                "text": sentence, "language": Config.LANGUAGE,
+                "user_session_id": self.user_session_id
             },
             "origin": "stt_module", "client_id": self.stt_client_id
         }
@@ -95,97 +92,73 @@ class STTService:
             logger.warning("Failed to send sentence, connection closed.")
 
     async def _process_audio_loop(self, websocket):
-        """[Async Task] Processes audio from the queue and performs transcription."""
-        rolling_buffer = np.array([], dtype=np.float32)
-        samples_per_chunk = int(CONFIG["CHUNK_DURATION_SEC"] * CONFIG["SAMPLE_RATE"])
-        current_sentence_words = []
-        last_word_timestamp = time.monotonic()
-        sentence_start_time = time.monotonic()
+        """[Async Task] Implements the VAD-based 'record-then-transcribe' logic."""
+        audio_buffer = []
+        is_speaking = False
+        silence_start_time = None
+        
+        # Keep a small buffer of recent silence to catch the start of speech
+        silence_buffer_size = int(Config.VAD_BUFFER_DURATION_S * Config.SAMPLE_RATE)
+        silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
             try:
-                # Part 1: Gather audio from the thread-safe queue
-                while not self.audio_queue.empty():
-                    data = self.audio_queue.get_nowait()
-                    rolling_buffer = np.concatenate((rolling_buffer, data.flatten()))
-
-                if len(rolling_buffer) < samples_per_chunk:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                audio_to_process = rolling_buffer.astype(np.float32)
-
-                if CONFIG["USE_VAD"]:
-                    frame_energy = np.sqrt(np.mean(np.square(audio_to_process)))
-                    if frame_energy < CONFIG["VAD_ENERGY_THRESHOLD"]:
-                        logger.debug(f"Skipping chunk (energy={frame_energy:.5f}, below threshold).")
-                        rolling_buffer = np.array([], dtype=np.float32)
-                        await asyncio.sleep(0.1)
-                        continue
-
-                # --- THE CRITICAL FIX ---
-                # Run the blocking, CPU-intensive transcription in a separate thread
-                # so the asyncio event loop is not blocked.
-                segments, info = await asyncio.to_thread(
-                    self.model.transcribe,
-                    audio_to_process,
-                    language=CONFIG["LANGUAGE"],
-                    word_timestamps=True,
-                    initial_prompt=" ".join(w.word for w in current_sentence_words),
-                    beam_size=CONFIG["BEAM_SIZE"]
-                )
-
-                new_words_found = False
-                existing_words_set = {w.word.strip().lower() for w in current_sentence_words}
-
-                for segment in segments:
-                    if not segment.words: continue
-                    for word in segment.words:
-                        if word.word.strip().lower() not in existing_words_set:
-                            current_sentence_words.append(word)
-                            existing_words_set.add(word.word.strip().lower())
-                            new_words_found = True
+                # Get a chunk of audio from the queue
+                audio_chunk = self.audio_queue.get(timeout=1.0)
+                frame_energy = np.sqrt(np.mean(np.square(audio_chunk)))
                 
-                if new_words_found:
-                    last_word_timestamp = time.monotonic()
-                
-                rolling_buffer = rolling_buffer[-samples_per_chunk:]
+                if is_speaking:
+                    audio_buffer.append(audio_chunk)
+                    if frame_energy < Config.VAD_ENERGY_THRESHOLD:
+                        if silence_start_time is None:
+                            silence_start_time = time.monotonic()
+                        # If silence duration is exceeded, end of sentence is detected
+                        elif time.monotonic() - silence_start_time > Config.VAD_SILENCE_DURATION_S:
+                            is_speaking = False
+                    else:
+                        silence_start_time = None # Reset silence timer if speech is detected
+                else:
+                    silence_buffer.extend(audio_chunk.flatten())
+                    if frame_energy > Config.VAD_ENERGY_THRESHOLD:
+                        logger.info("Speech detected.")
+                        is_speaking = True
+                        silence_start_time = None
+                        # Prepend the silence buffer to capture the start of the word
+                        audio_buffer = [np.array(list(silence_buffer))]
+                        audio_buffer.append(audio_chunk)
 
-                # Part 2: Check for sentence completion
-                elapsed_time = time.monotonic() - sentence_start_time
-                time_since_last_word = time.monotonic() - last_word_timestamp
-                
-                is_ready_to_send = current_sentence_words and (
-                    time_since_last_word > CONFIG["SENTENCE_COMPLETION_TIMEOUT_SEC"] or
-                    elapsed_time > CONFIG["MAX_SENTENCE_DURATION_SECONDS"]
-                )
-
-                if is_ready_to_send:
-                    full_sentence = " ".join(w.word for w in current_sentence_words).strip()
+                # If speech has ended, process the collected audio buffer
+                if not is_speaking and audio_buffer:
+                    full_utterance = np.concatenate([chunk.flatten() for chunk in audio_buffer])
+                    audio_buffer.clear()
                     
-                    if len(full_sentence.split()) >= CONFIG["MIN_WORDS_PER_SENTENCE"]:
-                        if full_sentence not in self.last_sentences:
-                            self.last_sentences.append(full_sentence)
-                            await self._send_sentence(websocket, full_sentence, current_sentence_words)
-                        else:
-                            logger.info(f"Skipping duplicate sentence: {full_sentence}")
+                    logger.info(f"Processing utterance of duration {len(full_utterance)/Config.SAMPLE_RATE:.2f}s...")
+                    segments, _ = await asyncio.to_thread(
+                        self.model.transcribe, full_utterance, language=Config.LANGUAGE
+                    )
                     
-                    # Reset for the next sentence
-                    reason = "timeout" if time_since_last_word > CONFIG["SENTENCE_COMPLETION_TIMEOUT_SEC"] else "max_duration"
-                    logger.info(f"Sending sentence due to: {reason} | Words: {len(current_sentence_words)}")
-                    current_sentence_words.clear()
-                    sentence_start_time = time.monotonic()
-                    rolling_buffer = np.array([], dtype=np.float32)
+                    full_sentence = "".join(s.text for s in segments).strip()
+                    
+                    if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE:
+                        await self._send_sentence(websocket, full_sentence)
+                    else:
+                        logger.info(f"Skipping short sentence: '{full_sentence}'")
 
             except queue.Empty:
-                await asyncio.sleep(0.1) # Wait if there's no audio
+                # If speech was in progress and the queue is now empty, it's the end of an utterance
+                if is_speaking:
+                    is_speaking = False
+                continue
             except Exception as e:
-                logger.error(f"Error during audio transcription loop: {e}", exc_info=True)
+                logger.error(f"Error in transcription loop: {e}", exc_info=True)
+                # Reset state on error
+                audio_buffer.clear()
+                is_speaking = False
                 await asyncio.sleep(1)
 
     async def run(self):
         """Main service loop that manages WebSocket connection and tasks."""
-        websocket_uri = f"{CONFIG['WEBSOCKET_URI']}/{self.stt_client_id}"
+        websocket_uri = f"{Config.WEBSOCKET_URI}/{self.stt_client_id}"
         threading.Thread(target=self._record_audio_thread, daemon=True).start()
 
         while self.is_recording.is_set():
@@ -199,9 +172,7 @@ class STTService:
                     }
                     await websocket.send(json.dumps(initial_message))
                     
-                    # This will run the processing loop and keep the connection alive
                     await self._process_audio_loop(websocket)
-
             except Exception as e:
                 logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
                 await asyncio.sleep(5)
@@ -214,7 +185,7 @@ class STTService:
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="STT Module for Context Translator.")
-    parser.add_argument("--user-session-id", type=str, required=True, help="The unique ID for the user session.")
+    parser.add_argument("--user-session-id", required=True, help="The unique ID for the user session.")
     
     service = None
     try:
@@ -230,4 +201,7 @@ if __name__ == "__main__":
     finally:
         if service:
             service.stop()
+        
+        transcription_logger.removeHandler(t_handler)
+        t_handler.close()
         logger.info("Cleanup complete. STT module has shut down.")
