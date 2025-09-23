@@ -8,6 +8,7 @@ import os
 import psutil
 import uuid  # uuid for user session IDs
 from pathlib import Path
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', 
@@ -121,7 +122,7 @@ class SystemRunner:
                     logger.info("SystemRunner: Backend is ready!")
                     return True
             except requests.RequestException: pass
-            time.sleep(1)
+            time.sleep(0.5)
         return False
     
     def shutdown(self):
@@ -139,9 +140,28 @@ class SystemRunner:
         logger.info("SystemRunner: Shutdown complete.")
         sys.exit(0)
 
+
+    
+def flush_json_file(file_path):
+        """
+        Flushes a JSON file of its content by overwriting it with an empty array.
+        """
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+            print(f"Successfully flushed {file_path}")
+        except IOError as e:
+            print(f"Error: Could not access file {file_path}. Reason: {e}")
+
+
 def main():
     runner = SystemRunner()
-    
+
+    script_dir = Path(__file__).parent
+    # Leere die JSON-Dateien zu Beginn
+    flush_json_file(script_dir / "Backend/AI/detections_queue.json")    
+    flush_json_file(script_dir / "Backend/AI/explanations_queue.json") 
+
     # Generiere die User Session ID hier
     user_session_id = f"user_{uuid.uuid4()}"
     logger.info(f"Generated User Session ID: {user_session_id}")

@@ -240,7 +240,8 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                 "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
                 "context": entry["context"], "timestamp": int(time.time()),
                 "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                "original_detection_id": entry.get("id"), "status": "ready_for_delivery"
+                "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
+                "confidence": entry.get("confidence", 0)
             }
             
             if await self.write_explanation_to_queue(explanation_entry):
@@ -253,7 +254,7 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
         while True:
             try:
                 await self.process_detections_queue()
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
             except asyncio.CancelledError:
                 logger.info("MainModel processing cancelled by shutdown")
                 break
@@ -262,7 +263,7 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                 break
             except Exception as e:
                 logger.error(f"Unexpected error in MainModel run loop: {e}", exc_info=True)
-                await asyncio.sleep(30)
+                await asyncio.sleep(5)
     
     async def close(self):
         """Gracefully close the HTTP client."""

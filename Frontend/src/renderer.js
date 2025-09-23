@@ -1,7 +1,6 @@
 import { UI } from './shared/index.js';
 import { explanationManager } from './shared/explanation-manager.js';
 import './shared/index.css';
-import { explanationManager } from './shared/explanation-manager.js';
 
 class ElectronMyElement extends UI {
   constructor() {

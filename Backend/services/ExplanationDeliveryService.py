@@ -55,22 +55,40 @@ class ExplanationDeliveryService:
             logger.info("ExplanationDeliveryService stopped")
 
     async def _monitor_explanations(self):
-        """Periodically check the queue file and deliver any ready explanations."""
         logger.info("Started monitoring explanations queue for ready explanations")
-        
         while self._running:
             try:
-                # The processing is wrapped in a separate method for clarity.
-                await self._process_and_deliver()
-                
-                # Check for new explanations periodically.
-                await asyncio.sleep(2)
-                
+                # Continuously process until the queue is empty
+                while True:
+                    ready_explanations = await self._load_ready_explanations()
+                    if not ready_explanations:
+                        break # Break the inner loop to sleep if queue is empty
+
+                    # Process the entire batch that was found
+                    await self._process_and_deliver_batch(ready_explanations)
+
+                # If the queue was empty, wait before checking again
+                await asyncio.sleep(1)
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Error in explanation monitoring loop: {e}", exc_info=True)
-                await asyncio.sleep(5)  # Wait longer on error
+                await asyncio.sleep(1)
+
+    async def _process_and_deliver_batch(self, batch: List[Dict]):
+        """Processes a given batch of explanations."""
+        delivered_ids_in_batch = []
+        for explanation in batch:
+            explanation_id = explanation.get("id")
+            if explanation_id and explanation_id not in self.delivered_explanations:
+                await self._deliver_explanation(explanation)
+                self.delivered_explanations.add(explanation_id)
+                delivered_ids_in_batch.append(explanation_id)
+        
+        if delivered_ids_in_batch:
+            await self._mark_batch_as_delivered(delivered_ids_in_batch)
+
 
     async def _process_and_deliver(self):
         """Load, deliver, and update status for ready explanations."""
@@ -128,7 +146,7 @@ class ExplanationDeliveryService:
                         "timestamp": explanation.get("timestamp"),
                         "client_id": explanation.get("client_id"),
                         "user_session_id": explanation.get("user_session_id"),
-                        "confidence": explanation.get("confidence", 1.0)
+                        "confidence": explanation.get("confidence", 0)
                     }
                 },
                 destination="all_frontends", # Simplified to always broadcast

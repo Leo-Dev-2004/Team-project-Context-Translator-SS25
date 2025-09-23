@@ -116,7 +116,8 @@ class WebSocketManager:
                 # Case 1: Message is for a specific, connected client ID
                 if destination and destination in self.connections:
                     await self._send_to_websocket(self.connections[destination], message)
-                    logger.debug(f"Dispatched message '{message.type}' to client {destination}")
+                    if message.type != "system.queue_status_update":
+                        logger.debug(f"Dispatched message '{message.type}' to client {destination}")
 
                 # Case 2: Message is for the group of all frontend clients
                 elif destination == "all_frontends":

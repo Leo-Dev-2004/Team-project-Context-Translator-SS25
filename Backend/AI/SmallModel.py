@@ -36,7 +36,7 @@ class SmallModel:
         self.detections_queue_file = DETECTIONS_QUEUE_FILE
 
         # Filtering configuration
-        self.confidence_threshold = 0.9  # Note: The logic filters out terms ABOVE this
+        self.confidence_threshold = 1  # Terms with confidence >= this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
             "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
@@ -145,8 +145,8 @@ For an input sentence like "This sentence has no technical terms.", your entire 
 For an input sentence like "This has a [TECHNICAL TERM] within it.", your entire output must be:
 [
   {{
-    "term": "TECHNICAL TERM",
-    "confidence": 0.3,
+    "term": "VERY TECHNICAL TERM",
+    "confidence": 0.94,
     "context": "This has a [TECHNICAL TERM] within it.",
     "timestamp": 1234567890
   }}
@@ -156,7 +156,7 @@ For an input sentence like "This has a [TECHNICAL TERM] within it.", your entire
 Output Format:
 Return a JSON **array of objects**. Each object must have these keys:
 - "term" (string)
-- "confidence" (float): 0.9 (simple/common) to 0.1 (very technical/obscure)
+- "confidence" (float): 0.01 (simple/common) to 0.99 (very technical/obscure)
 - "context" (string): The full input sentence
 - "timestamp" (int): A Unix timestamp
 ---
