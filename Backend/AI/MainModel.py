@@ -7,7 +7,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
-import uuid
+import uuid # FIX: Added missing import for uuid
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
 
@@ -176,6 +176,7 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
         
         # --- Stage 1: Safely read and update the detections queue ---
         async with self.detections_lock:
+            all_detections = []
             try:
                 async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
                     content = await f.read()
@@ -184,15 +185,14 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                 if not all_detections:
                     return
 
-                # Find pending items and update their status in-place
+                # Find pending items and update their status in-place to prevent re-processing
                 something_to_process = False
                 for entry in all_detections:
                     if entry.get("status") == "pending":
                         pending_detections.append(entry)
-                        entry["status"] = "processing" # Mark to prevent re-processing
+                        entry["status"] = "processing"
                         something_to_process = True
                 
-                # If we marked any items for processing, write the changes back
                 if something_to_process:
                     temp_file = self.detections_queue_file.with_suffix('.tmp')
                     async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
@@ -201,7 +201,7 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
                     logger.info(f"Marked {len(pending_detections)} detections as 'processing'.")
 
             except FileNotFoundError:
-                return # Nothing to process
+                return
             except Exception as e:
                 logger.error(f"Error reading detections queue: {e}", exc_info=True)
                 return
@@ -227,11 +227,11 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
 
                 if explanation:
                     cache[term] = explanation
-                    await self.save_cache(cache) # save_cache handles its own lock
+                    await self.save_cache(cache)
                     logger.info(f"Generated and cached explanation for '{term}'.")
                 else:
                     logger.warning(f"Failed to generate explanation for '{term}'.")
-                    continue
+                    continue # Skip to next term if explanation fails
             else:
                 logger.info(f"Loaded explanation for '{term}' from cache.")
 
@@ -246,7 +246,6 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
             if await self.write_explanation_to_queue(explanation_entry):
                 self.mark_as_explained(term)
                 logger.info(f"Successfully processed and queued explanation for term '{term}'.")
-
 
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""
@@ -267,16 +266,16 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
         await self.http_client.aclose()
         logger.info("MainModel HTTP client closed.")
 
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     main_model = MainModel()
-    loop = asyncio.get_event_loop()
+    
+    # Use asyncio.run for cleaner startup and shutdown
     try:
-        loop.run_until_complete(main_model.run_continuous_processing())
+        asyncio.run(main_model.run_continuous_processing())
     except KeyboardInterrupt:
         logger.info("MainModel shutdown initiated by user.")
     finally:
-        loop.run_until_complete(main_model.close())
-        loop.close()
+        # Gracefully close resources in a final async operation
+        asyncio.run(main_model.close())
         logger.info("MainModel shutdown complete.")

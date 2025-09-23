@@ -1,7 +1,6 @@
 # Backend/dependencies.py
 from typing import Optional
 from .services.WebSocketManager import WebSocketManager
-from .core.simulator import SimulationManager
 from .core.session_manager import SessionManager
 
 _global_session_manager_instance: Optional[SessionManager] = None
@@ -24,14 +23,16 @@ def get_websocket_manager_instance() -> Optional[WebSocketManager]:
     return _global_ws_manager_instance
 
 # Global instance for SimulationManager
-_global_simulation_manager_instance: Optional[SimulationManager] = None
+#_global_simulation_manager_instance: Optional[SimulationManager] = None
 
-def set_simulation_manager_instance(instance: SimulationManager):
-    global _global_simulation_manager_instance
-    _global_simulation_manager_instance = instance
+#def set_simulation_manager_instance(instance: SimulationManager):
+#    global _global_simulation_manager_instance
+#    _global_simulation_manager_instance = instance
 
-def get_simulation_manager() -> Optional[SimulationManager]:
-    return _global_simulation_manager_instance
+#def get_simulation_manager() -> Optional[SimulationManager]:
+ #   return _global_simulation_manager_instance
+
+
 
 # Du kannst hier auch weitere Instanzen für andere Services hinzufügen
 # Beispiel:
