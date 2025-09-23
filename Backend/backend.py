@@ -63,19 +63,11 @@ app = FastAPI()
 # --- FASTAPI-MIDDLEWARE ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:9000",
-        "http://127.0.0.1:9000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost",    # Hinzugefügt für breitere localhost-Kompatibilität
-        "http://127.0.0.1",    # Hinzugefügt für breitere localhost-Kompatibilität
-        "null",                # Hinzugefügt für file:// oder bestimmte Client-Typen
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"] # still needed?
 )
 
 # --- API-ROUTER EINBEZIEHEN ---
