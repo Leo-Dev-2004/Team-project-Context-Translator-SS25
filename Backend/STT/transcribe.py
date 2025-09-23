@@ -17,7 +17,7 @@ CONFIG = {
     "CHUNK_DURATION_SEC": 0.5,
     "SAMPLE_RATE": 16000,
     "CHANNELS": 1,
-    "MODEL_SIZE": "base",
+    "MODEL_SIZE": "medium",
     "LANGUAGE": "en",
     "WEBSOCKET_URI": "ws://localhost:8000/ws",
     "MIN_WORDS_PER_SENTENCE": 3,

@@ -27,6 +27,7 @@ class SmallModel:
     """
 
     def __init__(self):
+        self.queue_lock = asyncio.Lock()
         self.detections_queue_file = Path("Backend/AI/detections_queue.json")
 
         # Filtering configuration
@@ -127,7 +128,10 @@ class SmallModel:
             main_model = self.get_main_model()
             if main_model:
                 logger.info("Triggering MainModel processing for new detections")
-                await main_model.process_detections_queue()
+                # Treat the entire function as a blocking job and run it in a thread
+                asyncio.create_task(
+                        asyncio.to_thread(main_model.process_detections_queue)
+                    )  # Non-blocking call
             else:
                 logger.warning("MainModel not available for real-time processing")
         except Exception as e:
@@ -240,7 +244,8 @@ Repeat: the user's role is "{user_role}". Adjust the confidence accordingly:
 """
 
         try:
-            response = ollama.chat(
+            response = await asyncio.to_thread( # Non blocking function call
+                ollama.chat,
                 model="llama3.2",
                 messages=[{"role": "user", "content": prompt}],
                 options={"temperature": 0.1, "reset": True}
@@ -302,50 +307,51 @@ Repeat: the user's role is "{user_role}". Adjust the confidence accordingly:
 
     async def write_detection_to_queue(self, message: UniversalMessage, detected_terms: List[Dict]) -> bool:
         """Write detected terms to file-based queue for MainModel processing."""
-        try:
-            # Read current queue
-            current_queue = []
-            if self.detections_queue_file.exists():
-                async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
-                    content = await f.read()
-                    if content.strip():
-                        current_queue = json.loads(content)
+        async with self.queue_lock:  # Ensure only one write at a time
+            try:
+                # Read current queue
+                current_queue = []
+                if self.detections_queue_file.exists():
+                    async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
+                        content = await f.read()
+                        if content.strip():
+                            current_queue = json.loads(content)
 
-            # Add new detections
-            for term_data in detected_terms:
-                queue_entry = {
-                    "id": str(uuid4()),
-                    "term": term_data["term"],
-                    "context": term_data["context"],
-                    "confidence": term_data["confidence"],
-                    "timestamp": term_data["timestamp"],
-                    "client_id": message.client_id,
-                    "user_session_id": message.payload.get("user_session_id"),
-                    "original_message_id": message.id,
-                    "status": "pending",
-                    "explanation": None
-                }
-                current_queue.append(queue_entry)
+                # Add new detections
+                for term_data in detected_terms:
+                    queue_entry = {
+                        "id": str(uuid4()),
+                        "term": term_data["term"],
+                        "context": term_data["context"],
+                        "confidence": term_data["confidence"],
+                        "timestamp": term_data["timestamp"],
+                        "client_id": message.client_id,
+                        "user_session_id": message.payload.get("user_session_id"),
+                        "original_message_id": message.id,
+                        "status": "pending",
+                        "explanation": None
+                    }
+                    current_queue.append(queue_entry)
 
-            # Write back to file atomically
-            temp_file = self.detections_queue_file.with_suffix('.tmp')
-            async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(current_queue, indent=2, ensure_ascii=False))
+                # Write back to file atomically
+                temp_file = self.detections_queue_file.with_suffix('.tmp')
+                async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(current_queue, indent=2, ensure_ascii=False))
 
-            # Atomic move
-            import os
-            os.replace(str(temp_file), str(self.detections_queue_file))
+                # Atomic move
+                import os
+                await asyncio.to_thread(os.replace, str(temp_file), str(self.detections_queue_file))
 
-            logger.info(f"Successfully wrote {len(detected_terms)} detections to queue for client {message.client_id}")
+                logger.info(f"Successfully wrote {len(detected_terms)} detections to queue for client {message.client_id}")
 
-            # Trigger MainModel processing for real-time response
-            await self.trigger_main_model_processing()
+                # Trigger MainModel processing for real-time response
+                await self.trigger_main_model_processing()
 
-            return True
+                return True
 
-        except Exception as e:
-            logger.error(f"Error writing detections to queue: {e}", exc_info=True)
-            return False
+            except Exception as e:
+                logger.error(f"Error writing detections to queue: {e}", exc_info=True)
+                return False
 
     async def process_message(self, message: UniversalMessage) -> UniversalMessage:
         """

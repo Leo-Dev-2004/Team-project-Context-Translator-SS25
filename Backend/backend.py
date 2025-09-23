@@ -53,7 +53,7 @@ from .dependencies import (
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
 logging.basicConfig(
-    level=logging.INFO, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
+    level=logging.DEBUG, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -103,7 +103,6 @@ async def startup_event():
     global queue_status_sender_task, explanation_delivery_service_instance
 
     # Step 1: Initialize all standalone services FIRST.
-    # These services do not depend on others during their __init__.
     websocket_manager_instance = WebSocketManager(
         incoming_queue=queues.incoming,
         outgoing_queue=queues.websocket_out,
@@ -170,7 +169,7 @@ async def send_queue_status_to_frontend():
             logger.error(f"Error in status sending task: {e}", exc_info=True)
 
 
-# --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT (KORRIGIERT) ---
+# --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT ---
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Application shutdown event triggered.")
@@ -225,7 +224,7 @@ async def shutdown_event():
     logger.info("Application shutdown complete.")
 
 
-# --- WebSocket-Endpunkt (KORRIGIERT) ---
+# --- WebSocket-Endpunkt ---
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     logger.info(f"Incoming WebSocket connection for client_id: {client_id}")

@@ -120,7 +120,8 @@ class ExplanationDeliveryService:
                 },
                 # Route to specific client if available and frontend, otherwise to all frontends
                 destination=explanation.get("client_id") if explanation.get("client_id", "").startswith("frontend_") else "all_frontends",
-                origin="explanation_delivery_service"
+                origin="explanation_delivery_service",
+                client_id=explanation.get("client_id")
             )
             
             # Send to WebSocket queue for delivery
