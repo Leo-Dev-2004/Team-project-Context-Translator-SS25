@@ -48,7 +48,7 @@ from .dependencies import (
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
 logging.basicConfig(
-    level=logging.INFO, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
+    level=logging.DEBUG, # Für Entwicklung bei DEBUG lassen, für Produktion auf INFO setzen
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -89,6 +89,7 @@ message_router_instance: Optional[MessageRouter] = None
 explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
 
 main_model_instance: Optional[MainModel] = None
+main_model_task: Optional[asyncio.Task] = None
 
 # --- FASTAPI-ANWENDUNGS-STARTUP-EVENT ---
 @app.on_event("startup")
@@ -96,15 +97,14 @@ async def startup_event():
     logger.info("Application startup event triggered.")
     global simulation_manager_instance, websocket_manager_instance, message_router_instance
     global queue_status_sender_task, explanation_delivery_service_instance
-    global main_model_instance
+    global main_model_instance, main_model_task
 
     # Initialize MainModel and start its continuous processing loop
     main_model_instance = MainModel()
-    asyncio.create_task(main_model_instance.run_continuous_processing())
+    main_model_task = asyncio.create_task(main_model_instance.run_continuous_processing())
     
 
     # Step 1: Initialize all standalone services FIRST.
-    # These services do not depend on others during their __init__.
     websocket_manager_instance = WebSocketManager(
         incoming_queue=queues.incoming,
         outgoing_queue=queues.websocket_out,
@@ -165,7 +165,7 @@ async def send_queue_status_to_frontend():
             logger.error(f"Error in status sending task: {e}", exc_info=True)
 
 
-# --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT (KORRIGIERT) ---
+# --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT ---
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Application shutdown event triggered.")
@@ -173,8 +173,18 @@ async def shutdown_event():
     # Zugriff auf die relevanten globalen Instanzen
     global simulation_manager_instance, websocket_manager_instance
     global queue_status_sender_task, message_router_instance, explanation_delivery_service_instance
+    global main_model_task
 
-    # 1. Hintergrund-Tasks abbrechen (z.B. der Queue-Status-Sender)
+    # 1. Hintergrund-Tasks abbrechen (z.B. der Queue-Status-Sender und MainModel-Task)
+    if main_model_task and not main_model_task.done():
+        logger.info("Cancelling main_model_task...")
+        main_model_task.cancel()
+        try:
+            await main_model_task
+        except asyncio.CancelledError:
+            logger.info("main_model_task cancelled gracefully.")
+
+
     if queue_status_sender_task and not queue_status_sender_task.done():
         logger.info("Cancelling queue_status_sender_task...")
         queue_status_sender_task.cancel()
@@ -182,6 +192,15 @@ async def shutdown_event():
             await queue_status_sender_task
         except asyncio.CancelledError:
             logger.info("queue_status_sender_task cancelled gracefully.")
+
+    # Cancel MainModel continuous processing task
+    if main_model_task and not main_model_task.done():
+        logger.info("Cancelling main_model_task...")
+        main_model_task.cancel()
+        try:
+            await main_model_task
+        except asyncio.CancelledError:
+            logger.info("main_model_task cancelled gracefully.")
 
     if message_router_instance:
         logger.info("Stopping MessageRouter...")
@@ -211,7 +230,7 @@ async def shutdown_event():
     logger.info("Application shutdown complete.")
 
 
-# --- WebSocket-Endpunkt (KORRIGIERT) ---
+# --- WebSocket-Endpunkt ---
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     logger.info(f"Incoming WebSocket connection for client_id: {client_id}")

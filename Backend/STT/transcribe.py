@@ -25,7 +25,10 @@ CONFIG = {
     "MIN_WORDS_PER_SENTENCE": 3,
     "MAX_SENTENCE_DURATION_SECONDS": 15,
     "TRANSCRIPTION_WINDOW_SECONDS": 1.5,
-    "SENTENCE_COMPLETION_TIMEOUT_SEC": 0.75
+    "SENTENCE_COMPLETION_TIMEOUT_SEC": 0.75,
+    "BEAM_SIZE": 3,
+    "USE_VAD": True,
+    "VAD_ENERGY_THRESHOLD": 0.01
 }
 
 # --- LOGGING SETUP ---
@@ -112,6 +115,14 @@ class STTService:
 
                 audio_to_process = rolling_buffer.astype(np.float32)
 
+                if CONFIG["USE_VAD"]:
+                    frame_energy = np.sqrt(np.mean(np.square(audio_to_process)))
+                    if frame_energy < CONFIG["VAD_ENERGY_THRESHOLD"]:
+                        logger.debug(f"Skipping chunk (energy={frame_energy:.5f}, below threshold).")
+                        rolling_buffer = np.array([], dtype=np.float32)
+                        await asyncio.sleep(0.1)
+                        continue
+
                 # --- THE CRITICAL FIX ---
                 # Run the blocking, CPU-intensive transcription in a separate thread
                 # so the asyncio event loop is not blocked.
@@ -120,7 +131,8 @@ class STTService:
                     audio_to_process,
                     language=CONFIG["LANGUAGE"],
                     word_timestamps=True,
-                    initial_prompt=" ".join(w.word for w in current_sentence_words)
+                    initial_prompt=" ".join(w.word for w in current_sentence_words),
+                    beam_size=CONFIG["BEAM_SIZE"]
                 )
 
                 new_words_found = False

@@ -4,6 +4,7 @@ export class ExplanationManager {
     this.explanations = [];
     this.listeners = [];
     this.storageKey = 'context-translator-explanations';
+    this.saveThrottleTimeout = null;
     this.loadFromStorage();
   }
   static getInstance() { if (!ExplanationManager.instance) ExplanationManager.instance = new ExplanationManager(); return ExplanationManager.instance; }
@@ -16,7 +17,7 @@ export class ExplanationManager {
       ? Math.max(0, Math.min(1, confidence))
       : null;
     const explanation = { id: this._generateId(), title, content, timestamp, confidence: normConfidence, isPinned: false, isDeleted: false, createdAt: Date.now() };
-    this.explanations.unshift(explanation); 
+   this.explanations.unshift(explanation); 
     
     // Limit total explanations to prevent memory issues (keep last 1000)
     const maxExplanations = 1000;
@@ -34,6 +35,7 @@ export class ExplanationManager {
     this.saveToStorage(); 
     this.notifyListeners(); 
     return explanation;
+
   }
   updateExplanation(id, updates) {
     const i = this.explanations.findIndex(e => e.id === id);
@@ -48,12 +50,13 @@ export class ExplanationManager {
       }
       this.explanations[i] = { ...this.explanations[i], ...normUpdates };
       this._sortExplanations();
-      this.saveToStorage();
+      this._saveToStorageThrottled();
       this.notifyListeners();
       return this.explanations[i];
     }
     return null;
   }
+
   deleteExplanation(id) { 
     const i = this.explanations.findIndex(e => e.id === id); 
     if (i !== -1) { 
@@ -80,9 +83,20 @@ export class ExplanationManager {
     }
   }
   pinExplanation(id) { const e = this.explanations.find(e => e.id === id); if (e) { e.isPinned = !e.isPinned; this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); } }
+
   _sortExplanations() { this.explanations.sort((a,b)=> (a.isPinned===b.isPinned ? b.createdAt-a.createdAt : a.isPinned?-1:1)); }
   getVisibleExplanations() { return this.explanations.filter(e => !e.isDeleted); }
   clearAll() { this.explanations = []; this.saveToStorage(); this.notifyListeners(); }
+  _saveToStorageThrottled() {
+    // Throttle storage saves to prevent excessive I/O during rapid explanation additions
+    if (this.saveThrottleTimeout) {
+      clearTimeout(this.saveThrottleTimeout);
+    }
+    this.saveThrottleTimeout = setTimeout(() => {
+      this.saveToStorage();
+      this.saveThrottleTimeout = null;
+    }, 500); // Save after 500ms of inactivity
+  }
   saveToStorage() { try { sessionStorage.setItem(this.storageKey, JSON.stringify(this.explanations)); } catch (e) { console.error('Failed to save explanations to storage:', e); } }
   loadFromStorage() { try { const stored = sessionStorage.getItem(this.storageKey); if (stored) { this.explanations = JSON.parse(stored); this._sortExplanations(); } } catch (e) { console.error('Failed to load explanations from storage:', e); this.explanations = []; } }
   _generateId() { return `exp_${Date.now()}_${Math.random().toString(36).substr(2,9)}`; }

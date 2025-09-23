@@ -6,7 +6,7 @@ import time
 import requests
 import os
 import psutil
-import uuid  # Importiere uuid für die Generierung von User Session IDs
+import uuid  # uuid for user session IDs
 from pathlib import Path
 
 # Configure logging
