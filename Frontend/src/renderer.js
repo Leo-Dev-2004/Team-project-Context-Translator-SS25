@@ -9,6 +9,7 @@ class ElectronMyElement extends UI {
     this.isElectron = true;
     this.backendWs = null;
     this.notificationCleanupTimeouts = new Set();
+    this.audioStream = null;
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
 
@@ -25,9 +26,12 @@ class ElectronMyElement extends UI {
   async connectedCallback() {
     super.connectedCallback();
     console.log('Renderer: ⚙️ connectedCallback entered.');
+
     await this._initializeElectron();
     this._initializeWebSocket();
-    // this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
+    this._initializeMicrophone();
+
+    this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
     console.log('Renderer: ⚙️ connectedCallback exited.');
   }
 
@@ -39,9 +43,67 @@ class ElectronMyElement extends UI {
     // Clear any pending notification timeouts
     this.notificationCleanupTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
     this.notificationCleanupTimeouts.clear();
+    // stop audio stream tracks
+    if (this.audioStream) {
+    this.audioStream.getTracks().forEach(track => track.stop());
+  }
     console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection cleaned up.');
   }
 
+    // Initialize microphone access and status
+  async _initializeMicrophone() {
+  console.log('Renderer: 🎤 Try to get access to the microphone...');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.audioStream = stream; // Store the stream
+
+    const audioTrack = stream.getAudioTracks()[0];
+    if (!audioTrack) {
+      // Should not happen, but better safe than sorry
+      this.updateMicrophoneStatus('trouble');
+      return;
+    }
+
+    // Event Listener für Mute/Unmute hinzufügen
+    audioTrack.onmute = () => {
+      console.log('Renderer: 🎤 Microphone is muted.');
+      this.updateMicrophoneStatus('muted');
+    };
+
+    audioTrack.onunmute = () => {
+      console.log('Renderer: 🎤 Microphone is unmuted.');
+      this.updateMicrophoneStatus('connected');
+    };
+
+    // Initial status check in case the microphone is already muted at startup
+    if (audioTrack.muted) {
+      this.updateMicrophoneStatus('muted');
+    } else {
+      this.updateMicrophoneStatus('connected');
+    }
+
+  } catch (error) {
+    // Here we catch errors
+    console.error('Renderer: ❌ Error with microphone access:', error.name, error.message);
+
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      // The user denied access to the microphone
+      console.warn('Renderer: 🎤 Microphone access denied by user.');
+      this.updateMicrophoneStatus('denied'); // Clear status for "denied"
+
+    } else if (error.name === 'NotFoundError') {
+      // No microphone found on the system
+      console.warn('Renderer: 🎤 No microphone found.');
+      this.updateMicrophoneStatus('not-found'); // Clear status for "not found"
+
+    } else {
+      // Other unexpected errors (e.g. hardware issues)
+      console.error('Renderer: 🎤 An unexpected error occurred.');
+      this.updateMicrophoneStatus('trouble'); // General error status
+    }
+    }
+  }
+  
   _attachActionListeners() {
     console.log('Renderer: 💡 Attaching event listeners to action buttons...');
     
@@ -63,6 +125,19 @@ class ElectronMyElement extends UI {
     console.log('Renderer: ✅ Event listeners successfully attached.');
   }
 
+  // Updates status indicators in the status bar (Server = Backend)
+  updateServerStatus(newStatus) {
+      this.serverStatus = newStatus;
+      console.log(`Renderer: 📡 Server-Status updated to: "${newStatus}".`);
+  }
+  
+  // Updates status indicators in the status bar (Microphone)
+  updateMicrophoneStatus(newStatus) {
+    this.microphoneStatus = newStatus;
+    console.log(`Renderer: 🎤 Microphone-Status updated to: "${newStatus}".`);
+    
+}
+
   // ### WebSocket & Messaging ###
 
   _initializeWebSocket() {
@@ -76,6 +151,7 @@ class ElectronMyElement extends UI {
 
     this.backendWs.onopen = () => {
       console.log('Renderer: ✅ WebSocket connection established.');
+      this.updateServerStatus('connected');
       this._performHandshake();
     };
 
@@ -110,8 +186,14 @@ class ElectronMyElement extends UI {
       }
     };
 
-    this.backendWs.onerror = (error) => this._showNotification('WebSocket connection failed', 'error');
-    this.backendWs.onclose = () => console.log('Renderer: ⚙️ WebSocket connection closed.');
+    this.backendWs.onerror = (error) => {
+      this.updateServerStatus('trouble');
+      this._showNotification('WebSocket connection failed', 'error');
+    };
+    this.backendWs.onclose = () => {
+      this.updateServerStatus('disconnected');
+      console.log('Renderer: ⚙️ WebSocket connection closed.');
+    };
   }
 
   async _performHandshake() {
