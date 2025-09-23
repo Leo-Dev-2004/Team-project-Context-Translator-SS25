@@ -1,1 +1,7 @@
-{}
+{
+  "process detection skew method": "The process detection skew method is a technique used to identify and mitigate errors that occur during the comparison of two or more versions of data, such as code changes or file merges. It helps detect inconsistencies or discrepancies between these versions by identifying patterns of conflicts or anomalies in the data.",
+  "fragmented": "In this context, \"fragmented\" refers to a situation where data is broken into separate pieces that don't fit together properly, often resulting in errors or inconsistencies. It indicates a disorganized or disjointed state, where the normal flow or continuity is disrupted.",
+  "incorrect": "In this context, \"incorrect\" refers to an error or deviation from expected accuracy or quality in a process, resulting in a flawed outcome or decision. It indicates that something did not align with or meet the intended standards or expectations.",
+  "method": "In the given context, \"method\" refers to a specific approach or technique used for a particular purpose, such as process detection skew. It is an important concept because it represents a distinct way of handling or analyzing data, in this case, to resolve merge conflicts and ensure accurate results.",
+  "skew": "In this context, \"skew\" refers to an imbalance or distortion in a process that can lead to incorrect results or outcomes. It describes how errors, inconsistencies, or deviations from normal behavior can affect the accuracy and reliability of a system or method."
+}
