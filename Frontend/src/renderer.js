@@ -1,5 +1,6 @@
 import { UI } from './shared/index.js';
 import './shared/index.css';
+import { explanationManager } from './shared/explanation-manager.js';
 
 class ElectronMyElement extends UI {
   constructor() {
@@ -7,6 +8,7 @@ class ElectronMyElement extends UI {
     this.platform = 'electron';
     this.isElectron = true;
     this.backendWs = null;
+    this.notificationCleanupTimeouts = new Set();
     this.audioStream = null;
     console.log('Renderer: ⚙️ ElectronMyElement constructor called.');
   }
@@ -38,6 +40,9 @@ class ElectronMyElement extends UI {
     if (this.backendWs) {
       this.backendWs.close();
     }
+    // Clear any pending notification timeouts
+    this.notificationCleanupTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    this.notificationCleanupTimeouts.clear();
     // stop audio stream tracks
     if (this.audioStream) {
     this.audioStream.getTracks().forEach(track => track.stop());
@@ -154,6 +159,7 @@ class ElectronMyElement extends UI {
       try {
         const message = JSON.parse(event.data);
         
+        // Skip high-frequency status updates to prevent event loop congestion
         if (message.type === 'system.queue_status_update') return;
         
         console.log(`Renderer: 💡 Message received from backend:`, message);
@@ -307,28 +313,25 @@ class ElectronMyElement extends UI {
   _handleNewExplanation(explanation) {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
-    // Import and use the explanationManager from the shared module
-    import('./shared/explanation-manager.js').then(({ explanationManager }) => {
-      if (explanation && explanation.term && explanation.content) {
-        // Add explanation to the manager
-        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
-        explanationManager.addExplanation(
-          explanation.term,
-          explanation.content,
-          explanation.timestamp * 1000, // Convert to milliseconds if needed
-          confidence
-        );
+    // Use the pre-imported explanationManager instead of dynamic imports
+    // to avoid memory accumulation from repeated dynamic imports
+    if (explanation && explanation.term && explanation.content) {
+      // Add explanation to the manager
+      const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+      explanationManager.addExplanation(
+        explanation.term,
+        explanation.content,
+        explanation.timestamp * 1000, // Convert to milliseconds if needed
+        confidence
+      );
 
-        // Show notification about new explanation
-        this._showNotification(`New explanation: ${explanation.term}`, 'success');
+      // Show notification about new explanation
+      this._showNotification(`New explanation: ${explanation.term}`, 'success');
 
-        console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
-      } else {
-        console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
-      }
-    }).catch(error => {
-      console.error('Renderer: ❌ Error importing explanation manager:', error);
-    });
+      console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
+    }
   }
 
   _showNotification(message, type = 'success') {
@@ -341,8 +344,21 @@ class ElectronMyElement extends UI {
       background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
       z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     `;
-    this.shadowRoot.appendChild(notification);
-    setTimeout(() => notification.remove(), 4000);
+    
+    // Add to shadowRoot if it exists
+    if (this.shadowRoot) {
+      this.shadowRoot.appendChild(notification);
+      
+      // Store the timeout ID for cleanup on disconnect
+      const timeoutId = setTimeout(() => {
+        if (notification.parentNode === this.shadowRoot) {
+          this.shadowRoot.removeChild(notification);
+        }
+        this.notificationCleanupTimeouts.delete(timeoutId);
+      }, 4000);
+      
+      this.notificationCleanupTimeouts.add(timeoutId);
+    }
   }
 }
 
