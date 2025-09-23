@@ -127,10 +127,10 @@ class SmallModel:
         try:
             main_model = self.get_main_model()
             if main_model:
-                logger.info("Triggering MainModel processing for new detections")
-                # Treat the entire function as a blocking job and run it in a thread
+                logger.info("Scheduling MainModel processing for new detections.")
+                # Schedule the coroutine to run as a background task.
                 asyncio.create_task(
-                        asyncio.to_thread(main_model.process_detections_queue)
+                        main_model.process_detections_queue()
                     )  # Non-blocking call
             else:
                 logger.warning("MainModel not available for real-time processing")

@@ -102,7 +102,8 @@ class MessageRouter:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Init message missing user_session_id.")
             
             elif message.type == 'stt.transcription':
-                response = await self._small_model.process_message(message)
+                asyncio.create_task(self._small_model.process_message(message))
+                response = None  # Response will be handled asynchronously
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
