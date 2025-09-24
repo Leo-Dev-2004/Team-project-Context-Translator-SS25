@@ -220,7 +220,7 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
                         "id": str(uuid4()),
                         "term": term_data["term"],
                         "context": term_data["context"],
-                        "confidence": term_data["confidence"], #  Maybe not relevant
+                       # "confidence": term_data["confidence"], #  Maybe not relevant
                         "timestamp": term_data["timestamp"],
                         "client_id": message.client_id,
                         "user_session_id": message.payload.get("user_session_id"),
