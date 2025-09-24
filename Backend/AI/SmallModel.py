@@ -220,13 +220,18 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
                         "id": str(uuid4()),
                         "term": term_data["term"],
                         "context": term_data["context"],
-                        "confidence": term_data["confidence"],
                         "timestamp": term_data["timestamp"],
                         "client_id": message.client_id,
                         "user_session_id": message.payload.get("user_session_id"),
                         "original_message_id": message.id,
-                        "status": "pending"
+                        "status": "pending",
+                        "explannation": None
                     }
+                        # Include confidence only when provided by producer (e.g., AI detection),
+                        # manual requests may omit it deliberately.
+                    if "confidence" in term_data and term_data["confidence"] is not None:
+                        queue_entry["confidence"] = term_data["confidence"]
+
                     current_queue.append(queue_entry)
 
                 temp_file = self.detections_queue_file.with_suffix('.tmp')

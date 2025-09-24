@@ -17,34 +17,45 @@ import '@material/web/dialog/dialog.js';
 import './status-bar.js';
 
 export class UI extends LitElement {
-static properties = { activeTab: { type: Number }, domainValue: { type: String }, explanations: { type: Array }, isWindows: { type: Boolean } };
-  constructor() { 
-    super(); 
-    this.activeTab = 0; 
-    this.domainValue=''; 
-    this.explanations=[]; 
-    this.isWindows=false; 
+  static properties = {
+    activeTab: { type: Number },
+    domainValue: { type: String },
+    explanations: { type: Array },
+    isWindows: { type: Boolean },
+    manualTerm: { type: String },
+    serverStatus: { type: String },
+    microphoneStatus: { type: String }
+  };
+  constructor() {
+    super();
+    this.activeTab = 0;
+    this.domainValue = '';
+    this.explanations = [];
+    this.isWindows = false;
+    this.manualTerm = '';
+    this.serverStatus = 'disconnected';
+    this.microphoneStatus = 'disconnected';
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
-    this._explanationListener=(exps)=>{ 
+    this._explanationListener = (exps) => {
       const now = Date.now();
       if (now - this._lastExplanationUpdate >= this._explanationUpdateThrottle) {
-        this.explanations=[...exps]; 
+        this.explanations = [...exps];
         this._lastExplanationUpdate = now;
       } else {
         // Debounce rapid updates
         clearTimeout(this._explanationUpdateTimeout);
         this._explanationUpdateTimeout = setTimeout(() => {
-          this.explanations=[...exps];
+          this.explanations = [...exps];
           this._lastExplanationUpdate = Date.now();
         }, this._explanationUpdateThrottle);
       }
-    }; 
-    explanationManager.addListener(this._explanationListener); 
+    };
+    explanationManager.addListener(this._explanationListener);
   }
-  disconnectedCallback() { 
-    super.disconnectedCallback(); 
-    explanationManager.removeListener(this._explanationListener); 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    explanationManager.removeListener(this._explanationListener);
     clearTimeout(this._explanationUpdateTimeout);
   }
 
@@ -69,7 +80,7 @@ static properties = { activeTab: { type: Number }, domainValue: { type: String }
           <h2 id="dialog-session-code" class="dialog-code"></h2>
         </div>
         <div slot="actions">
-          <md-text-button @click=${()=>this.shadowRoot.querySelector('#session-dialog').close()}>Close</md-text-button>
+          <md-text-button @click=${() => this.shadowRoot.querySelector('#session-dialog').close()}>Close</md-text-button>
         </div>
       </md-dialog>
       <div class="ui-app-container">
@@ -119,12 +130,19 @@ static properties = { activeTab: { type: Number }, domainValue: { type: String }
           <div class="explanations-header">
             <h2 class="headline-medium ocean-accent-text">AI Explanations</h2>
             <div class="explanations-controls">
-              <md-text-button @click=${this._clearAllExplanations}><span class="material-icons">delete</span> Clear All</md-text-button>
-              <md-filled-button @click=${this._addTestExplanation}><span class="material-icons">add</span> Add Test</md-filled-button>
+              <md-outlined-text-field id="manual-term-input" class="manual-term-input" label="Explain a term" placeholder="e.g. OAuth, ROI, Kafka" .value=${this.manualTerm} @input=${this._onManualTermInput} @keydown=${this._onManualKeyDown}>
+                <md-icon-button id="manual-send-button" slot="trailing-icon" class="accent" title="Send" aria-label="Send" @click=${this._sendManualRequest} ?disabled=${!(this.manualTerm && this.manualTerm.trim())}>
+                  <span class="material-icons">send</span>
+                </md-icon-button>
+              </md-outlined-text-field>
+              <md-outlined-button @click=${this._clearAllExplanations}>
+                <span class="material-icons" slot="icon">delete</span>
+                Clear All
+              </md-outlined-button>
             </div>
           </div>
           <div class="explanations-content">
-            ${this.explanations.length===0 ? html`<div class="empty-state"><p>No explanations yet.</p></div>` : html`<div class="explanations-list">
+            ${this.explanations.length === 0 ? html`<div class="empty-state"><p>No explanations yet. Ask for an explanation or wait for one to be generated.</p></div>` : html`<div class="explanations-list">
               ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)}></explanation-item>`)}
             </div>`}
           </div>
@@ -133,42 +151,45 @@ static properties = { activeTab: { type: Number }, domainValue: { type: String }
         return html`<div class="tab-panel">Select a tab</div>`;
     }
   }
-  _onTabChange(e){ this.activeTab = e.target.activeTabIndex; }
-  _onDomainInput(e){ this.domainValue = e.target.value; }
-  _saveSettings(){ console.log('Settings saved:', { domain: this.domainValue }); }
-  _resetSettings(){ this.domainValue=''; }
-  _startSession(){ console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.'); }
-  _joinSession(){ console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.'); }
-  _handlePin(id){ explanationManager.pinExplanation(id); }
-  _handleDelete(id){ explanationManager.deleteExplanation(id); }
-  _handleCopy(explanation){ const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
-  _clearAllExplanations(){ if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
-  _addTestExplanation(){
+  _onTabChange(e) { this.activeTab = e.target.activeTabIndex; }
+  _onDomainInput(e) { this.domainValue = e.target.value; }
+  _saveSettings() { console.log('Settings saved:', { domain: this.domainValue }); }
+  _resetSettings() { this.domainValue = ''; }
+  _startSession() { console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.'); }
+  _joinSession() { console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.'); }
+  _onManualTermInput(e){ this.manualTerm = e.target.value; }
+  _onManualKeyDown(e){ if(e.key === 'Enter'){ e.preventDefault(); this._sendManualRequest(); } }
+  _sendManualRequest(){ console.warn('UI: _sendManualRequest() called, but not implemented. Must be overridden in child class.'); }
+  _handlePin(id) { explanationManager.pinExplanation(id); }
+  _handleDelete(id) { explanationManager.deleteExplanation(id); }
+  _handleCopy(explanation) { const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
+  _clearAllExplanations() { if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
+  _addTestExplanation() {
     const rand = Math.random() * 0.6 + 0.2; // 0.2 - 0.8 for variety
     explanationManager.addExplanation('Test', 'This is a test explanation.', Date.now(), rand);
   }
   // Window control handlers
-  async _winMinimize(){ try{ await window.electronAPI?.windowControls?.minimize(); }catch(e){} }
-  async _winToggleMaximize(){
-    try{
+  async _winMinimize() { try { await window.electronAPI?.windowControls?.minimize(); } catch (e) { } }
+  async _winToggleMaximize() {
+    try {
       const isMax = await window.electronAPI?.windowControls?.isMaximized?.();
       if (isMax) await window.electronAPI?.windowControls?.unmaximize();
       else await window.electronAPI?.windowControls?.maximize();
-    }catch(e){}
+    } catch (e) { }
   }
-  async _winClose(){ try{ await window.electronAPI?.windowControls?.close(); }catch(e){} }
+  async _winClose() { try { await window.electronAPI?.windowControls?.close(); } catch (e) { } }
 
-  async firstUpdated(changed){
+  async firstUpdated(changed) {
     super.firstUpdated?.(changed);
     // Plattform prüfen (nur Windows)
-    try{
+    try {
       this.isWindows = (window.electronAPI?.platform === 'win32');
       // Hole Details, ob frameless aktiv ist
       const plat = await window.electronAPI?.getPlatform?.();
       if (plat && typeof plat.frameless === 'boolean') {
         this.isWindows = this.isWindows && plat.frameless;
       }
-    }catch(_){}
+    } catch (_) { }
     this.requestUpdate();
     // Reagiere auf Maximierungsstatus, um Icon zu wechseln
     const iconEl = () => this.renderRoot?.querySelector?.('#maximize-icon');
@@ -177,10 +198,10 @@ static properties = { activeTab: { type: Number }, domainValue: { type: String }
     // Initialen Zustand setzen
     window.electronAPI?.windowControls?.isMaximized?.().then(isMax => {
       const el = iconEl(); if (el) el.textContent = isMax ? 'filter_none' : 'crop_square';
-    }).catch(()=>{});
+    }).catch(() => { });
   }
 
-  static styles = [ sharedStyles, css`
+  static styles = [sharedStyles, css`
     /* Custom Titlebar */
     .titlebar { height: 32px; display: flex; align-items: center; justify-content: flex-end; background: var(--md-sys-color-surface-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant); position: sticky; top: 0; z-index: 100; -webkit-app-region: drag; }
     .window-controls { display: flex; gap: 4px; padding-right: 6px; -webkit-app-region: no-drag; }
@@ -210,6 +231,13 @@ static properties = { activeTab: { type: Number }, domainValue: { type: String }
     }
     .dialog-code { color: var(--md-sys-color-primary); font-family: 'Roboto Mono', monospace; letter-spacing: 2px; font-size: 2em; text-align: center; margin-top: 8px; user-select: all; }
     
+    * Explanations controls layout */
+    .explanations-header { margin-bottom: 12px; }
+    .explanations-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .explanations-controls md-outlined-text-field.manual-term-input { flex: 1 1 280px; min-width: 220px; width: auto; margin: 0; }
+    .explanations-controls md-filled-button,
+    .explanations-controls md-outlined-button { flex: 0 0 auto; white-space: nowrap; }
+
     /* Status bar positioning */
     status-bar {
       margin: 16px auto;
