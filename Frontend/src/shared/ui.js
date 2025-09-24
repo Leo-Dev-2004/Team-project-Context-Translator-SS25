@@ -33,8 +33,8 @@ export class UI extends LitElement {
     this.explanations = [];
     this.isWindows = false;
     this.manualTerm = '';
-    this.serverStatus = 'disconnected';
-    this.microphoneStatus = 'disconnected';
+    this.serverStatus = 'initializing';
+    this.microphoneStatus = 'initializing';
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
     this._explanationListener = (exps) => {
