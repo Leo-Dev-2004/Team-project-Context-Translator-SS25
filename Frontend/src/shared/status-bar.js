@@ -76,12 +76,13 @@ export class StatusBar extends LitElement {
     .trouble { background-color: #ff9800; }
     .denied { background-color: #f44336; }
     .disconnected { background-color: #cd1d10ff; }
+    .initializing { background-color: #9e9e9e; }
   `;
 
   constructor() {
     super();
-    this.serverStatus = 'disconnected';
-    this.microphoneStatus = 'disconnected';
+    this.serverStatus = 'initializing';
+    this.microphoneStatus = 'initializing';
   }
 
   render() {
