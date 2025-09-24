@@ -102,7 +102,7 @@ class MessageRouter:
             
             elif message.type == 'stt.transcription':
                 asyncio.create_task(self._small_model.process_message(message))
-                response = None  # Die Antwort wird asynchron gehandhabt
+                response = None  # Response will be handled asynchronously
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
