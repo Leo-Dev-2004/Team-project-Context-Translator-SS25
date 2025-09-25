@@ -133,10 +133,24 @@ class MessageRouter:
                     if not term:
                         response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
                     else:
+                        # Generate confidence score for manual request using AI detection
+                        ai_detected_terms = await self._small_model.detect_terms_with_ai(
+                            context,
+                            message.payload.get("user_role")
+                        )
+                        
+                        # Find confidence for the requested term, or use a default confidence for manual requests
+                        confidence = 0.7  # Default confidence for manual requests
+                        for ai_term in ai_detected_terms:
+                            if ai_term.get("term", "").lower() == term.lower():
+                                confidence = ai_term.get("confidence", 0.7)
+                                break
+                        
                         detected_terms = [{
                             "term": term,
                             "timestamp": int(time.time()),
                             "context": context,
+                            "confidence": confidence,
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
                         if success:
