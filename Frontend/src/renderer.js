@@ -6,11 +6,11 @@ import { Howl } from 'howler';
 
 const launch_sound = './Sounds/launch_successful.mp3';
 const click_sound = './Sounds/click.mp3';
+const join_sound = './Sounds/join.mp3';
 const explanation_sound = './Sounds/explanation_received.mp3';
 
 const error_sound = 'NOT IMPLEMENTED YET';
 const notification_sound = 'NOT IMPLEMENTED YET';
-const join_sound = 'NOT IMPLEMENTED YET';
 const leave_sound = 'NOT IMPLEMENTED YET';
 const mute_sound = 'NOT IMPLEMENTED YET';
 const unmute_sound = 'NOT IMPLEMENTED YET';
