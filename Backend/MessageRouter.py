@@ -131,6 +131,7 @@ class MessageRouter:
                     term = (message.payload.get('term') or '').strip()
                     context = (message.payload.get('context') or term).strip()
                     domain = (message.payload.get('domain') or '').strip()
+                    explanation_style = (message.payload.get('explanation_style') or 'detailed').strip()
                     if not term:
                         response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
                     else:
@@ -139,6 +140,7 @@ class MessageRouter:
                             "timestamp": int(time.time()),
                             "context": context,
                             "domain": domain,  # Include domain for AI processing
+                            "explanation_style": explanation_style,  # Include explanation style
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
                         if success:

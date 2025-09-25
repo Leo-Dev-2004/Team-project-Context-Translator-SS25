@@ -224,6 +224,7 @@ Return a JSON **array of objects**. Each object must have these keys:
                         "term": term_data["term"],
                         "context": term_data["context"],
                         "domain": term_data.get("domain", ""),  # Include domain context
+                        "explanation_style": term_data.get("explanation_style", "detailed"),  # Include explanation style
                         "timestamp": term_data["timestamp"],
                         "client_id": message.client_id,
                         "user_session_id": message.payload.get("user_session_id"),

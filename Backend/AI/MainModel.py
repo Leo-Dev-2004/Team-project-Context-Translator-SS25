@@ -77,7 +77,8 @@ class MainModel:
     def mark_as_explained(self, term: str):
         self.explained_terms[term.lower()] = time.time()
 
-    def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
+    def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
+                     explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
         role_context = ""
         if user_role:
             role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
@@ -86,17 +87,31 @@ class MainModel:
         if domain and domain.strip():
             domain_context = f" The explanation should be tailored for someone working in the field of '{domain.strip()}'."
 
+        # Style-specific instructions
+        style_instructions = {
+            "simple": "Provide a brief, easy-to-understand explanation in 1 sentence.",
+            "detailed": "Provide a comprehensive explanation in 2-3 sentences with examples if helpful.",
+            "technical": "Provide an in-depth technical explanation with precise terminology and context.",
+            "beginner": "Provide an explanation suitable for complete beginners, avoiding jargon and using simple analogies."
+        }
+        
+        style_instruction = style_instructions.get(explanation_style, style_instructions["detailed"])
+        
+        retry_instruction = ""
+        if is_retry:
+            retry_instruction = " This is a regeneration request - provide an alternative, more extensive explanation than what might have been given before."
+
         return [
             {
                 "role": "system",
-                "content": f"You are a helpful assistant explaining technical terms in simple, clear language.{role_context}{domain_context}"
+                "content": f"You are a helpful assistant explaining technical terms in clear language.{role_context}{domain_context}{retry_instruction}"
             },
             {
                 "role": "user",
                 "content": f"""Please directly explain the term "{term}" as used in this context:
 "{context}"
 
-{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}Provide a clear, concise explanation in 1-2 sentences. Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
+{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}{style_instruction} Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
             }
         ]
 
@@ -218,39 +233,62 @@ class MainModel:
         
         for entry in pending_detections:
             term = entry["term"]
+            is_retry = entry.get("is_retry", False)
+            explanation_style = entry.get("explanation_style", "detailed")
+            original_explanation_id = entry.get("original_explanation_id")
             
-            if self.is_explained(term):
+            # For retry requests, skip cache and cooldown checks
+            if not is_retry and self.is_explained(term):
                 logger.debug(f"Term '{term}' recently explained, skipping.")
                 continue
 
-            explanation = cache.get(term)
-            if not explanation:
-                logger.info(f"Generating new explanation for '{term}'...")
-                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
+            explanation = None
+            
+            # For retry requests, always generate new explanation
+            if is_retry:
+                logger.info(f"Generating retry explanation for '{term}' with style '{explanation_style}'...")
+                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), 
+                                           explanation_style, is_retry=True, domain=entry.get("domain"))
                 explanation = await self.query_llm(messages)
-
-                if explanation:
-                    cache[term] = explanation
-                    await self.save_cache(cache)
-                    logger.info(f"Generated and cached explanation for '{term}'.")
-                else:
-                    logger.warning(f"Failed to generate explanation for '{term}'.")
-                    continue # Skip to next term if explanation fails
             else:
-                logger.info(f"Loaded explanation for '{term}' from cache.")
+                # Normal flow: check cache first
+                explanation = cache.get(term)
+                if not explanation:
+                    logger.info(f"Generating new explanation for '{term}'...")
+                    messages = self.build_prompt(term, entry["context"], entry.get("user_role"),
+                                               explanation_style, is_retry=False, domain=entry.get("domain"))
+                    explanation = await self.query_llm(messages)
+
+                    if explanation:
+                        cache[term] = explanation
+                        await self.save_cache(cache)
+                        logger.info(f"Generated and cached explanation for '{term}'.")
+                else:
+                    logger.info(f"Loaded explanation for '{term}' from cache.")
+
+            if not explanation:
+                logger.warning(f"Failed to generate explanation for '{term}'.")
+                continue # Skip to next term if explanation fails
 
             # Create and write the final explanation entry
+            message_type = "explanation.retry" if is_retry else "explanation.new"
             explanation_entry = {
                 "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
                 "context": entry["context"], "timestamp": int(time.time()),
                 "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
                 "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                "confidence": entry.get("confidence", 0)
+                "confidence": entry.get("confidence", 0), "message_type": message_type
             }
             
+            # Add original explanation ID for retry responses
+            if is_retry and original_explanation_id:
+                explanation_entry["original_explanation_id"] = original_explanation_id
+            
             if await self.write_explanation_to_queue(explanation_entry):
-                self.mark_as_explained(term)
-                logger.info(f"Successfully processed and queued explanation for term '{term}'.")
+                # Only mark as explained for non-retry requests
+                if not is_retry:
+                    self.mark_as_explained(term)
+                logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
 
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""

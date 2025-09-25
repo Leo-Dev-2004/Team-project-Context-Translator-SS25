@@ -291,6 +291,7 @@ class ElectronMyElement extends UI {
         term,
         context: term, // placeholder; could be extended to use selected text or domain
         domain: this.domainValue || '', // Include domain context for AI processing
+        explanation_style: this.explanationStyle || 'detailed', // Include explanation style preference
         user_session_id: this.userSessionId || null,
       },
     };
@@ -364,6 +365,9 @@ class ElectronMyElement extends UI {
     console.log('Renderer: Applying loaded settings:', settings);
     if (settings.domain) {
       this.domainValue = settings.domain;
+    }
+    if (settings.explanationStyle) {
+      this.explanationStyle = settings.explanationStyle;
     }
   }
 
