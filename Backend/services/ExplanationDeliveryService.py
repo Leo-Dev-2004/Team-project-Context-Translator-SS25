@@ -133,9 +133,12 @@ class ExplanationDeliveryService:
     async def _deliver_explanation(self, explanation: Dict):
         """Format and enqueue a single explanation for delivery."""
         try:
+            # Use the message_type from the explanation, defaulting to "explanation.new"
+            message_type = explanation.get("message_type", "explanation.new")
+            
             message = UniversalMessage(
                 id=f"explanation_delivery_{explanation.get('id', 'unknown')}",
-                type="explanation.new",
+                type=message_type,
                 timestamp=time.time(),
                 payload={
                     "explanation": {
@@ -146,7 +149,8 @@ class ExplanationDeliveryService:
                         "timestamp": explanation.get("timestamp"),
                         "client_id": explanation.get("client_id"),
                         "user_session_id": explanation.get("user_session_id"),
-                        "confidence": explanation.get("confidence", 0)
+                        "confidence": explanation.get("confidence", 0),
+                        "original_explanation_id": explanation.get("original_explanation_id")
                     }
                 },
                 destination="all_frontends", # Simplified to always broadcast
@@ -155,7 +159,7 @@ class ExplanationDeliveryService:
             )
             
             await self.outgoing_queue.enqueue(message)
-            logger.info(f"Delivered explanation for term '{explanation.get('term')}' (id: {explanation.get('id')})")
+            logger.info(f"Delivered {'retry ' if message_type == 'explanation.retry' else ''}explanation for term '{explanation.get('term')}' (id: {explanation.get('id')})")
         except Exception as e:
             logger.error(f"Error delivering explanation {explanation.get('id')}: {e}", exc_info=True)
 
