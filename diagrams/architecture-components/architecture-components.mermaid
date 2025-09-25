@@ -1,0 +1,61 @@
+%% Architecture: Component Diagram (Frontend / Backend Modules)
+%% Filename: diagrams/architecture-components.mermaid
+%% IDs use COMP_ prefix for clarity.
+
+graph LR;
+    %% Theme vars can be injected at render time; keep source neutral.
+
+    subgraph COMP_ELECTRON[Electron App]
+        direction TB
+        COMP_MAIN["COMP_MAIN: main (app lifecycle, IPC)"]
+        COMP_PRELOAD["COMP_PRELOAD: preload bridge (exposes electronAPI)"]
+        COMP_RENDERER["COMP_RENDERER: renderer (UI + WebSocket client)"]
+    end
+
+    subgraph COMP_SHARED[Shared UI Modules]
+        direction TB
+        COMP_UI["COMP_UI: explanation-manager, explanation-item
+(marked renderer)"]
+        COMP_STYLES["COMP_STYLES: styles.js, index.css"]
+    end
+
+    subgraph COMP_BACKEND[FastAPI Backend]
+        direction TB
+        COMP_UVICORN["COMP_UVICORN: uvicorn (HTTP + WS)"]
+        COMP_WS["COMP_WS: WebSocketManager (client registry, broadcast)"]
+        COMP_ROUTER["COMP_ROUTER: MessageRouter (dispatch & queues)"]
+        COMP_DELIV["COMP_DELIV: ExplanationDeliveryService (poller)"]
+        COMP_MM["COMP_MM: MainModel (LLM interface)"]
+        COMP_SM["COMP_SM: SmallModel (detector)"]
+    end
+
+    subgraph COMP_QUEUES[File Queues & Cache]
+        direction TB
+        COMP_DETECTIONS["COMP_DETECTIONS: detections_queue.json"]
+        COMP_EXPLANATIONS["COMP_EXPLANATIONS: explanations_queue.json"]
+        COMP_CACHE["COMP_CACHE: explanation_cache.json"]
+    end
+
+    %% Interfaces / Connections
+    COMP_RENDERER -->|ipc: get-user-session-id, settings| COMP_PRELOAD
+    COMP_PRELOAD -->|expose: electronAPI| COMP_RENDERER
+    COMP_RENDERER -->|ws client_id| COMP_WS
+
+    COMP_WS -->|enqueue| COMP_ROUTER
+    COMP_ROUTER -->|forward| COMP_SM
+    COMP_SM -->|append atomic| COMP_DETECTIONS
+
+    COMP_MM -->|reads| COMP_DETECTIONS
+    COMP_MM -->|writes| COMP_EXPLANATIONS
+    COMP_MM -->|cache read/write| COMP_CACHE
+
+    COMP_DELIV -->|poll| COMP_EXPLANATIONS
+    COMP_DELIV -->|send| COMP_WS
+
+    %% Notes
+    NOTE_IPC["Note: Preload uses CommonJS bridge; keep surface minimal"]
+    COMP_PRELOAD --> NOTE_IPC
+
+    %% Styling hints (for reviewers):
+    %% - Use COMP_ prefix for ids; keep labels short; place interfaces on edges.
+

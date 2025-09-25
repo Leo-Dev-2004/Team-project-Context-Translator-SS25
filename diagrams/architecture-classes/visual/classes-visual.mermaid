@@ -1,0 +1,56 @@
+%% Visual Class Diagram: UniversalMessage & Related Models
+%% For presentations: simplified labels, color, and grouping
+%% Legend: purple = models, gray = attributes
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#8e44ad',
+  'secondaryColor': '#ecf0f1',
+  'tertiaryColor': '#bdc3c7',
+  'fontSize':'16px'
+}}}%%
+
+classDiagram
+    class UniversalMessage {
+        id
+        type
+        payload
+        timestamp
+        origin
+        destination
+        client_id
+        processing_path
+        forwarding_path
+    }
+    class ProcessingPathEntry {
+        component
+        timestamp
+        action
+    }
+    class ForwardingPathEntry {
+        from
+        to
+        timestamp
+    }
+    class Detection {
+        id
+        term
+        context
+        timestamp
+        status
+        user_role
+        confidence
+        client_id
+    }
+    class Explanation {
+        id
+        original_detection_id
+        term
+        explanation
+        timestamp
+        status
+        client_id
+        confidence
+    }
+    UniversalMessage "*" -- "*" ProcessingPathEntry : includes
+    UniversalMessage "*" -- "*" ForwardingPathEntry : includes
+        Detection "1" -- "*" Explanation : explained by

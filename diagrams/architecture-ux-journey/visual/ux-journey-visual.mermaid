@@ -1,0 +1,38 @@
+%% Visual UX Journey Diagram: User Flow & Notifications
+%% For presentations: color, icons, simplified states, German microcopy
+%% Legend: indigo = actions, coral = notifications
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#5c6bc0',
+  'secondaryColor': '#ff6f61',
+  'tertiaryColor': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+journey
+    title Nutzerreise: Kontext-Übersetzer
+    section Sitzung
+      App starten: 1
+      Sitzung erstellen: 2
+      Sitzung beitreten: 2
+      "Sitzung erstellt" (Hinweis): 3
+      "Sitzung beigetreten" (Hinweis): 3
+    section Anfrage
+      Begriff eingeben: 2
+      Anfrage senden: 2
+      "Anfrage gesendet" (Hinweis): 3
+    section Erklärung
+      Erklärung empfangen: 3
+      Erklärung anheften: 2
+      Erklärung löschen: 2
+      Kopieren: 2
+      "Erklärung empfangen" (Hinweis): 3
+    section Feedback
+      Fehler: 1
+      "Fehler aufgetreten" (Hinweis): 3
+      "Erfolg" (Hinweis): 3
+
+%% Legende
+%% 1 = Nutzeraktion
+%% 2 = UI-Interaktion
+%% 3 = Hinweis/Feedback

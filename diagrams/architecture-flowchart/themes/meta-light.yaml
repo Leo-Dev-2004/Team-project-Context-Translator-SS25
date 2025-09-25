@@ -1,0 +1,9 @@
+diagram: architecture-flowchart
+theme: light
+source: ../architecture-flowchart.mermaid
+author: Leo-Dev-2004
+created_at: 2025-09-25T00:00:00Z
+mermaid_cli_version: null
+commit_sha: null
+notes: |
+  Placeholder metadata for the light theme variant. Update `mermaid_cli_version` and `commit_sha` when rendering.

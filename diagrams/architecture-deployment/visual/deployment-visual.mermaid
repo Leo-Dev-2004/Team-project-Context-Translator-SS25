@@ -1,0 +1,29 @@
+%% Deployment Diagram (Visual)
+%% For presentations: color, icons, simplified labels
+%% Layout: left-to-right
+%% Legend: green = host/process, blue = network, teal = queue
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#228B22',
+  'secondaryColor': '#4682B4',
+  'tertiaryColor': '#17A2B8',
+  'background': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+graph LR;
+    HOST_ELECTRON["🖥️ Electron App"]:::host
+    HOST_STT["🎤 STT Service"]:::host
+    HOST_BACKEND["🖧 Backend (FastAPI)"]:::host
+    QUEUE_DETECTIONS["Detections Queue"]:::queue
+    QUEUE_EXPLANATIONS["Explanations Queue"]:::queue
+    CACHE["Cache"]:::queue
+
+    HOST_ELECTRON -- WebSocket 8000 --> HOST_BACKEND
+    HOST_STT -- WebSocket 8000 --> HOST_BACKEND
+    HOST_BACKEND -- File: detections_queue.json --> QUEUE_DETECTIONS
+    HOST_BACKEND -- File: explanations_queue.json --> QUEUE_EXPLANATIONS
+    HOST_BACKEND -- File: explanation_cache.json --> CACHE
+
+    classDef host fill:#228B22,color:#fff,stroke:#145214;
+    classDef queue fill:#17A2B8,color:#fff,stroke:#125e63;

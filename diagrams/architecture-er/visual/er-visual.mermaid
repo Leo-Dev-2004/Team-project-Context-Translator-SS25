@@ -1,0 +1,40 @@
+%% Visual ER Diagram: Queue File Schemas
+%% For presentations: simplified attributes, color, and relationships
+%% Legend: navy = entities, teal = relationships
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#1F3A93',
+  'secondaryColor': '#17A2B8',
+  'tertiaryColor': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+erDiagram
+    ER_Detection {
+        id
+        term
+        context
+        timestamp
+        status
+        user_role
+        confidence
+        client_id
+    }
+    ER_Explanation {
+        id
+        original_detection_id
+        term
+        explanation
+        timestamp
+        status
+        client_id
+        confidence
+    }
+    ER_ExplanationCache {
+        term
+        explanation
+        confidence
+        timestamp
+    }
+    ER_Detection ||--o{ ER_Explanation : "explained by"
+    ER_ExplanationCache ||--o| ER_Explanation : "cache for"

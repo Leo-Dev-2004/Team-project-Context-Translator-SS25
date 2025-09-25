@@ -1,0 +1,94 @@
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#1F3A93',
+  'primaryTextColor': '#ffffff',
+  'secondaryColor': '#17A2B8',
+  'tertiaryColor': '#f5f7fa',
+  'background': '#ffffff',
+  'edgeLabelBackground':'#ffffff',
+  'lineColor':'#163163',
+  'fontSize':'14px'
+}}}%%
+
+%% Light theme variant for architecture-flowchart
+%% This file is a copy of `architecture-flowchart.mermaid` with explicit themeVariables for a light presentation.
+
+graph TD;
+    %% Layout: top-down
+    classDef container fill:#f5f7fa,stroke:#dfe7ef,stroke-width:1px,color:#0b2545;
+    classDef service fill:#1F3A93,stroke:#163163,stroke-width:1px,color:#ffffff;
+    classDef datastore fill:#ffffff,stroke:#17A2B8,stroke-width:1px,color:#0b2545;
+    classDef process fill:#17A2B8,stroke:#125e63,stroke-width:1px,color:#ffffff;
+    classDef note fill:#ffffff,stroke:#cccccc,stroke-width:1px,color:#0b2545;
+
+    %% Subgraphs for runtimes
+    subgraph SUB_SYSTEM[System Runner]
+        direction TB
+        NODE_SYSTEM_RUNNER["SystemRunner\n(start/stop, spawn processes)"]:::container
+    end
+
+    subgraph SUB_STT[STT Service]
+        direction TB
+        NODE_STT["STT Service\n(VAD + faster-whisper)\nWebSocket client"]:::service
+    end
+
+    subgraph SUB_BACKEND[FastAPI Backend]
+        direction TB
+        NODE_UVICORN["uvicorn FastAPI\n(port 8000)"]:::container
+        NODE_WS_MANAGER["WebSocketManager\n(broadcast & client registry)"]:::process
+        NODE_MSG_ROUTER["MessageRouter\n(routing & queues)"]:::process
+        NODE_EXPL_DELIV["ExplanationDeliveryService\n(polls explanations_queue)"]:::process
+        NODE_MAINMODEL["MainModel\n(LLM, processing loop)"]:::process
+        NODE_SMALLMODEL["SmallModel\n(term detector)"]:::process
+        NODE_DETECTIONS["detections_queue.json\n(file-based queue)"]:::datastore
+        NODE_EXPLANATIONS["explanations_queue.json\n(file-based queue)"]:::datastore
+        NODE_CACHE["explanation_cache.json\n(local cache)"]:::datastore
+    end
+
+    subgraph SUB_FRONTEND[Electron Frontend]
+        direction TB
+        NODE_ELECTRON["Electron App\n(renderer + main + preload)"]:::container
+        NODE_UI["UI: explanationManager\nrenderer components"]:::service
+    end
+
+    %% High-level flows
+    NODE_SYSTEM_RUNNER -->|"starts/stops"| NODE_UVICORN
+    NODE_SYSTEM_RUNNER -->|"starts"| NODE_STT
+    NODE_SYSTEM_RUNNER -->|"starts"| NODE_ELECTRON
+
+    %% STT -> Backend (WebSocket)
+    NODE_STT -->|"stt.transcription (UniversalMessage)\nover WebSocket"| NODE_WS_MANAGER
+    NODE_WS_MANAGER -->|"enqueue"| NODE_MSG_ROUTER
+
+    %% MessageRouter dispatch to SmallModel
+    NODE_MSG_ROUTER -->|"forward transcriptions"| NODE_SMALLMODEL
+    NODE_SMALLMODEL -->|"append detection (atomic write)"| NODE_DETECTIONS
+
+    %% MainModel consumes detections and produces explanations
+    NODE_MAINMODEL -->|"reads (lock)"| NODE_DETECTIONS
+    NODE_MAINMODEL -->|"writes (atomic)"| NODE_EXPLANATIONS
+    NODE_MAINMODEL -->|"cache lookup / write"| NODE_CACHE
+
+    %% ExplanationDelivery forwards to websocket out queue
+    NODE_EXPL_DELIV -->|"poll ready explanations"| NODE_EXPLANATIONS
+    NODE_EXPL_DELIV -->|"create UniversalMessage type:explanation.generated"| NODE_WS_MANAGER
+
+    %% WebSocket -> Frontend
+    NODE_WS_MANAGER -->|"deliver to client(s)"| NODE_ELECTRON
+    NODE_ELECTRON -->|"UI: display explanations"| NODE_UI
+
+    %% Notes and legend
+        NOTE_LEGEND["Legend:<br/>- Blue: Services/processes<br/>- Teal border: file-based queues<br/>- White: datastore/cache<br/>- Arrows: data/control flow<br/><br/>Accessibility: high-contrast palette, short node labels, consistent casing"]:::note
+
+        NOTE_ATOMIC["Atomic writes: write to tmp file + os.rename to prevent corruption<br/>(implemented in SmallModel & MainModel)"]:::note
+
+        NODE_DETECTIONS --> NOTE_ATOMIC
+        NODE_EXPLANATIONS --> NOTE_ATOMIC
+
+    %% Styling classes
+    class NODE_STT,NODE_UI service;
+    class NODE_MAINMODEL,NODE_EXPL_DELIV,NODE_MSG_ROUTER process;
+    class NODE_DETECTIONS,NODE_EXPLANATIONS,NODE_CACHE datastore;
+    class NODE_SYSTEM_RUNNER,NODE_UVICORN,NODE_ELECTRON container;
+    class NOTE_LEGEND,NOTE_ATOMIC note;
+
+    %% End of file

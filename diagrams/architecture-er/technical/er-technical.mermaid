@@ -1,0 +1,64 @@
+%% Technical ER Diagram: Queue File Schemas
+%% Context: See CONTEXT.md for full schema definitions and sample records
+
+erDiagram
+    ER_Detection {
+        id
+        term
+        context
+        timestamp
+        status
+        user_role
+        confidence
+        client_id
+    }
+    ER_Explanation {
+        id
+        original_detection_id
+        term
+        explanation
+        timestamp
+        status
+        client_id
+        confidence
+    }
+    ER_ExplanationCache {
+        term
+        explanation
+        confidence
+        timestamp
+    }
+    ER_Detection ||--o{ ER_Explanation : "explained by"
+    ER_ExplanationCache ||--o| ER_Explanation : "cache for"
+
+%% Sample record (Detection)
+%% {
+%%   "id": "det_...",
+%%   "term": "neural network",
+%%   "context": "The speaker is discussing a neural network.",
+%%   "timestamp": 1678886400.0,
+%%   "status": "pending",
+%%   "user_role": "student",
+%%   "confidence": 0.95,
+%%   "client_id": "stt_client_..."
+%% }
+
+%% Sample record (Explanation)
+%% {
+%%   "id": "exp_...",
+%%   "original_detection_id": "det_...",
+%%   "term": "neural network",
+%%   "explanation": "A neural network is a series of algorithms...",
+%%   "timestamp": 1678886401.0,
+%%   "status": "ready_for_delivery",
+%%   "client_id": "stt_client_...",
+%%   "confidence": 0.95
+%% }
+
+%% Sample record (Cache)
+%% {
+%%   "term": "neural network",
+%%   "explanation": "A neural network is a series of algorithms...",
+%%   "confidence": 0.95,
+%%   "timestamp": 1678886401.0
+%% }

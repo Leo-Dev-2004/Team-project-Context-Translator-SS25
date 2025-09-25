@@ -1,0 +1,34 @@
+%% Technical Network Architecture Diagram: Localhost & WebSocket Topology
+%% Context: See CONTEXT.md for connection details and endpoints
+
+graph LR;
+    ElectronFrontend[Electron Frontend]
+    WebSocketManager[Backend WebSocketManager]
+    BackendAPI[Backend API]
+    STTService[STT Service]
+    Client1[Client ID: frontend_1]
+    Client2[Client ID: frontend_2]
+    STTClient[Client ID: stt_client]
+    External[External Integration]
+
+    ElectronFrontend -->|ws://localhost:8000/ws/frontend_1| WebSocketManager
+    ElectronFrontend -->|http://localhost:8000/api| BackendAPI
+    STTService -->|ws://localhost:8000/ws/stt_client| WebSocketManager
+    WebSocketManager --> Client1
+    WebSocketManager --> Client2
+    WebSocketManager --> STTClient
+    WebSocketManager --> External
+    BackendAPI -.->|/health, /explanation| ElectronFrontend
+
+    subgraph Localhost
+        ElectronFrontend
+        WebSocketManager
+        BackendAPI
+        STTService
+    end
+
+%% Notes:
+%% - Each frontend and STT service has a unique client_id for WebSocket
+%% - WebSocketManager can support multiple clients
+%% - CSP restricts connections to localhost:5174 and :8000
+%% - External integrations possible via additional endpoints

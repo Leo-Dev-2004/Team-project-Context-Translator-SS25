@@ -1,0 +1,55 @@
+%% Sequence Diagram: Realtime Message Flow
+%% Participants: STT Service, WebSocketManager, MessageRouter, SmallModel, MainModel, ExplanationDeliveryService, Frontend
+
+sequenceDiagram
+    autonumber
+    participant STT as STT Service
+    participant WS as WebSocketManager
+    participant MR as MessageRouter
+    participant SM as SmallModel
+    participant MM as MainModel
+    participant ED as ExplanationDeliveryService
+    participant FE as Frontend (Electron)
+
+    %% Startup / Handshake
+    STT->>WS: connect /ws/{client_id}
+    note right of WS: register client_id
+    FE->>WS: connect /ws/{client_id}
+    note right of WS: register frontend client
+
+    %% STT sends transcription
+    STT->>WS: send UniversalMessage(type: "stt.transcription", payload: {text})
+    WS->>MR: enqueue incoming message
+    MR->>SM: forward transcription message
+
+    %% SmallModel detects terms
+    SM->>MR: write detection to detections_queue.json (atomic write)
+    MR-->>WS: ack (optional)
+
+    %% MainModel consumes detections
+    MM->>detections_queue.json: read pending items (lock)
+    MM-->>MM: cache lookup for term
+    alt cache miss
+        MM->>LLM: request explanation (HTTP async)
+        LLM-->>MM: explanation text
+    end
+    MM->>explanations_queue.json: write explanation (atomic write)
+
+    %% ExplanationDeliveryService polls and forwards
+    ED->>explanations_queue.json: poll ready_for_delivery
+    ED->>WS: enqueue UniversalMessage(type:"explanation.generated", payload:{explanation})
+
+    %% WebSocketManager delivers to frontend
+    WS->>FE: deliver explanation.generated
+    FE->>FE: add to explanationManager (persist to sessionStorage)
+
+    %% Error path: MainModel LLM failure
+    MM->>MM: retry or fallback to regex fallback
+    alt fallback used
+        MM->>explanations_queue.json: write cached/fallback explanation
+    else fail
+        MM->>explanations_queue.json: write explanation with status:error
+    end
+
+    %% End
+    note over FE,STT: Messages labeled with `UniversalMessage.type` for clarity and traceability

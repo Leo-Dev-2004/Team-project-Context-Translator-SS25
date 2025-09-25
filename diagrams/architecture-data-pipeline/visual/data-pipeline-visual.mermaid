@@ -1,0 +1,37 @@
+%% Visual Data Pipeline Diagram: AI Processing Flow
+%% For presentations: color, icons, simplified flow, atomic write note
+%% Legend: blue = processing, accent = LLM/cache/fallback
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#1976d2',
+  'secondaryColor': '#00bcd4',
+  'tertiaryColor': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+graph TD;
+    STT[STT]
+    Detector[Term Detector]
+    DQueue[Detections Queue]
+    Explainer[Explanation Generator]
+    EQueue[Explanations Queue]
+    Cache[Cache]
+    Delivery[Delivery Service]
+    WS[WebSocket]
+    UI[Frontend]
+
+    STT --> Detector
+    Detector --> DQueue
+    DQueue --> Explainer
+    Explainer --> EQueue
+    Explainer --> Cache
+    Cache --> Explainer
+    Explainer --> Detector
+    EQueue --> Delivery
+    Delivery --> WS
+    WS --> UI
+
+  DQueue --> DQueue
+  EQueue --> EQueue
+
+%% Note: All queue writes are atomic (tmp file + rename)

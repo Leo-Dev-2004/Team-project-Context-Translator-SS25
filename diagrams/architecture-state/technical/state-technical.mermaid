@@ -1,0 +1,19 @@
+%% State Diagram (Technical)
+%% For engineering: explicit transitions, timestamps, retry logic
+
+stateDiagram-v2
+    [*] --> STATE_DETECTION
+    STATE_DETECTION --> STATE_PENDING: Pending (t0)
+    STATE_PENDING --> STATE_PROCESSED: Processed (t1)
+    STATE_PROCESSED --> STATE_READY: Ready for Delivery (t2)
+    STATE_READY --> STATE_DELIVERED: Delivered (t3)
+    STATE_PROCESSED --> STATE_ERROR: Error (retry)
+    STATE_ERROR --> STATE_PENDING: Retry (max 3)
+    STATE_DELIVERED --> [*]
+
+      Error state triggers retry logic
+      Max retries: 3, then alert
+    end
+  note right of STATE_ERROR: Error state triggers retry logic, max 3 retries then alert
+
+    note right of STATE_DELIVERED: Explanation delivered to client

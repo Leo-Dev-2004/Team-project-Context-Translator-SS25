@@ -1,0 +1,50 @@
+%% Technical Class Diagram: UniversalMessage & Related Models
+%% Context: See CONTEXT.md for full field definitions and relationships
+
+classDiagram
+    class UniversalMessage {
+        +string id
+        +string type
+        +Dict payload
+        +float timestamp
+        +string origin
+        +string destination
+        +string client_id
+        +List~ProcessingPathEntry~ processing_path
+        +List~ForwardingPathEntry~ forwarding_path
+    }
+    class ProcessingPathEntry {
+        +string component
+        +float timestamp
+        +string action
+    }
+    class ForwardingPathEntry {
+        +string from
+        +string to
+        +float timestamp
+    }
+    class Detection {
+        +string id
+        +string term
+        +string context
+        +float timestamp
+        +string status
+        +string user_role
+        +float confidence
+        +string client_id
+    }
+    class Explanation {
+        +string id
+        +string original_detection_id
+        +string term
+        +string explanation
+        +float timestamp
+        +string status
+        +string client_id
+        +float confidence
+    }
+    UniversalMessage "*" -- "*" ProcessingPathEntry : includes
+    UniversalMessage "*" -- "*" ForwardingPathEntry : includes
+    UniversalMessage "1" -- "*" Detection : may reference
+    UniversalMessage "1" -- "*" Explanation : may reference
+    Detection "1" -- "*" Explanation : explained by

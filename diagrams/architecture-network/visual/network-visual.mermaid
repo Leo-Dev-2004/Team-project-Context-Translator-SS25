@@ -1,0 +1,31 @@
+%% Visual Network Architecture Diagram: Localhost & WebSocket Topology
+%% For presentations: color, simplified endpoints, client clusters
+%% Legend: grey = hosts, accent = active connections
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#607d8b',
+  'secondaryColor': '#00bcd4',
+  'tertiaryColor': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+graph LR;
+    Frontend[Frontend]
+    Backend[Backend]
+    STT[STT]
+    Clients[Clients]
+    External[External]
+
+    Frontend -->|WebSocket| Backend
+    STT -->|WebSocket| Backend
+    Backend --> Clients
+    Backend --> External
+    Frontend -->|API| Backend
+
+    subgraph Localhost
+        Frontend
+        Backend
+        STT
+    end
+
+%% Note: Each client has a unique ID, connections are restricted by CSP

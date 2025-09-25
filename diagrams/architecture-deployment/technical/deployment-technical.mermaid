@@ -1,0 +1,20 @@
+%% Deployment Diagram (Technical)
+%% For engineering: explicit ports, process boundaries, file paths
+%% Layout: left-to-right
+
+graph LR;
+    PROC_ELECTRON["Electron App\nmain.js, preload.js, renderer.js\nPort: 5174"]:::proc
+    PROC_STT["STT Service\ntranscribe.py\nPort: (dynamic)"]:::proc
+    PROC_BACKEND["Backend (FastAPI)\nbackend.py\nPort: 8000"]:::proc
+    FILE_DETECTIONS["detections_queue.json\n/home/Leo/Documents/Teamprojekt/ContextTranslator/Backend/AI/detections_queue.json"]:::file
+    FILE_EXPLANATIONS["explanations_queue.json\n/home/Leo/Documents/Teamprojekt/ContextTranslator/Backend/AI/explanations_queue.json"]:::file
+    FILE_CACHE["explanation_cache.json\n/home/Leo/Documents/Teamprojekt/ContextTranslator/Backend/AI/explanation_cache.json"]:::file
+
+    PROC_ELECTRON -- ws://localhost:8000/ws/{client_id} --> PROC_BACKEND
+    PROC_STT -- ws://localhost:8000/ws/{client_id} --> PROC_BACKEND
+    PROC_BACKEND -- atomic write --> FILE_DETECTIONS
+    PROC_BACKEND -- atomic write --> FILE_EXPLANATIONS
+    PROC_BACKEND -- cache read/write --> FILE_CACHE
+
+    classDef proc fill:#f5f7fa,stroke:#228B22,stroke-width:2px,color:#145214;
+    classDef file fill:#fff,stroke:#4682B4,stroke-width:2px,color:#145214;

@@ -1,0 +1,34 @@
+%% Technical Data Pipeline Diagram: AI Processing Flow
+%% Context: See CONTEXT.md for full pipeline logic and atomic write details
+
+graph TD;
+    STTService(STT Service)
+    SmallModel(SmallModel: Term Detector)
+    DetectionsQueue(detections_queue.json)
+    MainModel(MainModel: Explanation Generator)
+    ExplanationsQueue(explanations_queue.json)
+    ExplanationCache(explanation_cache.json)
+    DeliveryService(ExplanationDeliveryService)
+    WebSocketManager(WebSocketManager)
+    Frontend(Electron Frontend)
+
+    STTService -->|Transcribed Text| SmallModel
+    SmallModel -->|Detected Terms| DetectionsQueue
+    DetectionsQueue -->|Pending Terms| MainModel
+    MainModel -->|Explanations| ExplanationsQueue
+    MainModel -->|Cache Lookup| ExplanationCache
+    ExplanationCache -->|Cached Explanation| MainModel
+    MainModel -->|Fallback| SmallModel
+    ExplanationsQueue -->|Ready Explanations| DeliveryService
+    DeliveryService -->|UniversalMessage| WebSocketManager
+    WebSocketManager -->|explanation.generated| Frontend
+
+    DetectionsQueue --> DetectionsQueue
+    ExplanationsQueue --> ExplanationsQueue
+    %% All queue writes use atomic tmp file + rename for reliability
+
+%% Notes:
+%% - All queue writes use atomic tmp file + rename for reliability
+%% - MainModel checks cache before LLM call
+%% - Fallback logic triggers basic keyword matching if LLM fails
+%% - DeliveryService updates status after delivery

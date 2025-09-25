@@ -1,0 +1,21 @@
+%% State Diagram (Visual)
+%% For presentations: color, icons, simplified transitions
+%% Legend: amber = transient, green = delivered, red = error
+
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor': '#FFBF00',
+  'secondaryColor': '#28a745',
+  'tertiaryColor': '#dc3545',
+  'background': '#f5f7fa',
+  'fontSize':'16px'
+}}}%%
+
+stateDiagram-v2
+    [*] --> Detection
+    Detection --> Pending
+    Pending --> Processed
+    Processed --> ReadyForDelivery
+    ReadyForDelivery --> Delivered
+    Processed --> Error
+    Error --> Pending
+    Delivered --> [*]
