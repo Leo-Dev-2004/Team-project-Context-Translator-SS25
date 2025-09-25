@@ -159,7 +159,7 @@ class MessageRouter:
                             "timestamp": int(time.time()),
                             "context": context,
                             "domain": domain,  # Include domain for AI processing
-                            "confidence": confidence
+                            "confidence": confidence,
                             "explanation_style": explanation_style,  # Include explanation style
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
