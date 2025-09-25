@@ -1,6 +1,23 @@
 import { UI } from './shared/index.js';
 import { explanationManager } from './shared/explanation-manager.js';
 import './shared/index.css';
+import { Howl } from 'howler';
+
+
+const launch_sound = './Sounds/launch_successful.mp3';
+const click_sound = './Sounds/click.mp3';
+const join_sound = './Sounds/join.mp3';
+const explanation_sound = './Sounds/explanation_received.mp3';
+
+const error_sound = 'NOT IMPLEMENTED YET';
+const notification_sound = 'NOT IMPLEMENTED YET';
+const leave_sound = 'NOT IMPLEMENTED YET';
+const mute_sound = 'NOT IMPLEMENTED YET';
+const unmute_sound = 'NOT IMPLEMENTED YET';
+
+
+
+
 
 class ElectronMyElement extends UI {
   constructor() {
@@ -23,6 +40,9 @@ class ElectronMyElement extends UI {
 
   // Use firstUpdated for main application initialization
   async firstUpdated(changedProperties) {
+    // play launch sound
+    // playSound(launch_sound);   // maybe another first sound for app startup?
+
     super.firstUpdated(changedProperties); // Call super.firstUpdated first
   // Hauptinitialisierung erfolgt über connectedCallback (Electron/WebSocket)
   // Entfernt: initializeApplication (nicht definiert) und doppelte Electron-Init
@@ -61,7 +81,6 @@ class ElectronMyElement extends UI {
       }
     });
     this.activeNotifications.clear();
-    
     console.log('Renderer: ⚙️ disconnectedCallback: All resources cleaned up.');
 
     // Clear any pending notification timeouts
@@ -71,6 +90,7 @@ class ElectronMyElement extends UI {
     if (this.audioStream) {
     this.audioStream.getTracks().forEach(track => track.stop());
   }
+    playSound(leave_sound);
     console.log('Renderer: ⚙️ disconnectedCallback: WebSocket connection cleaned up.');
   }
 
@@ -92,11 +112,13 @@ class ElectronMyElement extends UI {
     audioTrack.onmute = () => {
       console.log('Renderer: 🎤 Microphone is muted.');
       this.updateMicrophoneStatus('muted');
+      playSound(mute_sound);
     };
 
     audioTrack.onunmute = () => {
       console.log('Renderer: 🎤 Microphone is unmuted.');
       this.updateMicrophoneStatus('connected');
+      playSound(unmute_sound);
     };
 
     // Initial status check in case the microphone is already muted at startup
@@ -114,16 +136,17 @@ class ElectronMyElement extends UI {
       // The user denied access to the microphone
       console.warn('Renderer: 🎤 Microphone access denied by user.');
       this.updateMicrophoneStatus('denied'); // Clear status for "denied"
-
+      playSound(error_sound);
     } else if (error.name === 'NotFoundError') {
       // No microphone found on the system
       console.warn('Renderer: 🎤 No microphone found.');
       this.updateMicrophoneStatus('not-found'); // Clear status for "not found"
-
+      playSound(error_sound);
     } else {
       // Other unexpected errors (e.g. hardware issues)
       console.error('Renderer: 🎤 An unexpected error occurred.');
       this.updateMicrophoneStatus('trouble'); // General error status
+      playSound(error_sound);
     }
     }
   }
@@ -135,14 +158,22 @@ class ElectronMyElement extends UI {
     const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
 
     if (createSessionButton) {
-      createSessionButton.addEventListener('click', () => this._startSession());
+      createSessionButton.addEventListener('click', () => {
+        playSound(click_sound);
+        this._startSession();
+      });
     } else {
+      playSound(error_sound);
       console.error("Renderer: ❌ 'Create Session' button not found.");
     }
     
     if (joinSessionButton) {
-      joinSessionButton.addEventListener('click', () => this._joinSession());
+      joinSessionButton.addEventListener('click', () => {
+        playSound(join_sound);
+        this._joinSession();
+      });
     } else {
+      playSound(error_sound); 
       console.error("Renderer: ❌ 'Join Session' button not found.");
     }
 
@@ -225,6 +256,7 @@ class ElectronMyElement extends UI {
       console.log('Renderer: ✅ WebSocket connection established.');
       this.updateServerStatus('connected');
       this._performHandshake();
+      playSound(launch_sound);
     };
 
     this.backendWs.onmessage = (event) => {
@@ -245,22 +277,27 @@ class ElectronMyElement extends UI {
     this.backendWs.onerror = (error) => {
       this.updateServerStatus('trouble');
       this._showNotification('WebSocket connection failed', 'error');
+      playSound(error_sound);
     };
     this.backendWs.onclose = () => {
       this.updateServerStatus('disconnected');
       console.log('Renderer: ⚙️ WebSocket connection closed.');
+      playSound(leave_sound);
+      // Optionally implement reconnection logic here
     };
   }
 
   async _performHandshake() {
     if (!window.electronAPI) {
         return console.error("Renderer: Electron API not available for handshake.");
+        playSound(error_sound);
     }
     const userSessionId = await window.electronAPI.getUserSessionId();
     this.userSessionId = userSessionId;
     
     if (!userSessionId) {
         return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
+        playSound(error_sound);
     }
 
     console.log(`Renderer: 🚀 Sending "frontend.init" with User Session ID: ${userSessionId}`);
@@ -532,4 +569,11 @@ if (!customElements.get('my-element')) {
   window.customElements.define('my-element', ElectronMyElement);
 } else {
   console.warn("Renderer: Custom element 'my-element' is already defined.");
+}
+
+function playSound(path) {
+  const launchSound = new Howl({
+    src: [path] // The path is relative to the `index.html` file
+  });
+  launchSound.play();
 }
