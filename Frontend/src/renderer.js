@@ -293,6 +293,7 @@ class ElectronMyElement extends UI {
         term,
         context: term, // placeholder; could be extended to use selected text or domain
         domain: this.domainValue || '', // Include domain context for AI processing
+        explanation_style: this.explanationStyle || 'detailed', // Include explanation style preference
         user_session_id: this.userSessionId || null,
       },
     };
@@ -389,6 +390,9 @@ class ElectronMyElement extends UI {
     } catch (error) {
       console.error('Renderer: Error saving settings:', error);
       this._showNotification('Error saving settings', 'error');
+    }
+    if (settings.explanationStyle) {
+      this.explanationStyle = settings.explanationStyle;
     }
   }
 

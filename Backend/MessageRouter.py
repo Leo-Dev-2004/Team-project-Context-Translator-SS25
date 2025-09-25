@@ -102,10 +102,10 @@ class MessageRouter:
             
             elif message.type == 'stt.transcription':
                 # Block empty transcriptions before passing to SmallModel
-                transcribed_text = message.payload.get("text", "")
-                if not transcribed_text or not transcribed_text.strip():
-                    logger.warning(f"MessageRouter: Blocked empty transcription from client {message.client_id}.")
-                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Empty transcription received.")
+                transcribed_text = message.payload.get("text", "").strip()
+                if not transcribed_text:
+                    logger.warning(f"MessageRouter: Blocked empty transcription from client {message.client_id}")
+                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Empty transcription text not allowed.")
                 else:
                     asyncio.create_task(self._small_model.process_message(message))
                     response = None  # Response will be handled asynchronously
@@ -137,6 +137,7 @@ class MessageRouter:
                     term = (message.payload.get('term') or '').strip()
                     context = (message.payload.get('context') or term).strip()
                     domain = (message.payload.get('domain') or '').strip()
+                    explanation_style = (message.payload.get('explanation_style') or 'detailed').strip()
                     if not term:
                         response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
                     else:
@@ -159,6 +160,7 @@ class MessageRouter:
                             "context": context,
                             "domain": domain,  # Include domain for AI processing
                             "confidence": confidence
+                            "explanation_style": explanation_style,  # Include explanation style
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
                         if success:

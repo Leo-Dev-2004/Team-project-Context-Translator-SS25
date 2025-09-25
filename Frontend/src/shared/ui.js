@@ -182,7 +182,10 @@ export class UI extends LitElement {
   _onExplanationStyleChange(e) { this.explanationStyle = e.target.value; }
   async _saveSettings() { 
     if (window.electronAPI) {
-      const result = await window.electronAPI.saveSettings({ domain: this.domainValue });
+      const result = await window.electronAPI.saveSettings({ 
+        domain: this.domainValue,
+        explanationStyle: this.explanationStyle 
+      });
       if (result.success) {
         console.log('Settings saved successfully:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
         this._showNotificationIfAvailable?.('Settings saved successfully', 'success');
@@ -191,13 +194,14 @@ export class UI extends LitElement {
         this._showNotificationIfAvailable?.('Failed to save settings', 'error');
       }
     } else {
-      console.log('Settings saved (web mode):', { domain: this.domainValue });
+      console.log('Settings saved (web mode):', { domain: this.domainValue, explanationStyle: this.explanationStyle });
     }
   }
   async _resetSettings() { 
-    this.domainValue = ''; this.explanationStyle = 'detailed'; 
+    this.domainValue = ''; 
+    this.explanationStyle = 'detailed';
     if (window.electronAPI) {
-      const result = await window.electronAPI.saveSettings({ domain: '' });
+      const result = await window.electronAPI.saveSettings({ domain: '', explanationStyle: 'detailed' });
       if (result.success) {
         this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
       }
@@ -213,12 +217,17 @@ export class UI extends LitElement {
     if (window.electronAPI) {
       try {
         const result = await window.electronAPI.loadSettings();
-        if (result.success && result.settings?.domain) {
-          this.domainValue = result.settings.domain;
-          console.log('Domain settings loaded:', this.domainValue);
+        if (result.success && result.settings) {
+          if (result.settings.domain) {
+            this.domainValue = result.settings.domain;
+          }
+          if (result.settings.explanationStyle) {
+            this.explanationStyle = result.settings.explanationStyle;
+          }
+          console.log('Settings loaded:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
         }
       } catch (error) {
-        console.error('Failed to load domain settings:', error);
+        console.error('Failed to load settings:', error);
       }
     }
   }
@@ -314,6 +323,11 @@ export class UI extends LitElement {
     /* Add spacing between status bar and tabs */
     md-tabs {
       margin-top: 16px;
+    }
+
+    /* Style field */
+    .style-field {
+      --md-outlined-select-text-field-container-height: 64px;
     }
   ` ];
 }
