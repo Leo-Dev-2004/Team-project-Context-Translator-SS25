@@ -101,8 +101,14 @@ class MessageRouter:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Init message missing user_session_id.")
             
             elif message.type == 'stt.transcription':
-                asyncio.create_task(self._small_model.process_message(message))
-                response = None  # Response will be handled asynchronously
+                # Block empty transcriptions before passing to SmallModel
+                transcribed_text = message.payload.get("text", "").strip()
+                if not transcribed_text:
+                    logger.warning(f"MessageRouter: Blocked empty transcription from client {message.client_id}")
+                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Empty transcription text not allowed.")
+                else:
+                    asyncio.create_task(self._small_model.process_message(message))
+                    response = None  # Response will be handled asynchronously
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
