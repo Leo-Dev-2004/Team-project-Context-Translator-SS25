@@ -101,8 +101,14 @@ class MessageRouter:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Init message missing user_session_id.")
             
             elif message.type == 'stt.transcription':
-                asyncio.create_task(self._small_model.process_message(message))
-                response = None  # Response will be handled asynchronously
+                # Block empty transcriptions before passing to SmallModel
+                transcribed_text = message.payload.get("text", "").strip()
+                if not transcribed_text:
+                    logger.warning(f"MessageRouter: Blocked empty transcription from client {message.client_id}")
+                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Empty transcription text not allowed.")
+                else:
+                    asyncio.create_task(self._small_model.process_message(message))
+                    response = None  # Response will be handled asynchronously
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
@@ -130,13 +136,31 @@ class MessageRouter:
                 try:
                     term = (message.payload.get('term') or '').strip()
                     context = (message.payload.get('context') or term).strip()
+                    domain = (message.payload.get('domain') or '').strip()
+                    explanation_style = (message.payload.get('explanation_style') or 'detailed').strip()
                     if not term:
                         response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
                     else:
+                        # Generate confidence score for manual request using AI detection
+                        ai_detected_terms = await self._small_model.detect_terms_with_ai(
+                            context,
+                            message.payload.get("user_role")
+                        )
+                        
+                        # Find confidence for the requested term, or use a default confidence for manual requests
+                        confidence = 0.7  # Default confidence for manual requests
+                        for ai_term in ai_detected_terms:
+                            if ai_term.get("term", "").lower() == term.lower():
+                                confidence = ai_term.get("confidence", 0.7)
+                                break
+                        
                         detected_terms = [{
                             "term": term,
                             "timestamp": int(time.time()),
                             "context": context,
+                            "domain": domain,  # Include domain for AI processing
+                            "confidence": confidence,
+                            "explanation_style": explanation_style,  # Include explanation style
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
                         if success:
@@ -146,6 +170,34 @@ class MessageRouter:
                 except Exception as e:
                     logger.error(f"Error handling manual.request: {e}", exc_info=True)
                     response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during manual.request.")
+
+            elif message.type == 'explanation.retry':
+                # Allow users to request a regenerated explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    original_explanation_id = message.payload.get('original_explanation_id')
+                    explanation_style = message.payload.get('explanation_style', 'detailed')
+                    
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in explanation.retry payload.")
+                    else:
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "context": context,
+                            "explanation_style": explanation_style,
+                            "original_explanation_id": original_explanation_id,
+                            "is_retry": True
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"explanation.retry accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue retry detection.")
+                except Exception as e:
+                    logger.error(f"Error handling explanation.retry: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during explanation.retry.")
 
             elif message.type == 'ping':
                 response = self._create_pong_message(message)

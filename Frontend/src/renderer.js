@@ -238,6 +238,8 @@ class ElectronMyElement extends UI {
       this._showNotification(message.payload.error, 'error');
     } else if (message.type === 'explanation.new') {
       this._handleNewExplanation(message.payload.explanation);
+    } else if (message.type === 'explanation.retry') {
+      this._handleRetryExplanation(message.payload.explanation);
     }
   }
 
@@ -327,6 +329,8 @@ class ElectronMyElement extends UI {
       payload: {
         term,
         context: term, // placeholder; could be extended to use selected text or domain
+        domain: this.domainValue || '', // Include domain context for AI processing
+        explanation_style: this.explanationStyle || 'detailed', // Include explanation style preference
         user_session_id: this.userSessionId || null,
       },
     };
@@ -398,7 +402,70 @@ class ElectronMyElement extends UI {
 
   _loadSettingsFromElectron(settings) {
     console.log('Renderer: Applying loaded settings:', settings);
-    // Example: this.domainValue = settings.domain || '';
+    if (settings.domain) this.domainValue = settings.domain;
+    if (settings.explanationStyle) this.explanationStyle = settings.explanationStyle;
+  }
+
+  // Override settings methods from base UI class
+  async _saveSettings() {
+    if (!window.electronAPI) {
+      return console.error("Renderer: window.electronAPI not available for saving settings.");
+    }
+
+    const settings = {
+      domain: this.domainValue,
+      explanationStyle: this.explanationStyle
+    };
+
+    try {
+      const result = await window.electronAPI.saveSettings(settings);
+      if (result.success) {
+        this._showNotification('Settings saved successfully', 'success');
+      } else {
+        this._showNotification('Failed to save settings', 'error');
+      }
+    } catch (error) {
+      console.error('Renderer: Error saving settings:', error);
+      this._showNotification('Error saving settings', 'error');
+    }
+    if (settings.explanationStyle) {
+      this.explanationStyle = settings.explanationStyle;
+    }
+  }
+
+  _resetSettings() {
+    super._resetSettings(); // Reset the base values
+    this._saveSettings(); // Save the reset values
+  }
+
+  // Override regenerate handler
+  _handleRegenerate(explanation) {
+    if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
+      return this._showNotification('No connection to backend', 'error');
+    }
+
+    console.log('Renderer: Sending regenerate request for explanation:', explanation);
+    
+    const message = {
+      id: crypto.randomUUID(),
+      type: 'explanation.retry',
+      timestamp: Date.now() / 1000,
+      payload: {
+        original_explanation_id: explanation.id,
+        term: explanation.title,
+        context: explanation.title, // Use the term as context or could be extended
+        user_session_id: this.userSessionId || null,
+        explanation_style: this.explanationStyle
+      },
+    };
+
+    try {
+      this.backendWs.send(JSON.stringify(message));
+      this._showNotification(`Regenerating explanation for "${explanation.title}"`, 'success');
+    } catch (error) {
+      console.error('Renderer: Error sending regenerate request:', error);
+      this._showNotification('Failed to send regenerate request', 'error');
+    }
   }
 
   _handleNewExplanation(explanation) {
@@ -424,6 +491,43 @@ class ElectronMyElement extends UI {
       console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
+    }
+  }
+
+  _handleRetryExplanation(explanation) {
+    console.log('Renderer: 🔄 Retry explanation received:', explanation);
+
+    if (explanation && explanation.term && explanation.content) {
+      // Update the existing explanation or add as new one
+      const originalId = explanation.original_explanation_id;
+      if (originalId) {
+        // Try to update the existing explanation
+        const updated = explanationManager.updateExplanation(originalId, {
+          content: explanation.content,
+          timestamp: explanation.timestamp * 1000,
+          confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null
+        });
+        
+        if (updated) {
+          this._showNotification(`Updated explanation: ${explanation.term}`, 'success');
+          console.log(`Renderer: ✅ Updated explanation for "${explanation.term}"`);
+          return;
+        }
+      }
+      
+      // If update failed or no original ID, add as new explanation
+      const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+      explanationManager.addExplanation(
+        explanation.term,
+        explanation.content,
+        explanation.timestamp * 1000,
+        confidence
+      );
+
+      this._showNotification(`Regenerated explanation: ${explanation.term}`, 'success');
+      console.log(`Renderer: ✅ Added regenerated explanation for "${explanation.term}"`);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid retry explanation data received:', explanation);
     }
   }
 

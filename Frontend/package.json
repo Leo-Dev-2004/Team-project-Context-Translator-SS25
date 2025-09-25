@@ -23,9 +23,10 @@
   },
   "dependencies": {
     "@material/web": "^2.3.0",
-    "@open-wc/testing": "^4.0.0",
-    "@web/test-runner": "^0.18.2",
-    "chai": "^5.1.1",
+    "lit": "^3.3.0",
+    "marked": "^15.0.12"
+  },
+  "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^38.1.0",

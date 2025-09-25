@@ -129,7 +129,7 @@ md-tabs {
 }
 
 /* Buttons - Vereinheitlicht */
-.btn, .action-button, .copy-button, .expand-icon {
+.btn, .action-button, .copy-button, .regenerate-button, .expand-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -159,7 +159,7 @@ md-tabs {
 	color: var(--md-sys-color-primary);
 }
 
-.btn:hover, .action-button:hover, .copy-button:hover {
+.btn:hover, .action-button:hover, .copy-button:hover, .regenerate-button:hover {
 	transform: translateY(-1px);
 	box-shadow: var(--shadow-md);
 }
@@ -261,6 +261,26 @@ md-tabs {
 	margin-top: var(--space-md);
 }
 
+.footer-actions {
+	display: flex;
+	gap: var(--space-sm);
+	align-items: center;
+}
+
+.regenerate-button {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.regenerate-button:hover {
+	background: color-mix(in srgb, var(--md-sys-color-secondary-container) 85%, var(--md-sys-color-on-secondary-container));
+}
+
+.copy-button {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
 .explanation-content {
 	max-height: 0;
 	overflow: hidden;
@@ -283,6 +303,14 @@ md-tabs {
 md-outlined-text-field, md-outlined-select {
 	width: 100%;
 	margin-bottom: var(--space-md);
+}
+
+.domain-input-group, .style-input-group {
+	margin-top: var(--space-sm);
+}
+
+.style-field {
+	--md-outlined-select-text-field-container-height: 64px;
 }
 
 /* Clear Button im Textfeld */

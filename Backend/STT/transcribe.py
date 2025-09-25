@@ -74,7 +74,9 @@ class STTService:
 
     async def _send_sentence(self, websocket, sentence: str):
         """Formats and sends a transcribed sentence over the WebSocket."""
-        if not sentence or not sentence.strip(): return
+        if not sentence or not sentence.strip():
+            logger.warning("STTService: Blocked empty or whitespace-only transcription from being sent.")
+            return
 
         transcription_logger.info(sentence)
         message = {

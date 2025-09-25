@@ -34,18 +34,23 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-  // Security hardening
-  webSecurity: true,
-  allowRunningInsecureContent: false,
-    },
-  // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
-  frame: isFrameless ? false : true,
-  titleBarStyle: isFrameless ? 'hidden' : 'default',
+      // Security hardening
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      spellcheck: true
+      },
+    // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
+    frame: isFrameless ? false : true,
+    titleBarStyle: isFrameless ? 'hidden' : 'default',
     autoHideMenuBar: true,
     show: false,
     icon: join(__dirname, '../assets/icon.png')
   });
   console.log('Main: ✅ Main window created.');
+
+  mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'en-GB', 'de-DE']);
+  console.log('Main: 🗣️ SpellChecker: Languages set to German and English.');
+
   // Sicherstellen, dass die Menüleiste ausgeblendet ist (Windows Alt-Taste)
   try { mainWindow.setMenuBarVisibility(false); } catch {}
 

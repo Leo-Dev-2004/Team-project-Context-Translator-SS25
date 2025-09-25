@@ -1,4 +1,4 @@
-## Context Translator Frontend (Electron)
+# Context Translator Frontend (Electron)
 
 Desktop-only Electron app rendering real-time AI explanations from the backend. This folder contains the complete Electron app (main, preload, renderer) plus shared Lit components and styles.
 
@@ -7,6 +7,7 @@ Tip: The old web/PWA path is removed. Everything here targets Electron.
 ## Quickstart
 
 Prerequisites
+
 - Node.js LTS (18+ recommended)
 - npm
 - Backend available at ws://localhost:8000 (see project root README for backend setup)
@@ -19,7 +20,8 @@ npm run dev
 ```
 
 This starts:
-- Vite dev server on http://localhost:5174 for the renderer
+
+- Vite dev server on <http://localhost:5174> for the renderer
 - esbuild watch for the preload script
 - Electron with live-reload
 
@@ -34,12 +36,13 @@ In the Explanations tab, you can directly request an explanation for any term:
 - The backend enqueues the term into the detection pipeline; once processed, a new explanation appears automatically in the list.
 
 Notes:
+
 - Requires an active WebSocket connection to the backend at `ws://localhost:8000`.
 - The pipeline uses the same MainModel and ExplanationDeliveryService as automatic detections.
 
 ## Folder structure
 
-```
+``` text
 Frontend/
 ├─ index.html                # Renderer entry (loaded by Vite in dev, by file in prod)
 ├─ package.json              # App metadata, scripts, electron-builder config
@@ -66,7 +69,7 @@ Frontend/
 
 - Main process: `src/main.js`
   - Creates the `BrowserWindow`, sets CSP, logs renderer console output, and exposes IPC handlers (settings, version, platform, user session id).
-  - In dev, loads http://localhost:5174. In production, loads the built `dist/index.html` file.
+  - In dev, loads <http://localhost:5174>. In production, loads the built `dist/index.html` file.
 - Preload: `src/preload.js`
   - CommonJS bundle exposed via `contextBridge` as `window.electronAPI` (get/save settings, dialogs, app info, user session id).
 - Renderer: `src/renderer.js`
@@ -80,6 +83,7 @@ Frontend/
   - `universal-message-parser.js`: converts backend UniversalMessage shapes into explanation items
 
 Data flow (today)
+
 - Renderer opens WebSocket and forwards session actions (`session.start`, `session.join`).
 - Incoming messages are handled in `renderer.js` (e.g., `session.created`, `session.joined`).
 - Explanations can be added through `explanationManager.addExplanation(...)` or by using `UniversalMessageParser`.
@@ -108,6 +112,7 @@ From the `Frontend` directory:
   - `npm run clean` / `npm run build:clean` — remove `dist` and `dist-electron`
 
 Ports
+
 - Renderer dev server: 5174 (see `vite.config.js`)
 - Backend WebSocket: 8000 (see `src/renderer.js` and CSP in `src/main.js`)
 
@@ -120,13 +125,13 @@ cd .\Frontend
 npm install
 ```
 
-2) Start the frontend in development
+1) Start the frontend in development
 
 ```powershell
 npm run dev
 ```
 
-3) Ensure the backend is running at ws://localhost:8000. The renderer will connect automatically.
+1) Ensure the backend is running at ws://localhost:8000. The renderer will connect automatically.
 
 Optional: Pass a user session id to Electron on startup. The main process reads `--user-session-id=...` and exposes it to the renderer via `electronAPI.getUserSessionId()`.
 
@@ -142,11 +147,13 @@ Optional: Pass a user session id to Electron on startup. The main process reads 
 ## Packages
 
 Runtime
+
 - @material/web ^2.3.0
 - lit ^3.3.0
 - marked ^15.0.12
 
 Dev
+
 - electron ^29.1.6
 - vite ^6.3.5
 - esbuild ^0.25.8
@@ -186,10 +193,10 @@ Dev
 
 - Frontend architecture: This document
 - Project root README: one level up at `../README.md`
-- Lit docs: https://lit.dev/
-- Vite docs: https://vite.dev/guide/
-- Electron docs: https://www.electronjs.org/docs/latest
-- Material Web: https://material-web.dev/
+- Lit docs: <https://lit.dev/>
+- Vite docs: <https://vite.dev/guide/>
+- Electron docs: <https://www.electronjs.org/docs/latest>
+- Material Web: <https://material-web.dev/>
 
 ## Contributing notes
 
