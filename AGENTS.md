@@ -2,6 +2,10 @@
 
 Surgical, project-specific guidance for automated changes to the Electron Frontend. Keep edits minimal, preserve behavior, and favor deleting dead code over refactors.
 
+# AI Coding Agent Instructions (Frontend)
+
+Surgical, project-specific guidance for automated changes to the Electron Frontend. Keep edits minimal, preserve behavior, and favor deleting dead code over refactors.
+
 ## Big picture
 - Product: Desktop-only Electron app showing real-time AI "explanations" from the backend over WebSocket (ws://localhost:8000).
 - Frontend code lives entirely under `Frontend/` with:
@@ -44,6 +48,34 @@ Surgical, project-specific guidance for automated changes to the Electron Fronte
 - Development from `Frontend/`: `npm install` then `npm run dev` (starts Vite, builds preload in watch, launches Electron).
 - Build: `npm run build` (renderer + preload + package via electron-builder `--dir`).
 - Package/distribute: `npm run dist`.
+
+## Integration points
+- Backend WebSocket: `ws://localhost:8000/ws/{client_id}` (renderer).
+- Settings persistence: JSON under the user home (handled by main process).
+- CSP allows `localhost:5174` (dev) and `localhost:8000` for WebSocket/HTTP connections.
+
+## Cleanup and improvement targets
+1. Keep message parsing centralized: extend `renderer.js` to invoke `UniversalMessageParser` for explanation-like messages when the backend sends them.
+2. Avoid duplicating session logic between UI and renderer; base UI methods should be overridden once in the Electron subclass.
+3. Remove dead code paths or element IDs that aren’t rendered by `ui.js`.
+4. Ensure all shared modules are exported via `src/shared/index.js` and imported from there in the renderer.
+
+## When adding files
+- Place renderer-visible, shared UI in `src/shared/` and export through `src/shared/index.js`.
+- Electron-only integrations belong in `src/renderer.js` (renderer) or `src/main.js` (main). Update preload if new safe APIs are required.
+- Keep German copy consistent where it already appears (e.g., session button labels).
+
+## Non-goals
+- Don’t add a web/PWA build without explicit approval.
+- Don’t convert to TypeScript unless asked.
+- Don’t replace Lit with other UI frameworks.
+
+## Example: parsing an incoming explanation
+1. Backend sends a universal message like `{ type: 'explanation.generated', payload: { title, content }, ... }`.
+2. In `renderer.js` WebSocket `onmessage`, call `UniversalMessageParser.parseAndAddToManager(message, explanationManager)` if `UniversalMessageParser.isExplanationMessage(message)` is true.
+3. The UI list updates automatically via the manager listener.
+
+Document any behavior changes in PR descriptions and update `Frontend/README.md` if commands or run steps change.
 
 ## Integration points
 - Backend WebSocket: `ws://localhost:8000/ws/{client_id}` (renderer).

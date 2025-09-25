@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "@todiagram/todiagram-mcp": "^0.0.43"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

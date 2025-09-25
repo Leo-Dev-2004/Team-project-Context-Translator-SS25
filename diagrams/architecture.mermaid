@@ -1,0 +1,55 @@
+graph LR
+    %% Architecture diagram generated from CONTEXT.md
+    %% Top-level components
+    SR["SystemRunner\n(Orchestrator)"]
+    STT["STT Service\n(transcribe.py)\nVAD + faster-whisper"]
+    Backend["FastAPI Backend\n(backend.py)"]
+    Frontend["Electron Frontend\n(renderer + ui)"]
+
+    %% Queues and files
+    subgraph FileQueues[File-based Queues]
+        DQ["detections_queue.json\n(SmallModel producer)"]
+        EQ["explanations_queue.json\n(MainModel producer)"]
+        Cache["explanation_cache.json\n(MainModel cache)"]
+    end
+
+    %% Backend internals
+    subgraph BackendServices[Backend: Services & Models]
+        WS["WebSocketManager\n(broadcast & clients)"]
+    MR["MessageRouter\n(route UniversalMessage)"]
+    SM["SmallModel\n(term detection)\nwrites to detections_queue.json"]
+    MM["MainModel\n(explanation generator)\nreads detections_queue.json; writes explanations_queue.json"]
+    EDS["ExplanationDeliveryService\n(polls explanations_queue.json; enqueues WebSocket out)"]
+    end
+
+    %% Connections
+    SR --> Backend
+    SR --> STT
+    SR --> Frontend
+
+    STT -->|"sends UniversalMessage: stt.transcription"| Backend
+    Frontend -->|"WebSocket: frontend.init / session commands"| Backend
+
+    Backend --> WS
+    Backend --> MR
+    MR --> SM
+    SM -->|"append detection"| DQ
+    DQ -->|"read pending items"| MM
+    MM -->|"write explanation"| EQ
+    MM --> Cache
+    EQ -->|"polled for ready explanations"| EDS
+    EDS -->|"creates UniversalMessage: explanation.generated"| WS
+    WS -->|"push to clients"| Frontend
+
+    %% Data flow notes
+    classDef filequeue fill:#fff7e6,stroke:#cc9d4a
+    class DQ,EQ,Cache filequeue
+
+    %% Session & startup
+    SR -.->|"generates user_session_id"| Frontend
+    SR -.->|"passes user_session_id"| STT
+    Backend -.->|"health check awaited by"| SR
+
+    %% Styling
+    class SR,STT,Backend,Frontend fill:#e8f4ff,stroke:#2b7cd3
+    class BackendServices fill:#f0fff4,stroke:#2ca06c

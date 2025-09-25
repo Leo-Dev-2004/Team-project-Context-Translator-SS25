@@ -143,3 +143,6 @@ Backend/AI/explanations_queue.json
 Backend/AI/explanation_cache.json
 Backend/STT/transcription.log
 
+# Generated diagrams from todiagram
+Frontend/diagrams/
+
