@@ -20,6 +20,7 @@ export class UI extends LitElement {
   static properties = {
     activeTab: { type: Number },
     domainValue: { type: String },
+    explanationStyle: { type: String },
     explanations: { type: Array },
     isWindows: { type: Boolean },
     manualTerm: { type: String },
@@ -30,6 +31,7 @@ export class UI extends LitElement {
     super();
     this.activeTab = 0;
     this.domainValue = '';
+    this.explanationStyle = 'detailed';
     this.explanations = [];
     this.isWindows = false;
     this.manualTerm = '';
@@ -113,6 +115,30 @@ export class UI extends LitElement {
                 <md-outlined-text-field label="Your domain or context" .value=${this.domainValue} @input=${this._onDomainInput} class="domain-field" type="textarea" rows="3"></md-outlined-text-field>
               </div>
             </div>
+            <div class="input-section">
+              <h3 class="title-medium section-title">Explanation Style</h3>
+              <p class="body-medium section-description">Choose how detailed you want the AI explanations to be.</p>
+              <div class="style-input-group">
+                <md-outlined-select .value=${this.explanationStyle} @change=${this._onExplanationStyleChange} class="style-field">
+                  <md-select-option value="simple">
+                    <div slot="headline">Simple</div>
+                    <div slot="supporting-text">Brief, easy-to-understand explanations</div>
+                  </md-select-option>
+                  <md-select-option value="detailed">
+                    <div slot="headline">Detailed</div>
+                    <div slot="supporting-text">Comprehensive explanations with examples</div>
+                  </md-select-option>
+                  <md-select-option value="technical">
+                    <div slot="headline">Technical</div>
+                    <div slot="supporting-text">In-depth technical explanations</div>
+                  </md-select-option>
+                  <md-select-option value="beginner">
+                    <div slot="headline">Beginner</div>
+                    <div slot="supporting-text">Explanations for complete beginners</div>
+                  </md-select-option>
+                </md-outlined-select>
+              </div>
+            </div>
             <div class="spacer"></div>
             <div class="action-buttons">
               <md-filled-button @click=${this._saveSettings}>Save Configuration</md-filled-button>
@@ -143,7 +169,7 @@ export class UI extends LitElement {
           </div>
           <div class="explanations-content">
             ${this.explanations.length === 0 ? html`<div class="empty-state"><p>No explanations yet. Ask for an explanation or wait for one to be generated.</p></div>` : html`<div class="explanations-list">
-              ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)}></explanation-item>`)}
+              ${this.explanations.map(explanation => html`<explanation-item .explanation=${explanation} .onPin=${this._handlePin.bind(this)} .onDelete=${this._handleDelete.bind(this)} .onCopy=${this._handleCopy.bind(this)} .onRegenerate=${this._handleRegenerate.bind(this)}></explanation-item>`)}
             </div>`}
           </div>
         </div>`;
@@ -153,8 +179,9 @@ export class UI extends LitElement {
   }
   _onTabChange(e) { this.activeTab = e.target.activeTabIndex; }
   _onDomainInput(e) { this.domainValue = e.target.value; }
-  _saveSettings() { console.log('Settings saved:', { domain: this.domainValue }); }
-  _resetSettings() { this.domainValue = ''; }
+  _onExplanationStyleChange(e) { this.explanationStyle = e.target.value; }
+  _saveSettings() { console.log('Settings saved:', { domain: this.domainValue, explanationStyle: this.explanationStyle }); }
+  _resetSettings() { this.domainValue = ''; this.explanationStyle = 'detailed'; }
   _startSession() { console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.'); }
   _joinSession() { console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.'); }
   _onManualTermInput(e){ this.manualTerm = e.target.value; }
@@ -163,6 +190,7 @@ export class UI extends LitElement {
   _handlePin(id) { explanationManager.pinExplanation(id); }
   _handleDelete(id) { explanationManager.deleteExplanation(id); }
   _handleCopy(explanation) { const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
+  _handleRegenerate(explanation) { console.warn('UI: _handleRegenerate() called, but not implemented. Must be overridden in child class.'); }
   _clearAllExplanations() { if (confirm('Are you sure you want to clear all explanations?')) { explanationManager.clearAll(); } }
   _addTestExplanation() {
     const rand = Math.random() * 0.6 + 0.2; // 0.2 - 0.8 for variety

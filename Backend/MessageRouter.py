@@ -147,6 +147,34 @@ class MessageRouter:
                     logger.error(f"Error handling manual.request: {e}", exc_info=True)
                     response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during manual.request.")
 
+            elif message.type == 'explanation.retry':
+                # Allow users to request a regenerated explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    original_explanation_id = message.payload.get('original_explanation_id')
+                    explanation_style = message.payload.get('explanation_style', 'detailed')
+                    
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in explanation.retry payload.")
+                    else:
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "context": context,
+                            "explanation_style": explanation_style,
+                            "original_explanation_id": original_explanation_id,
+                            "is_retry": True
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"explanation.retry accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue retry detection.")
+                except Exception as e:
+                    logger.error(f"Error handling explanation.retry: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during explanation.retry.")
+
             elif message.type == 'ping':
                 response = self._create_pong_message(message)
 

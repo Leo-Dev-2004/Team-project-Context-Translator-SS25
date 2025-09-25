@@ -9,7 +9,8 @@ export class ExplanationItem extends LitElement {
     expanded: { type: Boolean },
     onPin: { type: Function },
     onDelete: { type: Function },
-    onCopy: { type: Function }
+    onCopy: { type: Function },
+    onRegenerate: { type: Function }
   };
   static styles = [sharedStyles];
   constructor() { super(); this.expanded = false; this.explanation = {}; }
@@ -42,9 +43,14 @@ export class ExplanationItem extends LitElement {
             </div>
             <div class="explanation-footer">
               <span class="explanation-timestamp">${this._formatTimestamp(this.explanation.timestamp)}</span>
-              <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
-                <span class="material-icons">content_copy</span> Copy
-              </button>
+              <div class="footer-actions">
+                <button class="regenerate-button" @click=${this._handleRegenerate} title="Regenerate explanation">
+                  <span class="material-icons">refresh</span> Regenerate
+                </button>
+                <button class="copy-button" @click=${this._handleCopy} title="Copy explanation">
+                  <span class="material-icons">content_copy</span> Copy
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -55,6 +61,7 @@ export class ExplanationItem extends LitElement {
   _handlePin(e) { e.stopPropagation(); if (this.onPin) this.onPin(this.explanation.id); }
   _handleDelete(e) { e.stopPropagation(); if (this.onDelete) this.onDelete(this.explanation.id); }
   _handleCopy() { if (this.onCopy) this.onCopy(this.explanation); }
+  _handleRegenerate(e) { e.stopPropagation(); if (this.onRegenerate) this.onRegenerate(this.explanation); }
   _renderMarkdown(content) {
     if (!content) return html``;
     try {
