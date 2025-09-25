@@ -158,16 +158,20 @@ class ElectronMyElement extends UI {
     const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
 
     if (createSessionButton) {
-      createSessionButton.addEventListener('click', () => this._startSession());
-      playSound(click_sound);
+      createSessionButton.addEventListener('click', () => {
+        playSound(click_sound);
+        this._startSession();
+      });
     } else {
       playSound(error_sound);
       console.error("Renderer: ❌ 'Create Session' button not found.");
     }
     
     if (joinSessionButton) {
-      playSound(join_sound);
-      joinSessionButton.addEventListener('click', () => this._joinSession());
+      joinSessionButton.addEventListener('click', () => {
+        playSound(join_sound);
+        this._joinSession();
+      });
     } else {
       playSound(error_sound); 
       console.error("Renderer: ❌ 'Join Session' button not found.");
