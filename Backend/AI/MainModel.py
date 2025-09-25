@@ -78,10 +78,28 @@ class MainModel:
         self.explained_terms[term.lower()] = time.time()
 
     def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
-                     explanation_style: str = "detailed", is_retry: bool = False) -> List[Dict]:
+                     explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
         role_context = ""
         if user_role:
             role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
+
+        domain_context = ""
+        if domain and isinstance(domain, str) and domain.strip():
+            domain_context = f" The explanation should be tailored for someone working in the field of '{domain.strip()}'."
+
+        # Style-specific instructions
+        style_instructions = {
+            "simple": "Provide a brief, easy-to-understand explanation in 1 sentence.",
+            "detailed": "Provide a comprehensive explanation in 2-3 sentences with examples if helpful.",
+            "technical": "Provide an in-depth technical explanation with precise terminology and context.",
+            "beginner": "Provide an explanation suitable for complete beginners, avoiding jargon and using simple analogies."
+        }
+        
+        style_instruction = style_instructions.get(explanation_style, style_instructions["detailed"])
+        
+        retry_instruction = ""
+        if is_retry:
+            retry_instruction = " This is a regeneration request - provide an alternative, more extensive explanation than what might have been given before."
 
         # Style-specific instructions
         style_instructions = {
@@ -100,14 +118,14 @@ class MainModel:
         return [
             {
                 "role": "system",
-                "content": f"You are a helpful assistant explaining technical terms in clear language.{role_context}{retry_instruction}"
+                "content": f"You are a helpful assistant explaining technical terms in clear language.{role_context}{domain_context}{retry_instruction}"
             },
             {
                 "role": "user",
                 "content": f"""Please directly explain the term "{term}" as used in this context:
 "{context}"
 
-{style_instruction} Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
+{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}Provide a clear, concise explanation in 1-2 sentences. Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
             }
         ]
 
@@ -195,38 +213,31 @@ class MainModel:
             try:
                 async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
                     content = await f.read()
-                
                 all_detections = json.loads(content) if content.strip() else []
                 if not all_detections:
                     return
 
-                # Find pending items and update their status in-place to prevent re-processing
                 something_to_process = False
+                pending_detections = []
                 for entry in all_detections:
                     if entry.get("status") == "pending":
                         pending_detections.append(entry)
                         entry["status"] = "processing"
                         something_to_process = True
-                
+
                 if something_to_process:
                     temp_file = self.detections_queue_file.with_suffix('.tmp')
                     async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
                         await f.write(json.dumps(all_detections, indent=2, ensure_ascii=False))
                     await asyncio.to_thread(os.replace, str(temp_file), str(self.detections_queue_file))
                     logger.info(f"Marked {len(pending_detections)} detections as 'processing'.")
-
             except FileNotFoundError:
                 return
-            except Exception as e:
-                logger.error(f"Error reading detections queue: {e}", exc_info=True)
-                return
-
+        # --- Stage 2: Process the items outside the lock to avoid blocking other writers ---
         if not pending_detections:
             return
 
-        # --- Stage 2: Process the items outside the lock to avoid blocking other writers ---
         cache = await self.load_cache()
-        
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
@@ -238,35 +249,23 @@ class MainModel:
                 logger.debug(f"Term '{term}' recently explained, skipping.")
                 continue
 
-            explanation = None
-            
-            # For retry requests, always generate new explanation
-            if is_retry:
-                logger.info(f"Generating retry explanation for '{term}' with style '{explanation_style}'...")
-                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), 
-                                           explanation_style, is_retry=True)
+            explanation = cache.get(term)
+            if not explanation:
+                logger.info(f"Generating new explanation for '{term}'...")
+                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
                 explanation = await self.query_llm(messages)
-            else:
-                # Normal flow: check cache first
-                explanation = cache.get(term)
-                if not explanation:
-                    logger.info(f"Generating new explanation for '{term}'...")
-                    messages = self.build_prompt(term, entry["context"], entry.get("user_role"),
-                                               explanation_style)
-                    explanation = await self.query_llm(messages)
-
-                    if explanation:
-                        cache[term] = explanation
-                        await self.save_cache(cache)
-                        logger.info(f"Generated and cached explanation for '{term}'.")
+                if explanation:
+                    cache[term] = explanation
+                    await self.save_cache(cache)
+                    logger.info(f"Generated and cached explanation for '{term}'.")
                 else:
                     logger.info(f"Loaded explanation for '{term}' from cache.")
 
+
             if not explanation:
                 logger.warning(f"Failed to generate explanation for '{term}'.")
-                continue # Skip to next term if explanation fails
+                continue
 
-            # Create and write the final explanation entry
             message_type = "explanation.retry" if is_retry else "explanation.new"
             explanation_entry = {
                 "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
@@ -275,7 +274,9 @@ class MainModel:
                 "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
                 "confidence": entry.get("confidence", 0), "message_type": message_type
             }
-            
+            if is_retry and original_explanation_id:
+                explanation_entry["original_explanation_id"] = original_explanation_id
+
             # Add original explanation ID for retry responses
             if is_retry and original_explanation_id:
                 explanation_entry["original_explanation_id"] = original_explanation_id
@@ -299,25 +300,3 @@ class MainModel:
             except KeyboardInterrupt:
                 logger.info("MainModel processing stopped by user")
                 break
-            except Exception as e:
-                logger.error(f"Unexpected error in MainModel run loop: {e}", exc_info=True)
-                await asyncio.sleep(5)
-    
-    async def close(self):
-        """Gracefully close the HTTP client."""
-        await self.http_client.aclose()
-        logger.info("MainModel HTTP client closed.")
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    main_model = MainModel()
-    
-    # Use asyncio.run for cleaner startup and shutdown
-    try:
-        asyncio.run(main_model.run_continuous_processing())
-    except KeyboardInterrupt:
-        logger.info("MainModel shutdown initiated by user.")
-    finally:
-        # Gracefully close resources in a final async operation
-        asyncio.run(main_model.close())
-        logger.info("MainModel shutdown complete.")
