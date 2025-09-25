@@ -1,15 +1,15 @@
 # 💡 Real-time Contextual Assistant
 
-\<p align="center">
-  \<img src="./header.png" alt="Project Header Banner" width="1200"/>
+<p align="center">
+  <img src="./header.png" alt="Project Header Banner" width="1200"/>
 </p>
 
-\<p align="center">
-  \<strong>Ein KI-gestützter Desktop-Assistent, der in Echtzeit kontextbezogene Erklärungen während Live-Gesprächen liefert.</strong>
-  \<br/>
+<p align="center">
+  <strong>Ein KI-gestützter Desktop-Assistent, der in Echtzeit kontextbezogene Erklärungen während Live-Gesprächen liefert.</strong>
+  <br/>
 </p>
 
-\<p align="center">
+<p align="center">
   ![Status](https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge)
 </p>
 
