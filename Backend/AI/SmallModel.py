@@ -256,8 +256,8 @@ Return a JSON **array of objects**. Each object must have these keys:
 
         try:
             transcribed_text = message.payload.get("text", "")
-            if not transcribed_text:
-                logger.warning("Received empty transcription text.")
+            if not transcribed_text or not transcribed_text.strip():
+                logger.warning(f"SmallModel: Blocked empty transcription from client {message.client_id}.")
                 return
 
             detected_terms = await self.detect_terms_with_ai(
