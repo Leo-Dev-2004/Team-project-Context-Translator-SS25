@@ -77,22 +77,26 @@ class MainModel:
     def mark_as_explained(self, term: str):
         self.explained_terms[term.lower()] = time.time()
 
-    def build_prompt(self, term: str, context: str, user_role: Optional[str] = None) -> List[Dict]:
+    def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         role_context = ""
         if user_role:
             role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
+        
+        domain_context = ""
+        if domain and domain.strip():
+            domain_context = f" The explanation should be tailored for someone working in the field of '{domain.strip()}'."
 
         return [
             {
                 "role": "system",
-                "content": f"You are a helpful assistant explaining technical terms in simple, clear language.{role_context}"
+                "content": f"You are a helpful assistant explaining technical terms in simple, clear language.{role_context}{domain_context}"
             },
             {
                 "role": "user",
                 "content": f"""Please directly explain the term "{term}" as used in this context:
 "{context}"
 
-Provide a clear, concise explanation in 1-2 sentences. Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
+{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}Provide a clear, concise explanation in 1-2 sentences. Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
             }
         ]
 
@@ -222,7 +226,7 @@ Provide a clear, concise explanation in 1-2 sentences. Focus on what the term me
             explanation = cache.get(term)
             if not explanation:
                 logger.info(f"Generating new explanation for '{term}'...")
-                messages = self.build_prompt(term, entry["context"], entry.get("user_role"))
+                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
                 explanation = await self.query_llm(messages)
 
                 if explanation:

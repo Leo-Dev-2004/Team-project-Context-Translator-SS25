@@ -153,13 +153,48 @@ export class UI extends LitElement {
   }
   _onTabChange(e) { this.activeTab = e.target.activeTabIndex; }
   _onDomainInput(e) { this.domainValue = e.target.value; }
-  _saveSettings() { console.log('Settings saved:', { domain: this.domainValue }); }
-  _resetSettings() { this.domainValue = ''; }
+  async _saveSettings() { 
+    if (window.electronAPI) {
+      const result = await window.electronAPI.saveSettings({ domain: this.domainValue });
+      if (result.success) {
+        console.log('Settings saved successfully:', { domain: this.domainValue });
+        this._showNotificationIfAvailable?.('Settings saved successfully', 'success');
+      } else {
+        console.error('Failed to save settings:', result.error);
+        this._showNotificationIfAvailable?.('Failed to save settings', 'error');
+      }
+    } else {
+      console.log('Settings saved (web mode):', { domain: this.domainValue });
+    }
+  }
+  async _resetSettings() { 
+    this.domainValue = ''; 
+    if (window.electronAPI) {
+      const result = await window.electronAPI.saveSettings({ domain: '' });
+      if (result.success) {
+        this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
+      }
+    }
+  }
   _startSession() { console.warn('UI: _startSession() clicked, but not implemented. Must be overridden in child class.'); }
   _joinSession() { console.warn('UI: _joinSession() clicked, but not implemented. Must be overridden in child class.'); }
   _onManualTermInput(e){ this.manualTerm = e.target.value; }
   _onManualKeyDown(e){ if(e.key === 'Enter'){ e.preventDefault(); this._sendManualRequest(); } }
   _sendManualRequest(){ console.warn('UI: _sendManualRequest() called, but not implemented. Must be overridden in child class.'); }
+  _showNotificationIfAvailable(message, type) { console.log(`Notification (${type}): ${message}`); } // Override in child class
+  async _loadDomainSettings() { 
+    if (window.electronAPI) {
+      try {
+        const result = await window.electronAPI.loadSettings();
+        if (result.success && result.settings?.domain) {
+          this.domainValue = result.settings.domain;
+          console.log('Domain settings loaded:', this.domainValue);
+        }
+      } catch (error) {
+        console.error('Failed to load domain settings:', error);
+      }
+    }
+  }
   _handlePin(id) { explanationManager.pinExplanation(id); }
   _handleDelete(id) { explanationManager.deleteExplanation(id); }
   _handleCopy(explanation) { const textToCopy = `**${explanation.title}**\n\n${explanation.content}`; navigator.clipboard.writeText(textToCopy); }
@@ -181,6 +216,8 @@ export class UI extends LitElement {
 
   async firstUpdated(changed) {
     super.firstUpdated?.(changed);
+    // Load domain settings
+    await this._loadDomainSettings();
     // Plattform prüfen (nur Windows)
     try {
       this.isWindows = (window.electronAPI?.platform === 'win32');

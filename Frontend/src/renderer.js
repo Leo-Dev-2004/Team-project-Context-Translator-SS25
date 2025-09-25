@@ -290,6 +290,7 @@ class ElectronMyElement extends UI {
       payload: {
         term,
         context: term, // placeholder; could be extended to use selected text or domain
+        domain: this.domainValue || '', // Include domain context for AI processing
         user_session_id: this.userSessionId || null,
       },
     };
@@ -361,7 +362,14 @@ class ElectronMyElement extends UI {
 
   _loadSettingsFromElectron(settings) {
     console.log('Renderer: Applying loaded settings:', settings);
-    // Example: this.domainValue = settings.domain || '';
+    if (settings.domain) {
+      this.domainValue = settings.domain;
+    }
+  }
+
+  // Override parent method to use our notification system
+  _showNotificationIfAvailable(message, type) {
+    this._showNotification(message, type);
   }
 
   _handleNewExplanation(explanation) {

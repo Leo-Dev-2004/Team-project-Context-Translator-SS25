@@ -124,11 +124,13 @@ class SmallModel:
             logger.error(f"An unexpected error occurred during AI detection: {e}", exc_info=True)
             return None
 
-    async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None) -> List[Dict]:
+    async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         """Use Ollama to detect important terms in the given sentence asynchronously."""
         context_intro = f"Mark the technical terms or words that might not be understood by a general audience in this sentence"
         if user_role:
             context_intro += f", considering the user is a '{user_role}'"
+        if domain and domain.strip():
+            context_intro += f", in the context of '{domain.strip()}'"
         context_intro += f": \"{sentence}\""
 
         prompt = f"""
@@ -137,6 +139,7 @@ Domain Term Extraction Prompt
 MOST IMPORTANTLY:
 Extract technical or domain specific terms and return ONLY a valid JSON array of objects.
 Do not return anything else — no markdown, no comments, no prose.
+{f"Focus on terms relevant to: {domain.strip()}" if domain and domain.strip() else ""}
 ---
 ### EXAMPLE of a PERFECT RESPONSE ###
 For an input sentence like "This sentence has no technical terms.", your entire output must be:
@@ -160,7 +163,7 @@ Return a JSON **array of objects**. Each object must have these keys:
 - "context" (string): The full input sentence
 - "timestamp" (int): A Unix timestamp
 ---
-Repeat: the user's role is "{user_role}". Adjust the confidence and terms accordingly.
+{f"Domain context: {domain.strip()}. " if domain and domain.strip() else ""}Repeat: the user's role is "{user_role}". Adjust the confidence and terms accordingly.
 """
         raw_response = await self._query_ollama_async(prompt)
         if not raw_response:
@@ -220,6 +223,7 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
                         "id": str(uuid4()),
                         "term": term_data["term"],
                         "context": term_data["context"],
+                        "domain": term_data.get("domain", ""),  # Include domain context
                         "timestamp": term_data["timestamp"],
                         "client_id": message.client_id,
                         "user_session_id": message.payload.get("user_session_id"),
@@ -258,7 +262,8 @@ Repeat: the user's role is "{user_role}". Adjust the confidence and terms accord
 
             detected_terms = await self.detect_terms_with_ai(
                 transcribed_text,
-                message.payload.get("user_role")
+                message.payload.get("user_role"),
+                message.payload.get("domain")  # Pass domain context from transcription message
             )
             if not detected_terms:
                 logger.info(f"No terms found in transcription for client {message.client_id}")
