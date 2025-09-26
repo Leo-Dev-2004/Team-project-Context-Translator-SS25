@@ -336,12 +336,24 @@ class ElectronMyElement extends UI {
     };
 
     try {
+      // Immediately add a pending explanation to the UI
+      const pendingExplanation = explanationManager.addExplanation(
+        term,
+        'Generating explanation...', // Placeholder content
+        Date.now(),
+        null, // No confidence yet
+        true, // isPending = true
+        message.id // Use message ID as request ID to match responses
+      );
+
       this.backendWs.send(JSON.stringify(message));
       this._showNotification(`Requested explanation for "${term}"`, 'success');
       // Clear field in UI
       if (termInput) termInput.value = '';
       this.manualTerm = '';
       this.requestUpdate?.();
+      
+      console.log(`Renderer: ✅ Added pending explanation for "${term}" with ID ${pendingExplanation.id}`);
     } catch (e) {
       this._showNotification('Failed to send manual request', 'error');
     }
@@ -472,23 +484,34 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
     if (explanation && explanation.term && explanation.content) {
-      // Add explanation to the manager
-      const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
-      explanationManager.addExplanation(
-        explanation.term,
-        explanation.content,
-        explanation.timestamp * 1000, // Convert to milliseconds if needed
-        confidence
-      );
+      // First, try to update any pending explanation with the same term
+      const updated = explanationManager.updatePendingExplanationByTerm(explanation.term, {
+        content: explanation.content,
+        timestamp: explanation.timestamp * 1000, // Convert to milliseconds if needed
+        confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null
+      });
+
+      // If no pending explanation was found, add as new explanation
+      if (!updated) {
+        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+        explanationManager.addExplanation(
+          explanation.term,
+          explanation.content,
+          explanation.timestamp * 1000, // Convert to milliseconds if needed
+          confidence
+        );
+      }
 
       // Throttle notification display to prevent notification spam
       const now = Date.now();
       if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
-        this._showNotification(`New explanation: ${explanation.term}`, 'success');
+        const message = updated ? `Updated explanation: ${explanation.term}` : `New explanation: ${explanation.term}`;
+        this._showNotification(message, 'success');
         this.lastExplanationTime = now;
       }
 
-      console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
+      const actionType = updated ? 'Updated' : 'Added';
+      console.log(`Renderer: ✅ ${actionType} explanation for "${explanation.term}" to display`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
     }

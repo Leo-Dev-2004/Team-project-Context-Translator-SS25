@@ -11,13 +11,24 @@ export class ExplanationManager {
   addListener(cb) { this.listeners.push(cb); }
   removeListener(cb) { this.listeners = this.listeners.filter(l => l !== cb); }
   notifyListeners() { this.listeners.forEach(cb => cb(this.explanations)); }
-  addExplanation(title, content, timestamp = Date.now(), confidence = null) {
+  addExplanation(title, content, timestamp = Date.now(), confidence = null, isPending = false, requestId = null) {
     // Clamp and normalize confidence to [0,1] if provided
     const normConfidence = (typeof confidence === 'number' && isFinite(confidence))
       ? Math.max(0, Math.min(1, confidence))
       : null;
-    const explanation = { id: this._generateId(), title, content, timestamp, confidence: normConfidence, isPinned: false, isDeleted: false, createdAt: Date.now() };
-   this.explanations.unshift(explanation); 
+    const explanation = { 
+      id: this._generateId(), 
+      title, 
+      content, 
+      timestamp, 
+      confidence: normConfidence, 
+      isPinned: false, 
+      isDeleted: false, 
+      createdAt: Date.now(),
+      isPending: isPending,
+      requestId: requestId
+    };
+    this.explanations.unshift(explanation); 
     
     // Limit total explanations to prevent memory issues (keep last 1000)
     const maxExplanations = 1000;
@@ -47,6 +58,54 @@ export class ExplanationManager {
         normUpdates.confidence = (typeof c === 'number' && isFinite(c))
           ? Math.max(0, Math.min(1, c))
           : null;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this._saveToStorageThrottled();
+      this.notifyListeners();
+      return this.explanations[i];
+    }
+    return null;
+  }
+
+  updatePendingExplanation(requestId, updates) {
+    const i = this.explanations.findIndex(e => e.requestId === requestId && e.isPending);
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      // Mark as no longer pending when updating with real content
+      if ('content' in normUpdates && normUpdates.content) {
+        normUpdates.isPending = false;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this._saveToStorageThrottled();
+      this.notifyListeners();
+      return this.explanations[i];
+    }
+    return null;
+  }
+
+  updatePendingExplanationByTerm(term, updates) {
+    const i = this.explanations.findIndex(e => e.title === term && e.isPending);
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      // Mark as no longer pending when updating with real content
+      if ('content' in normUpdates && normUpdates.content && normUpdates.content !== 'Generating explanation...') {
+        normUpdates.isPending = false;
       }
       this.explanations[i] = { ...this.explanations[i], ...normUpdates };
       this._sortExplanations();

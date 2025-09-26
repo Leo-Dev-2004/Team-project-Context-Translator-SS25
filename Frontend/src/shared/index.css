@@ -214,6 +214,28 @@ md-tabs {
 	border-width: 2px;
 }
 
+.explanation-card.pending {
+	border-color: var(--md-sys-color-tertiary);
+	border-style: dashed;
+	background: color-mix(in srgb, var(--md-sys-color-surface) 95%, var(--md-sys-color-tertiary));
+}
+
+.loading-indicator {
+	color: var(--md-sys-color-tertiary);
+	animation: rotate 2s linear infinite;
+	margin-right: var(--space-xs);
+}
+
+@keyframes rotate {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+.pending-content {
+	opacity: 0.7;
+	font-style: italic;
+}
+
 /* Explanation-spezifische Layouts */
 .explanation-header {
 	display: flex;
