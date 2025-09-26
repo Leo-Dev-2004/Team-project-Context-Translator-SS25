@@ -500,7 +500,7 @@ class ElectronMyElement extends UI {
   }
 
   _handleRetryExplanation(explanation) {
-    console.log('Renderer: 🔄 Retry explanation received:', explanation);
+    console.log(`Renderer: ${EXPLANATION_CONSTANTS.GENERATING_EMOJI} Retry explanation received:`, explanation);
 
     if (explanation && explanation.term && explanation.content) {
       // Update the existing explanation or add as new one
