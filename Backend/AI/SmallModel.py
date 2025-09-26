@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from uuid import uuid4
 
 from ..models.UniversalMessage import UniversalMessage
+from ..dependencies import get_settings_manager_instance
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -346,7 +347,13 @@ class SmallModel:
         return await self.detect_terms_fallback(sentence)
     
     async def _perform_ai_detection(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
-        """Perform AI-based term detection with the LLM."""
+        """Perform AI-based term detection with the LLM. Uses global settings for domain if not provided."""
+        # Get domain from SettingsManager if not provided
+        if not domain:
+            settings_manager = get_settings_manager_instance()
+            if settings_manager:
+                domain = settings_manager.get_setting("domain", "")
+                
         context_intro = f"Mark the technical terms or words that might not be understood by a general audience in this sentence"
         if user_role:
             context_intro += f", considering the user is a '{user_role}'"

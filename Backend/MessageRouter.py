@@ -12,7 +12,7 @@ from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPat
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
 from .AI.SmallModel import SmallModel
-from .dependencies import get_session_manager_instance, get_websocket_manager_instance
+from .dependencies import get_session_manager_instance, get_websocket_manager_instance, get_settings_manager_instance
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class MessageRouter:
         self._small_model: SmallModel = SmallModel()
         self._session_manager = get_session_manager_instance()
         self._websocket_manager = get_websocket_manager_instance()
+        self._settings_manager = get_settings_manager_instance()
 
         logger.info("MessageRouter initialized with all dependencies.")
 
@@ -204,6 +205,29 @@ class MessageRouter:
                 except Exception as e:
                     logger.error(f"Error handling explanation.retry: {e}", exc_info=True)
                     response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during explanation.retry.")
+
+            elif message.type == 'settings.save':
+                # Handle settings.save messages - update global settings
+                try:
+                    if self._settings_manager:
+                        settings_data = message.payload or {}
+                        self._settings_manager.update_settings(settings_data)
+                        
+                        # Optionally save to file for persistence
+                        save_success = await self._settings_manager.save_to_file()
+                        
+                        if save_success:
+                            response = self._create_ack_message(message, "Settings saved successfully")
+                            logger.info(f"Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
+                        else:
+                            response = self._create_ack_message(message, "Settings updated (persistence failed)")
+                            logger.warning(f"Settings updated but persistence failed for client {message.client_id}")
+                    else:
+                        response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "SettingsManager not available.")
+                        logger.error("SettingsManager not available for settings.save message")
+                except Exception as e:
+                    logger.error(f"Error handling settings.save: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during settings.save.")
 
             elif message.type == 'ping':
                 response = self._create_pong_message(message)
