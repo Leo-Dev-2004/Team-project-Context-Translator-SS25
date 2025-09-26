@@ -640,7 +640,11 @@ Return a JSON **array of objects**. Each object must have these keys:
                     technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
                     has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
                     
-                    if not has_tech_content and len(non_filler_words) < 3:  # Less than 3 meaningful words left
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 3:  # Less than 3 meaningful words left
                         logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
                         return
             
@@ -654,26 +658,43 @@ Return a JSON **array of objects**. Each object must have these keys:
                     technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
                     has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
                     
-                    if not has_tech_content and len(non_filler_words) < 2:  # Less than 2 meaningful words left
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 2:  # Less than 2 meaningful words left
                         logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
                         return
             
             # Check simple patterns - block if entire sentence or very dominant, but allow technical context
             for pattern in simple_patterns:
                 if pattern in text_lower:
+                    # Special case: if the entire sentence is just "thanks" or "thank you", block it
+                    if text_lower.strip() == pattern.strip():
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+                    
                     clean_text = text_lower.replace(pattern, "").strip()
                     
                     # Allow if there's clear technical context
                     technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "advances", "implementation", "process", "metrics", "updates", "notifications"]
                     has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
                     
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
                     # Special handling for "thanks" - only allow if it's clearly part of "thanks to X" construction with technical content
                     if pattern == "thanks":
-                        if "to" in clean_text and has_tech_content:
+                        if "to" in clean_text and (has_tech_content or has_professional_content):
                             continue  # Allow "thanks to machine learning" etc.
+                        # If it's not "thanks to X" with tech content, and there's little else, block it
+                        if len(clean_text) < 5:  # Very little other content
+                            logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                            return
                     
-                    # Only block if it's the entire sentence or has very little other content AND no technical context
-                    if not has_tech_content and len(clean_text) < 3:
+                    # For other simple patterns, only block if there's very little other content AND no technical context
+                    elif not (has_tech_content or has_professional_content) and len(clean_text) < 3:
                         logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
                         return
 
