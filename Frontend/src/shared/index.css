@@ -157,12 +157,14 @@ body {
 .theme-toggle {
 	position: absolute;
 	top: 0;
-	right: 0;
+	left: 0;
 	display: flex;
 	align-items: center;
 	gap: var(--space-xs);
-	font-size: 0.875rem;
+	font-size: 0.75rem;
 	color: var(--md-sys-color-on-surface-variant);
+	transform: scale(0.8);
+	transform-origin: left top;
 }
 
 .theme-toggle md-switch {
