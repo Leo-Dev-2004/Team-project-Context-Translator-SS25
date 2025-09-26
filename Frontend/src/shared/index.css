@@ -332,11 +332,17 @@ md-tabs {
 .regenerate-button {
 	background: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface-variant);
+	padding: var(--space-xs) var(--space-sm);
+	font-size: 0.75rem;
+	gap: var(--space-xs);
 }
 
 .copy-button {
 	background: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface-variant);
+	padding: var(--space-xs) var(--space-sm);
+	font-size: 0.75rem;
+	gap: var(--space-xs);
 }
 
 .explanation-content {
@@ -466,7 +472,8 @@ md-outlined-text-field md-icon-button[slot="trailing-icon"] .material-icons {
 .action-button .material-icons { font-size: 20px; }
 .expand-icon .material-icons { font-size: 20px; transition: transform var(--transition-normal) ease; }
 .expand-icon.expanded .material-icons { transform: rotate(180deg); }
-.copy-button .material-icons { font-size: 16px; }
+.copy-button .material-icons { font-size: 14px; }
+.regenerate-button .material-icons { font-size: 14px; }
 .empty-icon.material-icons { font-size: 72px; margin-bottom: var(--space-lg); opacity: 0.6; }
 md-text-button .material-icons, md-filled-button .material-icons, md-outlined-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
 
