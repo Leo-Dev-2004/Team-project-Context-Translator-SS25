@@ -42,7 +42,7 @@ export class ExplanationItem extends LitElement {
             <div class="explanation-text markdown-content ${this.explanation.isPending ? 'pending-content' : ''}">
               ${this._renderMarkdown(this.explanation.content)}
             </div>
-            <div class="explanation-footer">`
+            <div class="explanation-footer">
               <span class="explanation-timestamp">${this._formatTimestamp(this.explanation.timestamp)}</span>
               <div class="footer-actions">
                 <button class="regenerate-button" @click=${this._handleRegenerate} title="Regenerate explanation">
