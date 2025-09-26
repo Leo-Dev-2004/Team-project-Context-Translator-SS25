@@ -308,6 +308,8 @@ class SmallModel:
 
     async def _query_ollama_async(self, prompt: str) -> Optional[str]:
         """Asynchronously queries the Ollama server to avoid blocking the event loop."""
+        import psutil, time
+        start_time = time.time()
         try:
             response = await self.http_client.post(
                 OLLAMA_API_URL,
@@ -318,12 +320,18 @@ class SmallModel:
                 }
             )
             response.raise_for_status()
+            elapsed = time.time() - start_time
+            if elapsed > 10:
+                logger.warning(f"Ollama response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
+            mem = psutil.virtual_memory()
+            if mem.percent > 90:
+                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
             return response.json()['message']['content']
         except httpx.RequestError as e:
-            logger.error(f"Ollama query failed (HTTP request error): {e}")
+            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
             return None
         except Exception as e:
-            logger.error(f"An unexpected error occurred during AI detection: {e}", exc_info=True)
+            logger.error(f"Unexpected error during AI detection: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
             return None
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
@@ -335,16 +343,13 @@ class SmallModel:
             # Try AI detection with timeout
             detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
             ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
-            
             if ai_result:
                 logger.info(f"AI detection completed for: {sentence[:50]}...")
                 return ai_result
-                
         except asyncio.TimeoutError:
-            logger.warning(f"AI detection timed out after {ai_timeout}s, using fallback detection")
+            logger.error(f"AI detection timed out after {ai_timeout}s. Possible model overload or resource exhaustion. Using fallback detection.")
         except Exception as e:
-            logger.error(f"AI detection failed: {e}, using fallback detection")
-        
+            logger.error(f"AI detection failed: {e}. Possible backend shutdown or unexpected error. Using fallback detection.")
         # Use fast fallback detection
         logger.info(f"Using fallback detection for: {sentence[:50]}...")
         return await self.detect_terms_fallback(sentence)

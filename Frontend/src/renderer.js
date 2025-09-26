@@ -341,12 +341,24 @@ class ElectronMyElement extends UI {
     };
 
     try {
+      // Immediately add a pending explanation to the UI
+      const pendingExplanation = explanationManager.addExplanation(
+        term,
+        'Generating explanation...', // Placeholder content
+        Date.now(),
+        null, // No confidence yet
+        true, // isPending = true
+        message.id // Use message ID as request ID to match responses
+      );
+
       this.backendWs.send(JSON.stringify(message));
       this._showNotification(`Requested explanation for "${term}"`, 'success');
       // Clear field in UI
       if (termInput) termInput.value = '';
       this.manualTerm = '';
       this.requestUpdate?.();
+      
+      console.log(`Renderer: ✅ Added pending explanation for "${term}" with ID ${pendingExplanation.id}`);
     } catch (e) {
       this._showNotification('Failed to send manual request', 'error');
     }
@@ -505,7 +517,51 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
     if (explanation && explanation.term && explanation.content) {
-      // Add explanation to the manager
+      // First, check if there's already an explanation with this term that needs updating
+      // (pending manual requests, automatic detections, or explanations with missing/default content)
+      const existingExplanation = explanationManager.findExplanationToUpdate(explanation.term);
+      
+      if (existingExplanation) {
+        console.log(`Renderer: 🔄 Found existing explanation to update for "${explanation.term}"`);
+        
+        // Update the existing explanation instead of creating a new one
+        const updated = explanationManager.updateExplanation(existingExplanation.id, {
+          content: explanation.content,
+          timestamp: explanation.timestamp * 1000, // Convert to milliseconds if needed
+          confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null,
+          isPending: false // Mark as no longer pending
+        });
+
+        if (updated) {
+          console.log(`Renderer: ✅ Updated existing explanation for "${explanation.term}"`);
+          
+          // Throttle notification display to prevent notification spam
+          const now = Date.now();
+          if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
+            this._showNotification(`Explanation ready: ${explanation.term}`, 'success');
+            this.lastExplanationTime = now;
+          }
+          return;
+        }
+      }
+
+      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
+      const existingExplanations = explanationManager.explanations;
+      const recentExplanation = existingExplanations.find(exp => 
+        exp.title === explanation.term && 
+        !exp.isDeleted &&
+        exp.content && 
+        exp.content !== 'Generating explanation...' &&
+        !exp.content.includes('🔄 Generating explanation') &&
+        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
+      );
+
+      if (recentExplanation) {
+        console.log(`Renderer: 🛡️ Skipping duplicate explanation.new for "${explanation.term}" - recent explanation exists`);
+        return;
+      }
+
+      // Final fallback: Add as completely new explanation
       const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
       explanationManager.addExplanation(
         explanation.term,
@@ -513,6 +569,7 @@ class ElectronMyElement extends UI {
         explanation.timestamp * 1000, // Convert to milliseconds if needed
         confidence
       );
+      console.log(`Renderer: ✅ Added new explanation for "${explanation.term}"`);
 
       // Throttle notification display to prevent notification spam
       const now = Date.now();
@@ -520,8 +577,6 @@ class ElectronMyElement extends UI {
         this._showNotification(`New explanation: ${explanation.term}`, 'success');
         this.lastExplanationTime = now;
       }
-
-      console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
     }
@@ -576,6 +631,17 @@ class ElectronMyElement extends UI {
       // Add placeholders for detected terms (without full explanations yet)
       payload.detected_terms.forEach(termData => {
         if (termData.term && termData.context) {
+          // Check if we already have an explanation for this term (including pending manual requests)
+          const existingExplanations = explanationManager.explanations;
+          const existingIndex = existingExplanations.findIndex(exp => 
+            exp.title === termData.term && !exp.isDeleted
+          );
+
+          if (existingIndex !== -1) {
+            console.log(`Renderer: ⚡ Skipping detection placeholder for "${termData.term}" - explanation already exists`);
+            return; // Skip adding duplicate
+          }
+
           const confidence = typeof termData.confidence === 'number' ? termData.confidence : null;
           
           // Add as placeholder with loading state
@@ -601,36 +667,53 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📝 Explanation update received:', payload);
 
     if (payload && payload.term && payload.explanation) {
-      // Find and update the existing placeholder explanation
-      const existingExplanations = explanationManager.explanations;
-      const existingIndex = existingExplanations.findIndex(exp => 
-        exp.title === payload.term && exp.content.includes(EXPLANATION_CONSTANTS.LOADING_PATTERN)
-      );
-
-      if (existingIndex !== -1) {
-        // Update the existing explanation with the full content
-        const updated = explanationManager.updateExplanation(existingExplanations[existingIndex].id, {
+      // First, check if there's already an explanation with this term that needs updating
+      // (pending manual requests, automatic detections, or explanations with missing/default content)
+      const existingExplanation = explanationManager.findExplanationToUpdate(payload.term);
+      
+      if (existingExplanation) {
+        console.log(`Renderer: 🔄 Found existing explanation to update for "${payload.term}"`);
+        
+        // Update the existing explanation instead of creating a new one
+        const updated = explanationManager.updateExplanation(existingExplanation.id, {
           content: payload.explanation,
           timestamp: (payload.timestamp || Date.now() / 1000) * 1000,
-          confidence: typeof payload.confidence === 'number' ? payload.confidence : null
+          confidence: typeof payload.confidence === 'number' ? payload.confidence : null,
+          isPending: false // Mark as no longer pending
         });
 
         if (updated) {
-          console.log(`Renderer: ✅ Updated explanation for "${payload.term}"`);
-          // Show subtle notification that explanation is ready
+          console.log(`Renderer: ✅ Updated existing explanation for "${payload.term}" via explanation.update`);
           this._showNotification(`✨ Explanation ready: ${payload.term}`, 'success');
+          return;
         }
-      } else {
-        // If no placeholder exists, add as new explanation
-        const confidence = typeof payload.confidence === 'number' ? payload.confidence : null;
-        explanationManager.addExplanation(
-          payload.term,
-          payload.explanation,
-          (payload.timestamp || Date.now() / 1000) * 1000,
-          confidence
-        );
-        console.log(`Renderer: ✅ Added new explanation for "${payload.term}"`);
       }
+
+      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
+      const existingExplanations = explanationManager.explanations;
+      const recentExplanation = existingExplanations.find(exp => 
+        exp.title === payload.term && 
+        !exp.isDeleted &&
+        exp.content && 
+        exp.content !== 'Generating explanation...' &&
+        !exp.content.includes('🔄 Generating explanation') &&
+        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
+      );
+
+      if (recentExplanation) {
+        console.log(`Renderer: 🛡️ Skipped duplicate explanation.update for "${payload.term}" - recent explanation exists`);
+        return;
+      }
+
+      // Final fallback: Add as new explanation
+      const confidence = typeof payload.confidence === 'number' ? payload.confidence : null;
+      explanationManager.addExplanation(
+        payload.term,
+        payload.explanation,
+        (payload.timestamp || Date.now() / 1000) * 1000,
+        confidence
+      );
+      console.log(`Renderer: ✅ Added new explanation for "${payload.term}" via explanation.update`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation update data received:', payload);
     }
