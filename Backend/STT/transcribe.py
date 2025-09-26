@@ -34,12 +34,11 @@ class ConfigManager:
     
     @staticmethod
     def get_performance_config():
-            """Get the current performance configuration, default to 'current_default' for better accuracy."""
-            import os
-            # Force 'current_default' profile unless overridden by env
-            if not os.environ.get('STT_PERFORMANCE_PROFILE'):
-                os.environ['STT_PERFORMANCE_PROFILE'] = 'current_default'
-            return config_manager.get_config()
+        """Get the current performance configuration, default to 'current_default' for maximum accuracy."""
+        import os
+        # Use current_default for maximum accuracy unless explicitly overridden
+        profile = os.environ.get('STT_PERFORMANCE_PROFILE', 'current_default')
+        return config_manager.get_config(profile)
     
     @staticmethod
     def MODEL_SIZE():
@@ -47,15 +46,11 @@ class ConfigManager:
     
     @staticmethod
     def VAD_ENERGY_THRESHOLD():
-           # Make VAD much less restrictive: lower threshold by 50%
-           base = ConfigManager.get_performance_config().vad_energy_threshold
-           return base * 0.5
+        return ConfigManager.get_performance_config().vad_energy_threshold
     
     @staticmethod
     def VAD_SILENCE_DURATION_S():
-           # Make VAD much less restrictive: reduce silence duration by 60%
-           base = ConfigManager.get_performance_config().vad_silence_duration_s
-           return base * 0.4
+        return ConfigManager.get_performance_config().vad_silence_duration_s
     
     @staticmethod
     def VAD_BUFFER_DURATION_S():
