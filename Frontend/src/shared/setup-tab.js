@@ -97,13 +97,13 @@ export class SetupTab extends LitElement {
           <md-filled-button @click=${this._saveSettings}>Save Configuration</md-filled-button>
           <md-outlined-button @click=${this._resetSettings}>Reset to Defaults</md-outlined-button>
           <div class="session-controls">
-            <md-filled-button id="start-session-button" @click=${this._startSession}>Session erstellen</md-filled-button>
+            <md-filled-button id="start-session-button" @click=${this._startSession}>Create Session</md-filled-button>
             <md-outlined-text-field 
               id="session-code-input" 
               label="Session Code" 
               placeholder="Code eingeben...">
             </md-outlined-text-field>
-            <md-outlined-button id="join-session-button" @click=${this._joinSession}>Session beitreten</md-outlined-button>
+            <md-outlined-button id="join-session-button" @click=${this._joinSession}>Join Session</md-outlined-button>
           </div>
         </div>
       </div>
