@@ -25,8 +25,8 @@ const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
-    // Fixed window size for consistent UI experience
-    width: 420,
+    // Fixed window size for consistent UI experience (30% wider than original 420px)
+    width: 546,
     height: 820,
     resizable: false,
     webPreferences: {

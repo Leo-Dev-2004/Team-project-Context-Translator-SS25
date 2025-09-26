@@ -25,7 +25,8 @@ export class UI extends LitElement {
     isWindows: { type: Boolean },
     manualTerm: { type: String },
     serverStatus: { type: String },
-    microphoneStatus: { type: String }
+    microphoneStatus: { type: String },
+    isDarkMode: { type: Boolean }
   };
   constructor() {
     super();
@@ -37,6 +38,7 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
+    this.isDarkMode = null; // null = system preference, true/false = user override
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
     this._explanationListener = (exps) => {

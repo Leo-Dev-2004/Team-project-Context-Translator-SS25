@@ -70,8 +70,9 @@
 }
 }
 
+/* Dark mode support via media query (system preference) */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not(.force-light) {
 		/* Professional color palette - Dark Mode */
 		--color-primary: #3B82F6;    /* Lighter professional blue for dark mode */
 		--color-secondary: #94A3B8;  /* Lighter neutral gray */
