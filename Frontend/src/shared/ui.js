@@ -25,7 +25,8 @@ export class UI extends LitElement {
     isWindows: { type: Boolean },
     manualTerm: { type: String },
     serverStatus: { type: String },
-    microphoneStatus: { type: String }
+    microphoneStatus: { type: String },
+    isDarkMode: { type: Boolean }
   };
   constructor() {
     super();
@@ -37,6 +38,7 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
+    this.isDarkMode = null; // null = system preference, true/false = user override
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
     this._explanationListener = (exps) => {
@@ -87,6 +89,17 @@ export class UI extends LitElement {
       </md-dialog>
       <div class="ui-app-container">
         <header class="app-header ocean-header">
+          <div class="theme-toggle" title="Cycle through: System → Light → Dark">
+            <span class="theme-icon material-icons">
+              ${this.isDarkMode === null ? 'brightness_auto' : 
+                this.isDarkMode ? 'dark_mode' : 'light_mode'}
+            </span>
+            <md-switch 
+              .selected=${this.isDarkMode !== null}
+              @click=${this._onThemeToggle}
+              aria-label="Theme toggle">
+            </md-switch>
+          </div>
           <h1 class="display-medium">Context Translator</h1>
           <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
         </header>
@@ -255,6 +268,8 @@ export class UI extends LitElement {
     super.firstUpdated?.(changed);
     // Load domain settings
     await this._loadDomainSettings();
+    // Load theme preference
+    await this._loadThemePreference();
     // Plattform prüfen (nur Windows)
     try {
       this.isWindows = (window.electronAPI?.platform === 'win32');
@@ -273,6 +288,58 @@ export class UI extends LitElement {
     window.electronAPI?.windowControls?.isMaximized?.().then(isMax => {
       const el = iconEl(); if (el) el.textContent = isMax ? 'filter_none' : 'crop_square';
     }).catch(() => { });
+  }
+
+  async _loadThemePreference() {
+    try {
+      if (window.electronAPI?.loadSettings) {
+        const result = await window.electronAPI.loadSettings();
+        if (result.success && result.settings?.theme) {
+          this.isDarkMode = result.settings.theme === 'dark' ? true : 
+                           result.settings.theme === 'light' ? false : null;
+          this._applyTheme();
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load theme preference:', error);
+    }
+  }
+
+  async _saveThemePreference() {
+    try {
+      if (window.electronAPI?.saveSettings) {
+        const theme = this.isDarkMode === null ? 'system' : 
+                     this.isDarkMode ? 'dark' : 'light';
+        await window.electronAPI.saveSettings({ theme });
+      }
+    } catch (error) {
+      console.warn('Failed to save theme preference:', error);
+    }
+  }
+
+  _onThemeToggle(event) {
+    // Cycle through: system -> light -> dark -> system
+    if (this.isDarkMode === null) {
+      this.isDarkMode = false; // light
+    } else if (this.isDarkMode === false) {
+      this.isDarkMode = true; // dark
+    } else {
+      this.isDarkMode = null; // system
+    }
+    this._applyTheme();
+    this._saveThemePreference();
+  }
+
+  _applyTheme() {
+    const root = document.documentElement;
+    root.classList.remove('force-light', 'force-dark');
+    
+    if (this.isDarkMode === true) {
+      root.classList.add('force-dark');
+    } else if (this.isDarkMode === false) {
+      root.classList.add('force-light');
+    }
+    // If null, use system preference (no classes needed)
   }
 
   static styles = [sharedStyles, css`
