@@ -31,6 +31,9 @@ class ExplanationDeliveryService:
         # In-memory set to track delivered IDs for the current session to prevent duplicates.
         self.delivered_explanations: Set[str] = set()
         
+        # Event-driven notification system to replace polling
+        self._new_explanation_event = asyncio.Event()
+        
         self._running = False
         self._task: Optional[asyncio.Task] = None
         logger.info("ExplanationDeliveryService initialized")
@@ -41,6 +44,12 @@ class ExplanationDeliveryService:
             self._running = True
             self._task = asyncio.create_task(self._monitor_explanations())
             logger.info("ExplanationDeliveryService started monitoring explanations queue")
+
+    def trigger_immediate_check(self):
+        """Trigger immediate check for new explanations without waiting for polling interval."""
+        if self._running:
+            self._new_explanation_event.set()
+            logger.debug("Triggered immediate explanation check")
 
     async def stop(self):
         """Stop the explanation monitoring service."""
@@ -62,13 +71,20 @@ class ExplanationDeliveryService:
                 while True:
                     ready_explanations = await self._load_ready_explanations()
                     if not ready_explanations:
-                        break # Break the inner loop to sleep if queue is empty
+                        break # Break the inner loop if queue is empty
 
                     # Process the entire batch that was found
                     await self._process_and_deliver_batch(ready_explanations)
 
-                # If the queue was empty, wait before checking again
-                await asyncio.sleep(1)
+                # If the queue was empty, wait for event notification or timeout
+                # This replaces the fixed 1-second polling delay with event-driven approach
+                try:
+                    await asyncio.wait_for(self._new_explanation_event.wait(), timeout=5.0)
+                    # Clear the event flag for next iteration
+                    self._new_explanation_event.clear()
+                except asyncio.TimeoutError:
+                    # Timeout is normal - provides periodic check as fallback
+                    pass
 
             except asyncio.CancelledError:
                 break
