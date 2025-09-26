@@ -1,5 +1,6 @@
 import { UI } from './shared/index.js';
 import { explanationManager } from './shared/explanation-manager.js';
+import { createLoadingMessage, EXPLANATION_CONSTANTS } from './shared/explanation-constants.js';
 import './shared/index.css';
 import { Howl } from 'howler';
 
@@ -522,7 +523,7 @@ class ElectronMyElement extends UI {
   }
 
   _handleRetryExplanation(explanation) {
-    console.log('Renderer: 🔄 Retry explanation received:', explanation);
+    console.log(`Renderer: ${EXPLANATION_CONSTANTS.GENERATING_EMOJI} Retry explanation received:`, explanation);
 
     if (explanation && explanation.term && explanation.content) {
       // Update the existing explanation or add as new one
@@ -575,7 +576,7 @@ class ElectronMyElement extends UI {
           // Add as placeholder with loading state
           explanationManager.addExplanation(
             termData.term,
-            `🔄 Generating explanation for "${termData.term}"...\n\n**Context:** ${termData.context}`,
+            createLoadingMessage(termData.term, termData.context),
             Date.now(),
             confidence
           );
@@ -598,7 +599,7 @@ class ElectronMyElement extends UI {
       // Find and update the existing placeholder explanation
       const existingExplanations = explanationManager.explanations;
       const existingIndex = existingExplanations.findIndex(exp => 
-        exp.title === payload.term && exp.content.includes('🔄 Generating explanation')
+        exp.title === payload.term && exp.content.includes(EXPLANATION_CONSTANTS.LOADING_PATTERN)
       );
 
       if (existingIndex !== -1) {

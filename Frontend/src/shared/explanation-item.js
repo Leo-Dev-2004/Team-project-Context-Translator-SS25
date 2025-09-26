@@ -2,6 +2,7 @@
 import { LitElement, html } from 'lit';
 import { marked } from 'marked';
 import { sharedStyles } from './styles.js';
+import { isLoadingContent, formatLoadingDisplay, EXPLANATION_CONSTANTS } from './explanation-constants.js';
 
 export class ExplanationItem extends LitElement {
   static properties = {
@@ -67,14 +68,14 @@ export class ExplanationItem extends LitElement {
     if (!content) return html``;
     
     // Check if this is a processing/loading state
-    if (content.includes('🔄 Generating explanation')) {
+    if (isLoadingContent(content)) {
       return html`
         <div class="processing-content">
           <div class="processing-indicator">
             <div class="spinner"></div>
-            <span>Generating explanation...</span>
+            <span>${EXPLANATION_CONSTANTS.GENERATING_DISPLAY_TEXT}</span>
           </div>
-          <div class="processing-details">${content.replace('🔄 Generating explanation for', 'Analyzing term:').replace('...', '')}</div>
+          <div class="processing-details">${formatLoadingDisplay(content)}</div>
         </div>
       `;
     }
