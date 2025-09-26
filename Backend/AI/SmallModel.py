@@ -554,7 +554,8 @@ Return a JSON **array of objects**. Each object must have these keys:
                         "user_session_id": message.payload.get("user_session_id"),
                         "original_message_id": message.id,
                         "status": "pending",
-                        "explannation": None
+                        "explannation": None,
+                        "is_manual_request": term_data.get("is_manual_request", False)  # Track manual requests to avoid duplicate queuing
                     }
                         # Include confidence only when provided by producer (e.g., AI detection),
                         # manual requests may omit it deliberately.

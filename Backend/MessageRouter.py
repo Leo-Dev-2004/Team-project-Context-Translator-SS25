@@ -168,6 +168,7 @@ class MessageRouter:
                             "domain": domain,  # Include domain for AI processing
                             "confidence": confidence,
                             "explanation_style": explanation_style,  # Include explanation style
+                            "is_manual_request": True,  # Mark as manual request to avoid duplicate queuing
                         }]
                         success = await self._small_model.write_detection_to_queue(message, detected_terms)
                         if success:
