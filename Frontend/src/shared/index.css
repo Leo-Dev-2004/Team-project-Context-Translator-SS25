@@ -35,6 +35,13 @@
 	/* Transitions */
 	--transition-fast: 0.15s;
 	--transition-normal: 0.3s;
+
+	/* Scrollbar Styling Variables */
+	--scrollbar-width: 8px;
+	--scrollbar-track-bg: transparent;
+	--scrollbar-thumb-bg: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-bg-hover: rgba(0, 0, 0, 0.4);
+	--scrollbar-border-radius: 4px;
 	/* Material Design Mappings - Light Mode */
 	--md-sys-color-primary: var(--color-primary);
 	--md-sys-color-primary-container: var(--color-primary-light);
@@ -343,6 +350,19 @@ md-tabs {
 	margin-bottom: var(--space-lg);
 }
 
+/* Explanations Content Areas - Scrollable Setup */
+.explanations-content {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.explanations-list {
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: hidden;
+}
+
 /* Input Fields */
 md-outlined-text-field, md-outlined-select {
 	width: 100%;
@@ -470,4 +490,129 @@ md-text-button .material-icons, md-filled-button .material-icons, md-outlined-bu
   color: var(--color-text-secondary);
   font-style: italic;
   opacity: 0.8;
+}
+
+/* Scrollbar Styles */
+/* Base scrollbar styling that applies to all scrollable content */
+.scrollable, .explanations-content, .explanation-content.expanded, .explanations-list {
+  /* Default webkit scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+.scrollable::-webkit-scrollbar, 
+.explanations-content::-webkit-scrollbar,
+.explanation-content.expanded::-webkit-scrollbar,
+.explanations-list::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.scrollable::-webkit-scrollbar-track,
+.explanations-content::-webkit-scrollbar-track,
+.explanation-content.expanded::-webkit-scrollbar-track,
+.explanations-list::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.scrollable::-webkit-scrollbar-thumb,
+.explanations-content::-webkit-scrollbar-thumb,
+.explanation-content.expanded::-webkit-scrollbar-thumb,
+.explanations-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg);
+  border-radius: var(--scrollbar-border-radius);
+  transition: background var(--transition-fast) ease;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover,
+.explanations-content::-webkit-scrollbar-thumb:hover,
+.explanation-content.expanded::-webkit-scrollbar-thumb:hover,
+.explanations-list::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-bg-hover);
+}
+
+/* Scrollbar Style Options */
+
+/* Minimal/Subtle Style */
+.scrollbar-minimal {
+  --scrollbar-width: 4px;
+  --scrollbar-track-bg: transparent;
+  --scrollbar-thumb-bg: rgba(100, 116, 139, 0.3);
+  --scrollbar-thumb-bg-hover: rgba(100, 116, 139, 0.6);
+}
+
+/* Glassy/Transparent Style */
+.scrollbar-glassy {
+  --scrollbar-width: 6px;
+  --scrollbar-track-bg: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-bg-hover: rgba(255, 255, 255, 0.4);
+  --scrollbar-border-radius: 3px;
+}
+
+.scrollbar-glassy::-webkit-scrollbar-thumb {
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hidden Style */
+.scrollbar-hidden {
+  --scrollbar-width: 0px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Default Style (browser default) */
+.scrollbar-default {
+  --scrollbar-width: auto;
+  --scrollbar-track-bg: initial;
+  --scrollbar-thumb-bg: initial;
+  --scrollbar-thumb-bg-hover: initial;
+  scrollbar-width: auto;
+  scrollbar-color: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar {
+  width: initial;
+  height: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar-track {
+  background: initial;
+  border-radius: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar-thumb {
+  background: initial;
+  border-radius: initial;
+}
+
+/* Dark mode adjustments for scrollbar styles */
+@media (prefers-color-scheme: dark) {
+  :root:not(.force-light) {
+    --scrollbar-thumb-bg: rgba(156, 163, 175, 0.4);
+    --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.7);
+  }
+  
+  :root:not(.force-light) .scrollbar-glassy {
+    --scrollbar-track-bg: rgba(0, 0, 0, 0.1);
+    --scrollbar-thumb-bg: rgba(156, 163, 175, 0.3);
+    --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.6);
+  }
+}
+
+:root.force-dark {
+  --scrollbar-thumb-bg: rgba(156, 163, 175, 0.4);
+  --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.7);
+}
+
+:root.force-dark .scrollbar-glassy {
+  --scrollbar-track-bg: rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb-bg: rgba(156, 163, 175, 0.3);
+  --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.6);
 }
