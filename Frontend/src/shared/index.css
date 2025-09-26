@@ -1,41 +1,53 @@
 :root {
-	/* Harmonische Farbpalette - Light Mode */
-	--color-primary: #1E40AF;
-	--color-secondary: #64748B;
-	--color-surface: #F8FAFC;
+	/* Professional color palette - Light Mode */
+	--color-primary: #2563EB;    /* Professional blue */
+	--color-secondary: #475569;  /* Neutral slate gray */
+	--color-surface: #F8FAFC;    /* Clean light background */
+	--color-accent: #0D9488;     /* Professional teal accent */
+	--color-warning: #D97706;    /* Warm amber */
+	--color-success: #059669;    /* Clean green */
 
-	/* Automatisch generierte Varianten */
+	/* Automatically generated variants */
 	--color-primary-light: color-mix(in srgb, var(--color-primary) 15%, white);
 	--color-primary-dark: color-mix(in srgb, var(--color-primary) 80%, black);
 	--color-secondary-light: color-mix(in srgb, var(--color-secondary) 20%, white);
 	--color-secondary-dark: color-mix(in srgb, var(--color-secondary) 75%, black);
 	--color-surface-dark: #1E293B;
 	--color-surface-light: white;
+	--color-accent-light: color-mix(in srgb, var(--color-accent) 15%, white);
+	--color-accent-dark: color-mix(in srgb, var(--color-accent) 80%, black);
 
-	/* Spacing & Sizing */
-	--space-xs: 0.25rem;
-	--space-sm: 0.5rem;
-	--space-md: 0.75rem;
-	--space-lg: 1rem;
-	--space-xl: 1.5rem;
-	--space-2xl: 2rem;
-	--space-3xl: 3rem;
+	/* Spacing & Sizing - Enhanced professional spacing */
+	--space-xs: 0.25rem;   /* 4px */
+	--space-sm: 0.5rem;    /* 8px */
+	--space-md: 0.75rem;   /* 12px */
+	--space-lg: 1rem;      /* 16px */
+	--space-xl: 1.5rem;    /* 24px */
+	--space-2xl: 2rem;     /* 32px */
+	--space-3xl: 3rem;     /* 48px */
+	--space-4xl: 4rem;     /* 64px */
 
-	/* Border Radius */
+	/* Border Radius - Modern rounded design */
+	--radius-xs: 2px;
 	--radius-sm: 4px;
 	--radius-md: 8px;
 	--radius-lg: 12px;
+	--radius-xl: 16px;
 	--radius-full: 50%;
 
-	/* Shadows */
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+	/* Professional shadows with depth */
+	--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+	--shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+	--shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.12);
 
-	/* Transitions */
-	--transition-fast: 0.15s;
-	--transition-normal: 0.3s;
-	/* Material Design Mappings - Light Mode */
+	/* Transitions - Smooth professional animations */
+	--transition-fast: 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	/* Material Design Mappings - Professional Light Mode */
 	--md-sys-color-primary: var(--color-primary);
 	--md-sys-color-primary-container: var(--color-primary-light);
 	--md-sys-color-on-primary: white;
@@ -53,16 +65,20 @@
 	--md-sys-color-error: #DC2626;
 	--md-sys-color-error-container: #FEE2E2;
 	--md-sys-color-on-error-container: #991B1B;
+	--md-sys-color-tertiary: var(--color-accent);
+	--md-sys-color-tertiary-container: var(--color-accent-light);
+}
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		/* Harmonische Farbpalette - Dark Mode */
-		--color-primary: #60A5FA;
-		--color-secondary: #9CA3AF;
-		--color-surface: #1F2937;
-		--color-surface-dark: #111827;
-		--color-surface-light: #374151;
+		/* Professional color palette - Dark Mode */
+		--color-primary: #3B82F6;    /* Lighter professional blue for dark mode */
+		--color-secondary: #94A3B8;  /* Lighter neutral gray */
+		--color-surface: #1F2937;    /* Clean dark background */
+		--color-surface-dark: #111827; /* Deeper dark */
+		--color-surface-light: #374151; /* Medium dark surface */
+		--color-accent: #14B8A6;     /* Brighter teal for dark mode */
     
 		/* Dark Mode Material Design Mappings */
 		--md-sys-color-surface: var(--color-surface-dark);
@@ -70,10 +86,11 @@
 		--md-sys-color-on-surface: var(--color-secondary-light);
 		--md-sys-color-outline-variant: #4B5563;
 		--md-sys-color-error: #F87171;
+		--md-sys-color-tertiary: var(--color-accent);
 	}
 }
 
-/* Globale Basis-Styles */
+/* Global professional styles */
 *, *::before, *::after {
 	box-sizing: border-box;
 }
@@ -81,36 +98,78 @@
 body {
 	margin: 0;
 	padding: 0;
-	font-family: 'Roboto', sans-serif;
+	/* Professional font stack - Inter with fallbacks */
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
 	font-size: 1rem;
+	line-height: 1.6;
 	background-color: var(--color-surface);
 	color: var(--md-sys-color-on-surface);
-	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
 }
 
-/* Container */
+/* Professional container design */
 .app-container, .ui-app-container {
 	background: var(--md-sys-color-surface);
 	max-width: min(1200px, 100vw - 2rem);
-	margin: var(--space-lg) auto;
-	padding: var(--space-lg);
-	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-lg);
+	margin: 0; /* Remove default margin for fixed window size */
+	padding: var(--space-xl);
+	border-radius: 0; /* No border radius for fixed window */
+	box-shadow: none; /* No shadow for fixed window */
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
 }
 
-/* Header */
+/* Professional header design */
+.app-header {
+	padding: var(--space-lg) 0 var(--space-xl) 0;
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	margin-bottom: var(--space-xl);
+}
+
+.header-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-md);
+	justify-content: center;
+}
+
+.brand-icon {
+	width: 48px;
+	height: 48px;
+	background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+	border-radius: var(--radius-lg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: var(--shadow-md);
+}
+
+.brand-icon .material-icons {
+	font-size: 24px;
+	color: white;
+}
+
+.brand-text {
+	text-align: left;
+}
+
 .app-header h1 {
-	font-size: 2.5rem;
+	font-size: 1.875rem; /* More appropriate for fixed window */
+	font-weight: 600;
 	color: var(--md-sys-color-primary);
-	margin: 0 0 0.5rem 0;
-	text-align: center;
+	margin: 0 0 var(--space-xs) 0;
+	letter-spacing: -0.025em;
 }
 
 .app-header p {
-	font-size: 1.125rem;
+	font-size: 0.875rem;
 	color: var(--md-sys-color-secondary);
 	margin: 0;
-	text-align: center;
+	opacity: 0.8;
+	line-height: 1.4;
 }
 
 /* Tabs */
@@ -119,99 +178,148 @@ md-tabs {
 	--md-primary-tab-indicator-color: var(--md-sys-color-primary);
 }
 
-/* Panels & Sections */
+/* Professional panels & sections */
 .tab-panel, .input-section, .explanations-panel {
 	background: var(--md-sys-color-surface-variant);
-	border: 1px solid var(--md-sys-color-outline);
-	border-radius: var(--radius-md);
-	padding: var(--space-lg);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--space-xl);
 	margin-bottom: var(--space-lg);
+	box-shadow: var(--shadow-sm);
+	transition: box-shadow var(--transition-normal);
 }
 
-/* Buttons - Vereinheitlicht */
+.tab-panel:hover, .input-section:hover {
+	box-shadow: var(--shadow-md);
+}
+
+/* Professional button design */
 .btn, .action-button, .copy-button, .regenerate-button, .expand-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-sm);
-	padding: var(--space-sm) var(--space-lg);
+	padding: var(--space-md) var(--space-lg);
 	border: none;
 	border-radius: var(--radius-md);
 	cursor: pointer;
 	font-size: 0.875rem;
-	transition: all var(--transition-fast) ease;
+	font-weight: 500;
+	font-family: inherit;
+	transition: all var(--transition-normal);
 	text-decoration: none;
+	position: relative;
+	overflow: hidden;
 }
 
 .btn-primary, md-filled-button {
 	background: var(--md-sys-color-primary);
 	color: var(--md-sys-color-on-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover, md-filled-button:hover {
+	background: var(--color-primary-dark);
+	box-shadow: var(--shadow-md);
+	transform: translateY(-1px);
+}
+
+.btn-primary:active, md-filled-button:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary, md-outlined-button {
 	background: transparent;
 	color: var(--md-sys-color-primary);
-	border: 1px solid var(--md-sys-color-primary);
+	border: 1.5px solid var(--md-sys-color-primary);
+}
+
+.btn-secondary:hover, md-outlined-button:hover {
+	background: var(--color-primary-light);
+	border-color: var(--color-primary-dark);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-sm);
 }
 
 .btn-text, md-text-button {
 	background: transparent;
 	color: var(--md-sys-color-primary);
+	padding: var(--space-sm) var(--space-md);
 }
 
-.btn:hover, .action-button:hover, .copy-button:hover, .regenerate-button:hover {
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-md);
+.btn-text:hover, md-text-button:hover {
+	background: var(--color-primary-light);
 }
 
-/* Icon Buttons */
+/* Professional icon buttons */
 .action-button {
-	width: 36px;
-	height: 36px;
+	width: 40px;
+	height: 40px;
 	padding: 0;
-	border-radius: var(--radius-full);
-	background: none;
+	border-radius: var(--radius-md);
+	background: transparent;
 	color: var(--md-sys-color-on-surface-variant);
+	transition: all var(--transition-normal);
 }
 
 .action-button:hover {
 	background: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface);
+	transform: scale(1.05);
+	box-shadow: var(--shadow-sm);
+}
+
+.action-button:active {
+	transform: scale(0.95);
 }
 
 .pin-button.pinned {
-	color: var(--md-sys-color-secondary);
-	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-tertiary);
+	background: var(--md-sys-color-tertiary-container);
+}
+
+.pin-button.pinned:hover {
+	background: var(--color-accent-dark);
+	color: white;
 }
 
 .delete-button:hover {
 	background: var(--md-sys-color-error-container);
 	color: var(--md-sys-color-on-error-container);
+	transform: scale(1.05);
 }
 
-/* Cards */
+/* Professional card design */
 .card, .explanation-card, .queue-item {
 	background: var(--md-sys-color-surface);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
 	padding: var(--space-lg);
 	margin-bottom: var(--space-md);
-	transition: all var(--transition-normal) ease;
+	transition: all var(--transition-normal);
+	box-shadow: var(--shadow-xs);
 }
 
 .card:hover, .queue-item:hover {
 	background: var(--color-primary-light);
 	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+	border-color: var(--color-primary-light);
 }
 
 .explanation-card:hover {
-	background: color-mix(in srgb, var(--md-sys-color-surface) 90%, var(--color-primary));
+	background: color-mix(in srgb, var(--md-sys-color-surface) 92%, var(--color-primary));
 	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+	border-color: var(--color-primary);
 }
 
 .card.pinned, .explanation-card.pinned {
-	border-color: var(--color-primary);
+	border-color: var(--color-accent);
 	border-width: 2px;
+	box-shadow: var(--shadow-sm);
+	background: color-mix(in srgb, var(--md-sys-color-surface) 95%, var(--color-accent));
 }
 
 /* Explanation-spezifische Layouts */

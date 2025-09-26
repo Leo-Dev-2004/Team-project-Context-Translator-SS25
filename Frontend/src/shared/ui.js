@@ -83,9 +83,16 @@ export class UI extends LitElement {
         </div>
       </md-dialog>
       <div class="ui-app-container">
-        <header class="app-header ocean-header">
-          <h1 class="display-medium">Context Translator</h1>
-          <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
+        <header class="app-header">
+          <div class="header-brand">
+            <div class="brand-icon">
+              <span class="material-icons">translate</span>
+            </div>
+            <div class="brand-text">
+              <h1>Context Translator</h1>
+              <p>Real-time meeting explanations and summaries powered by AI.</p>
+            </div>
+          </div>
         </header>
         <status-bar 
           .serverStatus=${this.serverStatus}
