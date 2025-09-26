@@ -4,3 +4,7 @@ export { ExplanationItem } from './explanation-item.js';
 export { explanationManager, ExplanationManager } from './explanation-manager.js';
 export * from './status-bar.js';
 export * from './explanation-constants.js';
+export { MainBody } from './main-body.js';
+export { SetupTab } from './setup-tab.js';
+export { ExplanationsTab } from './explanations-tab.js';
+export { ChatBox } from './chat-box.js';
