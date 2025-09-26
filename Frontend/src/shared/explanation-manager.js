@@ -92,6 +92,35 @@ export class ExplanationManager {
     return null;
   }
 
+  /**
+   * Find existing explanation that should be updated instead of creating a new one.
+   * This checks for explanations with placeholder/missing content that match the term.
+   * @param {string} term - The term to search for
+   * @returns {Object|null} - The explanation to update, or null if none found
+   */
+  findExplanationToUpdate(term) {
+    // Look for explanations with the same term that have placeholder or missing content
+    return this.explanations.find(e => 
+      e.title === term && 
+      !e.isDeleted &&
+      (
+        // Pending manual requests
+        (e.isPending === true && e.content === 'Generating explanation...') ||
+        // Automatic detection placeholders
+        (e.content && e.content.includes('🔄 Generating explanation')) ||
+        // Empty or null content (missing explanations)
+        !e.content || 
+        e.content === '' || 
+        e.content === null || 
+        e.content === undefined ||
+        // Other placeholder patterns
+        e.content === 'Loading...' ||
+        e.content === 'Pending...' ||
+        e.content.trim() === ''
+      )
+    );
+  }
+
   updatePendingExplanationByTerm(term, updates) {
     // Look for pending manual request explanations specifically
     const i = this.explanations.findIndex(e => 
