@@ -35,6 +35,10 @@ class SmallModel:
         self.queue_lock = asyncio.Lock()
         self.detections_queue_file = DETECTIONS_QUEUE_FILE
 
+        # Import outgoing queue for immediate notifications
+        from ..core.Queues import queues
+        self.outgoing_queue = queues.outgoing
+
         # Filtering configuration
         self.confidence_threshold = 1  # Terms with confidence >= this are ignored 
         self.cooldown_seconds = 300
@@ -61,6 +65,46 @@ class SmallModel:
         self.cooldown_map = {}
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
         logger.info("SmallModel initialized and ready to produce detections.")
+
+    async def send_immediate_detection_notification(self, message: UniversalMessage, detected_terms: List[Dict]):
+        """
+        Send immediate detection notification to frontend while processing continues in background.
+        This provides instant user feedback showing detected terms without waiting for explanations.
+        """
+        try:
+            if not detected_terms:
+                return
+
+            # Create immediate notification with detected terms (without explanations)
+            detection_notification = UniversalMessage(
+                type="detection.immediate",
+                payload={
+                    "detected_terms": [
+                        {
+                            "term": term_data["term"],
+                            "confidence": term_data.get("confidence", 0.5),
+                            "context": term_data["context"],
+                            "timestamp": term_data["timestamp"],
+                            "status": "detected",  # Status: detected -> processing -> explained
+                            "explanation": None  # Will be filled in later
+                        }
+                        for term_data in detected_terms
+                    ],
+                    "original_message_id": message.id,
+                    "processing_status": "terms_detected"
+                },
+                client_id=message.client_id,
+                origin="SmallModel",
+                destination="frontend"
+            )
+
+            # Send immediately to frontend via outgoing queue
+            await self.outgoing_queue.enqueue(detection_notification)
+            
+            logger.info(f"Sent immediate detection notification with {len(detected_terms)} terms to client {message.client_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending immediate detection notification: {e}", exc_info=True)
 
     def safe_json_extract(self, content: str) -> List[Dict]:
         """
@@ -126,6 +170,29 @@ class SmallModel:
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         """Use Ollama to detect important terms in the given sentence asynchronously."""
+        # Set a shorter timeout for faster fallback
+        ai_timeout = 10  # seconds
+        
+        try:
+            # Try AI detection with timeout
+            detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
+            ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
+            
+            if ai_result:
+                logger.info(f"AI detection completed for: {sentence[:50]}...")
+                return ai_result
+                
+        except asyncio.TimeoutError:
+            logger.warning(f"AI detection timed out after {ai_timeout}s, using fallback detection")
+        except Exception as e:
+            logger.error(f"AI detection failed: {e}, using fallback detection")
+        
+        # Use fast fallback detection
+        logger.info(f"Using fallback detection for: {sentence[:50]}...")
+        return await self.detect_terms_fallback(sentence)
+    
+    async def _perform_ai_detection(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
+        """Perform AI-based term detection with the LLM."""
         context_intro = f"Mark the technical terms or words that might not be understood by a general audience in this sentence"
         if user_role:
             context_intro += f", considering the user is a '{user_role}'"
@@ -167,7 +234,7 @@ Return a JSON **array of objects**. Each object must have these keys:
 """
         raw_response = await self._query_ollama_async(prompt)
         if not raw_response:
-            return await self.detect_terms_fallback(sentence)
+            return []
 
         now = int(time.time())
         raw_terms = self.safe_json_extract(raw_response)
@@ -186,24 +253,53 @@ Return a JSON **array of objects**. Each object must have these keys:
 
     async def detect_terms_fallback(self, sentence: str) -> List[Dict]:
         """Fallback detection using basic patterns when AI is unavailable."""
-        logger.info("Using fallback detection method")
+        logger.info("Using enhanced fallback detection method")
+        
+        # Enhanced patterns for better technical term detection
         patterns = {
-            'technical_terms': r'\b(?:API|database|server|client|authentication|encryption|algorithm|framework|protocol)\b',
-            'business_terms': r'\b(?:revenue|profit|strategy|market|customer|stakeholder|ROI|KPI|budget)\b',
-            'academic_terms': r'\b(?:hypothesis|methodology|analysis|research|study|theory|experiment|conclusion)\b',
-            'complex_words': r'\b\w{14,}\b'
+            'ml_ai_terms': r'\b(?:machine learning|neural network|artificial intelligence|deep learning|algorithm|model|training|dataset|backpropagation|gradient descent|overfitting|underfitting|regression|classification|clustering|reinforcement learning|supervised learning|unsupervised learning)\b',
+            'tech_terms': r'\b(?:API|REST|GraphQL|microservices|database|server|client|authentication|encryption|blockchain|cloud computing|docker|kubernetes|DevOps|CI/CD|framework|library|protocol|HTTP|HTTPS|TCP|UDP|JSON|XML|SQL|NoSQL)\b',
+            'programming_terms': r'\b(?:function|variable|object|class|method|inheritance|polymorphism|encapsulation|recursion|iteration|debugging|refactoring|version control|git|repository|commit|pull request|merge|branch)\b',
+            'business_terms': r'\b(?:revenue|profit|strategy|market research|customer acquisition|stakeholder|ROI|KPI|budget|scalability|monetization|business model|value proposition|market penetration)\b',
+            'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|analysis|research|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
+            'complex_words': r'\b\w{12,}\b',  # Words with 12+ characters
+            'acronyms': r'\b[A-Z]{2,6}\b'  # 2-6 letter acronyms
         }
+        
         detected_terms = set()
         text_lower = sentence.lower()
-        for pattern in patterns.values():
-            matches = re.findall(pattern, text_lower, re.IGNORECASE)
-            detected_terms.update(match.lower() for match in matches)
+        
+        for category, pattern in patterns.items():
+            matches = re.findall(pattern, sentence, re.IGNORECASE)
+            for match in matches:
+                # Filter out common words and improve confidence based on category
+                if match.lower() not in self.known_terms and len(match) > 2:
+                    detected_terms.add(match)
         
         now = int(time.time())
-        return [
-            {"term": term, "timestamp": now, "confidence": 0.3, "context": sentence}
-            for term in detected_terms
-        ]
+        result_terms = []
+        
+        for term in detected_terms:
+            # Assign confidence based on term characteristics
+            confidence = 0.4  # default fallback confidence
+            term_lower = term.lower()
+            
+            if any(tech_word in term_lower for tech_word in ['api', 'machine', 'neural', 'algorithm', 'learning']):
+                confidence = 0.7  # Higher confidence for obvious technical terms
+            elif len(term) > 15:  # Very long words are likely technical
+                confidence = 0.6
+            elif term.isupper() and len(term) >= 3:  # Acronyms
+                confidence = 0.5
+                
+            result_terms.append({
+                "term": term, 
+                "timestamp": now, 
+                "confidence": confidence, 
+                "context": sentence
+            })
+        
+        logger.info(f"Fallback detection found {len(result_terms)} terms")
+        return result_terms
 
     async def write_detection_to_queue(self, message: UniversalMessage, detected_terms: List[Dict]) -> bool:
         """Safely write detected terms to the file-based queue."""
@@ -278,6 +374,10 @@ Return a JSON **array of objects**. Each object must have these keys:
                     logger.info(f"Accepted term: '{term_obj['term']}' for client {message.client_id}")
             
             if filtered_terms:
+                # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
+                await self.send_immediate_detection_notification(message, filtered_terms)
+                
+                # BACKGROUND PROCESSING: Queue for detailed explanation generation
                 await self.write_detection_to_queue(message, filtered_terms)
         
         except Exception as e:
