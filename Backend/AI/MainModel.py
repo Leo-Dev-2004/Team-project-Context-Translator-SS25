@@ -309,6 +309,7 @@ class MainModel:
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
+            is_manual_request = entry.get("is_manual_request", False)  # Check if this is a manual request
             explanation_style = entry.get("explanation_style", "detailed")
             original_explanation_id = entry.get("original_explanation_id")
             
@@ -337,27 +338,36 @@ class MainModel:
             # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
             await self.send_explanation_update(term, explanation, entry)
 
-            message_type = "explanation.retry" if is_retry else "explanation.new"
-            explanation_entry = {
-                "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
-                "context": entry["context"], "timestamp": int(time.time()),
-                "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                "confidence": entry.get("confidence", 0), "message_type": message_type
-            }
-            if is_retry and original_explanation_id:
-                explanation_entry["original_explanation_id"] = original_explanation_id
+            # BACKGROUND: Only queue for file-based delivery system if this is NOT a manual request
+            # Manual requests already have pending explanations in the frontend that are updated by the immediate feedback above
+            if not is_manual_request:
+                message_type = "explanation.retry" if is_retry else "explanation.new"
+                explanation_entry = {
+                    "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
+                    "context": entry["context"], "timestamp": int(time.time()),
+                    "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
+                    "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
+                    "confidence": entry.get("confidence", 0), "message_type": message_type
+                }
+                if is_retry and original_explanation_id:
+                    explanation_entry["original_explanation_id"] = original_explanation_id
 
-            # Add original explanation ID for retry responses
-            if is_retry and original_explanation_id:
-                explanation_entry["original_explanation_id"] = original_explanation_id
-            
-            # BACKGROUND: Still queue for file-based delivery system (backwards compatibility)
-            if await self.write_explanation_to_queue(explanation_entry):
-                # Only mark as explained for non-retry requests
+                # Add original explanation ID for retry responses
+                if is_retry and original_explanation_id:
+                    explanation_entry["original_explanation_id"] = original_explanation_id
+                
+                # Queue for file-based delivery system (backwards compatibility for automatic detections)
+                if await self.write_explanation_to_queue(explanation_entry):
+                    # Only mark as explained for non-retry requests
+                    if not is_retry:
+                        self.mark_as_explained(term)
+                    logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
+            else:
+                # For manual requests, only send immediate feedback - no background queuing to avoid duplicates
+                logger.info(f"Successfully processed manual request for term '{term}' - sent immediate update only.")
+                # Still mark as explained to prevent duplicate processing
                 if not is_retry:
                     self.mark_as_explained(term)
-                logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
 
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""
