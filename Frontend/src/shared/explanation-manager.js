@@ -93,7 +93,14 @@ export class ExplanationManager {
   }
 
   updatePendingExplanationByTerm(term, updates) {
-    const i = this.explanations.findIndex(e => e.title === term && e.isPending);
+    // Look for pending manual request explanations specifically
+    const i = this.explanations.findIndex(e => 
+      e.title === term && 
+      e.isPending === true && 
+      !e.isDeleted &&
+      e.content === 'Generating explanation...' // Specific to manual requests
+    );
+    
     if (i !== -1) {
       // Normalize confidence if present in updates
       let normUpdates = { ...updates };
@@ -111,6 +118,7 @@ export class ExplanationManager {
       this._sortExplanations();
       this._saveToStorageThrottled();
       this.notifyListeners();
+      console.log(`ExplanationManager: Updated pending manual request for "${term}"`);
       return this.explanations[i];
     }
     return null;

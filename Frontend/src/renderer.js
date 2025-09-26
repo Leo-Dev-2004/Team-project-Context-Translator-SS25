@@ -489,34 +489,60 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
     if (explanation && explanation.term && explanation.content) {
-      // First, try to update any pending explanation with the same term
+      // First, try to update any pending manual request explanation with the same term
+      // Look for pending explanations that were created by manual requests (have isPending: true)
       const updated = explanationManager.updatePendingExplanationByTerm(explanation.term, {
         content: explanation.content,
         timestamp: explanation.timestamp * 1000, // Convert to milliseconds if needed
         confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null
       });
 
-      // If no pending explanation was found, add as new explanation
-      if (!updated) {
-        const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
-        explanationManager.addExplanation(
-          explanation.term,
-          explanation.content,
-          explanation.timestamp * 1000, // Convert to milliseconds if needed
-          confidence
+      if (updated) {
+        // Successfully updated a pending manual request
+        console.log(`Renderer: ✅ Updated pending manual request for "${explanation.term}"`);
+        
+        // Throttle notification display to prevent notification spam
+        const now = Date.now();
+        if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
+          this._showNotification(`Explanation ready: ${explanation.term}`, 'success');
+          this.lastExplanationTime = now;
+        }
+      } else {
+        // No pending manual request found - check if this term already exists from automatic detection
+        const existingExplanations = explanationManager.explanations;
+        const existingIndex = existingExplanations.findIndex(exp => 
+          exp.title === explanation.term && 
+          !exp.isDeleted &&
+          (exp.content.includes('🔄 Generating explanation') || exp.content === 'Generating explanation...')
         );
-      }
 
-      // Throttle notification display to prevent notification spam
-      const now = Date.now();
-      if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
-        const message = updated ? `Updated explanation: ${explanation.term}` : `New explanation: ${explanation.term}`;
-        this._showNotification(message, 'success');
-        this.lastExplanationTime = now;
-      }
+        if (existingIndex !== -1) {
+          // Update existing automatic detection placeholder
+          const updated = explanationManager.updateExplanation(existingExplanations[existingIndex].id, {
+            content: explanation.content,
+            timestamp: explanation.timestamp * 1000,
+            confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null
+          });
+          console.log(`Renderer: ✅ Updated automatic detection for "${explanation.term}"`);
+        } else {
+          // No existing explanation found - add as completely new explanation
+          const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+          explanationManager.addExplanation(
+            explanation.term,
+            explanation.content,
+            explanation.timestamp * 1000, // Convert to milliseconds if needed
+            confidence
+          );
+          console.log(`Renderer: ✅ Added new explanation for "${explanation.term}"`);
+        }
 
-      const actionType = updated ? 'Updated' : 'Added';
-      console.log(`Renderer: ✅ ${actionType} explanation for "${explanation.term}" to display`);
+        // Throttle notification display to prevent notification spam
+        const now = Date.now();
+        if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
+          this._showNotification(`New explanation: ${explanation.term}`, 'success');
+          this.lastExplanationTime = now;
+        }
+      }
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
     }
