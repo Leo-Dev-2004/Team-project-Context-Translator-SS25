@@ -91,8 +91,18 @@ class STTService:
         # Measure model loading time for performance monitoring
         load_start_time = time.time()
         logger.info(f"Loading Whisper model '{Config.MODEL_SIZE()}'...")
-        self.model = WhisperModel(Config.MODEL_SIZE(), device="cpu", compute_type="int8")
-        load_time = time.time() - load_start_time
+        try:
+            self.model = WhisperModel(Config.MODEL_SIZE(), device="cpu", compute_type="int8")
+            load_time = time.time() - load_start_time
+            logger.info(f"Whisper model loaded successfully in {load_time:.2f}s")
+        except Exception as e:
+            logger.critical(f"Failed to load Whisper model '{Config.MODEL_SIZE()}': {e}")
+            logger.critical("This is likely due to:")
+            logger.critical("  1. Missing dependencies (pip install faster-whisper)")
+            logger.critical("  2. No internet connection (models need to be downloaded)")
+            logger.critical("  3. Insufficient disk space")
+            logger.critical("  4. Firewall blocking model download")
+            raise
         logger.info(f"Whisper model loaded in {load_time:.2f}s")
         
         self.audio_queue = queue.Queue()
@@ -104,6 +114,11 @@ class STTService:
         self.audio_durations = []
         
         logger.info(f"STTService initialized for session {self.user_session_id}")
+        logger.info("To debug transcription issues, check:")
+        logger.info("  1. Microphone permissions and hardware")
+        logger.info("  2. Audio levels (speak clearly into microphone)")
+        logger.info(f"  3. VAD settings (threshold: {Config.VAD_ENERGY_THRESHOLD()}, silence: {Config.VAD_SILENCE_DURATION_S()}s)")
+        logger.info("  4. Backend WebSocket server running on localhost:8000")
 
     def _record_audio_thread(self):
         """[Thread Target] Captures audio from microphone into a thread-safe queue."""
@@ -161,6 +176,15 @@ class STTService:
                 audio_chunk = self.audio_queue.get(timeout=1.0)
                 frame_energy = np.sqrt(np.mean(np.square(audio_chunk)))
                 
+                # Debug logging for VAD (only occasionally to avoid spam)
+                if hasattr(self, '_debug_counter'):
+                    self._debug_counter += 1
+                else:
+                    self._debug_counter = 0
+                
+                if self._debug_counter % 50 == 0:  # Log every 50th frame (roughly every 5 seconds)
+                    logger.debug(f"Audio energy: {frame_energy:.6f}, threshold: {Config.VAD_ENERGY_THRESHOLD()}, speaking: {is_speaking}")
+                
                 if is_speaking:
                     audio_buffer.append(audio_chunk)
                     if frame_energy < Config.VAD_ENERGY_THRESHOLD():
@@ -168,13 +192,14 @@ class STTService:
                             silence_start_time = time.monotonic()
                         # If silence duration is exceeded, end of sentence is detected
                         elif time.monotonic() - silence_start_time > Config.VAD_SILENCE_DURATION_S():
+                            logger.info(f"End of speech detected after {Config.VAD_SILENCE_DURATION_S()}s silence")
                             is_speaking = False
                     else:
                         silence_start_time = None # Reset silence timer if speech is detected
                 else:
                     silence_buffer.extend(audio_chunk.flatten())
                     if frame_energy > Config.VAD_ENERGY_THRESHOLD():
-                        logger.info("Speech detected.")
+                        logger.info(f"Speech detected! Energy: {frame_energy:.6f} > threshold: {Config.VAD_ENERGY_THRESHOLD()}")
                         is_speaking = True
                         silence_start_time = None
                         # Prepend the silence buffer to capture the start of the word
@@ -191,25 +216,37 @@ class STTService:
                     
                     # Measure transcription performance
                     transcription_start = time.time()
-                    segments, _ = await asyncio.to_thread(
-                        self.model.transcribe, full_utterance, language=Config.LANGUAGE
-                    )
-                    transcription_time = time.time() - transcription_start
-                    
-                    # Track performance metrics
-                    self.transcription_times.append(transcription_time)
-                    self.audio_durations.append(audio_duration)
-                    processing_overhead = transcription_time / audio_duration
-                    
-                    logger.info(f"Transcription completed in {transcription_time:.3f}s "
-                               f"(overhead: {processing_overhead:.2f}x)")
-                    
-                    full_sentence = "".join(s.text for s in segments).strip()
-                    
-                    if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE():
-                        await self._send_sentence(websocket, full_sentence)
-                    else:
-                        logger.info(f"Skipping short sentence: '{full_sentence}'")
+                    try:
+                        segments, _ = await asyncio.to_thread(
+                            self.model.transcribe, full_utterance, language=Config.LANGUAGE
+                        )
+                        transcription_time = time.time() - transcription_start
+                        
+                        # Track performance metrics
+                        self.transcription_times.append(transcription_time)
+                        self.audio_durations.append(audio_duration)
+                        processing_overhead = transcription_time / audio_duration
+                        
+                        logger.info(f"Transcription completed in {transcription_time:.3f}s "
+                                   f"(overhead: {processing_overhead:.2f}x)")
+                        
+                        full_sentence = "".join(s.text for s in segments).strip()
+                        
+                        if not full_sentence:
+                            logger.info("Transcription result was empty - no recognizable speech")
+                        elif len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE():
+                            logger.info(f"Sending transcription: '{full_sentence}'")
+                            await self._send_sentence(websocket, full_sentence)
+                        else:
+                            logger.info(f"Skipping short sentence: '{full_sentence}' (min words: {Config.MIN_WORDS_PER_SENTENCE()})")
+                            
+                    except Exception as transcription_error:
+                        logger.error(f"Transcription failed: {transcription_error}")
+                        logger.error("This could be due to:")
+                        logger.error("  1. Model loading issues")
+                        logger.error("  2. Audio format incompatibility")  
+                        logger.error("  3. Insufficient system resources")
+                        continue
 
             except queue.Empty:
                 # If speech was in progress and the queue is now empty, it's the end of an utterance
