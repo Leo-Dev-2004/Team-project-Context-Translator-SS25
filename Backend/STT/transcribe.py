@@ -2,8 +2,8 @@ import asyncio
 import numpy as np
 try:
     import sounddevice as sd
-except OSError:
-    # PortAudio not available, will fail if actually trying to record
+except (OSError, ImportError):
+    # PortAudio not available or sounddevice not installed
     sd = None
 import queue
 import threading
@@ -22,43 +22,43 @@ from pathlib import Path
 # Import performance configurations
 from .performance_configs import config_manager
 
-# Using a more structured config for clarity and easier modification
-class Config:
+# Simple configuration that delegates to performance config
+class ConfigManager:
+    """Configuration manager that dynamically reads from performance profiles."""
+    
+    # Static configuration
     SAMPLE_RATE = 16000
     CHANNELS = 1
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
     
-    # Performance configuration - can be set via environment variable STT_PERFORMANCE_PROFILE
-    # Available profiles: ultra_responsive, balanced_fast, optimized_default, current_default, high_accuracy, streaming_optimized
-    @classmethod
-    def get_performance_config(cls):
+    @staticmethod
+    def get_performance_config():
         """Get the current performance configuration."""
         return config_manager.get_config()
     
-    # Dynamic properties that read from the current performance config
-    @property 
-    def MODEL_SIZE(self):
-        return self.get_performance_config().model_size
+    @staticmethod
+    def MODEL_SIZE():
+        return ConfigManager.get_performance_config().model_size
     
-    @property
-    def VAD_ENERGY_THRESHOLD(self):
-        return self.get_performance_config().vad_energy_threshold
+    @staticmethod
+    def VAD_ENERGY_THRESHOLD():
+        return ConfigManager.get_performance_config().vad_energy_threshold
     
-    @property 
-    def VAD_SILENCE_DURATION_S(self):
-        return self.get_performance_config().vad_silence_duration_s
+    @staticmethod
+    def VAD_SILENCE_DURATION_S():
+        return ConfigManager.get_performance_config().vad_silence_duration_s
     
-    @property
-    def VAD_BUFFER_DURATION_S(self):
-        return self.get_performance_config().vad_buffer_duration_s
+    @staticmethod
+    def VAD_BUFFER_DURATION_S():
+        return ConfigManager.get_performance_config().vad_buffer_duration_s
     
-    @property
-    def MIN_WORDS_PER_SENTENCE(self):
-        return self.get_performance_config().min_words_per_sentence
+    @staticmethod
+    def MIN_WORDS_PER_SENTENCE():
+        return ConfigManager.get_performance_config().min_words_per_sentence
 
-# Create a global instance
-Config = Config()
+# Use the manager as Config for backward compatibility  
+Config = ConfigManager
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -90,8 +90,8 @@ class STTService:
         
         # Measure model loading time for performance monitoring
         load_start_time = time.time()
-        logger.info(f"Loading Whisper model '{Config.MODEL_SIZE}'...")
-        self.model = WhisperModel(Config.MODEL_SIZE, device="cpu", compute_type="int8")
+        logger.info(f"Loading Whisper model '{Config.MODEL_SIZE()}'...")
+        self.model = WhisperModel(Config.MODEL_SIZE(), device="cpu", compute_type="int8")
         load_time = time.time() - load_start_time
         logger.info(f"Whisper model loaded in {load_time:.2f}s")
         
@@ -167,7 +167,7 @@ class STTService:
                         if silence_start_time is None:
                             silence_start_time = time.monotonic()
                         # If silence duration is exceeded, end of sentence is detected
-                        elif time.monotonic() - silence_start_time > Config.VAD_SILENCE_DURATION_S:
+                        elif time.monotonic() - silence_start_time > Config.VAD_SILENCE_DURATION_S():
                             is_speaking = False
                     else:
                         silence_start_time = None # Reset silence timer if speech is detected
