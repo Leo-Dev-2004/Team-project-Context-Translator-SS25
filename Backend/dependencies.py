@@ -21,3 +21,19 @@ def set_websocket_manager_instance(instance: WebSocketManager):
 
 def get_websocket_manager_instance() -> Optional[WebSocketManager]:
     return _global_ws_manager_instance
+
+# Global instance for ExplanationDeliveryService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .services.ExplanationDeliveryService import ExplanationDeliveryService
+
+_global_explanation_delivery_service_instance: Optional['ExplanationDeliveryService'] = None
+
+def set_explanation_delivery_service_instance(instance: 'ExplanationDeliveryService'):
+    global _global_explanation_delivery_service_instance
+    _global_explanation_delivery_service_instance = instance
+
+def get_explanation_delivery_service_instance() -> Optional['ExplanationDeliveryService']:
+    return _global_explanation_delivery_service_instance
+
+

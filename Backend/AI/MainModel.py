@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 import uuid
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
+from ..dependencies import get_explanation_delivery_service_instance
 
 # === Config ===
 # Moved configuration to constants for clarity
@@ -198,6 +199,13 @@ class MainModel:
                 await asyncio.to_thread(os.replace, str(temp_file), str(self.explanations_queue_file))
                 
                 logger.info(f"Successfully wrote explanation to queue for client {explanation_entry.get('client_id')}")
+                
+                # Trigger immediate check in ExplanationDeliveryService for faster delivery
+                delivery_service = get_explanation_delivery_service_instance()
+                if delivery_service:
+                    delivery_service.trigger_immediate_check()
+                    logger.debug("Triggered immediate explanation delivery check")
+                
                 return True
             except Exception as e:
                 logger.error(f"Error writing explanation to queue: {e}", exc_info=True)
