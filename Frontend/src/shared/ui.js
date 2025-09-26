@@ -183,8 +183,8 @@ export class UI extends LitElement {
               <md-filled-button @click=${this._saveSettings}>Save Configuration</md-filled-button>
               <md-outlined-button @click=${this._resetSettings}>Reset to Defaults</md-outlined-button>
               <div class="session-controls">
-                <md-filled-button id="start-session-button" @click=${this._startSession}>Session erstellen</md-filled-button>
                 <md-outlined-text-field id="session-code-input" label="Session Code" placeholder="Code eingeben..."></md-outlined-text-field>
+                <md-filled-button id="start-session-button" @click=${this._startSession}>Session erstellen</md-filled-button>
                 <md-outlined-button id="join-session-button" @click=${this._joinSession}>Session beitreten</md-outlined-button>
               </div>
             </div>
@@ -429,11 +429,17 @@ export class UI extends LitElement {
       min-width: 180px;
       width: auto; /* überschreibt globales width:100% */
       margin: 0; /* Ausrichtung in der Zeile */
+      order: 1; /* Place input field first */
     }
-    .session-controls md-filled-button,
+    .session-controls md-filled-button {
+      flex: 0 0 auto;
+      white-space: nowrap; /* Button-Text nicht umbrechen */
+      order: 2; /* Place "Session erstellen" second */
+    }
     .session-controls md-outlined-button {
       flex: 0 0 auto;
       white-space: nowrap; /* Button-Text nicht umbrechen */
+      order: 3; /* Place "Session beitreten" third */
     }
     .dialog-code { color: var(--md-sys-color-primary); font-family: 'Roboto Mono', monospace; letter-spacing: 2px; font-size: 2em; text-align: center; margin-top: 8px; user-select: all; }
     
