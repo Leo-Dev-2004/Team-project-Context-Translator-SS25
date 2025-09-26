@@ -28,6 +28,9 @@ class Config:
     VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
     VAD_SILENCE_DURATION_S = 1.0 # How long of a pause indicates end of sentence
     VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
+    
+    # Heartbeat settings to prevent connection timeouts during silence
+    HEARTBEAT_INTERVAL_S = 30.0 # Send heartbeat every 30 seconds during silence
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -93,17 +96,37 @@ class STTService:
         except websockets.exceptions.ConnectionClosed:
             logger.warning("Failed to send sentence, connection closed.")
 
+    async def _send_heartbeat(self, websocket):
+        """Sends a heartbeat keep-alive message to prevent connection timeout."""
+        message = {
+            "id": str(uuid4()), "type": "stt.heartbeat", "timestamp": time.time(),
+            "payload": {
+                "message": "keep-alive", 
+                "user_session_id": self.user_session_id
+            },
+            "origin": "stt_module", "client_id": self.stt_client_id
+        }
+        try:
+            await websocket.send(json.dumps(message))
+            logger.debug("Sent heartbeat keep-alive message")
+        except websockets.exceptions.ConnectionClosed:
+            logger.warning("Failed to send heartbeat, connection closed.")
+
     async def _process_audio_loop(self, websocket):
         """[Async Task] Implements the VAD-based 'record-then-transcribe' logic."""
         audio_buffer = []
         is_speaking = False
         silence_start_time = None
+        last_heartbeat_time = time.monotonic()
+        last_activity_time = time.monotonic()  # Track last transcription or significant activity
         
         # Keep a small buffer of recent silence to catch the start of speech
         silence_buffer_size = int(Config.VAD_BUFFER_DURATION_S * Config.SAMPLE_RATE)
         silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
+            current_time = time.monotonic()
+            
             try:
                 # Get a chunk of audio from the queue
                 audio_chunk = self.audio_queue.get(timeout=1.0)
@@ -125,6 +148,7 @@ class STTService:
                         logger.info("Speech detected.")
                         is_speaking = True
                         silence_start_time = None
+                        last_activity_time = current_time  # Update activity time
                         # Prepend the silence buffer to capture the start of the word
                         audio_buffer = [np.array(list(silence_buffer))]
                         audio_buffer.append(audio_chunk)
@@ -143,10 +167,30 @@ class STTService:
                     
                     if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE:
                         await self._send_sentence(websocket, full_sentence)
+                        last_activity_time = current_time  # Update activity time after sending
                     else:
                         logger.info(f"Skipping short sentence: '{full_sentence}'")
 
+                # Send heartbeat if needed (no recent activity and sufficient time has passed)
+                time_since_last_heartbeat = current_time - last_heartbeat_time
+                time_since_last_activity = current_time - last_activity_time
+                
+                if (time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S and 
+                    time_since_last_activity >= Config.HEARTBEAT_INTERVAL_S):
+                    await self._send_heartbeat(websocket)
+                    last_heartbeat_time = current_time
+
             except queue.Empty:
+                # Check for heartbeat even when no audio data is available
+                current_time = time.monotonic()
+                time_since_last_heartbeat = current_time - last_heartbeat_time
+                time_since_last_activity = current_time - last_activity_time
+                
+                if (time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S and 
+                    time_since_last_activity >= Config.HEARTBEAT_INTERVAL_S):
+                    await self._send_heartbeat(websocket)
+                    last_heartbeat_time = current_time
+                
                 # If speech was in progress and the queue is now empty, it's the end of an utterance
                 if is_speaking:
                     is_speaking = False
