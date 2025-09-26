@@ -22,7 +22,7 @@ LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "10"))  # Configurable AI timeout
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "20"))  # Configurable AI timeout
 BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:
@@ -32,6 +32,9 @@ class SmallModel:
     """
 
     def __init__(self):
+        # Flush detections queue at startup
+        DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
+
         # Using a single, reusable async HTTP client is more efficient
         self.http_client = httpx.AsyncClient(timeout=60.0)
         
@@ -566,18 +569,19 @@ Return a JSON **array of objects**. Each object must have these keys:
 
         try:
             transcribed_text = message.payload.get("text", "")
+            logger.info(f"SmallModel: Processing transcript: '{transcribed_text}' for client {message.client_id}")
             if not transcribed_text or not transcribed_text.strip():
                 logger.warning(f"SmallModel: Blocked empty transcription from client {message.client_id}.")
                 return
-            
+
             # Additional filtering for silence contamination and low-quality transcriptions
             text_lower = transcribed_text.lower().strip()
-            
+
             # Skip very short transcriptions that are likely noise
             if len(text_lower.split()) < 2:
                 logger.debug(f"SmallModel: Skipped short transcription: '{transcribed_text}'")
                 return
-                
+
             # Check for prompt contamination patterns
             prompt_indicators = [
                 "extract technical terms", "domain term extraction", "confidence float",
@@ -586,7 +590,7 @@ Return a JSON **array of objects**. Each object must have these keys:
             if any(indicator in text_lower for indicator in prompt_indicators):
                 logger.debug(f"SmallModel: Detected prompt contamination, skipping: '{transcribed_text}'")
                 return
-            
+
             # Check for repetitive patterns that suggest transcription errors during silence
             words = text_lower.split()
             if len(set(words)) == 1 and len(words) > 3:  # Same word repeated
@@ -698,6 +702,8 @@ Return a JSON **array of objects**. Each object must have these keys:
                         logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
                         return
 
+            # Log before AI detection
+            logger.info(f"SmallModel: Running AI/fallback detection on: '{transcribed_text}'")
             detected_terms = await self.detect_terms_with_ai(
                 transcribed_text,
                 message.payload.get("user_role"),
@@ -709,17 +715,19 @@ Return a JSON **array of objects**. Each object must have these keys:
 
             filtered_terms = []
             for term_obj in detected_terms:
+                # Always set context to actual transcript
+                term_obj["context"] = transcribed_text
                 if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term_obj["term"].lower()] = time.time()
                     logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
-            
+
             if filtered_terms:
                 # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
                 await self.send_immediate_detection_notification(message, filtered_terms)
-                
+
                 # BACKGROUND PROCESSING: Queue for detailed explanation generation
                 await self.write_detection_to_queue(message, filtered_terms)
-        
+
         except Exception as e:
             logger.error(f"SmallModel failed to process message {message.id}: {e}", exc_info=True)
