@@ -93,8 +93,8 @@ class STTService:
         try:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent: {sentence}")
-        except websockets.exceptions.ConnectionClosed:
-            logger.warning("Failed to send sentence, connection closed.")
+        except Exception as e:
+            logger.warning(f"Failed to send sentence, connection error: {e}")
 
     async def _send_heartbeat(self, websocket):
         """Sends a heartbeat keep-alive message to prevent connection timeout."""
@@ -109,8 +109,8 @@ class STTService:
         try:
             await websocket.send(json.dumps(message))
             logger.debug("Sent heartbeat keep-alive message")
-        except websockets.exceptions.ConnectionClosed:
-            logger.warning("Failed to send heartbeat, connection closed.")
+        except Exception as e:
+            logger.warning(f"Failed to send heartbeat, connection error: {e}")
 
     async def _process_audio_loop(self, websocket):
         """[Async Task] Implements the VAD-based 'record-then-transcribe' logic."""
