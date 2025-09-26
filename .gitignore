@@ -29,9 +29,9 @@ env/
 veny/ # Assuming 'veny' is your virtual environment directory
 
 # JSON Caches
-detections_queue.json
-explanations_queue.json
-explanation_cache.json
+Backend/AI/detections_queue.json
+Backend/AI/explanations_queue.json
+Backend/AI/explanation_cache.json
 output_explanations.json
 output_queue.json
 

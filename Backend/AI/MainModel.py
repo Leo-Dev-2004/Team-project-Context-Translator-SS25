@@ -39,6 +39,11 @@ class MainModel:
         self.explanations_queue_file = Path(OUTPUT_FILE)
         self.cache_file = Path(CACHE_FILE)
 
+        # Flush queues at startup
+        self.detections_queue_file.write_text(json.dumps([]), encoding='utf-8')
+        self.explanations_queue_file.write_text(json.dumps([]), encoding='utf-8')
+        self.cache_file.write_text(json.dumps({}), encoding='utf-8')
+
         # A single, reusable async HTTP client is more efficient.
         self.http_client = httpx.AsyncClient(timeout=60.0)
 
