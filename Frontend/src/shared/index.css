@@ -434,3 +434,40 @@ md-outlined-text-field md-icon-button[slot="trailing-icon"] .material-icons {
 .copy-button .material-icons { font-size: 16px; }
 .empty-icon.material-icons { font-size: 72px; margin-bottom: var(--space-lg); opacity: 0.6; }
 md-text-button .material-icons, md-filled-button .material-icons, md-outlined-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
+
+/* Processing/Loading State Styles */
+.processing-content {
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8eeff 100%);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-primary-300);
+}
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary-700);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary-200);
+  border-top: 2px solid var(--color-primary-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.processing-details {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  opacity: 0.8;
+}

@@ -236,6 +236,10 @@ class ElectronMyElement extends UI {
       this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
     } else if (message.type === 'session.error') {
       this._showNotification(message.payload.error, 'error');
+    } else if (message.type === 'detection.immediate') {
+      this._handleImmediateDetection(message.payload);
+    } else if (message.type === 'explanation.update') {
+      this._handleExplanationUpdate(message.payload);
     } else if (message.type === 'explanation.new') {
       this._handleNewExplanation(message.payload.explanation);
     } else if (message.type === 'explanation.retry') {
@@ -531,6 +535,78 @@ class ElectronMyElement extends UI {
     }
   }
 
+  _handleImmediateDetection(payload) {
+    console.log('Renderer: ⚡ Immediate detection received:', payload);
+
+    if (payload && payload.detected_terms && Array.isArray(payload.detected_terms)) {
+      const termCount = payload.detected_terms.length;
+      
+      // Show immediate feedback to user
+      this._showNotification(`🔍 Detected ${termCount} technical term${termCount > 1 ? 's' : ''} - generating explanations...`, 'info');
+
+      // Add placeholders for detected terms (without full explanations yet)
+      payload.detected_terms.forEach(termData => {
+        if (termData.term && termData.context) {
+          const confidence = typeof termData.confidence === 'number' ? termData.confidence : null;
+          
+          // Add as placeholder with loading state
+          explanationManager.addExplanation(
+            termData.term,
+            `🔄 Generating explanation for "${termData.term}"...\n\n**Context:** ${termData.context}`,
+            Date.now(),
+            confidence
+          );
+          
+          console.log(`Renderer: ⚡ Added detection placeholder for "${termData.term}"`);
+        }
+      });
+      
+      // Play detection sound for immediate feedback
+      playSound(explanation_sound);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid immediate detection data received:', payload);
+    }
+  }
+
+  _handleExplanationUpdate(payload) {
+    console.log('Renderer: 📝 Explanation update received:', payload);
+
+    if (payload && payload.term && payload.explanation) {
+      // Find and update the existing placeholder explanation
+      const existingExplanations = explanationManager.explanations;
+      const existingIndex = existingExplanations.findIndex(exp => 
+        exp.title === payload.term && exp.content.includes('🔄 Generating explanation')
+      );
+
+      if (existingIndex !== -1) {
+        // Update the existing explanation with the full content
+        const updated = explanationManager.updateExplanation(existingExplanations[existingIndex].id, {
+          content: payload.explanation,
+          timestamp: (payload.timestamp || Date.now() / 1000) * 1000,
+          confidence: typeof payload.confidence === 'number' ? payload.confidence : null
+        });
+
+        if (updated) {
+          console.log(`Renderer: ✅ Updated explanation for "${payload.term}"`);
+          // Show subtle notification that explanation is ready
+          this._showNotification(`✨ Explanation ready: ${payload.term}`, 'success');
+        }
+      } else {
+        // If no placeholder exists, add as new explanation
+        const confidence = typeof payload.confidence === 'number' ? payload.confidence : null;
+        explanationManager.addExplanation(
+          payload.term,
+          payload.explanation,
+          (payload.timestamp || Date.now() / 1000) * 1000,
+          confidence
+        );
+        console.log(`Renderer: ✅ Added new explanation for "${payload.term}"`);
+      }
+    } else {
+      console.warn('Renderer: ⚠️ Invalid explanation update data received:', payload);
+    }
+  }
+
   _showNotification(message, type = 'success') {
     // Remove oldest notification if at limit
     if (this.activeNotifications.size >= this.maxNotifications) {
@@ -547,7 +623,7 @@ class ElectronMyElement extends UI {
       position: fixed; bottom: ${20 + (this.activeNotifications.size * 60)}px; left: 50%;
       transform: translateX(-50%); padding: 12px 24px;
       border-radius: 8px; color: white; font-family: 'Roboto', sans-serif;
-      background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
+      background-color: ${type === 'error' ? '#D32F2F' : type === 'info' ? '#1976D2' : '#2E7D32'};
       z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       transition: all 0.3s ease;
     `;

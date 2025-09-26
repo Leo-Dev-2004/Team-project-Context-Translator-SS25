@@ -21,6 +21,10 @@ OLLAMA_API_URL = "http://localhost:11434/api/chat"
 LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
+# Performance configuration
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "10"))  # Configurable AI timeout
+BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
+
 class SmallModel:
     """
     Processes transcriptions to detect important terms and writes them to a file-based queue.
@@ -34,6 +38,15 @@ class SmallModel:
         # A lock is essential to prevent race conditions when writing to the shared queue file
         self.queue_lock = asyncio.Lock()
         self.detections_queue_file = DETECTIONS_QUEUE_FILE
+
+        # Import outgoing queue for immediate notifications
+        from ..core.Queues import queues
+        self.outgoing_queue = queues.outgoing
+
+        # Batching for improved performance
+        self.detection_batch = []
+        self.batch_timeout = None
+        self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
         self.confidence_threshold = 0.6  # Terms with confidence < this are ignored 
@@ -59,6 +72,18 @@ class SmallModel:
             "resource", "logic", "signal", "protocol", "instance", "modular", "password",
             "user", "error", "file", "program", "install", "update", "run", "command",
             "website", "page", "link", "browser", "button", "web", "account", "credentials",
+            "access", "secure", "permission", "number", "chart", "email", 
+            
+            # Common verbs that were incorrectly detected
+            "need", "uses", "shows", "implementing", "increase", "optimize", "better",
+            "make", "get", "set", "put", "take", "give", "find", "work", "create",
+            "build", "develop", "test", "check", "use", "run", "start", "stop",
+            
+            # Common nouns that aren't technical
+            "time", "way", "day", "year", "work", "life", "part", "place", "case",
+            "point", "government", "company", "group", "problem", "fact", "hand",
+            "right", "thing", "world", "information", "office", "home", "money",
+            "business", "service", "health", "community", "name", "team", "area"
             "access", "secure", "permission", "number", "chart", "email",
             
             # Small talk and conversational fillers
@@ -102,6 +127,46 @@ class SmallModel:
         self.cooldown_map = {}
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
         logger.info("SmallModel initialized and ready to produce detections.")
+
+    async def send_immediate_detection_notification(self, message: UniversalMessage, detected_terms: List[Dict]):
+        """
+        Send immediate detection notification to frontend while processing continues in background.
+        This provides instant user feedback showing detected terms without waiting for explanations.
+        """
+        try:
+            if not detected_terms:
+                return
+
+            # Create immediate notification with detected terms (without explanations)
+            detection_notification = UniversalMessage(
+                type="detection.immediate",
+                payload={
+                    "detected_terms": [
+                        {
+                            "term": term_data["term"],
+                            "confidence": term_data.get("confidence", 0.5),
+                            "context": term_data["context"],
+                            "timestamp": term_data["timestamp"],
+                            "status": "detected",  # Status: detected -> processing -> explained
+                            "explanation": None  # Will be filled in later
+                        }
+                        for term_data in detected_terms
+                    ],
+                    "original_message_id": message.id,
+                    "processing_status": "terms_detected"
+                },
+                client_id=message.client_id,
+                origin="SmallModel",
+                destination="frontend"
+            )
+
+            # Send immediately to frontend via outgoing queue
+            await self.outgoing_queue.enqueue(detection_notification)
+            
+            logger.info(f"Sent immediate detection notification with {len(detected_terms)} terms to client {message.client_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending immediate detection notification: {e}", exc_info=True)
 
     def safe_json_extract(self, content: str) -> List[Dict]:
         """
@@ -259,6 +324,29 @@ class SmallModel:
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         """Use Ollama to detect important terms in the given sentence asynchronously."""
+        # Use configurable timeout for faster fallback
+        ai_timeout = AI_TIMEOUT_SECONDS
+        
+        try:
+            # Try AI detection with timeout
+            detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
+            ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
+            
+            if ai_result:
+                logger.info(f"AI detection completed for: {sentence[:50]}...")
+                return ai_result
+                
+        except asyncio.TimeoutError:
+            logger.warning(f"AI detection timed out after {ai_timeout}s, using fallback detection")
+        except Exception as e:
+            logger.error(f"AI detection failed: {e}, using fallback detection")
+        
+        # Use fast fallback detection
+        logger.info(f"Using fallback detection for: {sentence[:50]}...")
+        return await self.detect_terms_fallback(sentence)
+    
+    async def _perform_ai_detection(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
+        """Perform AI-based term detection with the LLM."""
         context_intro = f"Mark the technical terms or words that might not be understood by a general audience in this sentence"
         if user_role:
             context_intro += f", considering the user is a '{user_role}'"
@@ -348,7 +436,7 @@ Return a JSON **array of objects**. Each object must have these keys:
 """
         raw_response = await self._query_ollama_async(prompt)
         if not raw_response:
-            return await self.detect_terms_fallback(sentence)
+            return []
 
         now = int(time.time())
         raw_terms = self.safe_json_extract(raw_response)
@@ -367,42 +455,64 @@ Return a JSON **array of objects**. Each object must have these keys:
 
     async def detect_terms_fallback(self, sentence: str) -> List[Dict]:
         """Fallback detection using basic patterns when AI is unavailable."""
-        logger.info("Using fallback detection method")
+        logger.info("Using enhanced fallback detection method")
         
-        # First check if the sentence seems to contain prompt contamination
-        sentence_lower = sentence.lower()
-        prompt_keywords = {"extract", "technical", "terms", "confidence", "json", "domain", 
-                          "timestamp", "array", "objects", "format", "output", "prompt"}
-        
-        # If sentence contains multiple prompt keywords, likely contamination
-        prompt_word_count = sum(1 for word in prompt_keywords if word in sentence_lower)
-        if prompt_word_count >= 2:
-            logger.debug(f"Fallback: Detected prompt contamination, skipping: {sentence}")
-            return []
-            
-        # Patterns for genuinely technical terms
+        # Enhanced patterns for better technical term detection - more specific patterns
         patterns = {
-            'technical_terms': r'\b(?:API|database|server|client|authentication|encryption|algorithm|framework|protocol|middleware|backend|frontend)\b',
-            'business_terms': r'\b(?:revenue|profit|strategy|market|customer|stakeholder|ROI|KPI|budget|analytics|metrics)\b',
-            'academic_terms': r'\b(?:hypothesis|methodology|analysis|research|study|theory|experiment|conclusion|dissertation|publication)\b',
-            'complex_words': r'\b\w{15,}\b'  # Increased minimum length for more selectivity
+            'ml_ai_terms': r'\b(?:machine learning|neural network|artificial intelligence|deep learning|algorithm|backpropagation|gradient descent|overfitting|underfitting|regression|classification|clustering|reinforcement learning|supervised learning|unsupervised learning|convolutional|transformer|lstm|rnn|cnn)\b',
+            'tech_terms': r'\b(?:API|REST|GraphQL|microservices|database|server|authentication|encryption|blockchain|cloud computing|docker|kubernetes|DevOps|CI/CD|framework|library|HTTP|HTTPS|TCP|UDP|JSON|XML|SQL|NoSQL|webhook|endpoint)\b',
+            'programming_terms': r'\b(?:inheritance|polymorphism|encapsulation|recursion|debugging|refactoring|version control|repository|commit|pull request|merge|branch|async|await|callback|middleware|dependency injection)\b',
+            'business_terms': r'\b(?:ROI|KPI|scalability|monetization|business model|value proposition|market penetration|customer acquisition|stakeholder)\b',
+            'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
+            'specific_acronyms': r'\b(?:API|SQL|JSON|XML|HTTP|HTTPS|REST|TCP|UDP|CPU|GPU|RAM|SSD|HDD|URL|URI|CSS|HTML|JS|AWS|GCP|AI|ML|DL|NLP|CNN|RNN|LSTM|GRU|SVM|KNN|PCA|SVD|BERT|GPT|RPA|ETL|CRUD|ACID|BASE|SOLID|DRY|KISS|YAGNI)\b',
+            'technical_compounds': r'\b(?:end.?point|data.?set|work.?flow|frame.?work|time.?stamp|name.?space|class.?name|file.?name|user.?name|pass.?word|data.?base|web.?site|soft.?ware|hard.?ware|middle.?ware|firm.?ware|open.?source|source.?code)\b'
+
         }
         
         detected_terms = set()
-        text_lower = sentence.lower()
-        for pattern in patterns.values():
-            matches = re.findall(pattern, text_lower, re.IGNORECASE)
-            detected_terms.update(match.lower() for match in matches)
+        
+        for category, pattern in patterns.items():
+            matches = re.findall(pattern, sentence, re.IGNORECASE)
+            for match in matches:
+                # More strict filtering - only add terms that are not common words
+                term_clean = match.lower().strip()
+                if (term_clean not in self.known_terms and 
+                    len(term_clean) > 2 and 
+                    not term_clean.isdigit() and
+                    term_clean not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']):
+                    detected_terms.add(match)
         
         # Filter out any terms that are in our known_terms blacklist
         filtered_terms = {term for term in detected_terms if term not in self.known_terms}
         
         now = int(time.time())
-        # Use higher confidence for fallback to ensure they pass the threshold
-        return [
-            {"term": term, "timestamp": now, "confidence": 0.75, "context": sentence}
-            for term in filtered_terms
-        ]
+        result_terms = []
+        
+        for term in detected_terms:
+            # Assign confidence based on term characteristics - be more conservative
+            confidence = 0.3  # Start lower, let the filtering decide
+            term_lower = term.lower()
+            
+            if any(tech_word in term_lower for tech_word in ['api', 'machine learning', 'neural', 'algorithm', 'backpropagation', 'gradient descent']):
+                confidence = 0.8  # Higher confidence for specific technical terms
+            elif any(tech_word in term_lower for tech_word in ['database', 'server', 'framework', 'authentication', 'encryption']):
+                confidence = 0.7  # Medium-high for common tech terms
+            elif term.isupper() and len(term) >= 3 and term in ['API', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST']:
+                confidence = 0.9  # Very high for well-known tech acronyms
+            elif len(term) > 15:  # Very long words are likely technical
+                confidence = 0.6
+            elif term.isupper() and len(term) >= 3:  # Other acronyms
+                confidence = 0.5
+                
+            result_terms.append({
+                "term": term, 
+                "timestamp": now, 
+                "confidence": confidence, 
+                "context": sentence
+            })
+        
+        logger.info(f"Fallback detection found {len(result_terms)} terms")
+        return result_terms
 
     async def write_detection_to_queue(self, message: UniversalMessage, detected_terms: List[Dict]) -> bool:
         """Safely write detected terms to the file-based queue."""
@@ -500,6 +610,10 @@ Return a JSON **array of objects**. Each object must have these keys:
                     logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
             
             if filtered_terms:
+                # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
+                await self.send_immediate_detection_notification(message, filtered_terms)
+                
+                # BACKGROUND PROCESSING: Queue for detailed explanation generation
                 await self.write_detection_to_queue(message, filtered_terms)
         
         except Exception as e:
