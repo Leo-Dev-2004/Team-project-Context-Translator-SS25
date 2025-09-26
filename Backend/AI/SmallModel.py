@@ -39,6 +39,7 @@ class SmallModel:
         self.confidence_threshold = 1  # Terms with confidence >= this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
+            # Common articles, prepositions, conjunctions, and pronouns
             "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
             "from", "has", "have", "he", "her", "his", "i", "if", "in", "into", "is", "it",
             "its", "me", "my", "no", "not", "of", "on", "or", "our", "she", "so", "that",
@@ -48,8 +49,9 @@ class SmallModel:
             "having", "how", "than", "those", "also", "just", "such", "yet", "only", "any",
             "each", "few", "most", "other", "some", "because", "while", "about", "before",
             "after", "again", "against", "between", "both", "once", "during", "over",
-            "under", "out", "off", "very", "same", "all", "each", "another", "whoever",
+            "under", "out", "off", "very", "same", "all", "another", "whoever",
             "whichever", "whomever", "whom", "whilst", "perhaps", "random", "randomized",
+            # Common technical terms that shouldn't be explained
             "login", "system", "module", "process", "service", "function", "model",
             "input", "output", "data", "rate", "code", "structure", "operation", "performance",
             "memory", "network", "flow", "solution", "platform", "application", "tool",
