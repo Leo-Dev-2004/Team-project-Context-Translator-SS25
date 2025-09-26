@@ -95,7 +95,7 @@ export class UI extends LitElement {
                 this.isDarkMode ? 'dark_mode' : 'light_mode'}
             </span>
             <md-switch 
-              .selected=${this.isDarkMode !== null}
+              ?selected=${this.isDarkMode === true}
               @click=${this._onThemeToggle}
               aria-label="Theme toggle">
             </md-switch>
@@ -264,8 +264,18 @@ export class UI extends LitElement {
   }
   async _winClose() { try { await window.electronAPI?.windowControls?.close(); } catch (e) { } }
 
+  updated(changedProperties) {
+    super.updated?.(changedProperties);
+    
+    // Force sync the switch state when isDarkMode changes
+    if (changedProperties.has('isDarkMode')) {
+      const switchEl = this.shadowRoot?.querySelector('md-switch');
+      if (switchEl) {
+        switchEl.selected = this.isDarkMode === true;
+      }
+    }
+  }
   async firstUpdated(changed) {
-    super.firstUpdated?.(changed);
     // Load domain settings
     await this._loadDomainSettings();
     // Load theme preference
@@ -318,6 +328,10 @@ export class UI extends LitElement {
   }
 
   _onThemeToggle(event) {
+    // Prevent the switch's default toggle behavior
+    event.preventDefault();
+    event.stopPropagation();
+    
     // Cycle through: system -> light -> dark -> system
     if (this.isDarkMode === null) {
       this.isDarkMode = false; // light
@@ -328,6 +342,9 @@ export class UI extends LitElement {
     }
     this._applyTheme();
     this._saveThemePreference();
+    
+    // Force update the switch state to match our logic
+    this.requestUpdate();
   }
 
   _applyTheme() {
