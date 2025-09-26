@@ -169,6 +169,8 @@ class MainModel:
         """
         FIX: Asynchronously query the LLM using httpx to prevent blocking.
         """
+        import psutil, time
+        start_time = time.time()
         try:
             response = await self.http_client.post(
                 OLLAMA_API_URL,
@@ -176,11 +178,19 @@ class MainModel:
             )
             response.raise_for_status()
             raw_response = response.json()["message"]["content"].strip()
+            elapsed = time.time() - start_time
+            if elapsed > 10:
+                logger.warning(f"LLM response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
+            mem = psutil.virtual_memory()
+            if mem.percent > 90:
+                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
             return self.clean_output(raw_response)
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}")
+            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}. Possible Ollama connection issue or model error.")
+        except httpx.RequestError as e:
+            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
         except Exception as e:
-            logger.error(f"Error querying LLM: {e}", exc_info=True)
+            logger.error(f"Error querying LLM: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
         return None
 
     async def load_cache(self) -> Dict[str, str]:

@@ -239,8 +239,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         except Exception as e:
             logger.error(f"Unhandled error in WebSocket endpoint for {client_id}: {e}", exc_info=True)
     else:
-        # Fallback, falls der Manager beim Start nicht initialisiert werden konnte
-        logger.error("WebSocketManager not initialized. Closing connection.")
+        # Fallback if the manager was not initialized at startup
+        logger.error("WebSocketManager not initialized. Closing connection. Possible backend startup error or misconfiguration.")
         await websocket.close(code=1011, reason="Server internal error: WebSocketManager not ready.")
 
 # --- Hauptausführungsblock (für direkte Skriptausführung mit Uvicorn) ---
