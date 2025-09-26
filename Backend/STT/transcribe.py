@@ -69,7 +69,7 @@ class STTService:
         self.streaming_processor = None
         self.streaming_active = False
         self.processed_chunks = []  # Store processed chunk results
-        
+        self.unsent_sentences = []  # Buffer for unsent sentences
         logger.info(f"STTService initialized for session {self.user_session_id}")
         if Config.STREAMING_ENABLED:
             logger.info("Streaming transcription optimization enabled")
@@ -98,6 +98,74 @@ class STTService:
         transcription_logger.info(f"{'[INTERIM]' if is_interim else '[FINAL]'} {sentence}")
         message_type = "stt.transcription.interim" if is_interim else "stt.transcription"
         
+        # Filter out common Whisper hallucination patterns that occur during silence
+        sentence_lower = sentence.lower().strip()
+        
+        # Define patterns with different strictness levels
+        # Very strict patterns - block even with extra content
+        strict_patterns = [
+            "thanks for watching", "thank you for watching", 
+            "please like and subscribe", "don't forget to subscribe",
+            "hit that subscribe button", "smash that like button"
+        ]
+        
+        # Moderate patterns - block if they dominate the sentence
+        moderate_patterns = [
+            "see you next time", "that's all for today", "until next time",
+            "catch you later", "thanks for your attention", "thank you for your time",
+            "appreciate you watching", "goodbye", "bye bye"
+        ]
+        
+        # Simple patterns - only block if they're the entire sentence
+        simple_patterns = ["thanks", "thank you"]
+        
+        # Check for multiple patterns (even if individually they wouldn't be blocked)
+        pattern_count = 0
+        found_patterns = []
+        all_patterns = strict_patterns + moderate_patterns + simple_patterns
+        for pattern in all_patterns:
+            if pattern in sentence_lower:
+                pattern_count += 1
+                found_patterns.append(pattern)
+        
+        # If multiple patterns found, be more aggressive about blocking
+        if pattern_count >= 2:
+            # Calculate how much of the sentence is NOT pattern-related
+            clean_text = sentence_lower
+            for pattern in found_patterns:
+                clean_text = clean_text.replace(pattern, "")
+            clean_text = clean_text.strip()
+            non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today", ","]]
+            if len(non_filler_words) < 3:
+                logger.warning(f"STTService: Blocked likely Whisper hallucination (multiple patterns): '{sentence}'")
+                return
+        
+        # Check strict patterns - block even with some extra content
+        for pattern in strict_patterns:
+            if pattern in sentence_lower:
+                # Allow if it's clearly in a different context (has substantial other content)
+                clean_text = sentence_lower.replace(pattern, "").strip()
+                non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our"]]
+                if len(non_filler_words) < 3:  # Less than 3 meaningful words left
+                    logger.warning(f"STTService: Blocked likely Whisper hallucination: '{sentence}'")
+                    return
+        
+        # Check moderate patterns - block if they dominate
+        for pattern in moderate_patterns:
+            if pattern in sentence_lower:
+                clean_text = sentence_lower.replace(pattern, "").strip()
+                non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today"]]
+                if len(non_filler_words) < 2:  # Less than 2 meaningful words left
+                    logger.warning(f"STTService: Blocked likely Whisper hallucination: '{sentence}'")
+                    return
+        
+        # Check simple patterns - only block if entire sentence
+        for pattern in simple_patterns:
+            if sentence_lower.strip() == pattern:
+                logger.warning(f"STTService: Blocked likely Whisper hallucination: '{sentence}'")
+                return
+
+        transcription_logger.info(sentence)
         message = {
             "id": str(uuid4()), "type": message_type, "timestamp": time.time(),
             "payload": {
@@ -111,7 +179,8 @@ class STTService:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
         except Exception as e:
-            logger.warning(f"Failed to send sentence, connection error: {e}")
+            logger.warning(f"Failed to send sentence, connection error: {e}. Buffering for retry.")
+            self.unsent_sentences.append(message)
 
     async def _process_streaming_chunk(self, audio_chunk: np.ndarray, chunk_index: int):
         """Process a streaming audio chunk in the background."""
@@ -419,7 +488,18 @@ class STTService:
                         "origin": "stt_module", "client_id": self.stt_client_id
                     }
                     await websocket.send(json.dumps(initial_message))
-                    
+
+                    # Retry any unsent sentences from previous connection failures
+                    if self.unsent_sentences:
+                        logger.info(f"Retrying {len(self.unsent_sentences)} unsent sentences after reconnect.")
+                        for msg in self.unsent_sentences:
+                            try:
+                                await websocket.send(json.dumps(msg))
+                                logger.info(f"Retried and sent buffered sentence: {msg['payload']['text']}")
+                            except Exception as e:
+                                logger.warning(f"Failed to resend buffered sentence: {e}")
+                        self.unsent_sentences.clear()
+
                     await self._process_audio_loop(websocket)
             except Exception as e:
                 logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
