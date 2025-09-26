@@ -1,11 +1,8 @@
 :root {
-	/* Professional color palette - Light Mode */
-	--color-primary: #2563EB;    /* Professional blue */
-	--color-secondary: #475569;  /* Neutral slate gray */
-	--color-surface: #F8FAFC;    /* Clean light background */
-	--color-accent: #0D9488;     /* Professional teal accent */
-	--color-warning: #D97706;    /* Warm amber */
-	--color-success: #059669;    /* Clean green */
+	/* Harmonische Farbpalette - Light Mode */
+	--color-primary: #1E40AF;
+	--color-secondary: #64748B;
+	--color-surface: #F8FAFC;
 
 	/* Automatically generated variants */
 	--color-primary-light: color-mix(in srgb, var(--color-primary) 15%, white);
@@ -14,40 +11,31 @@
 	--color-secondary-dark: color-mix(in srgb, var(--color-secondary) 75%, black);
 	--color-surface-dark: #1E293B;
 	--color-surface-light: white;
-	--color-accent-light: color-mix(in srgb, var(--color-accent) 15%, white);
-	--color-accent-dark: color-mix(in srgb, var(--color-accent) 80%, black);
 
-	/* Spacing & Sizing - Enhanced professional spacing */
-	--space-xs: 0.25rem;   /* 4px */
-	--space-sm: 0.5rem;    /* 8px */
-	--space-md: 0.75rem;   /* 12px */
-	--space-lg: 1rem;      /* 16px */
-	--space-xl: 1.5rem;    /* 24px */
-	--space-2xl: 2rem;     /* 32px */
-	--space-3xl: 3rem;     /* 48px */
-	--space-4xl: 4rem;     /* 64px */
+	/* Spacing & Sizing */
+	--space-xs: 0.25rem;
+	--space-sm: 0.5rem;
+	--space-md: 0.75rem;
+	--space-lg: 1rem;
+	--space-xl: 1.5rem;
+	--space-2xl: 2rem;
+	--space-3xl: 3rem;
 
-	/* Border Radius - Modern rounded design */
-	--radius-xs: 2px;
+	/* Border Radius */
 	--radius-sm: 4px;
 	--radius-md: 8px;
 	--radius-lg: 12px;
-	--radius-xl: 16px;
 	--radius-full: 50%;
 
-	/* Professional shadows with depth */
-	--shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
-	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
-	--shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-	--shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.12);
+	/* Shadows */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
-	/* Transitions - Smooth professional animations */
-	--transition-fast: 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-	--transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-	--transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	/* Material Design Mappings - Professional Light Mode */
+	/* Transitions */
+	--transition-fast: 0.15s;
+	--transition-normal: 0.3s;
+	/* Material Design Mappings - Light Mode */
 	--md-sys-color-primary: var(--color-primary);
 	--md-sys-color-primary-container: var(--color-primary-light);
 	--md-sys-color-on-primary: white;
@@ -65,21 +53,18 @@
 	--md-sys-color-error: #DC2626;
 	--md-sys-color-error-container: #FEE2E2;
 	--md-sys-color-on-error-container: #991B1B;
-	--md-sys-color-tertiary: var(--color-accent);
-	--md-sys-color-tertiary-container: var(--color-accent-light);
 }
 }
 
 /* Dark mode support via media query (system preference) */
 @media (prefers-color-scheme: dark) {
 	:root:not(.force-light) {
-		/* Professional color palette - Dark Mode */
-		--color-primary: #3B82F6;    /* Lighter professional blue for dark mode */
-		--color-secondary: #94A3B8;  /* Lighter neutral gray */
-		--color-surface: #1F2937;    /* Clean dark background */
-		--color-surface-dark: #111827; /* Deeper dark */
-		--color-surface-light: #374151; /* Medium dark surface */
-		--color-accent: #14B8A6;     /* Brighter teal for dark mode */
+		/* Harmonische Farbpalette - Dark Mode */
+		--color-primary: #60A5FA;
+		--color-secondary: #9CA3AF;
+		--color-surface: #1F2937;
+		--color-surface-dark: #111827;
+		--color-surface-light: #374151;
     
 		/* Dark Mode Material Design Mappings */
 		--md-sys-color-surface: var(--color-surface-dark);
@@ -87,7 +72,6 @@
 		--md-sys-color-on-surface: var(--color-secondary-light);
 		--md-sys-color-outline-variant: #4B5563;
 		--md-sys-color-error: #F87171;
-		--md-sys-color-tertiary: var(--color-accent);
 	}
 }
 
@@ -123,54 +107,26 @@ body {
 	flex-direction: column;
 }
 
-/* Professional header design */
+/* Header */
 .app-header {
 	padding: var(--space-lg) 0 var(--space-xl) 0;
+	text-align: center;
 	border-bottom: 1px solid var(--md-sys-color-outline-variant);
 	margin-bottom: var(--space-xl);
 }
 
-.header-brand {
-	display: flex;
-	align-items: center;
-	gap: var(--space-md);
-	justify-content: center;
-}
-
-.brand-icon {
-	width: 48px;
-	height: 48px;
-	background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
-	border-radius: var(--radius-lg);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: var(--shadow-md);
-}
-
-.brand-icon .material-icons {
-	font-size: 24px;
-	color: white;
-}
-
-.brand-text {
-	text-align: left;
-}
-
 .app-header h1 {
-	font-size: 1.875rem; /* More appropriate for fixed window */
-	font-weight: 600;
+	font-size: 2.5rem;
 	color: var(--md-sys-color-primary);
-	margin: 0 0 var(--space-xs) 0;
-	letter-spacing: -0.025em;
+	margin: 0 0 0.5rem 0;
+	text-align: center;
 }
 
 .app-header p {
-	font-size: 0.875rem;
+	font-size: 1.125rem;
 	color: var(--md-sys-color-secondary);
 	margin: 0;
-	opacity: 0.8;
-	line-height: 1.4;
+	text-align: center;
 }
 
 /* Tabs */
@@ -276,12 +232,12 @@ md-tabs {
 }
 
 .pin-button.pinned {
-	color: var(--md-sys-color-tertiary);
-	background: var(--md-sys-color-tertiary-container);
+	color: var(--md-sys-color-secondary);
+	background: var(--md-sys-color-secondary-container);
 }
 
 .pin-button.pinned:hover {
-	background: var(--color-accent-dark);
+	background: var(--color-secondary-dark);
 	color: white;
 }
 
@@ -317,10 +273,10 @@ md-tabs {
 }
 
 .card.pinned, .explanation-card.pinned {
-	border-color: var(--color-accent);
+	border-color: var(--color-secondary);
 	border-width: 2px;
 	box-shadow: var(--shadow-sm);
-	background: color-mix(in srgb, var(--md-sys-color-surface) 95%, var(--color-accent));
+	background: color-mix(in srgb, var(--md-sys-color-surface) 95%, var(--color-secondary));
 }
 
 /* Explanation-spezifische Layouts */
