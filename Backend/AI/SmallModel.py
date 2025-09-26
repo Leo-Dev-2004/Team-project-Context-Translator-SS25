@@ -49,9 +49,10 @@ class SmallModel:
         self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
-        self.confidence_threshold = 0.3  # Terms with confidence < this are filtered out 
+        self.confidence_threshold = 0.6  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
+            # Basic articles, pronouns, prepositions, conjunctions
             "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
             "from", "has", "have", "he", "her", "his", "i", "if", "in", "into", "is", "it",
             "its", "me", "my", "no", "not", "of", "on", "or", "our", "she", "so", "that",
@@ -61,8 +62,10 @@ class SmallModel:
             "having", "how", "than", "those", "also", "just", "such", "yet", "only", "any",
             "each", "few", "most", "other", "some", "because", "while", "about", "before",
             "after", "again", "against", "between", "both", "once", "during", "over",
-            "under", "out", "off", "very", "same", "all", "each", "another", "whoever",
+            "under", "out", "off", "very", "same", "all", "another", "whoever",
             "whichever", "whomever", "whom", "whilst", "perhaps", "random", "randomized",
+            
+            # Common technical terms that shouldn't be explained
             "login", "system", "module", "process", "service", "function", "model",
             "input", "output", "data", "rate", "code", "structure", "operation", "performance",
             "memory", "network", "flow", "solution", "platform", "application", "tool",
@@ -70,15 +73,56 @@ class SmallModel:
             "user", "error", "file", "program", "install", "update", "run", "command",
             "website", "page", "link", "browser", "button", "web", "account", "credentials",
             "access", "secure", "permission", "number", "chart", "email", 
+            
             # Common verbs that were incorrectly detected
             "need", "uses", "shows", "implementing", "increase", "optimize", "better",
             "make", "get", "set", "put", "take", "give", "find", "work", "create",
             "build", "develop", "test", "check", "use", "run", "start", "stop",
+            
             # Common nouns that aren't technical
             "time", "way", "day", "year", "work", "life", "part", "place", "case",
             "point", "government", "company", "group", "problem", "fact", "hand",
             "right", "thing", "world", "information", "office", "home", "money",
             "business", "service", "health", "community", "name", "team", "area"
+            "access", "secure", "permission", "number", "chart", "email",
+            
+            # Small talk and conversational fillers
+            "hello", "hi", "hey", "goodbye", "bye", "thanks", "thank", "please", "sorry",
+            "excuse", "pardon", "well", "ok", "okay", "right", "sure", "yes", "yeah", "yep",
+            "no", "nah", "nope", "maybe", "perhaps", "actually", "really", "quite", "pretty",
+            "kind", "sort", "like", "you know", "i mean", "basically", "essentially",
+            "obviously", "clearly", "definitely", "probably", "certainly", "absolutely",
+            "exactly", "totally", "completely", "perfectly", "generally", "usually",
+            "typically", "normally", "commonly", "frequently", "often", "sometimes",
+            "occasionally", "rarely", "seldom", "never", "always", "forever",
+            
+            # Time and sequence words
+            "now", "today", "yesterday", "tomorrow", "soon", "later", "earlier", "first",
+            "second", "third", "last", "final", "next", "previous", "current", "recent",
+            "past", "future", "present", "since", "until", "before", "after", "during",
+            
+            # Quantifiers and modifiers
+            "much", "many", "more", "most", "less", "least", "enough", "too", "quite",
+            "rather", "fairly", "somewhat", "slightly", "extremely", "incredibly",
+            "amazingly", "surprisingly", "unfortunately", "fortunately", "hopefully",
+            
+            # Common verbs that rarely need explanation
+            "go", "get", "make", "take", "come", "see", "look", "know", "think", "feel",
+            "want", "need", "try", "use", "work", "play", "help", "ask", "tell", "say",
+            "speak", "talk", "listen", "hear", "read", "write", "learn", "teach", "show",
+            "find", "give", "bring", "put", "keep", "leave", "start", "stop", "continue",
+            "finish", "complete", "begin", "end", "open", "close", "turn", "move", "stay",
+            
+            # Common adjectives
+            "good", "bad", "big", "small", "new", "old", "long", "short", "high", "low",
+            "fast", "slow", "hot", "cold", "warm", "cool", "easy", "hard", "simple",
+            "difficult", "important", "interesting", "boring", "fun", "nice", "great",
+            "wonderful", "terrible", "awful", "amazing", "incredible", "beautiful", "ugly",
+            
+            # Prompt contamination words (commonly appear during silence)
+            "domain", "extract", "technical", "terms", "sentence", "confidence", "json",
+            "array", "objects", "context", "timestamp", "response", "example", "perfect",
+            "format", "keys", "string", "float", "int", "output", "prompt", "user", "role"
         }
         self.cooldown_map = {}
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
@@ -148,23 +192,115 @@ class SmallModel:
             logger.error(f"LLM returned non-JSON response: {content}")
             return []
 
-    def should_pass_filters(self, confidence: float, term: str) -> bool:
-        """Apply filtering logic. Filter out low confidence terms and common words."""
+    def _get_domain_examples(self, domain: Optional[str]) -> str:
+        """Generate domain-specific examples to help the AI understand what terms to extract."""
+        if not domain or not domain.strip():
+            return """
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- Medicine: diagnosis, treatment, pathology, pharmaceutical, clinical trial
+- Finance: portfolio, derivative, liquidity, hedge fund, cryptocurrency
+- Engineering: algorithm, optimization, architecture, infrastructure, scalability"""
+        
+        domain_lower = domain.strip().lower()
+        
+        # Domain-specific example mappings
+        domain_examples = {
+            "technology": "API, database, machine learning, cybersecurity, blockchain, microservices, DevOps, containerization, REST, GraphQL",
+            "software": "algorithm, debugging, refactoring, deployment, version control, continuous integration, unit testing, design patterns",
+            "business": "revenue stream, stakeholder, ROI, market segmentation, supply chain, business intelligence, KPI, value proposition",
+            "finance": "portfolio, derivative, liquidity, hedge fund, cryptocurrency, asset allocation, risk management, compound interest",
+            "medicine": "diagnosis, treatment, pathology, pharmaceutical, clinical trial, symptoms, prognosis, immunotherapy, radiology",
+            "science": "hypothesis, methodology, peer review, statistical significance, genome, experiment, research, analysis, variable",
+            "engineering": "optimization, architecture, infrastructure, scalability, load balancing, fault tolerance, system design",
+            "education": "curriculum, pedagogy, assessment, learning objectives, differentiated instruction, scaffolding, rubric",
+            "marketing": "brand awareness, conversion rate, customer acquisition, segmentation, attribution, funnel, retention",
+            "healthcare": "patient care, medical records, treatment plan, healthcare provider, insurance, telemedicine, preventive care",
+            "legal": "jurisdiction, litigation, contract law, compliance, intellectual property, due diligence, statute of limitations"
+        }
+        
+        # Find matching domain examples
+        for key, examples in domain_examples.items():
+            if key in domain_lower or domain_lower in key:
+                return f"- {domain.title()}: {examples}"
+        
+        # Default fallback with general examples
+        return f"""
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain  
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- {domain.title()}: [domain-specific technical terms that would need explanation]"""
+
+    def should_pass_filters(self, confidence: float, term: str, context_sentence: str = "") -> bool:
+        """Apply filtering logic with adaptive thresholds based on conversation type."""
         now = time.time()
         term_lower = term.lower()
 
-        # Low confidence terms are filtered out
-        if confidence < self.confidence_threshold:
-            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence})")
-            return False
+        # Check if term is in known terms blacklist
         if term_lower in self.known_terms:
             logger.debug(f"Filtered: '{term}' - known common term")
             return False
+            
+        # Check cooldown
         if term_lower in self.cooldown_map and now - self.cooldown_map[term_lower] < self.cooldown_seconds:
             time_ago = int(now - self.cooldown_map[term_lower])
             logger.debug(f"Filtered: '{term}' - in cooldown ({time_ago}s ago)")
             return False
+
+        # Adaptive confidence threshold based on conversation type
+        adaptive_threshold = self._get_adaptive_threshold(context_sentence)
+        
+        if confidence < adaptive_threshold:
+            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence} < {adaptive_threshold}) for context type")
+            return False
+            
         return True
+
+    def _get_adaptive_threshold(self, sentence: str) -> float:
+        """Calculate adaptive confidence threshold based on conversation content."""
+        if not sentence:
+            return self.confidence_threshold
+            
+        sentence_lower = sentence.lower()
+        
+        # Check for high technical content indicators (advanced/complex terms)
+        advanced_technical_indicators = [
+            "implement", "algorithm", "neural network", "machine learning", "artificial intelligence", 
+            "blockchain", "cryptocurrency", "data science", "optimization", "methodology", "hypothesis"
+        ]
+        
+        # Check for moderate technical content indicators
+        moderate_technical_indicators = [
+            "database", "server", "api", "protocol", "framework", "authentication", 
+            "encryption", "deployment", "architecture", "analytics"
+        ]
+        
+        # Check for casual conversation indicators  
+        casual_indicators = [
+            "enjoyed", "interesting", "workshop", "class", "meeting", "presentation",
+            "project", "team", "colleague", "experience", "learned", "discussed",
+            "planning", "thinking", "considering", "wondering", "recently", "yesterday"
+        ]
+        
+        # Count indicators
+        advanced_count = sum(1 for indicator in advanced_technical_indicators if indicator in sentence_lower)
+        moderate_count = sum(1 for indicator in moderate_technical_indicators if indicator in sentence_lower)
+        casual_count = sum(1 for indicator in casual_indicators if indicator in sentence_lower)
+        
+        # Adaptive threshold logic
+        if advanced_count >= 1:
+            # High technical content - use stricter threshold
+            return self.confidence_threshold + 0.1  # 0.7
+        elif moderate_count >= 1 and casual_count == 0:
+            # Pure technical content - use normal threshold
+            return self.confidence_threshold  # 0.6
+        elif casual_count >= 1:
+            # Casual conversation - use more permissive threshold
+            return max(0.5, self.confidence_threshold - 0.1)  # 0.5
+        else:
+            # Unknown content type - use normal threshold
+            return self.confidence_threshold  # 0.6
 
     async def _query_ollama_async(self, prompt: str) -> Optional[str]:
         """Asynchronously queries the Ollama server to avoid blocking the event loop."""
@@ -221,29 +357,77 @@ class SmallModel:
         prompt = f"""
 Domain Term Extraction Prompt
 {context_intro}
-MOST IMPORTANTLY:
+
+CRITICAL FILTERING RULES:
+1. IGNORE small talk, greetings, fillers (hello, hi, okay, well, you know, etc.)
+2. IGNORE basic common words (the, and, but, very, really, etc.)  
+3. IGNORE prompt-related words (extract, technical, terms, confidence, json, etc.)
+4. IGNORE generic tech words without domain specificity (system, data, process, etc.)
+5. PRIORITIZE genuinely technical, domain-specific, or specialized terms
+6. If the input seems to be silence, empty, or contains prompt fragments, return []
+
+ADAPTIVE EXTRACTION STRATEGY:
+- If sentence contains clear technical/domain terms: Extract ONLY high-confidence technical terms
+- If sentence is mostly casual/small talk: Extract 1-2 moderately interesting words to maintain user engagement
+- NEVER extract pure greetings or fillers, but consider contextually relevant words
+
+DOMAIN-SPECIFIC EXAMPLES:
+{self._get_domain_examples(domain)}
+
+CONFIDENCE SCORING (0.01-0.99):
+- 0.90-0.99: Highly technical/specialized terms needing explanation (neural network, backpropagation, cryptocurrency)
+- 0.70-0.89: Moderately technical terms (algorithm, database, authentication)
+- 0.50-0.69: Somewhat technical but commonly known (website, email, password)
+- 0.01-0.49: Common/basic terms (should rarely be extracted unless in casual conversation)
+
 Extract technical or domain specific terms and return ONLY a valid JSON array of objects.
 Do not return anything else — no markdown, no comments, no prose.
 {f"Focus on terms relevant to: {domain.strip()}" if domain and domain.strip() else ""}
 ---
-### EXAMPLE of a PERFECT RESPONSE ###
-For an input sentence like "This sentence has no technical terms.", your entire output must be:
-[]
+### EXAMPLE RESPONSES ###
 
-For an input sentence like "This has a [TECHNICAL TERM] within it.", your entire output must be:
+Technical conversation example:
+Input: "We implemented a neural network using backpropagation."
+Output:
 [
   {{
-    "term": "VERY TECHNICAL TERM",
-    "confidence": 0.94,
-    "context": "This has a [TECHNICAL TERM] within it.",
+    "term": "neural network",
+    "confidence": 0.92,
+    "context": "We implemented a neural network using backpropagation.",
+    "timestamp": 1234567890
+  }},
+  {{
+    "term": "backpropagation", 
+    "confidence": 0.89,
+    "context": "We implemented a neural network using backpropagation.",
     "timestamp": 1234567890
   }}
 ]
+
+Casual conversation with some interesting terms:
+Input: "I really enjoyed that photography workshop last weekend."
+Output:
+[
+  {{
+    "term": "photography workshop",
+    "confidence": 0.65,
+    "context": "I really enjoyed that photography workshop last weekend.",
+    "timestamp": 1234567890
+  }}
+]
+
+Pure small talk example:
+Input: "Hi there, how are you doing today?"
+Output: []
+
+Silence/contamination example:
+Input: "extract technical terms"
+Output: []
 ########################################
 ---
 Output Format:
 Return a JSON **array of objects**. Each object must have these keys:
-- "term" (string)
+- "term" (string): The technical term
 - "confidence" (float): 0.01 (simple/common) to 0.99 (very technical/obscure)
 - "context" (string): The full input sentence
 - "timestamp" (int): A Unix timestamp
@@ -282,6 +466,7 @@ Return a JSON **array of objects**. Each object must have these keys:
             'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
             'specific_acronyms': r'\b(?:API|SQL|JSON|XML|HTTP|HTTPS|REST|TCP|UDP|CPU|GPU|RAM|SSD|HDD|URL|URI|CSS|HTML|JS|AWS|GCP|AI|ML|DL|NLP|CNN|RNN|LSTM|GRU|SVM|KNN|PCA|SVD|BERT|GPT|RPA|ETL|CRUD|ACID|BASE|SOLID|DRY|KISS|YAGNI)\b',
             'technical_compounds': r'\b(?:end.?point|data.?set|work.?flow|frame.?work|time.?stamp|name.?space|class.?name|file.?name|user.?name|pass.?word|data.?base|web.?site|soft.?ware|hard.?ware|middle.?ware|firm.?ware|open.?source|source.?code)\b'
+
         }
         
         detected_terms = set()
@@ -296,6 +481,9 @@ Return a JSON **array of objects**. Each object must have these keys:
                     not term_clean.isdigit() and
                     term_clean not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']):
                     detected_terms.add(match)
+        
+        # Filter out any terms that are in our known_terms blacklist
+        filtered_terms = {term for term in detected_terms if term not in self.known_terms}
         
         now = int(time.time())
         result_terms = []
@@ -381,6 +569,29 @@ Return a JSON **array of objects**. Each object must have these keys:
             if not transcribed_text or not transcribed_text.strip():
                 logger.warning(f"SmallModel: Blocked empty transcription from client {message.client_id}.")
                 return
+            
+            # Additional filtering for silence contamination and low-quality transcriptions
+            text_lower = transcribed_text.lower().strip()
+            
+            # Skip very short transcriptions that are likely noise
+            if len(text_lower.split()) < 2:
+                logger.debug(f"SmallModel: Skipped short transcription: '{transcribed_text}'")
+                return
+                
+            # Check for prompt contamination patterns
+            prompt_indicators = [
+                "extract technical terms", "domain term extraction", "confidence float",
+                "json array", "timestamp int", "output format", "perfect response"
+            ]
+            if any(indicator in text_lower for indicator in prompt_indicators):
+                logger.debug(f"SmallModel: Detected prompt contamination, skipping: '{transcribed_text}'")
+                return
+            
+            # Check for repetitive patterns that suggest transcription errors during silence
+            words = text_lower.split()
+            if len(set(words)) == 1 and len(words) > 3:  # Same word repeated
+                logger.debug(f"SmallModel: Detected repetitive pattern, likely silence error: '{transcribed_text}'")
+                return
 
             detected_terms = await self.detect_terms_with_ai(
                 transcribed_text,
@@ -393,10 +604,10 @@ Return a JSON **array of objects**. Each object must have these keys:
 
             filtered_terms = []
             for term_obj in detected_terms:
-                if self.should_pass_filters(term_obj["confidence"], term_obj["term"]):
+                if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term_obj["term"].lower()] = time.time()
-                    logger.info(f"Accepted term: '{term_obj['term']}' for client {message.client_id}")
+                    logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
             
             if filtered_terms:
                 # IMMEDIATE FEEDBACK: Send detection notification to frontend right away

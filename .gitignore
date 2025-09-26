@@ -143,3 +143,7 @@ Backend/AI/explanations_queue.json
 Backend/AI/explanation_cache.json
 Backend/STT/transcription.log
 
+# Test files (temporary)
+test_heartbeat*.py
+test_messagerouter_heartbeat.py
+
