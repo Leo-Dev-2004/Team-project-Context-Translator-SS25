@@ -1,6 +1,10 @@
 import asyncio
 import numpy as np
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except OSError:
+    # PortAudio not available, will fail if actually trying to record
+    sd = None
 import queue
 import threading
 import time
@@ -15,19 +19,46 @@ from typing import Optional
 from pathlib import Path
 
 # --- CONFIGURATION ---
+# Import performance configurations
+from .performance_configs import config_manager
+
 # Using a more structured config for clarity and easier modification
 class Config:
     SAMPLE_RATE = 16000
     CHANNELS = 1
-    MODEL_SIZE = "medium"
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
-    MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
     
-    # VAD (Voice Activity Detection) settings are key for responsiveness
-    VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
-    VAD_SILENCE_DURATION_S = 1.0 # How long of a pause indicates end of sentence
-    VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
+    # Performance configuration - can be set via environment variable STT_PERFORMANCE_PROFILE
+    # Available profiles: ultra_responsive, balanced_fast, optimized_default, current_default, high_accuracy, streaming_optimized
+    @classmethod
+    def get_performance_config(cls):
+        """Get the current performance configuration."""
+        return config_manager.get_config()
+    
+    # Dynamic properties that read from the current performance config
+    @property 
+    def MODEL_SIZE(self):
+        return self.get_performance_config().model_size
+    
+    @property
+    def VAD_ENERGY_THRESHOLD(self):
+        return self.get_performance_config().vad_energy_threshold
+    
+    @property 
+    def VAD_SILENCE_DURATION_S(self):
+        return self.get_performance_config().vad_silence_duration_s
+    
+    @property
+    def VAD_BUFFER_DURATION_S(self):
+        return self.get_performance_config().vad_buffer_duration_s
+    
+    @property
+    def MIN_WORDS_PER_SENTENCE(self):
+        return self.get_performance_config().min_words_per_sentence
+
+# Create a global instance
+Config = Config()
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -49,16 +80,37 @@ class STTService:
     def __init__(self, user_session_id: str):
         self.user_session_id = user_session_id
         self.stt_client_id = f"stt_instance_{uuid4()}"
+        
+        # Get current performance configuration
+        perf_config = Config.get_performance_config()
+        logger.info(f"Using STT performance profile: {perf_config.name}")
+        logger.info(f"Profile description: {perf_config.description}")
+        logger.info(f"Model: {perf_config.model_size}, VAD threshold: {perf_config.vad_energy_threshold}, "
+                   f"Silence duration: {perf_config.vad_silence_duration_s}s")
+        
+        # Measure model loading time for performance monitoring
+        load_start_time = time.time()
         logger.info(f"Loading Whisper model '{Config.MODEL_SIZE}'...")
         self.model = WhisperModel(Config.MODEL_SIZE, device="cpu", compute_type="int8")
-        logger.info("Whisper model loaded.")
+        load_time = time.time() - load_start_time
+        logger.info(f"Whisper model loaded in {load_time:.2f}s")
+        
         self.audio_queue = queue.Queue()
         self.is_recording = threading.Event()
         self.is_recording.set()
+        
+        # Performance tracking
+        self.transcription_times = []
+        self.audio_durations = []
+        
         logger.info(f"STTService initialized for session {self.user_session_id}")
 
     def _record_audio_thread(self):
         """[Thread Target] Captures audio from microphone into a thread-safe queue."""
+        if sd is None:
+            logger.error("sounddevice not available - cannot record audio")
+            return
+            
         def callback(indata, frames, time_info, status):
             if status: logger.warning(f"Recording status: {status}")
             if self.is_recording.is_set(): self.audio_queue.put(indata.copy())
@@ -134,10 +186,23 @@ class STTService:
                     full_utterance = np.concatenate([chunk.flatten() for chunk in audio_buffer])
                     audio_buffer.clear()
                     
-                    logger.info(f"Processing utterance of duration {len(full_utterance)/Config.SAMPLE_RATE:.2f}s...")
+                    audio_duration = len(full_utterance) / Config.SAMPLE_RATE
+                    logger.info(f"Processing utterance of duration {audio_duration:.2f}s...")
+                    
+                    # Measure transcription performance
+                    transcription_start = time.time()
                     segments, _ = await asyncio.to_thread(
                         self.model.transcribe, full_utterance, language=Config.LANGUAGE
                     )
+                    transcription_time = time.time() - transcription_start
+                    
+                    # Track performance metrics
+                    self.transcription_times.append(transcription_time)
+                    self.audio_durations.append(audio_duration)
+                    processing_overhead = transcription_time / audio_duration
+                    
+                    logger.info(f"Transcription completed in {transcription_time:.3f}s "
+                               f"(overhead: {processing_overhead:.2f}x)")
                     
                     full_sentence = "".join(s.text for s in segments).strip()
                     
@@ -182,16 +247,70 @@ class STTService:
     def stop(self):
         """Stops the recording and shuts down the service."""
         self.is_recording.clear()
+        
+        # Log performance statistics if we have data
+        if self.transcription_times and self.audio_durations:
+            self._log_performance_stats()
+        
         logger.info("Shutdown signal received. Stopping STT service.")
+    
+    def _log_performance_stats(self):
+        """Log performance statistics for analysis."""
+        import statistics
+        
+        if not self.transcription_times:
+            return
+        
+        avg_transcription_time = statistics.mean(self.transcription_times)
+        avg_audio_duration = statistics.mean(self.audio_durations)
+        avg_overhead = avg_transcription_time / avg_audio_duration if avg_audio_duration > 0 else 0
+        
+        total_audio = sum(self.audio_durations)
+        total_processing = sum(self.transcription_times)
+        
+        perf_config = Config.get_performance_config()
+        
+        logger.info("=== STT Performance Statistics ===")
+        logger.info(f"Profile: {perf_config.name} ({perf_config.model_size} model)")
+        logger.info(f"Total utterances processed: {len(self.transcription_times)}")
+        logger.info(f"Total audio duration: {total_audio:.1f}s")
+        logger.info(f"Total processing time: {total_processing:.1f}s")
+        logger.info(f"Average transcription time: {avg_transcription_time:.3f}s")
+        logger.info(f"Average processing overhead: {avg_overhead:.2f}x")
+        logger.info(f"Fastest transcription: {min(self.transcription_times):.3f}s")
+        logger.info(f"Slowest transcription: {max(self.transcription_times):.3f}s")
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="STT Module for Context Translator.")
+    parser = argparse.ArgumentParser(description="STT Module for Context Translator with Performance Optimization.")
     parser.add_argument("--user-session-id", required=True, help="The unique ID for the user session.")
+    parser.add_argument("--performance-profile", 
+                       choices=['ultra_responsive', 'balanced_fast', 'optimized_default', 'current_default', 'high_accuracy', 'streaming_optimized'],
+                       help="STT performance profile to use. Can also be set via STT_PERFORMANCE_PROFILE environment variable.")
+    parser.add_argument("--list-profiles", action="store_true", help="List available performance profiles and exit.")
     
     service = None
     try:
         args = parser.parse_args()
+        
+        if args.list_profiles:
+            print("Available STT Performance Profiles:")
+            configs = config_manager.list_configs()
+            for name, description in configs.items():
+                print(f"  {name}: {description}")
+            print(f"\nCurrent profile: {config_manager.get_config().name}")
+            print("Set profile via --performance-profile or STT_PERFORMANCE_PROFILE environment variable")
+            exit(0)
+        
+        # Set performance profile if specified
+        if args.performance_profile:
+            import os
+            os.environ['STT_PERFORMANCE_PROFILE'] = args.performance_profile
+        
+        # Log the configuration being used
+        perf_config = Config.get_performance_config()
+        logger.info(f"Starting STT service with performance profile: {perf_config.name}")
+        
         service = STTService(user_session_id=args.user_session_id)
         asyncio.run(service.run())
     except SystemExit:
