@@ -152,7 +152,7 @@ class STTService:
         silence_start_time = None
         
         # Keep a small buffer of recent silence to catch the start of speech
-        silence_buffer_size = int(Config.VAD_BUFFER_DURATION_S * Config.SAMPLE_RATE)
+        silence_buffer_size = int(Config.VAD_BUFFER_DURATION_S() * Config.SAMPLE_RATE)
         silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
@@ -163,7 +163,7 @@ class STTService:
                 
                 if is_speaking:
                     audio_buffer.append(audio_chunk)
-                    if frame_energy < Config.VAD_ENERGY_THRESHOLD:
+                    if frame_energy < Config.VAD_ENERGY_THRESHOLD():
                         if silence_start_time is None:
                             silence_start_time = time.monotonic()
                         # If silence duration is exceeded, end of sentence is detected
@@ -173,7 +173,7 @@ class STTService:
                         silence_start_time = None # Reset silence timer if speech is detected
                 else:
                     silence_buffer.extend(audio_chunk.flatten())
-                    if frame_energy > Config.VAD_ENERGY_THRESHOLD:
+                    if frame_energy > Config.VAD_ENERGY_THRESHOLD():
                         logger.info("Speech detected.")
                         is_speaking = True
                         silence_start_time = None
@@ -206,7 +206,7 @@ class STTService:
                     
                     full_sentence = "".join(s.text for s in segments).strip()
                     
-                    if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE:
+                    if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE():
                         await self._send_sentence(websocket, full_sentence)
                     else:
                         logger.info(f"Skipping short sentence: '{full_sentence}'")
