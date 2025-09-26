@@ -36,23 +36,4 @@ def set_explanation_delivery_service_instance(instance: 'ExplanationDeliveryServ
 def get_explanation_delivery_service_instance() -> Optional['ExplanationDeliveryService']:
     return _global_explanation_delivery_service_instance
 
-# Global instance for SimulationManager
-#_global_simulation_manager_instance: Optional[SimulationManager] = None
 
-#def set_simulation_manager_instance(instance: SimulationManager):
-#    global _global_simulation_manager_instance
-#    _global_simulation_manager_instance = instance
-
-#def get_simulation_manager() -> Optional[SimulationManager]:
- #   return _global_simulation_manager_instance
-
-
-
-# Du kannst hier auch weitere Instanzen für andere Services hinzufügen
-# Beispiel:
-# _global_message_router_instance: Optional[MessageRouter] = None
-# def set_message_router_instance(instance: MessageRouter):
-#     global _global_message_router_instance
-#     _global_message_router_instance = instance
-# def get_message_router_instance() -> Optional[MessageRouter]:
-#     return _global_message_router_instance

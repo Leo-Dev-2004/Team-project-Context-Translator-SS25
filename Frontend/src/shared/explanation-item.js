@@ -65,6 +65,20 @@ export class ExplanationItem extends LitElement {
   _handleRegenerate(e) { e.stopPropagation(); if (this.onRegenerate) this.onRegenerate(this.explanation); }
   _renderMarkdown(content) {
     if (!content) return html``;
+    
+    // Check if this is a processing/loading state
+    if (content.includes('🔄 Generating explanation')) {
+      return html`
+        <div class="processing-content">
+          <div class="processing-indicator">
+            <div class="spinner"></div>
+            <span>Generating explanation...</span>
+          </div>
+          <div class="processing-details">${content.replace('🔄 Generating explanation for', 'Analyzing term:').replace('...', '')}</div>
+        </div>
+      `;
+    }
+    
     try {
       marked.setOptions({ breaks: true, gfm: true, sanitize: false, smartLists: true, smartypants: false });
       const htmlContent = marked.parse(content);
