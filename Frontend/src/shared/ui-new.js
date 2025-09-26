@@ -6,7 +6,7 @@ import './main-body.js';
 import './setup-tab.js';
 import './explanations-tab.js';
 
-export class UI extends LitElement {
+export class UINew extends LitElement {
   static properties = {
     activeTab: { type: Number },
     domainValue: { type: String },
@@ -51,6 +51,7 @@ export class UI extends LitElement {
     };
     explanationManager.addListener(this._explanationListener);
   }
+
   disconnectedCallback() {
     super.disconnectedCallback();
     explanationManager.removeListener(this._explanationListener);
@@ -113,6 +114,7 @@ export class UI extends LitElement {
         return html`<div class="tab-panel">Select a tab</div>`;
     }
   }
+
   // Event handlers for MainBody
   _onTabChanged(e) {
     this.activeTab = e.detail.activeTab;
@@ -206,6 +208,7 @@ export class UI extends LitElement {
       console.log('Settings saved (web mode):', settings);
     }
   }
+
   async _resetSettings() { 
     this.domainValue = ''; 
     this.explanationStyle = 'detailed';
@@ -385,3 +388,5 @@ export class UI extends LitElement {
 
   static styles = [sharedStyles];
 }
+
+// Note: Don't define the custom element here, let the consumer decide the tag name
