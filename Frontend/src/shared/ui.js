@@ -68,9 +68,6 @@ export class UI extends LitElement {
           <button class="win-btn minimize" title="Minimize" @click=${this._winMinimize}>
             <span class="material-icons">remove</span>
           </button>
-          <button class="win-btn maximize" title="Maximize" @click=${this._winToggleMaximize}>
-            <span class="material-icons" id="maximize-icon">crop_square</span>
-          </button>
           <button class="win-btn close" title="Close" @click=${this._winClose}>
             <span class="material-icons">close</span>
           </button>
@@ -242,37 +239,22 @@ export class UI extends LitElement {
   }
   // Window control handlers
   async _winMinimize() { try { await window.electronAPI?.windowControls?.minimize(); } catch (e) { } }
-  async _winToggleMaximize() {
-    try {
-      const isMax = await window.electronAPI?.windowControls?.isMaximized?.();
-      if (isMax) await window.electronAPI?.windowControls?.unmaximize();
-      else await window.electronAPI?.windowControls?.maximize();
-    } catch (e) { }
-  }
   async _winClose() { try { await window.electronAPI?.windowControls?.close(); } catch (e) { } }
 
   async firstUpdated(changed) {
     super.firstUpdated?.(changed);
     // Load domain settings
     await this._loadDomainSettings();
-    // Plattform prüfen (nur Windows)
+    // Platform check (only Windows for custom titlebar)
     try {
       this.isWindows = (window.electronAPI?.platform === 'win32');
-      // Hole Details, ob frameless aktiv ist
+      // Get details about whether frameless is active
       const plat = await window.electronAPI?.getPlatform?.();
       if (plat && typeof plat.frameless === 'boolean') {
         this.isWindows = this.isWindows && plat.frameless;
       }
     } catch (_) { }
     this.requestUpdate();
-    // Reagiere auf Maximierungsstatus, um Icon zu wechseln
-    const iconEl = () => this.renderRoot?.querySelector?.('#maximize-icon');
-    window.electronAPI?.windowControls?.onMaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'filter_none'; });
-    window.electronAPI?.windowControls?.onUnmaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'crop_square'; });
-    // Initialen Zustand setzen
-    window.electronAPI?.windowControls?.isMaximized?.().then(isMax => {
-      const el = iconEl(); if (el) el.textContent = isMax ? 'filter_none' : 'crop_square';
-    }).catch(() => { });
   }
 
   static styles = [sharedStyles, css`

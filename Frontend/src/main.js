@@ -25,11 +25,10 @@ const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
-    // Vertikale, seitenleistenartige Standardgröße
+    // Fixed window size for consistent UI experience
     width: 420,
     height: 820,
-    minWidth: 320,
-    minHeight: 500,
+    resizable: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -141,14 +140,6 @@ function createWindow() {
     console.log('Main: ⚙️ Main window closed. Setting mainWindow to null.');
     mainWindow = null;
   });
-
-  // Fensterstatus an Renderer melden (für Maximize-Button-Zustand)
-  mainWindow.on('maximize', () => {
-    if (mainWindow) mainWindow.webContents.send('window:maximized');
-  });
-  mainWindow.on('unmaximize', () => {
-    if (mainWindow) mainWindow.webContents.send('window:unmaximized');
-  });
 }
 
 // App event handlers
@@ -235,18 +226,9 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   return result;
 });
 
-// Fenstersteuerungs-IPC
+// Window control IPC handlers (for fixed-size window)
 ipcMain.handle('window:minimize', () => {
   if (mainWindow) mainWindow.minimize();
-});
-ipcMain.handle('window:maximize', () => {
-  if (mainWindow && !mainWindow.isMaximized()) mainWindow.maximize();
-});
-ipcMain.handle('window:unmaximize', () => {
-  if (mainWindow && mainWindow.isMaximized()) mainWindow.unmaximize();
-});
-ipcMain.handle('window:isMaximized', () => {
-  return mainWindow ? mainWindow.isMaximized() : false;
 });
 ipcMain.handle('window:close', () => {
   if (mainWindow) mainWindow.close();
