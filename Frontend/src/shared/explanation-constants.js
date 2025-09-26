@@ -22,7 +22,13 @@ export const EXPLANATION_CONSTANTS = {
  * @returns {string} - Formatted loading message
  */
 export function createLoadingMessage(term, context = '') {
-  const baseMessage = `${EXPLANATION_CONSTANTS.GENERATING_EMOJI} ${EXPLANATION_CONSTANTS.GENERATING_PREFIX} "${term}"${EXPLANATION_CONSTANTS.GENERATING_SUFFIX}`;
+  // Validate term parameter
+  if (!term || typeof term !== 'string' || term.trim() === '') {
+    console.warn('createLoadingMessage: Invalid term provided:', term);
+    term = 'Unknown Term';
+  }
+  
+  const baseMessage = `${EXPLANATION_CONSTANTS.GENERATING_EMOJI} ${EXPLANATION_CONSTANTS.GENERATING_PREFIX} "${term.trim()}"${EXPLANATION_CONSTANTS.GENERATING_SUFFIX}`;
   return context ? `${baseMessage}\n\n**Context:** ${context}` : baseMessage;
 }
 
@@ -32,7 +38,7 @@ export function createLoadingMessage(term, context = '') {
  * @returns {boolean} - True if content is in loading state
  */
 export function isLoadingContent(content) {
-  return content && content.includes(EXPLANATION_CONSTANTS.LOADING_PATTERN);
+  return Boolean(content && content.includes(EXPLANATION_CONSTANTS.LOADING_PATTERN));
 }
 
 /**
