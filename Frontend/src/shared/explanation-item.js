@@ -2,6 +2,7 @@
 import { LitElement, html } from 'lit';
 import { marked } from 'marked';
 import { sharedStyles } from './styles.js';
+import { isLoadingContent, formatLoadingDisplay, EXPLANATION_CONSTANTS } from './explanation-constants.js';
 
 export class ExplanationItem extends LitElement {
   static properties = {
@@ -64,6 +65,20 @@ export class ExplanationItem extends LitElement {
   _handleRegenerate(e) { e.stopPropagation(); if (this.onRegenerate) this.onRegenerate(this.explanation); }
   _renderMarkdown(content) {
     if (!content) return html``;
+    
+    // Check if this is a processing/loading state
+    if (isLoadingContent(content)) {
+      return html`
+        <div class="processing-content">
+          <div class="processing-indicator">
+            <div class="spinner"></div>
+            <span>${EXPLANATION_CONSTANTS.GENERATING_DISPLAY_TEXT}</span>
+          </div>
+          <div class="processing-details">${formatLoadingDisplay(content)}</div>
+        </div>
+      `;
+    }
+    
     try {
       marked.setOptions({ breaks: true, gfm: true, sanitize: false, smartLists: true, smartypants: false });
       const htmlContent = marked.parse(content);

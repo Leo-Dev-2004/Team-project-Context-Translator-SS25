@@ -109,6 +109,12 @@ class MessageRouter:
                 else:
                     asyncio.create_task(self._small_model.process_message(message))
                     response = None  # Response will be handled asynchronously
+            
+            elif message.type == 'stt.heartbeat':
+                # Handle heartbeat keep-alive messages from STT service
+                logger.debug(f"MessageRouter: Received heartbeat from STT client {message.client_id}")
+                # Simply acknowledge the heartbeat - no further processing needed
+                response = self._create_ack_message(message, "Heartbeat acknowledged.")
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
@@ -203,7 +209,9 @@ class MessageRouter:
                 response = self._create_pong_message(message)
 
             else:
-                response = self._create_error_message(message, ErrorTypes.UNKNOWN_MESSAGE_TYPE, f"Unknown message type: '{message.type}'")
+                # Generic handler for unknown message types: output the type and provide info response
+                logger.info(f"MessageRouter: Received unknown message type: '{message.type}' from client {message.client_id}")
+                response = self._create_ack_message(message, f"Received unknown message type: '{message.type}'. No specific handler implemented.")
 
             if response:
                 await self._websocket_out_queue.enqueue(response)

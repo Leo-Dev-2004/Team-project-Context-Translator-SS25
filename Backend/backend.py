@@ -97,7 +97,7 @@ main_model_task: Optional[asyncio.Task] = None
 @app.on_event("startup")
 async def startup_event():
     logger.info("Application startup event triggered.")
-    global simulation_manager_instance, websocket_manager_instance, message_router_instance
+    global websocket_manager_instance, message_router_instance
     global queue_status_sender_task, explanation_delivery_service_instance
     global main_model_instance, main_model_task
 
@@ -174,7 +174,7 @@ async def shutdown_event():
     logger.info("Application shutdown event triggered.")
 
     # Zugriff auf die relevanten globalen Instanzen
-    global simulation_manager_instance, websocket_manager_instance
+    global websocket_manager_instance
     global queue_status_sender_task, message_router_instance, explanation_delivery_service_instance
     global main_model_task
 
@@ -187,7 +187,6 @@ async def shutdown_event():
         except asyncio.CancelledError:
             logger.info("main_model_task cancelled gracefully.")
 
-
     if queue_status_sender_task and not queue_status_sender_task.done():
         logger.info("Cancelling queue_status_sender_task...")
         queue_status_sender_task.cancel()
@@ -195,15 +194,6 @@ async def shutdown_event():
             await queue_status_sender_task
         except asyncio.CancelledError:
             logger.info("queue_status_sender_task cancelled gracefully.")
-
-    # Cancel MainModel continuous processing task
-    if main_model_task and not main_model_task.done():
-        logger.info("Cancelling main_model_task...")
-        main_model_task.cancel()
-        try:
-            await main_model_task
-        except asyncio.CancelledError:
-            logger.info("main_model_task cancelled gracefully.")
 
     if message_router_instance:
         logger.info("Stopping MessageRouter...")
