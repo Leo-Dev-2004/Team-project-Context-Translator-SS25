@@ -26,7 +26,8 @@ export class UI extends LitElement {
     manualTerm: { type: String },
     serverStatus: { type: String },
     microphoneStatus: { type: String },
-    isDarkMode: { type: Boolean }
+    isDarkMode: { type: Boolean },
+    scrollbarStyle: { type: String }
   };
   constructor() {
     super();
@@ -38,7 +39,8 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
-    this.isDarkMode = null; // null = system preference, true/false = user override
+    this.isDarkMode = null;
+    this.scrollbarStyle = 'minimal'; // null = system preference, true/false = user override
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
     this._explanationListener = (exps) => {
@@ -152,6 +154,30 @@ export class UI extends LitElement {
                 </md-outlined-select>
               </div>
             </div>
+            <div class="input-section">
+              <h3 class="title-medium section-title">Scrollbar Style</h3>
+              <p class="body-medium section-description">Choose how scrollbars appear in the application.</p>
+              <div class="style-input-group">
+                <md-outlined-select .value=${this.scrollbarStyle} @change=${this._onScrollbarStyleChange} class="style-field">
+                  <md-select-option value="minimal">
+                    <div slot="headline">Minimal</div>
+                    <div slot="supporting-text">Thin, subtle scrollbars that don't distract</div>
+                  </md-select-option>
+                  <md-select-option value="glassy">
+                    <div slot="headline">Glassy</div>
+                    <div slot="supporting-text">Semi-transparent scrollbars with blur effect</div>
+                  </md-select-option>
+                  <md-select-option value="hidden">
+                    <div slot="headline">Hidden</div>
+                    <div slot="supporting-text">Completely hide scrollbars (scroll with mouse/trackpad)</div>
+                  </md-select-option>
+                  <md-select-option value="default">
+                    <div slot="headline">Default</div>
+                    <div slot="supporting-text">Use browser default scrollbars</div>
+                  </md-select-option>
+                </md-outlined-select>
+              </div>
+            </div>
             <div class="spacer"></div>
             <div class="action-buttons">
               <md-filled-button @click=${this._saveSettings}>Save Configuration</md-filled-button>
@@ -193,14 +219,19 @@ export class UI extends LitElement {
   _onTabChange(e) { this.activeTab = e.target.activeTabIndex; }
   _onDomainInput(e) { this.domainValue = e.target.value; }
   _onExplanationStyleChange(e) { this.explanationStyle = e.target.value; }
+  _onScrollbarStyleChange(e) { 
+    this.scrollbarStyle = e.target.value; 
+    this._applyScrollbarStyle();
+  }
   async _saveSettings() { 
     if (window.electronAPI) {
       const result = await window.electronAPI.saveSettings({ 
         domain: this.domainValue,
-        explanationStyle: this.explanationStyle 
+        explanationStyle: this.explanationStyle,
+        scrollbarStyle: this.scrollbarStyle
       });
       if (result.success) {
-        console.log('Settings saved successfully:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
+        console.log('Settings saved successfully:', { domain: this.domainValue, explanationStyle: this.explanationStyle, scrollbarStyle: this.scrollbarStyle });
         this._showNotificationIfAvailable?.('Settings saved successfully', 'success');
       } else {
         console.error('Failed to save settings:', result.error);
@@ -213,8 +244,10 @@ export class UI extends LitElement {
   async _resetSettings() { 
     this.domainValue = ''; 
     this.explanationStyle = 'detailed';
+    this.scrollbarStyle = 'minimal';
+    this._applyScrollbarStyle();
     if (window.electronAPI) {
-      const result = await window.electronAPI.saveSettings({ domain: '', explanationStyle: 'detailed' });
+      const result = await window.electronAPI.saveSettings({ domain: '', explanationStyle: 'detailed', scrollbarStyle: 'minimal' });
       if (result.success) {
         this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
       }
@@ -237,11 +270,26 @@ export class UI extends LitElement {
           if (result.settings.explanationStyle) {
             this.explanationStyle = result.settings.explanationStyle;
           }
-          console.log('Settings loaded:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
+          if (result.settings.scrollbarStyle) {
+            this.scrollbarStyle = result.settings.scrollbarStyle;
+          }
+          console.log('Settings loaded:', { domain: this.domainValue, explanationStyle: this.explanationStyle, scrollbarStyle: this.scrollbarStyle });
+          this._applyScrollbarStyle();
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
+    }
+  }
+  
+  _applyScrollbarStyle() {
+    // Remove existing scrollbar style classes
+    const root = document.documentElement;
+    root.classList.remove('scrollbar-minimal', 'scrollbar-glassy', 'scrollbar-hidden', 'scrollbar-default');
+    
+    // Apply the selected scrollbar style
+    if (this.scrollbarStyle) {
+      root.classList.add(`scrollbar-${this.scrollbarStyle}`);
     }
   }
   _handlePin(id) { explanationManager.pinExplanation(id); }
