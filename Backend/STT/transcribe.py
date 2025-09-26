@@ -58,6 +58,7 @@ class STTService:
         self.audio_queue = queue.Queue()
         self.is_recording = threading.Event()
         self.is_recording.set()
+        self.unsent_sentences = []  # Buffer for unsent sentences
         logger.info(f"STTService initialized for session {self.user_session_id}")
 
     def _record_audio_thread(self):
@@ -161,7 +162,8 @@ class STTService:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent: {sentence}")
         except Exception as e:
-            logger.warning(f"Failed to send sentence, connection error: {e}")
+            logger.warning(f"Failed to send sentence, connection error: {e}. Buffering for retry.")
+            self.unsent_sentences.append(message)
 
     async def _send_heartbeat(self, websocket):
         """Sends a heartbeat keep-alive message to prevent connection timeout."""
@@ -284,7 +286,18 @@ class STTService:
                         "origin": "stt_module", "client_id": self.stt_client_id
                     }
                     await websocket.send(json.dumps(initial_message))
-                    
+
+                    # Retry any unsent sentences from previous connection failures
+                    if self.unsent_sentences:
+                        logger.info(f"Retrying {len(self.unsent_sentences)} unsent sentences after reconnect.")
+                        for msg in self.unsent_sentences:
+                            try:
+                                await websocket.send(json.dumps(msg))
+                                logger.info(f"Retried and sent buffered sentence: {msg['payload']['text']}")
+                            except Exception as e:
+                                logger.warning(f"Failed to resend buffered sentence: {e}")
+                        self.unsent_sentences.clear()
+
                     await self._process_audio_loop(websocket)
             except Exception as e:
                 logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
