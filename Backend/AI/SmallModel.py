@@ -49,10 +49,10 @@ class SmallModel:
             "having", "how", "than", "those", "also", "just", "such", "yet", "only", "any",
             "each", "few", "most", "other", "some", "because", "while", "about", "before",
             "after", "again", "against", "between", "both", "once", "during", "over",
-            "under", "out", "off", "very", "same", "all", "each", "another", "whoever",
+            "under", "out", "off", "very", "same", "all", "another", "whoever",
             "whichever", "whomever", "whom", "whilst", "perhaps", "random", "randomized",
             
-            # Common technical but non-domain-specific terms  
+            # Common technical terms that shouldn't be explained
             "login", "system", "module", "process", "service", "function", "model",
             "input", "output", "data", "rate", "code", "structure", "operation", "performance",
             "memory", "network", "flow", "solution", "platform", "application", "tool",
