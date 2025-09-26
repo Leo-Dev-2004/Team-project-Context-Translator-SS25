@@ -21,6 +21,10 @@ OLLAMA_API_URL = "http://localhost:11434/api/chat"
 LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
+# Performance configuration
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "10"))  # Configurable AI timeout
+BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
+
 class SmallModel:
     """
     Processes transcriptions to detect important terms and writes them to a file-based queue.
@@ -38,6 +42,11 @@ class SmallModel:
         # Import outgoing queue for immediate notifications
         from ..core.Queues import queues
         self.outgoing_queue = queues.outgoing
+
+        # Batching for improved performance
+        self.detection_batch = []
+        self.batch_timeout = None
+        self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
         self.confidence_threshold = 1  # Terms with confidence >= this are ignored 
@@ -170,8 +179,8 @@ class SmallModel:
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         """Use Ollama to detect important terms in the given sentence asynchronously."""
-        # Set a shorter timeout for faster fallback
-        ai_timeout = 10  # seconds
+        # Use configurable timeout for faster fallback
+        ai_timeout = AI_TIMEOUT_SECONDS
         
         try:
             # Try AI detection with timeout
