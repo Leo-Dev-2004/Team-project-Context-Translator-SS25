@@ -2,8 +2,8 @@ import asyncio
 import numpy as np
 try:
     import sounddevice as sd
-except OSError:
-    # PortAudio not available, will fail if actually trying to record
+except (OSError, ImportError):
+    # PortAudio not available or sounddevice not installed
     sd = None
 import queue
 import threading
@@ -22,43 +22,43 @@ from pathlib import Path
 # Import performance configurations
 from .performance_configs import config_manager
 
-# Using a more structured config for clarity and easier modification
-class AppConfig:
-    SAMPLE_RATE: int = 16000
-    CHANNELS: int = 1
-    LANGUAGE: str = "en"
-    WEBSOCKET_URI: str = "ws://localhost:8000/ws"
+# Simple configuration that delegates to performance config
+class ConfigManager:
+    """Configuration manager that dynamically reads from performance profiles."""
     
-    # Performance configuration - can be set via environment variable STT_PERFORMANCE_PROFILE
-    # Available profiles: ultra_responsive, balanced_fast, optimized_default, current_default, high_accuracy, streaming_optimized
-    @classmethod
-    def get_performance_config(cls):
+    # Static configuration
+    SAMPLE_RATE = 16000
+    CHANNELS = 1
+    LANGUAGE = "en"
+    WEBSOCKET_URI = "ws://localhost:8000/ws"
+    
+    @staticmethod
+    def get_performance_config():
         """Get the current performance configuration."""
         return config_manager.get_config()
     
-    # Dynamic properties that read from the current performance config
-    @property
-    def MODEL_SIZE(self) -> str:
-        return self.get_performance_config().model_size
+    @staticmethod
+    def MODEL_SIZE():
+        return ConfigManager.get_performance_config().model_size
+    
+    @staticmethod
+    def VAD_ENERGY_THRESHOLD():
+        return ConfigManager.get_performance_config().vad_energy_threshold
+    
+    @staticmethod
+    def VAD_SILENCE_DURATION_S():
+        return ConfigManager.get_performance_config().vad_silence_duration_s
+    
+    @staticmethod
+    def VAD_BUFFER_DURATION_S():
+        return ConfigManager.get_performance_config().vad_buffer_duration_s
+    
+    @staticmethod
+    def MIN_WORDS_PER_SENTENCE():
+        return ConfigManager.get_performance_config().min_words_per_sentence
 
-    @property
-    def VAD_ENERGY_THRESHOLD(self) -> float:
-        return self.get_performance_config().vad_energy_threshold
-
-    @property
-    def VAD_SILENCE_DURATION_S(self) -> float:
-        return self.get_performance_config().vad_silence_duration_s
-
-    @property
-    def VAD_BUFFER_DURATION_S(self) -> float:
-        return self.get_performance_config().vad_buffer_duration_s
-
-    @property
-    def MIN_WORDS_PER_SENTENCE(self) -> int:
-        return self.get_performance_config().min_words_per_sentence
-
-# Create a global instance
-APP_CONFIG: AppConfig = AppConfig()
+# Use the manager as Config for backward compatibility  
+Config = ConfigManager
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -82,7 +82,7 @@ class STTService:
         self.stt_client_id = f"stt_instance_{uuid4()}"
         
         # Get current performance configuration
-        perf_config = APP_CONFIG.get_performance_config()
+        perf_config = Config.get_performance_config()
         logger.info(f"Using STT performance profile: {perf_config.name}")
         logger.info(f"Profile description: {perf_config.description}")
         logger.info(f"Model: {perf_config.model_size}, VAD threshold: {perf_config.vad_energy_threshold}, "
@@ -90,8 +90,8 @@ class STTService:
         
         # Measure model loading time for performance monitoring
         load_start_time = time.time()
-        logger.info(f"Loading Whisper model '{APP_CONFIG.MODEL_SIZE}'...")
-        self.model = WhisperModel(APP_CONFIG.MODEL_SIZE, device="cpu", compute_type="int8")
+        logger.info(f"Loading Whisper model '{Config.MODEL_SIZE()}'...")
+        self.model = WhisperModel(Config.MODEL_SIZE(), device="cpu", compute_type="int8")
         load_time = time.time() - load_start_time
         logger.info(f"Whisper model loaded in {load_time:.2f}s")
         
@@ -116,7 +116,7 @@ class STTService:
             if self.is_recording.is_set(): self.audio_queue.put(indata.copy())
             
         try:
-            with sd.InputStream(samplerate=APP_CONFIG.SAMPLE_RATE, channels=APP_CONFIG.CHANNELS, callback=callback, dtype='float32') as stream:
+            with sd.InputStream(samplerate=Config.SAMPLE_RATE, channels=Config.CHANNELS, callback=callback, dtype='float32') as stream:
                 logger.info(f"Recording active: {stream.samplerate}Hz, {stream.channels}ch")
                 while self.is_recording.is_set(): time.sleep(0.1)
         except Exception as e:
@@ -134,7 +134,7 @@ class STTService:
         message = {
             "id": str(uuid4()), "type": "stt.transcription", "timestamp": time.time(),
             "payload": {
-                "text": sentence, "language": APP_CONFIG.LANGUAGE,
+                "text": sentence, "language": Config.LANGUAGE,
                 "user_session_id": self.user_session_id
             },
             "origin": "stt_module", "client_id": self.stt_client_id
@@ -152,7 +152,7 @@ class STTService:
         silence_start_time = None
         
         # Keep a small buffer of recent silence to catch the start of speech
-        silence_buffer_size = int(APP_CONFIG.VAD_BUFFER_DURATION_S * APP_CONFIG.SAMPLE_RATE)
+        silence_buffer_size = int(Config.VAD_BUFFER_DURATION_S() * Config.SAMPLE_RATE)
         silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
@@ -163,17 +163,17 @@ class STTService:
                 
                 if is_speaking:
                     audio_buffer.append(audio_chunk)
-                    if frame_energy < APP_CONFIG.VAD_ENERGY_THRESHOLD:
+                    if frame_energy < Config.VAD_ENERGY_THRESHOLD():
                         if silence_start_time is None:
                             silence_start_time = time.monotonic()
                         # If silence duration is exceeded, end of sentence is detected
-                        elif time.monotonic() - silence_start_time > APP_CONFIG.VAD_SILENCE_DURATION_S:
+                        elif time.monotonic() - silence_start_time > Config.VAD_SILENCE_DURATION_S():
                             is_speaking = False
                     else:
                         silence_start_time = None # Reset silence timer if speech is detected
                 else:
                     silence_buffer.extend(audio_chunk.flatten())
-                    if frame_energy > APP_CONFIG.VAD_ENERGY_THRESHOLD:
+                    if frame_energy > Config.VAD_ENERGY_THRESHOLD():
                         logger.info("Speech detected.")
                         is_speaking = True
                         silence_start_time = None
@@ -186,13 +186,13 @@ class STTService:
                     full_utterance = np.concatenate([chunk.flatten() for chunk in audio_buffer])
                     audio_buffer.clear()
                     
-                    audio_duration = len(full_utterance) / APP_CONFIG.SAMPLE_RATE
+                    audio_duration = len(full_utterance) / Config.SAMPLE_RATE
                     logger.info(f"Processing utterance of duration {audio_duration:.2f}s...")
                     
                     # Measure transcription performance
                     transcription_start = time.time()
                     segments, _ = await asyncio.to_thread(
-                        self.model.transcribe, full_utterance, language=APP_CONFIG.LANGUAGE
+                        self.model.transcribe, full_utterance, language=Config.LANGUAGE
                     )
                     transcription_time = time.time() - transcription_start
                     
@@ -206,7 +206,7 @@ class STTService:
                     
                     full_sentence = "".join(s.text for s in segments).strip()
                     
-                    if len(full_sentence.split()) >= APP_CONFIG.MIN_WORDS_PER_SENTENCE:
+                    if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE():
                         await self._send_sentence(websocket, full_sentence)
                     else:
                         logger.info(f"Skipping short sentence: '{full_sentence}'")
@@ -225,7 +225,7 @@ class STTService:
 
     async def run(self):
         """Main service loop that manages WebSocket connection and tasks."""
-        websocket_uri = f"{APP_CONFIG.WEBSOCKET_URI}/{self.stt_client_id}"
+        websocket_uri = f"{Config.WEBSOCKET_URI}/{self.stt_client_id}"
         threading.Thread(target=self._record_audio_thread, daemon=True).start()
 
         while self.is_recording.is_set():
@@ -268,7 +268,7 @@ class STTService:
         total_audio = sum(self.audio_durations)
         total_processing = sum(self.transcription_times)
         
-        perf_config = APP_CONFIG.get_performance_config()
+        perf_config = Config.get_performance_config()
         
         logger.info("=== STT Performance Statistics ===")
         logger.info(f"Profile: {perf_config.name} ({perf_config.model_size} model)")
@@ -308,7 +308,7 @@ if __name__ == "__main__":
             os.environ['STT_PERFORMANCE_PROFILE'] = args.performance_profile
         
         # Log the configuration being used
-        perf_config = APP_CONFIG.get_performance_config()
+        perf_config = Config.get_performance_config()
         logger.info(f"Starting STT service with performance profile: {perf_config.name}")
         
         service = STTService(user_session_id=args.user_session_id)
