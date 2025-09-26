@@ -26,8 +26,7 @@ export class UI extends LitElement {
     manualTerm: { type: String },
     serverStatus: { type: String },
     microphoneStatus: { type: String },
-    isDarkMode: { type: Boolean },
-    scrollbarStyle: { type: String }
+    isDarkMode: { type: Boolean }
   };
   constructor() {
     super();
@@ -39,8 +38,7 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
-    this.isDarkMode = null;
-    this.scrollbarStyle = 'minimal'; // null = system preference, true/false = user override
+    this.isDarkMode = null; // null = system preference, true/false = user override
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
     this._explanationListener = (exps) => {
@@ -72,9 +70,6 @@ export class UI extends LitElement {
           <button class="win-btn minimize" title="Minimize" @click=${this._winMinimize}>
             <span class="material-icons">remove</span>
           </button>
-          <button class="win-btn maximize" title="Maximize" @click=${this._winToggleMaximize}>
-            <span class="material-icons" id="maximize-icon">crop_square</span>
-          </button>
           <button class="win-btn close" title="Close" @click=${this._winClose}>
             <span class="material-icons">close</span>
           </button>
@@ -90,20 +85,16 @@ export class UI extends LitElement {
         </div>
       </md-dialog>
       <div class="ui-app-container">
-        <header class="app-header ocean-header">
-          <div class="theme-toggle" title="Cycle through: System → Light → Dark">
-            <span class="theme-icon material-icons">
-              ${this.isDarkMode === null ? 'brightness_auto' : 
-                this.isDarkMode ? 'dark_mode' : 'light_mode'}
-            </span>
-            <md-switch 
-              ?selected=${this.isDarkMode === true}
-              @click=${this._onThemeToggle}
-              aria-label="Theme toggle">
-            </md-switch>
+        <header class="app-header">
+          <div class="header-brand">
+            <div class="brand-icon">
+              <span class="material-icons">translate</span>
+            </div>
+            <div class="brand-text">
+              <h1>Context Translator</h1>
+              <p>Real-time meeting explanations and summaries powered by AI.</p>
+            </div>
           </div>
-          <h1 class="display-medium">Context Translator</h1>
-          <p class="body-large">Real-time meeting explanations and summaries powered by AI.</p>
         </header>
         <status-bar 
           .serverStatus=${this.serverStatus}
@@ -154,30 +145,6 @@ export class UI extends LitElement {
                 </md-outlined-select>
               </div>
             </div>
-            <div class="input-section">
-              <h3 class="title-medium section-title">Scrollbar Style</h3>
-              <p class="body-medium section-description">Choose how scrollbars appear in the application.</p>
-              <div class="style-input-group">
-                <md-outlined-select .value=${this.scrollbarStyle} @change=${this._onScrollbarStyleChange} class="style-field">
-                  <md-select-option value="minimal">
-                    <div slot="headline">Minimal</div>
-                    <div slot="supporting-text">Thin, subtle scrollbars that don't distract</div>
-                  </md-select-option>
-                  <md-select-option value="glassy">
-                    <div slot="headline">Glassy</div>
-                    <div slot="supporting-text">Semi-transparent scrollbars with blur effect</div>
-                  </md-select-option>
-                  <md-select-option value="hidden">
-                    <div slot="headline">Hidden</div>
-                    <div slot="supporting-text">Completely hide scrollbars (scroll with mouse/trackpad)</div>
-                  </md-select-option>
-                  <md-select-option value="default">
-                    <div slot="headline">Default</div>
-                    <div slot="supporting-text">Use browser default scrollbars</div>
-                  </md-select-option>
-                </md-outlined-select>
-              </div>
-            </div>
             <div class="spacer"></div>
             <div class="action-buttons">
               <md-filled-button @click=${this._saveSettings}>Save Configuration</md-filled-button>
@@ -219,19 +186,14 @@ export class UI extends LitElement {
   _onTabChange(e) { this.activeTab = e.target.activeTabIndex; }
   _onDomainInput(e) { this.domainValue = e.target.value; }
   _onExplanationStyleChange(e) { this.explanationStyle = e.target.value; }
-  _onScrollbarStyleChange(e) { 
-    this.scrollbarStyle = e.target.value; 
-    this._applyScrollbarStyle();
-  }
   async _saveSettings() { 
     if (window.electronAPI) {
       const result = await window.electronAPI.saveSettings({ 
         domain: this.domainValue,
-        explanationStyle: this.explanationStyle,
-        scrollbarStyle: this.scrollbarStyle
+        explanationStyle: this.explanationStyle 
       });
       if (result.success) {
-        console.log('Settings saved successfully:', { domain: this.domainValue, explanationStyle: this.explanationStyle, scrollbarStyle: this.scrollbarStyle });
+        console.log('Settings saved successfully:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
         this._showNotificationIfAvailable?.('Settings saved successfully', 'success');
       } else {
         console.error('Failed to save settings:', result.error);
@@ -244,10 +206,8 @@ export class UI extends LitElement {
   async _resetSettings() { 
     this.domainValue = ''; 
     this.explanationStyle = 'detailed';
-    this.scrollbarStyle = 'minimal';
-    this._applyScrollbarStyle();
     if (window.electronAPI) {
-      const result = await window.electronAPI.saveSettings({ domain: '', explanationStyle: 'detailed', scrollbarStyle: 'minimal' });
+      const result = await window.electronAPI.saveSettings({ domain: '', explanationStyle: 'detailed' });
       if (result.success) {
         this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
       }
@@ -270,26 +230,11 @@ export class UI extends LitElement {
           if (result.settings.explanationStyle) {
             this.explanationStyle = result.settings.explanationStyle;
           }
-          if (result.settings.scrollbarStyle) {
-            this.scrollbarStyle = result.settings.scrollbarStyle;
-          }
-          console.log('Settings loaded:', { domain: this.domainValue, explanationStyle: this.explanationStyle, scrollbarStyle: this.scrollbarStyle });
-          this._applyScrollbarStyle();
+          console.log('Settings loaded:', { domain: this.domainValue, explanationStyle: this.explanationStyle });
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
-    }
-  }
-  
-  _applyScrollbarStyle() {
-    // Remove existing scrollbar style classes
-    const root = document.documentElement;
-    root.classList.remove('scrollbar-minimal', 'scrollbar-glassy', 'scrollbar-hidden', 'scrollbar-default');
-    
-    // Apply the selected scrollbar style
-    if (this.scrollbarStyle) {
-      root.classList.add(`scrollbar-${this.scrollbarStyle}`);
     }
   }
   _handlePin(id) { explanationManager.pinExplanation(id); }
@@ -303,108 +248,22 @@ export class UI extends LitElement {
   }
   // Window control handlers
   async _winMinimize() { try { await window.electronAPI?.windowControls?.minimize(); } catch (e) { } }
-  async _winToggleMaximize() {
-    try {
-      const isMax = await window.electronAPI?.windowControls?.isMaximized?.();
-      if (isMax) await window.electronAPI?.windowControls?.unmaximize();
-      else await window.electronAPI?.windowControls?.maximize();
-    } catch (e) { }
-  }
   async _winClose() { try { await window.electronAPI?.windowControls?.close(); } catch (e) { } }
 
-  updated(changedProperties) {
-    super.updated?.(changedProperties);
-    
-    // Force sync the switch state when isDarkMode changes
-    if (changedProperties.has('isDarkMode')) {
-      const switchEl = this.shadowRoot?.querySelector('md-switch');
-      if (switchEl) {
-        switchEl.selected = this.isDarkMode === true;
-      }
-    }
-  }
   async firstUpdated(changed) {
+    super.firstUpdated?.(changed);
     // Load domain settings
     await this._loadDomainSettings();
-    // Load theme preference
-    await this._loadThemePreference();
-    // Plattform prüfen (nur Windows)
+    // Platform check (only Windows for custom titlebar)
     try {
       this.isWindows = (window.electronAPI?.platform === 'win32');
-      // Hole Details, ob frameless aktiv ist
+      // Get details about whether frameless is active
       const plat = await window.electronAPI?.getPlatform?.();
       if (plat && typeof plat.frameless === 'boolean') {
         this.isWindows = this.isWindows && plat.frameless;
       }
     } catch (_) { }
     this.requestUpdate();
-    // Reagiere auf Maximierungsstatus, um Icon zu wechseln
-    const iconEl = () => this.renderRoot?.querySelector?.('#maximize-icon');
-    window.electronAPI?.windowControls?.onMaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'filter_none'; });
-    window.electronAPI?.windowControls?.onUnmaximized?.(() => { const el = iconEl(); if (el) el.textContent = 'crop_square'; });
-    // Initialen Zustand setzen
-    window.electronAPI?.windowControls?.isMaximized?.().then(isMax => {
-      const el = iconEl(); if (el) el.textContent = isMax ? 'filter_none' : 'crop_square';
-    }).catch(() => { });
-  }
-
-  async _loadThemePreference() {
-    try {
-      if (window.electronAPI?.loadSettings) {
-        const result = await window.electronAPI.loadSettings();
-        if (result.success && result.settings?.theme) {
-          this.isDarkMode = result.settings.theme === 'dark' ? true : 
-                           result.settings.theme === 'light' ? false : null;
-          this._applyTheme();
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load theme preference:', error);
-    }
-  }
-
-  async _saveThemePreference() {
-    try {
-      if (window.electronAPI?.saveSettings) {
-        const theme = this.isDarkMode === null ? 'system' : 
-                     this.isDarkMode ? 'dark' : 'light';
-        await window.electronAPI.saveSettings({ theme });
-      }
-    } catch (error) {
-      console.warn('Failed to save theme preference:', error);
-    }
-  }
-
-  _onThemeToggle(event) {
-    // Prevent the switch's default toggle behavior
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Cycle through: system -> light -> dark -> system
-    if (this.isDarkMode === null) {
-      this.isDarkMode = false; // light
-    } else if (this.isDarkMode === false) {
-      this.isDarkMode = true; // dark
-    } else {
-      this.isDarkMode = null; // system
-    }
-    this._applyTheme();
-    this._saveThemePreference();
-    
-    // Force update the switch state to match our logic
-    this.requestUpdate();
-  }
-
-  _applyTheme() {
-    const root = document.documentElement;
-    root.classList.remove('force-light', 'force-dark');
-    
-    if (this.isDarkMode === true) {
-      root.classList.add('force-dark');
-    } else if (this.isDarkMode === false) {
-      root.classList.add('force-light');
-    }
-    // If null, use system preference (no classes needed)
   }
 
   static styles = [sharedStyles, css`
