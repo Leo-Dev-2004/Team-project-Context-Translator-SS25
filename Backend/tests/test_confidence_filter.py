@@ -39,7 +39,7 @@ def test_confidence_filter_logic():
     failed_tests = []
     
     for confidence, term, expected_result, description in test_cases:
-        actual_result = small_model.should_pass_filters(confidence, term)
+        actual_result = small_model.should_pass_filters(confidence, term, "test context")
         status = "✓" if actual_result == expected_result else "✗"
         
         print(f"{status} {description}")

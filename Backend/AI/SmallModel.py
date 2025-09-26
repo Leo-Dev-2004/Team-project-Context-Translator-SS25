@@ -127,23 +127,115 @@ class SmallModel:
             logger.error(f"LLM returned non-JSON response: {content}")
             return []
 
-    def should_pass_filters(self, confidence: float, term: str) -> bool:
-        """Apply filtering logic. Low confidence terms are filtered OUT."""
+    def _get_domain_examples(self, domain: Optional[str]) -> str:
+        """Generate domain-specific examples to help the AI understand what terms to extract."""
+        if not domain or not domain.strip():
+            return """
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- Medicine: diagnosis, treatment, pathology, pharmaceutical, clinical trial
+- Finance: portfolio, derivative, liquidity, hedge fund, cryptocurrency
+- Engineering: algorithm, optimization, architecture, infrastructure, scalability"""
+        
+        domain_lower = domain.strip().lower()
+        
+        # Domain-specific example mappings
+        domain_examples = {
+            "technology": "API, database, machine learning, cybersecurity, blockchain, microservices, DevOps, containerization, REST, GraphQL",
+            "software": "algorithm, debugging, refactoring, deployment, version control, continuous integration, unit testing, design patterns",
+            "business": "revenue stream, stakeholder, ROI, market segmentation, supply chain, business intelligence, KPI, value proposition",
+            "finance": "portfolio, derivative, liquidity, hedge fund, cryptocurrency, asset allocation, risk management, compound interest",
+            "medicine": "diagnosis, treatment, pathology, pharmaceutical, clinical trial, symptoms, prognosis, immunotherapy, radiology",
+            "science": "hypothesis, methodology, peer review, statistical significance, genome, experiment, research, analysis, variable",
+            "engineering": "optimization, architecture, infrastructure, scalability, load balancing, fault tolerance, system design",
+            "education": "curriculum, pedagogy, assessment, learning objectives, differentiated instruction, scaffolding, rubric",
+            "marketing": "brand awareness, conversion rate, customer acquisition, segmentation, attribution, funnel, retention",
+            "healthcare": "patient care, medical records, treatment plan, healthcare provider, insurance, telemedicine, preventive care",
+            "legal": "jurisdiction, litigation, contract law, compliance, intellectual property, due diligence, statute of limitations"
+        }
+        
+        # Find matching domain examples
+        for key, examples in domain_examples.items():
+            if key in domain_lower or domain_lower in key:
+                return f"- {domain.title()}: {examples}"
+        
+        # Default fallback with general examples
+        return f"""
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain  
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- {domain.title()}: [domain-specific technical terms that would need explanation]"""
+
+    def should_pass_filters(self, confidence: float, term: str, context_sentence: str = "") -> bool:
+        """Apply filtering logic with adaptive thresholds based on conversation type."""
         now = time.time()
         term_lower = term.lower()
 
-        # Low confidence terms are considered too common/simple to need an explanation
-        if confidence < self.confidence_threshold:
-            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence})")
-            return False
+        # Check if term is in known terms blacklist
         if term_lower in self.known_terms:
             logger.debug(f"Filtered: '{term}' - known common term")
             return False
+            
+        # Check cooldown
         if term_lower in self.cooldown_map and now - self.cooldown_map[term_lower] < self.cooldown_seconds:
             time_ago = int(now - self.cooldown_map[term_lower])
             logger.debug(f"Filtered: '{term}' - in cooldown ({time_ago}s ago)")
             return False
+
+        # Adaptive confidence threshold based on conversation type
+        adaptive_threshold = self._get_adaptive_threshold(context_sentence)
+        
+        if confidence < adaptive_threshold:
+            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence} < {adaptive_threshold}) for context type")
+            return False
+            
         return True
+
+    def _get_adaptive_threshold(self, sentence: str) -> float:
+        """Calculate adaptive confidence threshold based on conversation content."""
+        if not sentence:
+            return self.confidence_threshold
+            
+        sentence_lower = sentence.lower()
+        
+        # Check for high technical content indicators (advanced/complex terms)
+        advanced_technical_indicators = [
+            "implement", "algorithm", "neural network", "machine learning", "artificial intelligence", 
+            "blockchain", "cryptocurrency", "data science", "optimization", "methodology", "hypothesis"
+        ]
+        
+        # Check for moderate technical content indicators
+        moderate_technical_indicators = [
+            "database", "server", "api", "protocol", "framework", "authentication", 
+            "encryption", "deployment", "architecture", "analytics"
+        ]
+        
+        # Check for casual conversation indicators  
+        casual_indicators = [
+            "enjoyed", "interesting", "workshop", "class", "meeting", "presentation",
+            "project", "team", "colleague", "experience", "learned", "discussed",
+            "planning", "thinking", "considering", "wondering", "recently", "yesterday"
+        ]
+        
+        # Count indicators
+        advanced_count = sum(1 for indicator in advanced_technical_indicators if indicator in sentence_lower)
+        moderate_count = sum(1 for indicator in moderate_technical_indicators if indicator in sentence_lower)
+        casual_count = sum(1 for indicator in casual_indicators if indicator in sentence_lower)
+        
+        # Adaptive threshold logic
+        if advanced_count >= 1:
+            # High technical content - use stricter threshold
+            return self.confidence_threshold + 0.1  # 0.7
+        elif moderate_count >= 1 and casual_count == 0:
+            # Pure technical content - use normal threshold
+            return self.confidence_threshold  # 0.6
+        elif casual_count >= 1:
+            # Casual conversation - use more permissive threshold
+            return max(0.5, self.confidence_threshold - 0.1)  # 0.5
+        else:
+            # Unknown content type - use normal threshold
+            return self.confidence_threshold  # 0.6
 
     async def _query_ollama_async(self, prompt: str) -> Optional[str]:
         """Asynchronously queries the Ollama server to avoid blocking the event loop."""
@@ -183,24 +275,32 @@ CRITICAL FILTERING RULES:
 2. IGNORE basic common words (the, and, but, very, really, etc.)  
 3. IGNORE prompt-related words (extract, technical, terms, confidence, json, etc.)
 4. IGNORE generic tech words without domain specificity (system, data, process, etc.)
-5. ONLY extract terms that are genuinely technical, domain-specific, or specialized
+5. PRIORITIZE genuinely technical, domain-specific, or specialized terms
 6. If the input seems to be silence, empty, or contains prompt fragments, return []
 
+ADAPTIVE EXTRACTION STRATEGY:
+- If sentence contains clear technical/domain terms: Extract ONLY high-confidence technical terms
+- If sentence is mostly casual/small talk: Extract 1-2 moderately interesting words to maintain user engagement
+- NEVER extract pure greetings or fillers, but consider contextually relevant words
+
+DOMAIN-SPECIFIC EXAMPLES:
+{self._get_domain_examples(domain)}
+
 CONFIDENCE SCORING (0.01-0.99):
-- 0.90-0.99: Highly technical/specialized terms needing explanation
-- 0.70-0.89: Moderately technical terms 
-- 0.50-0.69: Somewhat technical but commonly known
-- 0.01-0.49: Common/basic terms (should rarely be extracted)
+- 0.90-0.99: Highly technical/specialized terms needing explanation (neural network, backpropagation, cryptocurrency)
+- 0.70-0.89: Moderately technical terms (algorithm, database, authentication)
+- 0.50-0.69: Somewhat technical but commonly known (website, email, password)
+- 0.01-0.49: Common/basic terms (should rarely be extracted unless in casual conversation)
 
 Extract technical or domain specific terms and return ONLY a valid JSON array of objects.
 Do not return anything else — no markdown, no comments, no prose.
 {f"Focus on terms relevant to: {domain.strip()}" if domain and domain.strip() else ""}
 ---
-### EXAMPLE of a PERFECT RESPONSE ###
-For an input sentence like "This sentence has no technical terms.", your entire output must be:
-[]
+### EXAMPLE RESPONSES ###
 
-For an input sentence like "We implemented a neural network using backpropagation.", your entire output must be:
+Technical conversation example:
+Input: "We implemented a neural network using backpropagation."
+Output:
 [
   {{
     "term": "neural network",
@@ -216,8 +316,25 @@ For an input sentence like "We implemented a neural network using backpropagatio
   }}
 ]
 
-For silence or prompt contamination like "extract technical terms", output:
-[]
+Casual conversation with some interesting terms:
+Input: "I really enjoyed that photography workshop last weekend."
+Output:
+[
+  {{
+    "term": "photography workshop",
+    "confidence": 0.65,
+    "context": "I really enjoyed that photography workshop last weekend.",
+    "timestamp": 1234567890
+  }}
+]
+
+Pure small talk example:
+Input: "Hi there, how are you doing today?"
+Output: []
+
+Silence/contamination example:
+Input: "extract technical terms"
+Output: []
 ########################################
 ---
 Output Format:
@@ -377,7 +494,7 @@ Return a JSON **array of objects**. Each object must have these keys:
 
             filtered_terms = []
             for term_obj in detected_terms:
-                if self.should_pass_filters(term_obj["confidence"], term_obj["term"]):
+                if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term_obj["term"].lower()] = time.time()
                     logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")

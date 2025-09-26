@@ -38,7 +38,7 @@ def test_known_terms_filtering():
     failed_tests = []
     for term, description in known_term_cases:
         # High confidence to test that known terms are still filtered
-        result = small_model.should_pass_filters(0.9, term)
+        result = small_model.should_pass_filters(0.9, term, "test context")
         status = "✓" if not result else "✗"
         
         print(f"{status} {description}: '{term}' -> {'FILTERED' if not result else 'PASSED'}")
