@@ -252,7 +252,7 @@ In the ToDiagram configuration, you must define the custom field names in your d
 
 * **Nesting and Hierarchy:** To create nested diagrams or parent-child hierarchies, a node object can contain a sub-array of other nodes by reusing the **same Nodes Array Key** defined in your configuration.
 
-***Edge Label Field:** You can optionally define a field key (e.g., `label` or `description`) in the configuration. The value of this field in the edge object will be displayed as text on the connection line.
+**Edge Label Field:** You can optionally define a field key (e.g., `label` or `description`) in the configuration. The value of this field in the edge object will be displayed as text on the connection line.
 
 ***Previous Errors:***
   **The mermaid-cli error indicated a parse error around the first node label; I fixed it by quoting node labels and using \<br/> for newlines so Mermaid can parse them reliably.**
