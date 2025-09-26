@@ -49,7 +49,7 @@ class SmallModel:
         self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
-        self.confidence_threshold = 1  # Terms with confidence >= this are ignored 
+        self.confidence_threshold = 0.3  # Terms with confidence < this are filtered out 
         self.cooldown_seconds = 300
         self.known_terms = {
             "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
@@ -69,7 +69,16 @@ class SmallModel:
             "resource", "logic", "signal", "protocol", "instance", "modular", "password",
             "user", "error", "file", "program", "install", "update", "run", "command",
             "website", "page", "link", "browser", "button", "web", "account", "credentials",
-            "access", "secure", "permission", "number", "chart", "email"
+            "access", "secure", "permission", "number", "chart", "email", 
+            # Common verbs that were incorrectly detected
+            "need", "uses", "shows", "implementing", "increase", "optimize", "better",
+            "make", "get", "set", "put", "take", "give", "find", "work", "create",
+            "build", "develop", "test", "check", "use", "run", "start", "stop",
+            # Common nouns that aren't technical
+            "time", "way", "day", "year", "work", "life", "part", "place", "case",
+            "point", "government", "company", "group", "problem", "fact", "hand",
+            "right", "thing", "world", "information", "office", "home", "money",
+            "business", "service", "health", "community", "name", "team", "area"
         }
         self.cooldown_map = {}
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
@@ -140,13 +149,13 @@ class SmallModel:
             return []
 
     def should_pass_filters(self, confidence: float, term: str) -> bool:
-        """Apply filtering logic. Note: high confidence terms are filtered OUT."""
+        """Apply filtering logic. Filter out low confidence terms and common words."""
         now = time.time()
         term_lower = term.lower()
 
-        # High confidence terms are considered too common/simple to need an explanation
-        if confidence >= self.confidence_threshold:
-            logger.debug(f"Filtered: '{term}' - confidence too high ({confidence})")
+        # Low confidence terms are filtered out
+        if confidence < self.confidence_threshold:
+            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence})")
             return False
         if term_lower in self.known_terms:
             logger.debug(f"Filtered: '{term}' - known common term")
@@ -264,40 +273,47 @@ Return a JSON **array of objects**. Each object must have these keys:
         """Fallback detection using basic patterns when AI is unavailable."""
         logger.info("Using enhanced fallback detection method")
         
-        # Enhanced patterns for better technical term detection
+        # Enhanced patterns for better technical term detection - more specific patterns
         patterns = {
-            'ml_ai_terms': r'\b(?:machine learning|neural network|artificial intelligence|deep learning|algorithm|model|training|dataset|backpropagation|gradient descent|overfitting|underfitting|regression|classification|clustering|reinforcement learning|supervised learning|unsupervised learning)\b',
-            'tech_terms': r'\b(?:API|REST|GraphQL|microservices|database|server|client|authentication|encryption|blockchain|cloud computing|docker|kubernetes|DevOps|CI/CD|framework|library|protocol|HTTP|HTTPS|TCP|UDP|JSON|XML|SQL|NoSQL)\b',
-            'programming_terms': r'\b(?:function|variable|object|class|method|inheritance|polymorphism|encapsulation|recursion|iteration|debugging|refactoring|version control|git|repository|commit|pull request|merge|branch)\b',
-            'business_terms': r'\b(?:revenue|profit|strategy|market research|customer acquisition|stakeholder|ROI|KPI|budget|scalability|monetization|business model|value proposition|market penetration)\b',
-            'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|analysis|research|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
-            'complex_words': r'\b\w{12,}\b',  # Words with 12+ characters
-            'acronyms': r'\b[A-Z]{2,6}\b'  # 2-6 letter acronyms
+            'ml_ai_terms': r'\b(?:machine learning|neural network|artificial intelligence|deep learning|algorithm|backpropagation|gradient descent|overfitting|underfitting|regression|classification|clustering|reinforcement learning|supervised learning|unsupervised learning|convolutional|transformer|lstm|rnn|cnn)\b',
+            'tech_terms': r'\b(?:API|REST|GraphQL|microservices|database|server|authentication|encryption|blockchain|cloud computing|docker|kubernetes|DevOps|CI/CD|framework|library|HTTP|HTTPS|TCP|UDP|JSON|XML|SQL|NoSQL|webhook|endpoint)\b',
+            'programming_terms': r'\b(?:inheritance|polymorphism|encapsulation|recursion|debugging|refactoring|version control|repository|commit|pull request|merge|branch|async|await|callback|middleware|dependency injection)\b',
+            'business_terms': r'\b(?:ROI|KPI|scalability|monetization|business model|value proposition|market penetration|customer acquisition|stakeholder)\b',
+            'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
+            'specific_acronyms': r'\b(?:API|SQL|JSON|XML|HTTP|HTTPS|REST|TCP|UDP|CPU|GPU|RAM|SSD|HDD|URL|URI|CSS|HTML|JS|AWS|GCP|AI|ML|DL|NLP|CNN|RNN|LSTM|GRU|SVM|KNN|PCA|SVD|BERT|GPT|RPA|ETL|CRUD|ACID|BASE|SOLID|DRY|KISS|YAGNI)\b',
+            'technical_compounds': r'\b(?:end.?point|data.?set|work.?flow|frame.?work|time.?stamp|name.?space|class.?name|file.?name|user.?name|pass.?word|data.?base|web.?site|soft.?ware|hard.?ware|middle.?ware|firm.?ware|open.?source|source.?code)\b'
         }
         
         detected_terms = set()
-        text_lower = sentence.lower()
         
         for category, pattern in patterns.items():
             matches = re.findall(pattern, sentence, re.IGNORECASE)
             for match in matches:
-                # Filter out common words and improve confidence based on category
-                if match.lower() not in self.known_terms and len(match) > 2:
+                # More strict filtering - only add terms that are not common words
+                term_clean = match.lower().strip()
+                if (term_clean not in self.known_terms and 
+                    len(term_clean) > 2 and 
+                    not term_clean.isdigit() and
+                    term_clean not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']):
                     detected_terms.add(match)
         
         now = int(time.time())
         result_terms = []
         
         for term in detected_terms:
-            # Assign confidence based on term characteristics
-            confidence = 0.4  # default fallback confidence
+            # Assign confidence based on term characteristics - be more conservative
+            confidence = 0.3  # Start lower, let the filtering decide
             term_lower = term.lower()
             
-            if any(tech_word in term_lower for tech_word in ['api', 'machine', 'neural', 'algorithm', 'learning']):
-                confidence = 0.7  # Higher confidence for obvious technical terms
+            if any(tech_word in term_lower for tech_word in ['api', 'machine learning', 'neural', 'algorithm', 'backpropagation', 'gradient descent']):
+                confidence = 0.8  # Higher confidence for specific technical terms
+            elif any(tech_word in term_lower for tech_word in ['database', 'server', 'framework', 'authentication', 'encryption']):
+                confidence = 0.7  # Medium-high for common tech terms
+            elif term.isupper() and len(term) >= 3 and term in ['API', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST']:
+                confidence = 0.9  # Very high for well-known tech acronyms
             elif len(term) > 15:  # Very long words are likely technical
                 confidence = 0.6
-            elif term.isupper() and len(term) >= 3:  # Acronyms
+            elif term.isupper() and len(term) >= 3:  # Other acronyms
                 confidence = 0.5
                 
             result_terms.append({
