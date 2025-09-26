@@ -2,6 +2,7 @@
 from typing import Optional
 from .services.WebSocketManager import WebSocketManager
 from .core.session_manager import SessionManager
+from .core.settings_manager import SettingsManager
 
 _global_session_manager_instance: Optional[SessionManager] = None
 
@@ -21,6 +22,16 @@ def set_websocket_manager_instance(instance: WebSocketManager):
 
 def get_websocket_manager_instance() -> Optional[WebSocketManager]:
     return _global_ws_manager_instance
+
+# Global instance for SettingsManager
+_global_settings_manager_instance: Optional[SettingsManager] = None
+
+def set_settings_manager_instance(instance: SettingsManager):
+    global _global_settings_manager_instance
+    _global_settings_manager_instance = instance
+
+def get_settings_manager_instance() -> Optional[SettingsManager]:
+    return _global_settings_manager_instance
 
 # Global instance for ExplanationDeliveryService
 from typing import TYPE_CHECKING
