@@ -5,8 +5,9 @@ import uuid
 import time
 from typing import Optional, cast
 from starlette.websockets import WebSocketDisconnect, WebSocketState
-from .dependencies import set_session_manager_instance
+from .dependencies import set_session_manager_instance, set_settings_manager_instance
 from .core.session_manager import SessionManager
+from .core.settings_manager import SettingsManager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +47,8 @@ from .dependencies import (
     get_websocket_manager_instance,
     set_explanation_delivery_service_instance,
     get_explanation_delivery_service_instance,
+    set_settings_manager_instance,
+    get_settings_manager_instance,
 )
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
@@ -114,7 +117,14 @@ async def startup_event():
     set_websocket_manager_instance(websocket_manager_instance)
     session_manager_instance = SessionManager()
     set_session_manager_instance(session_manager_instance)
-    logger.info("SessionManager and WebSocketManager initialized and set.")
+    
+    # Initialize SettingsManager
+    settings_manager_instance = SettingsManager()
+    set_settings_manager_instance(settings_manager_instance)
+    # Load settings from file if available
+    await settings_manager_instance.load_from_file()
+    
+    logger.info("SessionManager, WebSocketManager, and SettingsManager initialized and set.")
 
     # Step 2: NOW initialize the MessageRouter, which depends on the services above.
     # Its __init__ can now safely call get_session_manager_instance().

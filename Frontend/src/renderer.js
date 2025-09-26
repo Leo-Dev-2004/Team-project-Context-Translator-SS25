@@ -435,12 +435,40 @@ class ElectronMyElement extends UI {
     };
 
     try {
+      // Save settings locally via Electron IPC
       const result = await window.electronAPI.saveSettings(settings);
       if (result.success) {
         this._showNotification('Settings saved successfully', 'success');
       } else {
         this._showNotification('Failed to save settings', 'error');
       }
+      
+      // Also send settings to Backend via WebSocket for global settings management
+      if (this.backendWs && this.backendWs.readyState === WebSocket.OPEN) {
+        const message = {
+          id: crypto.randomUUID(),
+          type: 'settings.save',
+          timestamp: Date.now() / 1000,
+          payload: {
+            domain: this.domainValue || '',
+            explanation_style: this.explanationStyle || 'detailed'
+          },
+          client_id: this.userSessionId || `frontend_renderer_${crypto.randomUUID()}`,
+          origin: 'Frontend',
+          destination: 'Backend'
+        };
+        
+        try {
+          this.backendWs.send(JSON.stringify(message));
+          console.log('Renderer: Settings sent to Backend via WebSocket:', message.payload);
+        } catch (wsError) {
+          console.error('Renderer: Failed to send settings to Backend via WebSocket:', wsError);
+          // Don't show error to user as local save succeeded
+        }
+      } else {
+        console.log('Renderer: Backend WebSocket not available, settings only saved locally');
+      }
+      
     } catch (error) {
       console.error('Renderer: Error saving settings:', error);
       this._showNotification('Error saving settings', 'error');

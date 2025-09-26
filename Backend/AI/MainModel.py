@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 import uuid
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
+from ..dependencies import get_settings_manager_instance
 from ..dependencies import get_explanation_delivery_service_instance
 
 # === Config ===
@@ -120,6 +121,15 @@ class MainModel:
 
     def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
                      explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
+        """Build prompt for LLM explanation generation. Uses global settings for domain and style if not provided."""
+        # Get domain and explanation_style from SettingsManager if not provided
+        settings_manager = get_settings_manager_instance()
+        if settings_manager:
+            if not domain:
+                domain = settings_manager.get_setting("domain", "")
+            if explanation_style == "detailed":  # Only override default, not explicit requests
+                explanation_style = settings_manager.get_setting("explanation_style", "detailed")
+        
         role_context = ""
         if user_role:
             role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
