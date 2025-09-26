@@ -7,9 +7,10 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
-import uuid # FIX: Added missing import for uuid
+import uuid
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
+from ..dependencies import get_explanation_delivery_service_instance
 
 # === Config ===
 # Moved configuration to constants for clarity
@@ -40,6 +41,10 @@ class MainModel:
         # A single, reusable async HTTP client is more efficient.
         self.http_client = httpx.AsyncClient(timeout=60.0)
 
+        # Import outgoing queue for immediate explanation updates
+        from ..core.Queues import queues
+        self.outgoing_queue = queues.outgoing
+
         # CRITICAL FIX: Locks to prevent race conditions when accessing shared files.
         # Each file that is read, modified, and then written back needs its own lock.
         self.detections_lock = asyncio.Lock()
@@ -48,6 +53,37 @@ class MainModel:
 
         # Cooldown tracking (Note: this is still in-memory and will reset on restart)
         self.explained_terms = {}
+
+    async def send_explanation_update(self, term: str, explanation: str, entry: Dict):
+        """
+        Send immediate explanation update to frontend to progressively enhance detected terms.
+        This updates terms that were previously sent as detections with their full explanations.
+        """
+        try:
+            # Create explanation update message
+            explanation_update = UniversalMessage(
+                type="explanation.update",
+                payload={
+                    "term": term,
+                    "explanation": explanation,
+                    "context": entry["context"],
+                    "confidence": entry.get("confidence", 0.5),
+                    "timestamp": int(time.time()),
+                    "original_detection_id": entry.get("id"),
+                    "status": "explained"
+                },
+                client_id=entry.get("client_id"),
+                origin="MainModel", 
+                destination="frontend"
+            )
+
+            # Send immediately to frontend
+            await self.outgoing_queue.enqueue(explanation_update)
+            
+            logger.info(f"Sent explanation update for term '{term}' to client {entry.get('client_id')}")
+            
+        except Exception as e:
+            logger.error(f"Error sending explanation update for '{term}': {e}", exc_info=True)
 
         # Ensure queue directories exist (synchronous operation at init is acceptable)
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
@@ -198,6 +234,13 @@ class MainModel:
                 await asyncio.to_thread(os.replace, str(temp_file), str(self.explanations_queue_file))
                 
                 logger.info(f"Successfully wrote explanation to queue for client {explanation_entry.get('client_id')}")
+                
+                # Trigger immediate check in ExplanationDeliveryService for faster delivery
+                delivery_service = get_explanation_delivery_service_instance()
+                if delivery_service:
+                    delivery_service.trigger_immediate_check()
+                    logger.debug("Triggered immediate explanation delivery check")
+                
                 return True
             except Exception as e:
                 logger.error(f"Error writing explanation to queue: {e}", exc_info=True)
@@ -266,6 +309,9 @@ class MainModel:
                 logger.warning(f"Failed to generate explanation for '{term}'.")
                 continue
 
+            # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
+            await self.send_explanation_update(term, explanation, entry)
+
             message_type = "explanation.retry" if is_retry else "explanation.new"
             explanation_entry = {
                 "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
@@ -281,6 +327,7 @@ class MainModel:
             if is_retry and original_explanation_id:
                 explanation_entry["original_explanation_id"] = original_explanation_id
             
+            # BACKGROUND: Still queue for file-based delivery system (backwards compatibility)
             if await self.write_explanation_to_queue(explanation_entry):
                 # Only mark as explained for non-retry requests
                 if not is_retry:

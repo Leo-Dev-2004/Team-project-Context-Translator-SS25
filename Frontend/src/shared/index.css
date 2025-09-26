@@ -55,8 +55,9 @@
 	--md-sys-color-on-error-container: #991B1B;
 }
 
+/* Dark mode support via media query (system preference) */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not(.force-light) {
 		/* Harmonische Farbpalette - Dark Mode */
 		--color-primary: #60A5FA;
 		--color-secondary: #9CA3AF;
@@ -71,6 +72,23 @@
 		--md-sys-color-outline-variant: #4B5563;
 		--md-sys-color-error: #F87171;
 	}
+}
+
+/* Manual dark mode override */
+:root.force-dark {
+	/* Harmonische Farbpalette - Dark Mode */
+	--color-primary: #60A5FA;
+	--color-secondary: #9CA3AF;
+	--color-surface: #1F2937;
+	--color-surface-dark: #111827;
+	--color-surface-light: #374151;
+
+	/* Dark Mode Material Design Mappings */
+	--md-sys-color-surface: var(--color-surface-dark);
+	--md-sys-color-surface-variant: var(--color-surface-light);
+	--md-sys-color-on-surface: var(--color-secondary-light);
+	--md-sys-color-outline-variant: #4B5563;
+	--md-sys-color-error: #F87171;
 }
 
 /* Globale Basis-Styles */
@@ -99,6 +117,10 @@ body {
 }
 
 /* Header */
+.app-header {
+	position: relative;
+}
+
 .app-header h1 {
 	font-size: 2.5rem;
 	color: var(--md-sys-color-primary);
@@ -111,6 +133,28 @@ body {
 	color: var(--md-sys-color-secondary);
 	margin: 0;
 	text-align: center;
+}
+
+/* Dark mode toggle */
+.theme-toggle {
+	position: absolute;
+	top: 0;
+	right: 0;
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	font-size: 0.875rem;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.theme-toggle md-switch {
+	--md-switch-selected-track-color: var(--md-sys-color-primary);
+	--md-switch-selected-handle-color: var(--md-sys-color-on-primary);
+}
+
+.theme-icon {
+	font-size: 1.125rem;
+	opacity: 0.7;
 }
 
 /* Tabs */
@@ -390,3 +434,40 @@ md-outlined-text-field md-icon-button[slot="trailing-icon"] .material-icons {
 .copy-button .material-icons { font-size: 16px; }
 .empty-icon.material-icons { font-size: 72px; margin-bottom: var(--space-lg); opacity: 0.6; }
 md-text-button .material-icons, md-filled-button .material-icons, md-outlined-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
+
+/* Processing/Loading State Styles */
+.processing-content {
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8eeff 100%);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-primary-300);
+}
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary-700);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary-200);
+  border-top: 2px solid var(--color-primary-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.processing-details {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  opacity: 0.8;
+}
