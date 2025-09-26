@@ -1,0 +1,8 @@
+{
+  "domain": "computer science",
+  "explanation_style": "beginner",
+  "ai_model": "llama3.2",
+  "confidence_threshold": 1,
+  "cooldown_seconds": 300,
+  "last_updated": "2025-09-26T12:51:03.188089"
+}
