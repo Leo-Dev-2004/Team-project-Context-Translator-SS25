@@ -20,7 +20,7 @@
     "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0",
     "test": "web-test-runner",
     "test:watch": "web-test-runner --watch",
-  "generate-diagram": "npx -y @todiagram/todiagram-mcp --input ./src --output ./diagrams/architecture.md"
+  "generate-diagram": "npx -y @todiagram/todiagram-mcp --input ./src --output ./architecture.md"
   },
   "dependencies": {
     "@material/web": "^2.3.0",
