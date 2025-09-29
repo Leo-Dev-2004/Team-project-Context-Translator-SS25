@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  ![Status](<img src=https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge)</img>
+  ![Status](<img src="https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge">)</img>
 </p>
 
 ---
