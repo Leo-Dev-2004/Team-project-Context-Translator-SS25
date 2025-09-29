@@ -43,7 +43,7 @@ Unser System basiert auf einem modernen, asynchronen Stack, der für hochleistun
 | :--- | :--- |
 | **Frontend** | <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=electron&logoColor=white" alt="Electron.js"/> <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/> <img src="https://img.shields.io/badge/Lit-324FFF?style=for-the-badge&logo=lit&logoColor=white" alt="Lit"/> |
 | **Backend** | <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/> <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/> |
-| **KI & Sprache** | !<img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"/>)  ![Faster Whisper](https://img.shields.io/badge/Whisper-faster--whisper-blueviolet?style=for-the-badge) [Ollama](https://ollama.com/) |
+| **KI & Sprache** | !<img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"/>)  ![Faster Whisper](https://img.shields.io/badge/Whisper-faster--whisper-blueviolet?style=for-the-badge) |
 | **Echtzeit-Kommunikation** | <img src="https://img.shields.io/badge/WebSockets-010101?style=for-the-badge&logo=websockets&logoColor=white" alt="WebSockets"/> |
 
 ---
