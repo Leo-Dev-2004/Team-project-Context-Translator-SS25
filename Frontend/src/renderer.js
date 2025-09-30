@@ -1,7 +1,7 @@
-import { UI } from './shared/index.js';
-import { explanationManager } from './shared/explanation-manager.js';
-import { createLoadingMessage, EXPLANATION_CONSTANTS } from './shared/explanation-constants.js';
-import './shared/index.css';
+import { UI } from './index.js';
+import { explanationManager } from './explanation-manager.js';
+import { createLoadingMessage, EXPLANATION_CONSTANTS } from './explanation-constants.js';
+import './index.css';
 import { Howl } from 'howler';
 
 
