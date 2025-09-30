@@ -1,7 +1,7 @@
-import { UI } from './shared/index.js';
-import { explanationManager } from './shared/explanation-manager.js';
-import { createLoadingMessage, EXPLANATION_CONSTANTS } from './shared/explanation-constants.js';
-import './shared/index.css';
+import { UI } from './components/index.js';
+import { explanationManager } from './components/explanation-manager.js';
+import { createLoadingMessage, EXPLANATION_CONSTANTS } from './components/explanation-constants.js';
+import './components/index.css';
 import { Howl } from 'howler';
 
 
@@ -47,6 +47,9 @@ class ElectronMyElement extends UI {
     super.firstUpdated(changedProperties); // Call super.firstUpdated first
   // Hauptinitialisierung erfolgt über connectedCallback (Electron/WebSocket)
   // Entfernt: initializeApplication (nicht definiert) und doppelte Electron-Init
+  
+    // Attach event listeners to action buttons
+    this._attachActionListeners();
   }
 
   // connectedCallback is still useful for handlers, but main app init is in firstUpdated
@@ -58,7 +61,6 @@ class ElectronMyElement extends UI {
     this._initializeWebSocket();
     this._initializeMicrophone();
 
-    this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
     console.log('Renderer: ⚙️ connectedCallback exited.');
   }
 
@@ -153,33 +155,30 @@ class ElectronMyElement extends UI {
   }
   
   _attachActionListeners() {
-    console.log('Renderer: 💡 Attaching event listeners to action buttons...');
-    
-    const createSessionButton = this.shadowRoot.querySelector('#start-session-button');
-    const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
+    console.log('Renderer: 💡 Attaching event listeners via delegation...');
 
-    if (createSessionButton) {
-      createSessionButton.addEventListener('click', () => {
-        playSound(click_sound);
-        this._startSession();
-      });
-    } else {
-      playSound(error_sound);
-      console.error("Renderer: ❌ 'Create Session' button not found.");
-    }
-    
-    if (joinSessionButton) {
-      joinSessionButton.addEventListener('click', () => {
-        playSound(join_sound);
-        this._joinSession();
-      });
-    } else {
-      playSound(error_sound); 
-      console.error("Renderer: ❌ 'Join Session' button not found.");
-    }
+    // Hänge EINEN Listener an einen Container, der immer existiert.
+    this.shadowRoot.addEventListener('click', (event) => {
+        // Finde heraus, ob ein Button geklickt wurde, der uns interessiert.
+        // .closest() ist robust, weil es auch funktioniert, wenn du z.B. ein Icon im Button klickst.
+        const startButton = event.target.closest('#start-session-button');
+        const joinButton = event.target.closest('#join-session-button');
 
-    console.log('Renderer: ✅ Event listeners successfully attached.');
-  }
+        if (startButton) {
+            playSound(click_sound);
+            this._startSession();
+            return; // Beende die Funktion hier
+        }
+
+        if (joinButton) {
+            playSound(join_sound);
+            this._joinSession();
+            return; // Beende die Funktion hier
+        }
+    });
+
+    console.log('Renderer: ✅ Event delegation successfully attached.');
+}
 
   // Updates status indicators in the status bar (Server = Backend)
   updateServerStatus(newStatus) {
