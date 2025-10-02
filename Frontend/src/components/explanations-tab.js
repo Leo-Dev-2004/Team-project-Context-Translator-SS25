@@ -1,7 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import { sharedStyles } from './styles.js';
 import './explanation-item.js';
-import './chat-box.js';
 import '@material/web/textfield/outlined-text-field.js';
 import '@material/web/iconbutton/icon-button.js';
 import '@material/web/button/outlined-button.js';
@@ -69,12 +68,6 @@ export class ExplanationsTab extends LitElement {
           </div>`
         }
       </div>
-
-      <chat-box 
-        .isConnected=${this.isConnected}
-        @send-chat-message=${this._handleChatMessage}
-        @clear-chat=${this._handleClearChat}>
-      </chat-box>
     </div>`;
   }
 
@@ -115,39 +108,6 @@ export class ExplanationsTab extends LitElement {
 
   _handleRegenerate(explanation) { 
     this.dispatchEvent(new CustomEvent('regenerate-explanation', { detail: { explanation } }));
-  }
-
-  _handleChatMessage(e) {
-    this.dispatchEvent(new CustomEvent('send-chat-message', { detail: e.detail }));
-  }
-
-  _handleClearChat(e) {
-    this.dispatchEvent(new CustomEvent('clear-chat', { detail: e.detail }));
-  }
-
-  // Method to forward chat messages to the chat box
-  addChatMessage(content, type = 'assistant') {
-    const chatBox = this.shadowRoot.querySelector('chat-box');
-    if (chatBox) {
-      chatBox.addMessage(content, type);
-    }
-  }
-
-  // Method to update chat connection status
-  setChatConnectionStatus(isConnected) {
-    this.isConnected = isConnected;
-    const chatBox = this.shadowRoot.querySelector('chat-box');
-    if (chatBox) {
-      chatBox.setConnectionStatus(isConnected);
-    }
-  }
-
-  // Method to set chat loading state
-  setChatLoading(isLoading) {
-    const chatBox = this.shadowRoot.querySelector('chat-box');
-    if (chatBox) {
-      chatBox.setLoading(isLoading);
-    }
   }
 
   static styles = [sharedStyles, css`
