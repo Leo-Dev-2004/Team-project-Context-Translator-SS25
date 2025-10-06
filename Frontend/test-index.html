@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Context Translator - Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      my-element {
+        display: block;
+        width: 100%;
+        min-height: 400px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+      }
+      md-tabs {
+        display: block;
+        margin-bottom: 20px;
+      }
+      md-primary-tab {
+        display: inline-block;
+        padding: 10px 20px;
+        margin-right: 10px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      md-primary-tab:hover {
+        background: #e0e0e0;
+      }
+      setup-tab, explanations-tab {
+        display: block;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 4px;
+        min-height: 200px;
+      }
+      setup-tab[hidden], explanations-tab[hidden] {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      setup-tab:not([hidden]), explanations-tab:not([hidden]) {
+        display: block !important;
+        visibility: visible !important;
+      }
+      md-outlined-text-field, md-outlined-select {
+        display: block;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 200px;
+      }
+      md-outlined-text-field input, md-outlined-select select {
+        border: none;
+        outline: none;
+        width: 100%;
+        padding: 5px;
+      }
+      md-filled-button {
+        display: inline-block;
+        padding: 10px 20px;
+        margin: 10px 5px;
+        background: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      md-filled-button:hover {
+        background: #1565c0;
+      }
+      md-primary-tab[active] {
+        background: #1976d2;
+        color: white;
+      }
+      status-bar {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 20px;
+        background: #333;
+        color: white;
+        font-size: 14px;
+      }
+      .server-status {
+        color: #4CAF50;
+      }
+    </style>
+  </head>
+  <body>
+    <my-element>
+      <div style="padding: 20px;">
+        <h1>Context Translator - Test Mode</h1>
+        
+        <md-tabs>
+          <md-primary-tab onclick="showSetupTab()" active="">Setup</md-primary-tab>
+          <md-primary-tab onclick="showExplanationsTab()">Explanations</md-primary-tab>
+        </md-tabs>
+        
+        <setup-tab id="setup-tab" style="display: block;">
+          <h2>Setup Configuration</h2>
+          <md-outlined-text-field label="Domain" placeholder="Enter domain">
+            <input type="text" />
+          </md-outlined-text-field>
+          <md-outlined-select label="Explanation Style">
+            <select>
+              <option value="casual">Casual</option>
+              <option value="formal">Formal</option>
+              <option value="detailed">Detailed</option>
+            </select>
+            <md-select-option value="casual">Casual</md-select-option>
+            <md-select-option value="formal">Formal</md-select-option>
+            <md-select-option value="detailed">Detailed</md-select-option>
+          </md-outlined-select>
+          <md-filled-button onclick="saveSettings()">Save Settings</md-filled-button>
+        </setup-tab>
+        
+        <explanations-tab id="explanations-tab" style="display: none;" hidden>
+          <h2>Explanations</h2>
+          <md-outlined-text-field label="Explain a term" placeholder="Enter term to explain">
+            <input type="text" />
+          </md-outlined-text-field>
+          <md-filled-button onclick="explainTerm()">Explain</md-filled-button>
+          <div class="explanations-list">
+            <p>No explanations yet.</p>
+          </div>
+        </explanations-tab>
+        
+        <status-bar>
+          <span class="server-status" id="server-status">Server: Connected</span>
+          <span class="microphone-status" style="margin-left: 20px;">Microphone: Ready</span>
+        </status-bar>
+      </div>
+    </my-element>
+
+    <script>
+      // Mock Electron API for testing
+      if (!window.electronAPI) {
+        window.electronAPI = {
+          getAppVersion: () => Promise.resolve({ version: '1.0.0-test' }),
+          getPlatform: () => Promise.resolve({ platform: 'test' }),
+          showMessageBox: (options) => Promise.resolve({ response: 0 }),
+          showSaveDialog: () => Promise.resolve({ canceled: false, filePath: '/test/path' }),
+          readSettings: () => Promise.resolve({}),
+          writeSettings: (settings) => Promise.resolve(),
+          getUserSessionId: () => Promise.resolve('test-session-id')
+        };
+      }
+
+      // Simple tab switching for tests
+      function showSetupTab() {
+        const setupTab = document.getElementById('setup-tab');
+        const explanationsTab = document.getElementById('explanations-tab');
+        
+        // Show/hide tabs
+        setupTab.style.display = 'block';
+        setupTab.removeAttribute('hidden');
+        setupTab.style.visibility = 'visible';
+        
+        explanationsTab.style.display = 'none';
+        explanationsTab.setAttribute('hidden', '');
+        explanationsTab.style.visibility = 'hidden';
+        
+        // Update tab active state with force
+        const tabs = document.querySelectorAll('md-primary-tab');
+        tabs.forEach((tab, index) => {
+          tab.removeAttribute('active');
+          if (index === 0) {
+            tab.setAttribute('active', '');
+          }
+        });
+        
+        console.log('Switched to setup tab', tabs[0].hasAttribute('active'));
+      }
+      
+      function showExplanationsTab() {
+        const setupTab = document.getElementById('setup-tab');
+        const explanationsTab = document.getElementById('explanations-tab');
+        
+        // Show/hide tabs  
+        setupTab.style.display = 'none';
+        setupTab.setAttribute('hidden', '');
+        setupTab.style.visibility = 'hidden';
+        
+        explanationsTab.style.display = 'block';
+        explanationsTab.removeAttribute('hidden');
+        explanationsTab.style.visibility = 'visible';
+        
+        // Update tab active state with force
+        const tabs = document.querySelectorAll('md-primary-tab');
+        tabs.forEach((tab, index) => {
+          tab.removeAttribute('active');
+          if (index === 1) {
+            tab.setAttribute('active', '');
+          }
+        });
+        
+        console.log('Switched to explanations tab', tabs[1].hasAttribute('active'));
+      }
+
+      function saveSettings() {
+        console.log('Settings saved');
+      }
+
+      function explainTerm() {
+        console.log('Term explanation requested');
+        // Simuliere WebSocket Nachricht
+        if (window.mockWebSocket) {
+          window.mockWebSocket.send(JSON.stringify({
+            type: 'manual.request',
+            payload: { term: document.querySelector('explanations-tab input').value }
+          }));
+        }
+      }
+
+      // Mock WebSocket für Tests
+      function initMockWebSocket() {
+        window.mockWebSocket = {
+          send: function(data) {
+            console.log('Mock WebSocket send:', data);
+            // Simuliere erfolgreiche Nachricht
+            setTimeout(() => {
+              if (window.onWebSocketMessage) {
+                window.onWebSocketMessage({ data: JSON.stringify({ type: 'ack' }) });
+              }
+            }, 100);
+          },
+          close: function() {
+            document.getElementById('server-status').textContent = 'Server: Disconnected';
+          }
+        };
+      }
+
+      // Simuliere WebSocket Verbindungsfehler für Tests
+      function simulateWebSocketError() {
+        document.getElementById('server-status').textContent = 'Server: Error';
+      }
+
+      // Initialize with setup tab active
+      window.addEventListener('load', () => {
+        showSetupTab();
+        initMockWebSocket();
+        
+        // Add click event listeners to tabs
+        const tabs = document.querySelectorAll('md-primary-tab');
+        tabs[0].addEventListener('click', showSetupTab);
+        tabs[1].addEventListener('click', showExplanationsTab);
+      });
+
+      console.log('Test page loaded successfully');
+    </script>
+  </body>
+</html>
