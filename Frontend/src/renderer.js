@@ -1,6 +1,7 @@
-import { UI } from './shared/index.js';
-import { explanationManager } from './shared/explanation-manager.js';
-import './shared/index.css';
+import { UI } from './components/index.js';
+import { explanationManager } from './components/explanation-manager.js';
+import { createLoadingMessage, EXPLANATION_CONSTANTS } from './components/explanation-constants.js';
+import './components/index.css';
 import { Howl } from 'howler';
 
 
@@ -46,6 +47,9 @@ class ElectronMyElement extends UI {
     super.firstUpdated(changedProperties); // Call super.firstUpdated first
   // Hauptinitialisierung erfolgt über connectedCallback (Electron/WebSocket)
   // Entfernt: initializeApplication (nicht definiert) und doppelte Electron-Init
+  
+    // Attach event listeners to action buttons
+    this._attachActionListeners();
   }
 
   // connectedCallback is still useful for handlers, but main app init is in firstUpdated
@@ -57,7 +61,6 @@ class ElectronMyElement extends UI {
     this._initializeWebSocket();
     this._initializeMicrophone();
 
-    this._attachActionListeners(); // DO NOT Attach listeners to buttons from ui.js. It will be duplicated as its already handled in ui.js
     console.log('Renderer: ⚙️ connectedCallback exited.');
   }
 
@@ -152,33 +155,30 @@ class ElectronMyElement extends UI {
   }
   
   _attachActionListeners() {
-    console.log('Renderer: 💡 Attaching event listeners to action buttons...');
-    
-    const createSessionButton = this.shadowRoot.querySelector('#start-session-button');
-    const joinSessionButton = this.shadowRoot.querySelector('#join-session-button');
+    console.log('Renderer: 💡 Attaching event listeners via delegation...');
 
-    if (createSessionButton) {
-      createSessionButton.addEventListener('click', () => {
-        playSound(click_sound);
-        this._startSession();
-      });
-    } else {
-      playSound(error_sound);
-      console.error("Renderer: ❌ 'Create Session' button not found.");
-    }
-    
-    if (joinSessionButton) {
-      joinSessionButton.addEventListener('click', () => {
-        playSound(join_sound);
-        this._joinSession();
-      });
-    } else {
-      playSound(error_sound); 
-      console.error("Renderer: ❌ 'Join Session' button not found.");
-    }
+    // Hänge EINEN Listener an einen Container, der immer existiert.
+    this.shadowRoot.addEventListener('click', (event) => {
+        // Finde heraus, ob ein Button geklickt wurde, der uns interessiert.
+        // .closest() ist robust, weil es auch funktioniert, wenn du z.B. ein Icon im Button klickst.
+        const startButton = event.target.closest('#start-session-button');
+        const joinButton = event.target.closest('#join-session-button');
 
-    console.log('Renderer: ✅ Event listeners successfully attached.');
-  }
+        if (startButton) {
+            playSound(click_sound);
+            this._startSession();
+            return; // Beende die Funktion hier
+        }
+
+        if (joinButton) {
+            playSound(join_sound);
+            this._joinSession();
+            return; // Beende die Funktion hier
+        }
+    });
+
+    console.log('Renderer: ✅ Event delegation successfully attached.');
+}
 
   // Updates status indicators in the status bar (Server = Backend)
   updateServerStatus(newStatus) {
@@ -236,6 +236,10 @@ class ElectronMyElement extends UI {
       this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
     } else if (message.type === 'session.error') {
       this._showNotification(message.payload.error, 'error');
+    } else if (message.type === 'detection.immediate') {
+      this._handleImmediateDetection(message.payload);
+    } else if (message.type === 'explanation.update') {
+      this._handleExplanationUpdate(message.payload);
     } else if (message.type === 'explanation.new') {
       this._handleNewExplanation(message.payload.explanation);
     } else if (message.type === 'explanation.retry') {
@@ -336,12 +340,24 @@ class ElectronMyElement extends UI {
     };
 
     try {
+      // Immediately add a pending explanation to the UI
+      const pendingExplanation = explanationManager.addExplanation(
+        term,
+        'Generating explanation...', // Placeholder content
+        Date.now(),
+        null, // No confidence yet
+        true, // isPending = true
+        message.id // Use message ID as request ID to match responses
+      );
+
       this.backendWs.send(JSON.stringify(message));
       this._showNotification(`Requested explanation for "${term}"`, 'success');
       // Clear field in UI
       if (termInput) termInput.value = '';
       this.manualTerm = '';
       this.requestUpdate?.();
+      
+      console.log(`Renderer: ✅ Added pending explanation for "${term}" with ID ${pendingExplanation.id}`);
     } catch (e) {
       this._showNotification('Failed to send manual request', 'error');
     }
@@ -418,12 +434,40 @@ class ElectronMyElement extends UI {
     };
 
     try {
+      // Save settings locally via Electron IPC
       const result = await window.electronAPI.saveSettings(settings);
       if (result.success) {
         this._showNotification('Settings saved successfully', 'success');
       } else {
         this._showNotification('Failed to save settings', 'error');
       }
+      
+      // Also send settings to Backend via WebSocket for global settings management
+      if (this.backendWs && this.backendWs.readyState === WebSocket.OPEN) {
+        const message = {
+          id: crypto.randomUUID(),
+          type: 'settings.save',
+          timestamp: Date.now() / 1000,
+          payload: {
+            domain: this.domainValue || '',
+            explanation_style: this.explanationStyle || 'detailed'
+          },
+          client_id: this.userSessionId || `frontend_renderer_${crypto.randomUUID()}`,
+          origin: 'Frontend',
+          destination: 'Backend'
+        };
+        
+        try {
+          this.backendWs.send(JSON.stringify(message));
+          console.log('Renderer: Settings sent to Backend via WebSocket:', message.payload);
+        } catch (wsError) {
+          console.error('Renderer: Failed to send settings to Backend via WebSocket:', wsError);
+          // Don't show error to user as local save succeeded
+        }
+      } else {
+        console.log('Renderer: Backend WebSocket not available, settings only saved locally');
+      }
+      
     } catch (error) {
       console.error('Renderer: Error saving settings:', error);
       this._showNotification('Error saving settings', 'error');
@@ -472,7 +516,51 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
     if (explanation && explanation.term && explanation.content) {
-      // Add explanation to the manager
+      // First, check if there's already an explanation with this term that needs updating
+      // (pending manual requests, automatic detections, or explanations with missing/default content)
+      const existingExplanation = explanationManager.findExplanationToUpdate(explanation.term);
+      
+      if (existingExplanation) {
+        console.log(`Renderer: 🔄 Found existing explanation to update for "${explanation.term}"`);
+        
+        // Update the existing explanation instead of creating a new one
+        const updated = explanationManager.updateExplanation(existingExplanation.id, {
+          content: explanation.content,
+          timestamp: explanation.timestamp * 1000, // Convert to milliseconds if needed
+          confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null,
+          isPending: false // Mark as no longer pending
+        });
+
+        if (updated) {
+          console.log(`Renderer: ✅ Updated existing explanation for "${explanation.term}"`);
+          
+          // Throttle notification display to prevent notification spam
+          const now = Date.now();
+          if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
+            this._showNotification(`Explanation ready: ${explanation.term}`, 'success');
+            this.lastExplanationTime = now;
+          }
+          return;
+        }
+      }
+
+      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
+      const existingExplanations = explanationManager.explanations;
+      const recentExplanation = existingExplanations.find(exp => 
+        exp.title === explanation.term && 
+        !exp.isDeleted &&
+        exp.content && 
+        exp.content !== 'Generating explanation...' &&
+        !exp.content.includes('🔄 Generating explanation') &&
+        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
+      );
+
+      if (recentExplanation) {
+        console.log(`Renderer: 🛡️ Skipping duplicate explanation.new for "${explanation.term}" - recent explanation exists`);
+        return;
+      }
+
+      // Final fallback: Add as completely new explanation
       const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
       explanationManager.addExplanation(
         explanation.term,
@@ -480,6 +568,7 @@ class ElectronMyElement extends UI {
         explanation.timestamp * 1000, // Convert to milliseconds if needed
         confidence
       );
+      console.log(`Renderer: ✅ Added new explanation for "${explanation.term}"`);
 
       // Throttle notification display to prevent notification spam
       const now = Date.now();
@@ -487,15 +576,13 @@ class ElectronMyElement extends UI {
         this._showNotification(`New explanation: ${explanation.term}`, 'success');
         this.lastExplanationTime = now;
       }
-
-      console.log(`Renderer: ✅ Added explanation for "${explanation.term}" to display`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation data received:', explanation);
     }
   }
 
   _handleRetryExplanation(explanation) {
-    console.log('Renderer: 🔄 Retry explanation received:', explanation);
+    console.log(`Renderer: ${EXPLANATION_CONSTANTS.GENERATING_EMOJI} Retry explanation received:`, explanation);
 
     if (explanation && explanation.term && explanation.content) {
       // Update the existing explanation or add as new one
@@ -531,6 +618,106 @@ class ElectronMyElement extends UI {
     }
   }
 
+  _handleImmediateDetection(payload) {
+    console.log('Renderer: ⚡ Immediate detection received:', payload);
+
+    if (payload && payload.detected_terms && Array.isArray(payload.detected_terms)) {
+      const termCount = payload.detected_terms.length;
+      
+      // Show immediate feedback to user
+      this._showNotification(`🔍 Detected ${termCount} technical term${termCount > 1 ? 's' : ''} - generating explanations...`, 'info');
+
+      // Add placeholders for detected terms (without full explanations yet)
+      payload.detected_terms.forEach(termData => {
+        if (termData.term && termData.context) {
+          // Check if we already have an explanation for this term (including pending manual requests)
+          const existingExplanations = explanationManager.explanations;
+          const existingIndex = existingExplanations.findIndex(exp => 
+            exp.title === termData.term && !exp.isDeleted
+          );
+
+          if (existingIndex !== -1) {
+            console.log(`Renderer: ⚡ Skipping detection placeholder for "${termData.term}" - explanation already exists`);
+            return; // Skip adding duplicate
+          }
+
+          const confidence = typeof termData.confidence === 'number' ? termData.confidence : null;
+          
+          // Add as placeholder with loading state
+          explanationManager.addExplanation(
+            termData.term,
+            createLoadingMessage(termData.term, termData.context),
+            Date.now(),
+            confidence
+          );
+          
+          console.log(`Renderer: ⚡ Added detection placeholder for "${termData.term}"`);
+        }
+      });
+      
+      // Play detection sound for immediate feedback
+      playSound(explanation_sound);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid immediate detection data received:', payload);
+    }
+  }
+
+  _handleExplanationUpdate(payload) {
+    console.log('Renderer: 📝 Explanation update received:', payload);
+
+    if (payload && payload.term && payload.explanation) {
+      // First, check if there's already an explanation with this term that needs updating
+      // (pending manual requests, automatic detections, or explanations with missing/default content)
+      const existingExplanation = explanationManager.findExplanationToUpdate(payload.term);
+      
+      if (existingExplanation) {
+        console.log(`Renderer: 🔄 Found existing explanation to update for "${payload.term}"`);
+        
+        // Update the existing explanation instead of creating a new one
+        const updated = explanationManager.updateExplanation(existingExplanation.id, {
+          content: payload.explanation,
+          timestamp: (payload.timestamp || Date.now() / 1000) * 1000,
+          confidence: typeof payload.confidence === 'number' ? payload.confidence : null,
+          isPending: false // Mark as no longer pending
+        });
+
+        if (updated) {
+          console.log(`Renderer: ✅ Updated existing explanation for "${payload.term}" via explanation.update`);
+          this._showNotification(`✨ Explanation ready: ${payload.term}`, 'success');
+          return;
+        }
+      }
+
+      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
+      const existingExplanations = explanationManager.explanations;
+      const recentExplanation = existingExplanations.find(exp => 
+        exp.title === payload.term && 
+        !exp.isDeleted &&
+        exp.content && 
+        exp.content !== 'Generating explanation...' &&
+        !exp.content.includes('🔄 Generating explanation') &&
+        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
+      );
+
+      if (recentExplanation) {
+        console.log(`Renderer: 🛡️ Skipped duplicate explanation.update for "${payload.term}" - recent explanation exists`);
+        return;
+      }
+
+      // Final fallback: Add as new explanation
+      const confidence = typeof payload.confidence === 'number' ? payload.confidence : null;
+      explanationManager.addExplanation(
+        payload.term,
+        payload.explanation,
+        (payload.timestamp || Date.now() / 1000) * 1000,
+        confidence
+      );
+      console.log(`Renderer: ✅ Added new explanation for "${payload.term}" via explanation.update`);
+    } else {
+      console.warn('Renderer: ⚠️ Invalid explanation update data received:', payload);
+    }
+  }
+
   _showNotification(message, type = 'success') {
     // Remove oldest notification if at limit
     if (this.activeNotifications.size >= this.maxNotifications) {
@@ -547,7 +734,7 @@ class ElectronMyElement extends UI {
       position: fixed; bottom: ${20 + (this.activeNotifications.size * 60)}px; left: 50%;
       transform: translateX(-50%); padding: 12px 24px;
       border-radius: 8px; color: white; font-family: 'Roboto', sans-serif;
-      background-color: ${type === 'error' ? '#D32F2F' : '#2E7D32'};
+      background-color: ${type === 'error' ? '#D32F2F' : type === 'info' ? '#1976D2' : '#2E7D32'};
       z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       transition: all 0.3s ease;
     `;

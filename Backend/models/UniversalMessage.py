@@ -26,15 +26,15 @@ class UniversalMessage(BaseModel):
     """
     The **universal message format** used throughout the entire backend system
     and for communication with the frontend via WebSockets.
-    This single type replaces all previous specific message classes (SystemMessage, SimulationMessage, etc.).
+    This single type replaces all previous specific message classes (SystemMessage, etc.).
     """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the message.")
-    type: str = Field(..., description="Categorical type of the message (e.g., 'command.start_simulation', 'status.translation_progress', 'error.internal').")
+    type: str = Field(..., description="Categorical type of the message (e.g 'status.translation_progress', 'error.internal').")
     payload: Dict[str, Any] = Field(default_factory=dict, description="The actual data payload of the message. Content varies based on 'type'.")
     timestamp: float = Field(default_factory=time.time, description="Unix timestamp of message creation.")
 
-    origin: Optional[str] = Field(None, description="Identifier of the component that originated this message (e.g., 'frontend', 'simulation_manager', 'translation_service').")
-    destination: Optional[str] = Field(None, description="Intended next recipient/destination for routing (e.g., 'backend.dispatcher', 'frontend', 'dead_letter_queue').")
+    origin: Optional[str] = Field(None, description="Identifier of the component that originated this message (e.g., 'frontend', 'message_router').")
+    destination: Optional[str] = Field(None, description="Intended next recipient/destination for routing (e.g., 'backend.dispatcher', 'frontend').")
 
     client_id: Optional[str] = Field(None, description="Optional identifier for the client associated with this message, primarily for WebSocket clients.")
 
@@ -49,13 +49,6 @@ class UniversalMessage(BaseModel):
         extra='forbid', # Disallow extra fields not defined in the model
         json_schema_extra={
             "examples": [
-                {
-                    "type": "command.start_simulation",
-                    "payload": {"param1": "value1", "speed": 1.5},
-                    "origin": "frontend",
-                    "destination": "backend.dispatcher",
-                    "client_id": "client_abc-123"
-                },
                 {
                     "type": "status.translation_progress",
                     "payload": {"progress": 75, "current_segment": "Hello world!"},
@@ -97,17 +90,6 @@ class WebSocketMessage(UniversalMessage):
         json_schema_extra={
             "examples": [
                 {
-                    "id": "abc-123",
-                    "type": "command.start_simulation",
-                    "payload": {"param1": "value1"},
-                    "timestamp": 1678886400.0,
-                    "origin": "frontend",
-                    "destination": "backend.dispatcher",
-                    "client_id": "client_abc-123",
-                    "processing_path": [],
-                    "forwarding_path": []
-                },
-                {
                     "id": "def-456",
                     "type": "status.translation_progress",
                     "payload": {"progress": 75, "current_segment": "Hello world!"},
@@ -131,7 +113,6 @@ class ErrorTypes(str, Enum):
     """Standardized error types for consistent error messaging."""
     VALIDATION = "error.validation"
     COMMAND_NOT_FOUND = "error.command_not_found"
-    SIMULATION_FAILED = "error.simulation_failed"
     QUEUE_OVERLOAD = "error.queue_overload"
     INTERNAL_SERVER_ERROR = "error.internal_server"
     CONNECTION_ERROR = "error.connection"

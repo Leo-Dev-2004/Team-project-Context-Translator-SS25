@@ -69,7 +69,7 @@ class MessageQueue(asyncio.Queue, AbstractMessageQueue):
                 details={"info": "enqueued"}
             ))
 
-            if item.type != "system.queue_status_update":
+            if item.type != "system.queue_status_update" and item.type != "stt.heartbeat":
                 logger.debug(
                     f"Putting item (ID: {item.id}, type: {item.type}, dest: {item.destination}) "
                     f"into '{self.name}' queue. Current size before put: {self.qsize()}"

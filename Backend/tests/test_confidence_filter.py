@@ -27,10 +27,10 @@ def test_confidence_filter_logic():
     test_cases = [
         # (confidence, term, expected_result, description)
         (0.95, "neural networks", True, "High confidence technical term - should PASS"),
-        (0.85, "backpropagation", False, "Below threshold - should be FILTERED"),
-        (0.05, "common word", False, "Low confidence common term - should be FILTERED"),
-        (0.1, "simple term", False, "Low confidence common term - should be FILTERED"),
-        (0.9, "exactly at threshold", True, "At threshold - should PASS after fix"),
+        (0.85, "backpropagation", True, "Above threshold technical term - should PASS"),
+        (0.65, "algorithm", True, "At threshold - should PASS"),
+        (0.55, "common word", False, "Below threshold - should be FILTERED"),
+        (0.05, "simple term", False, "Low confidence common term - should be FILTERED"),
     ]
     
     print(f"Using confidence threshold: {small_model.confidence_threshold}")
@@ -39,7 +39,7 @@ def test_confidence_filter_logic():
     failed_tests = []
     
     for confidence, term, expected_result, description in test_cases:
-        actual_result = small_model.should_pass_filters(confidence, term)
+        actual_result = small_model.should_pass_filters(confidence, term, "test context")
         status = "✓" if actual_result == expected_result else "✗"
         
         print(f"{status} {description}")

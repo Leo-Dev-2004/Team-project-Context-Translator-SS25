@@ -15,6 +15,8 @@ $RECYCLE.BIN/
 *_BASE_*.txt
 *_LOCAL_*.txt
 *_REMOTE_*.txt
+system.log
+backend.log
 
 # Python specific ignores
 __pycache__/
@@ -25,13 +27,14 @@ __pycache__/
 env/
 .venv/
 venv/
+mein_venv/
 env/
 veny/ # Assuming 'veny' is your virtual environment directory
 
 # JSON Caches
-detections_queue.json
-explanations_queue.json
-explanation_cache.json
+Backend/AI/detections_queue.json
+Backend/AI/explanations_queue.json
+Backend/AI/explanation_cache.json
 output_explanations.json
 output_queue.json
 
@@ -143,3 +146,9 @@ Backend/AI/explanations_queue.json
 Backend/AI/explanation_cache.json
 Backend/STT/transcription.log
 
+# Test files (temporary)
+test_heartbeat*.py
+test_messagerouter_heartbeat.py
+
+Backend/AI/explanation_cache.json
+Backend/AI/explanation_cache.json
