@@ -226,9 +226,13 @@ class ElectronMyElement extends UI {
       const code = message.payload.code;
       this.sessionCode = code;
       
+      // Wait for the component to update with the new sessionCode
+      await this.updateComplete;
+      
       // Access the dialog through the main-body component
       const mainBody = this.shadowRoot.querySelector('main-body');
       if (mainBody) {
+        await mainBody.updateComplete;
         const dialog = mainBody.shadowRoot.querySelector('#session-dialog');
         if (dialog) {
           dialog.show(); // Use .show() for non-modal
