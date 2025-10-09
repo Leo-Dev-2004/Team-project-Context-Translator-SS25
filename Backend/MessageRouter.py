@@ -205,25 +205,28 @@ class MessageRouter:
 
             elif message.type == 'settings.save':
                 # Handle settings.save messages - update global settings
+                logger.info(f"MessageRouter: 📥 Received settings.save message from client {message.client_id}")
                 try:
                     if self._settings_manager:
                         settings_data = message.payload or {}
+                        logger.info(f"MessageRouter: 🔧 Updating settings with data: {settings_data}")
                         self._settings_manager.update_settings(settings_data)
                         
                         # Optionally save to file for persistence
+                        logger.debug(f"MessageRouter: 💾 Attempting to persist settings to file...")
                         save_success = await self._settings_manager.save_to_file()
                         
                         if save_success:
                             response = self._create_ack_message(message, "Settings saved successfully")
-                            logger.info(f"Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
+                            logger.info(f"MessageRouter: ✅ Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
                         else:
                             response = self._create_ack_message(message, "Settings updated (persistence failed)")
-                            logger.warning(f"Settings updated but persistence failed for client {message.client_id}")
+                            logger.warning(f"MessageRouter: ⚠️ Settings updated but persistence failed for client {message.client_id}")
                     else:
                         response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "SettingsManager not available.")
-                        logger.error("SettingsManager not available for settings.save message")
+                        logger.error("MessageRouter: ❌ SettingsManager not available for settings.save message")
                 except Exception as e:
-                    logger.error(f"Error handling settings.save: {e}", exc_info=True)
+                    logger.error(f"MessageRouter: ❌ Error handling settings.save: {e}", exc_info=True)
                     response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during settings.save.")
 
             elif message.type == 'ping':
