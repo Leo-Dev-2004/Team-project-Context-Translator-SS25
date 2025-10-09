@@ -12,13 +12,14 @@ import uuid
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
 from ..dependencies import get_settings_manager_instance
 from ..dependencies import get_explanation_delivery_service_instance
+from .ollama_client import ollama_client
 
 # === Config ===
 # Moved configuration to constants for clarity
 INPUT_FILE = "Backend/AI/detections_queue.json"
 OUTPUT_FILE = "Backend/AI/explanations_queue.json"
 CACHE_FILE = "Backend/AI/explanation_cache.json"
-MODEL = "llama3.2"
+MODEL = "llama3"
 COOLDOWN_SECONDS = 300
 OLLAMA_API_URL = "http://localhost:11434/api/chat"
 
@@ -187,12 +188,10 @@ class MainModel:
         import psutil, time
         start_time = time.time()
         try:
-            response = await self.http_client.post(
-                OLLAMA_API_URL,
-                json={"model": model, "messages": messages, "stream": False},
-            )
-            response.raise_for_status()
-            raw_response = response.json()["message"]["content"].strip()
+            # Use the resilient Ollama client which autodetects endpoint and normalizes response
+            raw_response = await ollama_client.request(model=model, messages=messages)
+            if raw_response is None:
+                raise RuntimeError("No response from Ollama client")
             elapsed = time.time() - start_time
             if elapsed > 10:
                 logger.warning(f"LLM response time slow: {elapsed:.2f}s. Possible resource exhaustion.")

@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..models.UniversalMessage import UniversalMessage
 from ..dependencies import get_settings_manager_instance
+from .ollama_client import ollama_client
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "20"))  # Configurable AI timeout
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "30"))  # Configurable AI timeout
 BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:
@@ -311,22 +312,15 @@ class SmallModel:
         import psutil, time
         start_time = time.time()
         try:
-            response = await self.http_client.post(
-                OLLAMA_API_URL,
-                json={
-                    "model": LLAMA_MODEL,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "stream": False
-                }
-            )
-            response.raise_for_status()
+            # Use resilient Ollama client
+            raw = await ollama_client.request(model=LLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
             elapsed = time.time() - start_time
             if elapsed > 10:
                 logger.warning(f"Ollama response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
             mem = psutil.virtual_memory()
             if mem.percent > 90:
                 logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
-            return response.json()['message']['content']
+            return raw
         except httpx.RequestError as e:
             logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
             return None
