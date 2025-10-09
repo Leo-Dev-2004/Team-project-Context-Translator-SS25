@@ -1,0 +1,3 @@
+# Linux Initial Setup Tutorial   -  Run this command in a terminal window in this directory
+
+chmod +x setup_and_run.sh && ./linux-initial-setup.sh
