@@ -21,8 +21,10 @@ FRONTEND_DIR = ROOT_DIR / "Frontend"
 STT_SCRIPT_PATH = ROOT_DIR / "Backend" / "STT" / "transcribe.py"
 
 # --- CONFIGURATION ---
+ELECTRON_DEV_MODE = True  # Set to False to run in production mode
 VITE_DEV_COMMAND = ["npm", "run", "dev:renderer"]
-ELECTRON_MAIN_COMMAND = ["npm", "run", "dev:main"]
+ELECTRON_DEV_COMMAND = ["npm", "run", "dev:main"]
+ELECTRON_PROD_COMMAND = ["npm", "run", "start"]
 ELECTRON_APP_CWD = FRONTEND_DIR
 
 class SystemRunner:
@@ -84,6 +86,10 @@ class SystemRunner:
             raise
 
     def run_vite_dev_server(self):
+        if not ELECTRON_DEV_MODE:
+            logger.info("SystemRunner: Skipping Vite dev server (ELECTRON_DEV_MODE=False)")
+            return
+            
         logger.debug("SystemRunner: Starting Vite dev server process.")
         try:
             use_shell = sys.platform == "win32"
@@ -97,19 +103,28 @@ class SystemRunner:
 
     # Akzeptiert jetzt die user_session_id
     def run_electron_app(self, user_session_id: str):
-        logger.debug("SystemRunner: Starting Electron app process.")
+        mode_str = "development" if ELECTRON_DEV_MODE else "production"
+        logger.debug(f"SystemRunner: Starting Electron app process in {mode_str} mode.")
         
-        # Fügt das Kommandozeilen-Argument an den npm-Befehl an
-        electron_command = ELECTRON_MAIN_COMMAND + [
-            "--",
-            f"--user-session-id={user_session_id}"
-        ]
+        # Choose command based on dev mode setting
+        if ELECTRON_DEV_MODE:
+            # Fügt das Kommandozeilen-Argument an den npm-Befehl an
+            electron_command = ELECTRON_DEV_COMMAND + [
+                "--",
+                f"--user-session-id={user_session_id}"
+            ]
+        else:
+            # Production mode - uses built files
+            electron_command = ELECTRON_PROD_COMMAND + [
+                "--",
+                f"--user-session-id={user_session_id}"
+            ]
         
         try:
             use_shell = sys.platform == "win32"
             electron_process = subprocess.Popen(electron_command, cwd=str(ELECTRON_APP_CWD), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell, bufsize=1)
             self.processes.append(electron_process)
-            logger.info(f"SystemRunner: Electron app process started with PID: {electron_process.pid}")
+            logger.info(f"SystemRunner: Electron app process started with PID: {electron_process.pid} in {mode_str} mode")
             self._start_logging(electron_process, "Electron")
         except Exception as e:
             logger.critical(f"SystemRunner: Failed to start Electron app: {e}", exc_info=True)
