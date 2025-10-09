@@ -175,11 +175,23 @@ class STTService:
             },
             "origin": "stt_module", "client_id": self.stt_client_id
         }
+        
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
+            self.unsent_sentences.append(message)
+            return
+            
         try:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
+        except websockets.exceptions.ConnectionClosed:
+            # Connection closed - buffer for retry
+            logger.info(f"Cannot send sentence - WebSocket connection closed. Buffering for retry.")
+            self.unsent_sentences.append(message)
         except Exception as e:
-            logger.warning(f"Failed to send sentence, connection error: {e}. Buffering for retry.")
+            # Unexpected error - buffer and log warning
+            logger.warning(f"Failed to send sentence, unexpected error: {e}. Buffering for retry.")
             self.unsent_sentences.append(message)
 
     async def _process_streaming_chunk(self, audio_chunk: np.ndarray, chunk_index: int):
@@ -265,6 +277,11 @@ class STTService:
 
     async def _send_heartbeat(self, websocket):
         """Sends a heartbeat keep-alive message to prevent connection timeout."""
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            logger.debug("Skipping heartbeat - WebSocket is not open")
+            return
+            
         message = {
             "id": str(uuid4()), "type": "stt.heartbeat", "timestamp": time.time(),
             "payload": {
@@ -276,8 +293,12 @@ class STTService:
         try:
             await websocket.send(json.dumps(message))
             logger.debug("Sent heartbeat keep-alive message")
+        except websockets.exceptions.ConnectionClosed:
+            # Connection closed gracefully or unexpectedly - this is normal during shutdown
+            logger.debug("Cannot send heartbeat - WebSocket connection closed")
         except Exception as e:
-            logger.warning(f"Failed to send heartbeat, connection error: {e}")
+            # Only log warnings for unexpected errors, not connection closure
+            logger.warning(f"Failed to send heartbeat, unexpected error: {e}")
 
     async def _process_audio_loop(self, websocket):
         """[Async Task] Implements the VAD-based 'record-then-transcribe' logic with streaming optimization."""
@@ -496,11 +517,17 @@ class STTService:
                             try:
                                 await websocket.send(json.dumps(msg))
                                 logger.info(f"Retried and sent buffered sentence: {msg['payload']['text']}")
+                            except websockets.exceptions.ConnectionClosed:
+                                logger.info("Cannot resend buffered sentence - connection closed during retry.")
+                                break  # Stop trying to send more if connection is closed
                             except Exception as e:
                                 logger.warning(f"Failed to resend buffered sentence: {e}")
                         self.unsent_sentences.clear()
 
                     await self._process_audio_loop(websocket)
+            except websockets.exceptions.ConnectionClosed as e:
+                logger.info(f"WebSocket connection closed: {e}. Reconnecting in 5s...")
+                await asyncio.sleep(5)
             except Exception as e:
                 logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
                 await asyncio.sleep(5)

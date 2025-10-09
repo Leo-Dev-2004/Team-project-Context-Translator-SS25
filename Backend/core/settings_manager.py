@@ -41,17 +41,20 @@ class SettingsManager:
             new_settings: Dictionary containing the new settings to update
         """
         if not isinstance(new_settings, dict):
-            logger.warning(f"SettingsManager: Invalid settings type {type(new_settings)}, expected dict")
+            logger.warning(f"SettingsManager: ⚠️ Invalid settings type {type(new_settings)}, expected dict")
             return
             
+        logger.info(f"SettingsManager: 🔧 Updating settings with keys: {list(new_settings.keys())}")
+        
         # Update settings with new values
         old_values = {}
         for key, value in new_settings.items():
             if key in self._settings:
                 old_values[key] = self._settings[key]
             self._settings[key] = value
+            logger.debug(f"SettingsManager:   - {key}: {old_values.get(key, '<not set>')} → {value}")
             
-        logger.info(f"SettingsManager: Updated settings {list(new_settings.keys())}")
+        logger.info(f"SettingsManager: ✅ Successfully updated {len(new_settings)} setting(s)")
         logger.debug(f"SettingsManager: Settings changes: {old_values} -> {new_settings}")
     
     def get_setting(self, key: str, default: Any = None) -> Any:
@@ -129,22 +132,26 @@ class SettingsManager:
         Returns:
             True if settings were saved successfully, False otherwise
         """
+        logger.info(f"SettingsManager: 💾 Starting to save settings to file: {self._settings_file}")
         try:
             # Ensure directory exists
             self._settings_file.parent.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"SettingsManager: Directory verified/created: {self._settings_file.parent}")
             
             # Prepare settings for serialization
             settings_to_save = self._settings.copy()
             settings_to_save["last_updated"] = str(self._get_current_timestamp())
+            logger.debug(f"SettingsManager: Prepared settings for saving: {list(settings_to_save.keys())}")
             
             async with aiofiles.open(self._settings_file, 'w') as f:
                 await f.write(json.dumps(settings_to_save, indent=2))
                 
-            logger.info(f"SettingsManager: Saved settings to {self._settings_file}")
+            logger.info(f"SettingsManager: ✅ Successfully saved settings to {self._settings_file}")
+            logger.debug(f"SettingsManager: Saved settings content: {settings_to_save}")
             return True
             
         except Exception as e:
-            logger.error(f"SettingsManager: Error saving settings to file: {e}")
+            logger.error(f"SettingsManager: ❌ Error saving settings to file: {e}")
             return False
     
     def _get_current_timestamp(self) -> str:

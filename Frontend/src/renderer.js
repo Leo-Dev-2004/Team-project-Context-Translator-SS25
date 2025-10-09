@@ -440,7 +440,7 @@ class ElectronMyElement extends UI {
   // Override settings methods from base UI class
   async _saveSettings() {
     if (!window.electronAPI) {
-      return console.error("Renderer: window.electronAPI not available for saving settings.");
+      return console.error("Renderer: ❌ window.electronAPI not available for saving settings.");
     }
 
     const settings = {
@@ -448,12 +448,20 @@ class ElectronMyElement extends UI {
       explanationStyle: this.explanationStyle
     };
 
+    console.log('Renderer: 💾 Starting settings save process with:', settings);
+
     try {
       // Save settings locally via Electron IPC
+      const ipcStartTime = Date.now();
+      console.log('Renderer: 📤 Calling Electron IPC saveSettings...');
       const result = await window.electronAPI.saveSettings(settings);
+      const ipcDuration = Date.now() - ipcStartTime;
+      
       if (result.success) {
+        console.log(`Renderer: ✅ IPC saveSettings completed successfully (${ipcDuration}ms)`);
         this._showNotification('Settings saved successfully', 'success');
       } else {
+        console.error('Renderer: ❌ IPC saveSettings failed:', result.error);
         this._showNotification('Failed to save settings', 'error');
       }
       
@@ -473,18 +481,19 @@ class ElectronMyElement extends UI {
         };
         
         try {
+          console.log('Renderer: 📡 Sending settings to Backend via WebSocket (message ID:', message.id + ')...');
           this.backendWs.send(JSON.stringify(message));
-          console.log('Renderer: Settings sent to Backend via WebSocket:', message.payload);
+          console.log('Renderer: ✅ Settings sent to Backend via WebSocket:', message.payload);
         } catch (wsError) {
-          console.error('Renderer: Failed to send settings to Backend via WebSocket:', wsError);
+          console.error('Renderer: ❌ Failed to send settings to Backend via WebSocket:', wsError);
           // Don't show error to user as local save succeeded
         }
       } else {
-        console.log('Renderer: Backend WebSocket not available, settings only saved locally');
+        console.log('Renderer: ⚠️ Backend WebSocket not available, settings only saved locally');
       }
       
     } catch (error) {
-      console.error('Renderer: Error saving settings:', error);
+      console.error('Renderer: ❌ Error saving settings:', error);
       this._showNotification('Error saving settings', 'error');
     }
     if (settings.explanationStyle) {
