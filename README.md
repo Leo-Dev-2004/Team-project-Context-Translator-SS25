@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  ![Status](https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge)
+  <img src="https://img.shields.io/badge/status-in%20development-orange?style=for-the-badge"></img>
 </p>
 
 ---
@@ -43,7 +43,7 @@ Unser System basiert auf einem modernen, asynchronen Stack, der für hochleistun
 | :--- | :--- |
 | **Frontend** | <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=electron&logoColor=white" alt="Electron.js"/> <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/> <img src="https://img.shields.io/badge/Lit-324FFF?style=for-the-badge&logo=lit&logoColor=white" alt="Lit"/> |
 | **Backend** | <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/> <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/> |
-| **KI & Sprache** | ![Ollama](https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white)  ![Faster Whisper](https://img.shields.io/badge/Whisper-faster--whisper-blueviolet?style=for-the-badge) [Ollama](https://ollama.com/) |
+| **KI & Sprache** | <img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"/>  ![Faster Whisper](https://img.shields.io/badge/Whisper-faster--whisper-blueviolet?style=for-the-badge) |
 | **Echtzeit-Kommunikation** | <img src="https://img.shields.io/badge/WebSockets-010101?style=for-the-badge&logo=websockets&logoColor=white" alt="WebSockets"/> |
 
 ---
@@ -59,7 +59,7 @@ Die Hauptkomponenten sind:
 3. **Backend (FastAPI):** Der zentrale Hub, der Clients verwaltet, Nachrichten weiterleitet und die KI-Pipeline orchestriert.
 4. **Frontend (Electron):** Die benutzerseitige Desktop-Anwendung, die die Echtzeitinformationen anzeigt.
 
-> Für einen tiefen Einblick in unsere technische Implementierung lesen Sie bitte unser detailliertes **[Architektur-Dokument](.ARCHITECTURE.md)**.
+> Für einen tiefen Einblick in unsere technische Implementierung lesen Sie bitte unser detailliertes **[Architektur-Dokument](Architecture.md)**.
 
 ---
 
@@ -72,6 +72,7 @@ Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
 * Python 3.10+
 * Node.js 18+ und `npm`
 * [Ollama](https://ollama.com/) muss auf Ihrem lokalen Rechner installiert sein und laufen.
+* Wenn Sie Windows nutzen, müssen Sie die Entwicklermodus (Developer Mode) anschalten. Einstellungen > Erweitert > Entwicklermodus
 
 ### Installation & Setup
 

@@ -5,8 +5,9 @@ import uuid
 import time
 from typing import Optional, cast
 from starlette.websockets import WebSocketDisconnect, WebSocketState
-from .dependencies import set_session_manager_instance
+from .dependencies import set_session_manager_instance, set_settings_manager_instance
 from .core.session_manager import SessionManager
+from .core.settings_manager import SettingsManager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +47,8 @@ from .dependencies import (
     get_websocket_manager_instance,
     set_explanation_delivery_service_instance,
     get_explanation_delivery_service_instance,
+    set_settings_manager_instance,
+    get_settings_manager_instance,
 )
 
 # --- ANWENDUNGSWEITE LOGGING-KONFIGURATION ---
@@ -97,7 +100,7 @@ main_model_task: Optional[asyncio.Task] = None
 @app.on_event("startup")
 async def startup_event():
     logger.info("Application startup event triggered.")
-    global simulation_manager_instance, websocket_manager_instance, message_router_instance
+    global websocket_manager_instance, message_router_instance
     global queue_status_sender_task, explanation_delivery_service_instance
     global main_model_instance, main_model_task
 
@@ -114,7 +117,14 @@ async def startup_event():
     set_websocket_manager_instance(websocket_manager_instance)
     session_manager_instance = SessionManager()
     set_session_manager_instance(session_manager_instance)
-    logger.info("SessionManager and WebSocketManager initialized and set.")
+    
+    # Initialize SettingsManager
+    settings_manager_instance = SettingsManager()
+    set_settings_manager_instance(settings_manager_instance)
+    # Load settings from file if available
+    await settings_manager_instance.load_from_file()
+    
+    logger.info("SessionManager, WebSocketManager, and SettingsManager initialized and set.")
 
     # Step 2: NOW initialize the MessageRouter, which depends on the services above.
     # Its __init__ can now safely call get_session_manager_instance().
@@ -174,7 +184,7 @@ async def shutdown_event():
     logger.info("Application shutdown event triggered.")
 
     # Zugriff auf die relevanten globalen Instanzen
-    global simulation_manager_instance, websocket_manager_instance
+    global websocket_manager_instance
     global queue_status_sender_task, message_router_instance, explanation_delivery_service_instance
     global main_model_task
 
@@ -187,7 +197,6 @@ async def shutdown_event():
         except asyncio.CancelledError:
             logger.info("main_model_task cancelled gracefully.")
 
-
     if queue_status_sender_task and not queue_status_sender_task.done():
         logger.info("Cancelling queue_status_sender_task...")
         queue_status_sender_task.cancel()
@@ -195,15 +204,6 @@ async def shutdown_event():
             await queue_status_sender_task
         except asyncio.CancelledError:
             logger.info("queue_status_sender_task cancelled gracefully.")
-
-    # Cancel MainModel continuous processing task
-    if main_model_task and not main_model_task.done():
-        logger.info("Cancelling main_model_task...")
-        main_model_task.cancel()
-        try:
-            await main_model_task
-        except asyncio.CancelledError:
-            logger.info("main_model_task cancelled gracefully.")
 
     if message_router_instance:
         logger.info("Stopping MessageRouter...")
@@ -249,8 +249,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         except Exception as e:
             logger.error(f"Unhandled error in WebSocket endpoint for {client_id}: {e}", exc_info=True)
     else:
-        # Fallback, falls der Manager beim Start nicht initialisiert werden konnte
-        logger.error("WebSocketManager not initialized. Closing connection.")
+        # Fallback if the manager was not initialized at startup
+        logger.error("WebSocketManager not initialized. Closing connection. Possible backend startup error or misconfiguration.")
         await websocket.close(code=1011, reason="Server internal error: WebSocketManager not ready.")
 
 # --- Hauptausführungsblock (für direkte Skriptausführung mit Uvicorn) ---

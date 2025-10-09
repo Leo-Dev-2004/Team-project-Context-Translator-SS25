@@ -7,17 +7,19 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
-import uuid # FIX: Added missing import for uuid
+import uuid
 
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
+from ..dependencies import get_settings_manager_instance
 from ..dependencies import get_explanation_delivery_service_instance
+from .ollama_client import ollama_client
 
 # === Config ===
 # Moved configuration to constants for clarity
 INPUT_FILE = "Backend/AI/detections_queue.json"
 OUTPUT_FILE = "Backend/AI/explanations_queue.json"
 CACHE_FILE = "Backend/AI/explanation_cache.json"
-MODEL = "llama3.2"
+MODEL = "llama3"
 COOLDOWN_SECONDS = 300
 OLLAMA_API_URL = "http://localhost:11434/api/chat"
 
@@ -38,8 +40,17 @@ class MainModel:
         self.explanations_queue_file = Path(OUTPUT_FILE)
         self.cache_file = Path(CACHE_FILE)
 
+        # Flush queues at startup
+        self.detections_queue_file.write_text(json.dumps([]), encoding='utf-8')
+        self.explanations_queue_file.write_text(json.dumps([]), encoding='utf-8')
+        self.cache_file.write_text(json.dumps({}), encoding='utf-8')
+
         # A single, reusable async HTTP client is more efficient.
         self.http_client = httpx.AsyncClient(timeout=60.0)
+
+        # Import outgoing queue for immediate explanation updates
+        from ..core.Queues import queues
+        self.outgoing_queue = queues.outgoing
 
         # CRITICAL FIX: Locks to prevent race conditions when accessing shared files.
         # Each file that is read, modified, and then written back needs its own lock.
@@ -49,6 +60,37 @@ class MainModel:
 
         # Cooldown tracking (Note: this is still in-memory and will reset on restart)
         self.explained_terms = {}
+
+    async def send_explanation_update(self, term: str, explanation: str, entry: Dict):
+        """
+        Send immediate explanation update to frontend to progressively enhance detected terms.
+        This updates terms that were previously sent as detections with their full explanations.
+        """
+        try:
+            # Create explanation update message
+            explanation_update = UniversalMessage(
+                type="explanation.update",
+                payload={
+                    "term": term,
+                    "explanation": explanation,
+                    "context": entry["context"],
+                    "confidence": entry.get("confidence", 0.5),
+                    "timestamp": int(time.time()),
+                    "original_detection_id": entry.get("id"),
+                    "status": "explained"
+                },
+                client_id=entry.get("client_id"),
+                origin="MainModel", 
+                destination="frontend"
+            )
+
+            # Send immediately to frontend
+            await self.outgoing_queue.enqueue(explanation_update)
+            
+            logger.info(f"Sent explanation update for term '{term}' to client {entry.get('client_id')}")
+            
+        except Exception as e:
+            logger.error(f"Error sending explanation update for '{term}': {e}", exc_info=True)
 
         # Ensure queue directories exist (synchronous operation at init is acceptable)
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +122,15 @@ class MainModel:
 
     def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
                      explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
+        """Build prompt for LLM explanation generation. Uses global settings for domain and style if not provided."""
+        # Get domain and explanation_style from SettingsManager if not provided
+        settings_manager = get_settings_manager_instance()
+        if settings_manager:
+            if not domain:
+                domain = settings_manager.get_setting("domain", "")
+            if explanation_style == "detailed":  # Only override default, not explicit requests
+                explanation_style = settings_manager.get_setting("explanation_style", "detailed")
+        
         role_context = ""
         if user_role:
             role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
@@ -134,18 +185,26 @@ class MainModel:
         """
         FIX: Asynchronously query the LLM using httpx to prevent blocking.
         """
+        import psutil, time
+        start_time = time.time()
         try:
-            response = await self.http_client.post(
-                OLLAMA_API_URL,
-                json={"model": model, "messages": messages, "stream": False},
-            )
-            response.raise_for_status()
-            raw_response = response.json()["message"]["content"].strip()
+            # Use the resilient Ollama client which autodetects endpoint and normalizes response
+            raw_response = await ollama_client.request(model=model, messages=messages)
+            if raw_response is None:
+                raise RuntimeError("No response from Ollama client")
+            elapsed = time.time() - start_time
+            if elapsed > 10:
+                logger.warning(f"LLM response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
+            mem = psutil.virtual_memory()
+            if mem.percent > 90:
+                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
             return self.clean_output(raw_response)
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}")
+            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}. Possible Ollama connection issue or model error.")
+        except httpx.RequestError as e:
+            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
         except Exception as e:
-            logger.error(f"Error querying LLM: {e}", exc_info=True)
+            logger.error(f"Error querying LLM: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
         return None
 
     async def load_cache(self) -> Dict[str, str]:
@@ -249,6 +308,7 @@ class MainModel:
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
+            is_manual_request = entry.get("is_manual_request", False)  # Check if this is a manual request
             explanation_style = entry.get("explanation_style", "detailed")
             original_explanation_id = entry.get("original_explanation_id")
             
@@ -274,26 +334,39 @@ class MainModel:
                 logger.warning(f"Failed to generate explanation for '{term}'.")
                 continue
 
-            message_type = "explanation.retry" if is_retry else "explanation.new"
-            explanation_entry = {
-                "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
-                "context": entry["context"], "timestamp": int(time.time()),
-                "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                "confidence": entry.get("confidence", 0), "message_type": message_type
-            }
-            if is_retry and original_explanation_id:
-                explanation_entry["original_explanation_id"] = original_explanation_id
+            # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
+            await self.send_explanation_update(term, explanation, entry)
 
-            # Add original explanation ID for retry responses
-            if is_retry and original_explanation_id:
-                explanation_entry["original_explanation_id"] = original_explanation_id
-            
-            if await self.write_explanation_to_queue(explanation_entry):
-                # Only mark as explained for non-retry requests
+            # BACKGROUND: Only queue for file-based delivery system if this is NOT a manual request
+            # Manual requests already have pending explanations in the frontend that are updated by the immediate feedback above
+            if not is_manual_request:
+                message_type = "explanation.retry" if is_retry else "explanation.new"
+                explanation_entry = {
+                    "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
+                    "context": entry["context"], "timestamp": int(time.time()),
+                    "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
+                    "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
+                    "confidence": entry.get("confidence", 0), "message_type": message_type
+                }
+                if is_retry and original_explanation_id:
+                    explanation_entry["original_explanation_id"] = original_explanation_id
+
+                # Add original explanation ID for retry responses
+                if is_retry and original_explanation_id:
+                    explanation_entry["original_explanation_id"] = original_explanation_id
+                
+                # Queue for file-based delivery system (backwards compatibility for automatic detections)
+                if await self.write_explanation_to_queue(explanation_entry):
+                    # Only mark as explained for non-retry requests
+                    if not is_retry:
+                        self.mark_as_explained(term)
+                    logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
+            else:
+                # For manual requests, only send immediate feedback - no background queuing to avoid duplicates
+                logger.info(f"Successfully processed manual request for term '{term}' - sent immediate update only.")
+                # Still mark as explained to prevent duplicate processing
                 if not is_retry:
                     self.mark_as_explained(term)
-                logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
 
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""

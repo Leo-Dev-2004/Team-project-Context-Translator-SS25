@@ -2,6 +2,7 @@
 import { LitElement, html } from 'lit';
 import { marked } from 'marked';
 import { sharedStyles } from './styles.js';
+import { isLoadingContent, formatLoadingDisplay, EXPLANATION_CONSTANTS } from './explanation-constants.js';
 
 export class ExplanationItem extends LitElement {
   static properties = {
@@ -17,10 +18,11 @@ export class ExplanationItem extends LitElement {
   render() {
     if (this.explanation.isDeleted) return html``;
     return html`
-      <div class="explanation-card ${this.explanation.isPinned ? 'pinned' : ''}">
+      <div class="explanation-card ${this.explanation.isPinned ? 'pinned' : ''} ${this.explanation.isPending ? 'pending' : ''}">
         <div class="explanation-header" @click=${this._toggleExpanded}>
           <div class="explanation-title">
             ${this.explanation.isPinned ? html`<span class="pinned-indicator material-icons">push_pin</span>` : ''}
+            ${this.explanation.isPending ? html`<span class="loading-indicator material-icons">hourglass_empty</span>` : ''}
             ${this.explanation.title}
             ${this._renderConfidenceBadge(this.explanation.confidence)}
           </div>
@@ -38,7 +40,7 @@ export class ExplanationItem extends LitElement {
         </div>
         <div class="explanation-content ${this.expanded ? 'expanded' : ''}">
           <div class="explanation-body">
-            <div class="explanation-text markdown-content">
+            <div class="explanation-text markdown-content ${this.explanation.isPending ? 'pending-content' : ''}">
               ${this._renderMarkdown(this.explanation.content)}
             </div>
             <div class="explanation-footer">
@@ -64,6 +66,20 @@ export class ExplanationItem extends LitElement {
   _handleRegenerate(e) { e.stopPropagation(); if (this.onRegenerate) this.onRegenerate(this.explanation); }
   _renderMarkdown(content) {
     if (!content) return html``;
+    
+    // Check if this is a processing/loading state
+    if (isLoadingContent(content)) {
+      return html`
+        <div class="processing-content">
+          <div class="processing-indicator">
+            <div class="spinner"></div>
+            <span>${EXPLANATION_CONSTANTS.GENERATING_DISPLAY_TEXT}</span>
+          </div>
+          <div class="processing-details">${formatLoadingDisplay(content)}</div>
+        </div>
+      `;
+    }
+    
     try {
       marked.setOptions({ breaks: true, gfm: true, sanitize: false, smartLists: true, smartypants: false });
       const htmlContent = marked.parse(content);
