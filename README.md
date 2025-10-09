@@ -112,10 +112,27 @@ Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
     ollama pull llama3.2
     ```
 
+## Initial Install
+
+  Gehen Sie in das Verzeichnis initial_install.
+  Falls Sie Windows benutzen:    öffnen Sie bitte die 
+    ```bash
+    windows-initial-install.bat
+    ```
+  Datei in Visual Studio Code.
+
+  Falls Sie Linux verwenden:    öffnen Sie bitte ein Terminal und führen Sie folgende Anweisung aus:
+    ```bash
+    chmod +x linux-initial-setup.sh && ./linux-initial-setup.sh
+    ```
+
+
+    Das Skript wird nach erfolgreichem Installationsvorgang das System starten. (durch Glockenton erkennbar)
+    Fortan, wenn Sie die Anwendung starten wollen, funktioniert das wie folgt:
 ### Anwendung starten
 
 Starten Sie das gesamte System mit dem Haupt-Runner-Skript aus dem **Stammverzeichnis** des Projekts:
 
 ```bash
-python main.py
+python SystemRunner.py
 Das Skript startet das Backend, das STT-Modul und die Electron-Anwendung.
