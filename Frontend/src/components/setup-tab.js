@@ -18,7 +18,7 @@ export class SetupTab extends LitElement {
     super();
     this.domainValue = '';
     this.explanationStyle = 'detailed';
-    this.scrollbarStyle = 'minimal';
+    this.scrollbarStyle = 'hidden';
     this.sessionCode = '';
   }
 
@@ -140,7 +140,7 @@ export class SetupTab extends LitElement {
   async _resetSettings() {
     this.domainValue = '';
     this.explanationStyle = 'detailed';
-    this.scrollbarStyle = 'minimal';
+    this.scrollbarStyle = 'hidden';
     this.dispatchEvent(new CustomEvent('reset-settings'));
   }
 

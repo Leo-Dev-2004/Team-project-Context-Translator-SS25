@@ -32,7 +32,7 @@ export class UI extends LitElement {
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
     this.isDarkMode = true; // Default to dark mode
-    this.scrollbarStyle = 'minimal';
+    this.scrollbarStyle = 'hidden';
     this.sessionCode = '';
     
     this._lastExplanationUpdate = 0;
@@ -203,13 +203,13 @@ export class UI extends LitElement {
   async _resetSettings() { 
     this.domainValue = ''; 
     this.explanationStyle = 'detailed';
-    this.scrollbarStyle = 'minimal';
+    this.scrollbarStyle = 'hidden';
     this._applyScrollbarStyle();
     if (window.electronAPI) {
       const result = await window.electronAPI.saveSettings({ 
         domain: '', 
         explanationStyle: 'detailed', 
-        scrollbarStyle: 'minimal' 
+        scrollbarStyle: 'hidden' 
       });
       if (result.success) {
         this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
