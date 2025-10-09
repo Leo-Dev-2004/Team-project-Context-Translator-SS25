@@ -30,7 +30,7 @@ class Config:
     VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
     
     # Heartbeat settings to prevent connection timeouts during silence
-    HEARTBEAT_INTERVAL_S = 30.0 # Send heartbeat every 30 seconds during silence
+    HEARTBEAT_INTERVAL_S = 5.0 # Send heartbeat every 10 seconds during silence (30s default was too long)
     
     # STREAMING OPTIMIZATION SETTINGS
     STREAMING_ENABLED = True # Enable streaming transcription for long speech
