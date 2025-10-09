@@ -203,16 +203,19 @@ ipcMain.handle('get-platform', () => {
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
+  console.log('Main (IPC): 💾 Received save-settings request with settings:', settings);
   try {
     const settingsData = {
       ...settings,
       lastUpdated: new Date().toISOString()
     };
     
+    console.log('Main (IPC): 📝 Writing settings to file:', settingsPath);
     await fs.writeFile(settingsPath, JSON.stringify(settingsData, null, 2));
+    console.log('Main (IPC): ✅ Settings successfully saved to file:', settingsPath);
     return { success: true };
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    console.error('Main (IPC): ❌ Failed to save settings:', error);
     return { success: false, error: error.message };
   }
 });
