@@ -72,6 +72,7 @@ Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
 * Python 3.10+
 * Node.js 18+ und `npm`
 * [Ollama](https://ollama.com/) muss auf Ihrem lokalen Rechner installiert sein und laufen.
+* Wenn Sie Windows nutzen, müssen Sie die Entwicklermodus (Developer Mode) anschalten. Einstellungen > Erweitert > Entwicklermodus
 
 ### Installation & Setup
 
