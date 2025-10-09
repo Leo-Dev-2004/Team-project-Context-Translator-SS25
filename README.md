@@ -116,6 +116,7 @@ Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
 
   Gehen Sie in das Verzeichnis initial_install.
   Falls Sie Windows benutzen:    öffnen Sie bitte die 
+    
     ```bash
     windows-initial-install.bat
     ```
@@ -129,6 +130,7 @@ Befolgen Sie diese Schritte, um das Projekt lokal einzurichten und auszuführen.
 
     Das Skript wird nach erfolgreichem Installationsvorgang das System starten. (durch Glockenton erkennbar)
     Fortan, wenn Sie die Anwendung starten wollen, funktioniert das wie folgt:
+    
 ### Anwendung starten
 
 Starten Sie das gesamte System mit dem Haupt-Runner-Skript aus dem **Stammverzeichnis** des Projekts:
