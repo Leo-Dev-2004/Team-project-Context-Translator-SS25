@@ -385,9 +385,8 @@ class ElectronMyElement extends UI {
     this.backendWs.send(JSON.stringify(message));
   }
 
-  _joinSession() {
-    const codeInput = this.shadowRoot.querySelector('#session-code-input');
-    const code = codeInput ? codeInput.value.trim() : '';
+  _joinSession(sessionCode) {
+    const code = sessionCode ? sessionCode.trim() : '';
 
     if (!code) return this._showNotification('Please enter a session code', 'error');
     if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
