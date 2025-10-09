@@ -14,6 +14,7 @@ export class MainBody extends LitElement {
     serverStatus: { type: String },
     microphoneStatus: { type: String },
     isDarkMode: { type: Boolean },
+    sessionCode: { type: String },
   };
 
   constructor() {
@@ -23,6 +24,7 @@ export class MainBody extends LitElement {
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
     this.isDarkMode = null;
+    this.sessionCode = '';
   }
 
   render() {
@@ -43,7 +45,7 @@ export class MainBody extends LitElement {
       <md-dialog id="session-dialog">
         <div slot="headline">Session Created!</div>
         <div slot="content">Share this code with other participants to join:
-          <h2 id="dialog-session-code" class="dialog-code"></h2>
+          <h2 id="dialog-session-code" class="dialog-code">${this.sessionCode}</h2>
         </div>
         <div slot="actions">
           <md-text-button @click=${() => this.shadowRoot.querySelector('#session-dialog').close()}>Close</md-text-button>

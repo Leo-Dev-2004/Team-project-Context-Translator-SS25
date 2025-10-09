@@ -37,6 +37,7 @@ Backend/AI/explanations_queue.json
 Backend/AI/explanation_cache.json
 output_explanations.json
 output_queue.json
+*.json
 
 # Editor/IDE specific files
 .vscode/
@@ -150,5 +151,6 @@ Backend/STT/transcription.log
 test_heartbeat*.py
 test_messagerouter_heartbeat.py
 
+Backend/AI/explanation_cache.json
 Backend/AI/explanation_cache.json
 Backend/AI/explanation_cache.json
