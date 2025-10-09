@@ -31,7 +31,7 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
-    this.isDarkMode = null;
+    this.isDarkMode = true; // Default to dark mode
     this.scrollbarStyle = 'minimal';
     this.sessionCode = '';
     

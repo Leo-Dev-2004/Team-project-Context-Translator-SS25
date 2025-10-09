@@ -103,8 +103,7 @@ export class SetupTab extends LitElement {
             <md-outlined-text-field 
               id="session-code-input" 
               label="Session Code" 
-              placeholder="Code eingeben..."
-              .value=${this.sessionCode}>
+              placeholder="Code eingeben...">
             </md-outlined-text-field>
             <md-outlined-button id="join-session-button" @click=${this._joinSession}>Join Session</md-outlined-button>
           </div>
