@@ -137,4 +137,6 @@ Starten Sie das gesamte System mit dem Haupt-Runner-Skript aus dem **Stammverzei
 
 ```bash
 python SystemRunner.py
+```
+
 Das Skript startet das Backend, das STT-Modul und die Electron-Anwendung.
