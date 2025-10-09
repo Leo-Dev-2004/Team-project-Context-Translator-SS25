@@ -149,4 +149,3 @@ REM Deaktiviert die virtuelle Umgebung, wenn das Skript endet.
 call deactivate
 
 endlocal
-    
