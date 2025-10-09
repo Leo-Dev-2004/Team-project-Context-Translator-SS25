@@ -437,13 +437,16 @@ class ElectronMyElement extends UI {
 
     try {
       // Save settings locally via Electron IPC
-      console.log('Renderer: 📤 Sending settings to Electron main process via IPC...');
+      const ipcStartTime = Date.now();
+      console.log('Renderer: 📤 Calling Electron IPC saveSettings...');
       const result = await window.electronAPI.saveSettings(settings);
+      const ipcDuration = Date.now() - ipcStartTime;
+      
       if (result.success) {
-        console.log('Renderer: ✅ Settings saved successfully to local file via Electron IPC');
+        console.log(`Renderer: ✅ IPC saveSettings completed successfully (${ipcDuration}ms)`);
         this._showNotification('Settings saved successfully', 'success');
       } else {
-        console.error('Renderer: ❌ Failed to save settings via Electron IPC:', result.error);
+        console.error('Renderer: ❌ IPC saveSettings failed:', result.error);
         this._showNotification('Failed to save settings', 'error');
       }
       
