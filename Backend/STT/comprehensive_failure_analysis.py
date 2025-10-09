@@ -366,7 +366,13 @@ class STTFailureAnalyzer:
             # Test device listing
             try:
                 devices = sd.query_devices()
-                input_devices = [d for d in devices if d['max_input_channels'] > 0]
+                input_devices = [
+                    d for d in devices
+                    if isinstance(d, dict)
+                    and 'max_input_channels' in d
+                    and isinstance(d['max_input_channels'], (int, float))
+                    and d['max_input_channels'] > 0
+                ]
                 print(f"✓ Found {len(input_devices)} audio input devices")
                 
                 if len(input_devices) == 0:

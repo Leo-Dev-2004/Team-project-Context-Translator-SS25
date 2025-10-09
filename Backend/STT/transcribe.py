@@ -20,7 +20,7 @@ from pathlib import Path
 
 # --- CONFIGURATION ---
 # Import performance configurations
-from .performance_configs import config_manager
+from Backend.STT.performance_configs import config_manager
 
 # Simple configuration that delegates to performance config
 class ConfigManager:
