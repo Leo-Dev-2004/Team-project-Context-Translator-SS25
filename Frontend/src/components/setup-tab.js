@@ -100,56 +100,56 @@ export class SetupTab extends LitElement {
           <md-outlined-button @click=${this._resetSettings}>Reset to Defaults</md-outlined-button>
           <div class="session-controls">
             <md-filled-button id="start-session-button" @click=${this._startSession}>Create Session</md-filled-button>
+            <md-outlined-button id="join-session-button" @click=${this._joinSession}>Join Session</md-outlined-button>
             <md-outlined-text-field 
               id="session-code-input" 
               label="Session Code" 
               placeholder="Code eingeben..."
               .value=${this.sessionCode}>
             </md-outlined-text-field>
-            <md-outlined-button id="join-session-button" @click=${this._joinSession}>Join Session</md-outlined-button>
           </div>
         </div>
       </div>
     </div>`;
   }
 
-  _onDomainInput(e) { 
-    this.domainValue = e.target.value; 
+  _onDomainInput(e) {
+    this.domainValue = e.target.value;
     this.dispatchEvent(new CustomEvent('domain-changed', { detail: { domainValue: this.domainValue } }));
   }
 
-  _onExplanationStyleChange(e) { 
-    this.explanationStyle = e.target.value; 
+  _onExplanationStyleChange(e) {
+    this.explanationStyle = e.target.value;
     this.dispatchEvent(new CustomEvent('explanation-style-changed', { detail: { explanationStyle: this.explanationStyle } }));
   }
 
-  _onScrollbarStyleChange(e) { 
-    this.scrollbarStyle = e.target.value; 
+  _onScrollbarStyleChange(e) {
+    this.scrollbarStyle = e.target.value;
     this.dispatchEvent(new CustomEvent('scrollbar-style-changed', { detail: { scrollbarStyle: this.scrollbarStyle } }));
   }
 
-  async _saveSettings() { 
-    this.dispatchEvent(new CustomEvent('save-settings', { 
-      detail: { 
+  async _saveSettings() {
+    this.dispatchEvent(new CustomEvent('save-settings', {
+      detail: {
         domain: this.domainValue,
         explanationStyle: this.explanationStyle,
         scrollbarStyle: this.scrollbarStyle
-      } 
+      }
     }));
   }
 
-  async _resetSettings() { 
-    this.domainValue = ''; 
+  async _resetSettings() {
+    this.domainValue = '';
     this.explanationStyle = 'detailed';
     this.scrollbarStyle = 'minimal';
     this.dispatchEvent(new CustomEvent('reset-settings'));
   }
 
-  _startSession() { 
+  _startSession() {
     this.dispatchEvent(new CustomEvent('start-session'));
   }
 
-  _joinSession() { 
+  _joinSession() {
     const sessionCodeInput = this.shadowRoot.querySelector('#session-code-input');
     const sessionCode = sessionCodeInput?.value || '';
     this.dispatchEvent(new CustomEvent('join-session', { detail: { sessionCode } }));
