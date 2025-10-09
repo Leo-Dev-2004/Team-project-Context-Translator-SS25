@@ -32,6 +32,18 @@ class SystemRunner:
         self.processes = []
         self.running = True
 
+    def run_ollama_serve(self):
+        logger.debug("SystemRunner: Starting Ollama serve process.")
+        try:
+            use_shell = sys.platform == "win32"
+            ollama_process = subprocess.Popen(["ollama", "serve"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell, bufsize=1)
+            self.processes.append(ollama_process)
+            logger.info(f"SystemRunner: Ollama serve process started with PID: {ollama_process.pid}")
+            self._start_logging(ollama_process, "Ollama")
+        except Exception as e:
+            logger.critical(f"SystemRunner: Failed to start Ollama serve: {e}", exc_info=True)
+            raise
+
     def run_backend_server(self):
         logger.debug("SystemRunner: Starting backend server process.")
         env = os.environ.copy()
@@ -167,6 +179,7 @@ def main():
     logger.info(f"Generated User Session ID: {user_session_id}")
     
     try:
+        runner.run_ollama_serve()
         runner.run_backend_server()
         if not runner.check_backend_ready():
             raise RuntimeError("Backend failed to start.")
