@@ -164,6 +164,7 @@ app.whenReady().then(() => {
   });
 
   console.log('Main: ✅ App is ready. Calling createWindow...');
+  console.log(`Main: 📁 Settings will be saved to: ${settingsPath}`);
   createWindow();
   // In Dev das Menü behalten, in Prod entfernen für aufgeräumtes UI
   if (isDev) {
@@ -203,16 +204,35 @@ ipcMain.handle('get-platform', () => {
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
+  const timestamp = new Date().toISOString();
+  console.log(`Main: 💾 [${timestamp}] Received save-settings IPC request`);
+  console.log('Main:    Settings to save:', JSON.stringify(settings));
+  console.log('Main:    Target file:', settingsPath);
+  
   try {
     const settingsData = {
       ...settings,
       lastUpdated: new Date().toISOString()
     };
     
+    console.log('Main: 📝 Writing settings to file...');
     await fs.writeFile(settingsPath, JSON.stringify(settingsData, null, 2));
+    console.log('Main: ✅ Settings successfully saved to:', settingsPath);
+    
+    // Verify the file was written by reading it back
+    try {
+      const savedContent = await fs.readFile(settingsPath, 'utf8');
+      const savedData = JSON.parse(savedContent);
+      console.log('Main: ✓ Verified settings file written with keys:', Object.keys(savedData));
+    } catch (verifyError) {
+      console.warn('Main: ⚠️ Could not verify saved file:', verifyError.message);
+    }
+    
     return { success: true };
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    console.error('Main: ❌ Failed to save settings:', error);
+    console.error('Main:    Error details:', error.message);
+    console.error('Main:    Target file was:', settingsPath);
     return { success: false, error: error.message };
   }
 });
