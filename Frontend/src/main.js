@@ -25,9 +25,9 @@ const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
-    // Vertikale, seitenleistenartige Standardgröße
-    width: 420,
-    height: 820,
+    // Vertikale, seitenleistenartige Standardgröße (increased by 20%)
+    width: 504,
+    height: 984,
     minWidth: 320,
     minHeight: 500,
     webPreferences: {

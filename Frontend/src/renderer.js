@@ -224,13 +224,29 @@ class ElectronMyElement extends UI {
   async _handleMessage(message) {
     if (message.type === 'session.created') {
       const code = message.payload.code;
-      this.shadowRoot.querySelector('#session-code-input').value = code;
+      this.sessionCode = code;
       
-      const dialog = this.shadowRoot.querySelector('#session-dialog');
-      const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
-      if (dialog && codeDisplay) {
-        codeDisplay.textContent = code;
-        dialog.show(); // Use .show() for non-modal
+      // Wait for the component to update with the new sessionCode
+      await this.updateComplete;
+      
+      // Set the session code in the input field
+      const setupTab = this.shadowRoot.querySelector('setup-tab');
+      if (setupTab) {
+        await setupTab.updateComplete;
+        const sessionCodeInput = setupTab.shadowRoot.querySelector('#session-code-input');
+        if (sessionCodeInput) {
+          sessionCodeInput.value = code;
+        }
+      }
+      
+      // Access the dialog through the main-body component
+      const mainBody = this.shadowRoot.querySelector('main-body');
+      if (mainBody) {
+        await mainBody.updateComplete;
+        const dialog = mainBody.shadowRoot.querySelector('#session-dialog');
+        if (dialog) {
+          dialog.show(); // Use .show() for non-modal
+        }
       }
     } else if (message.type === 'session.joined') {
       this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
@@ -379,9 +395,8 @@ class ElectronMyElement extends UI {
     this.backendWs.send(JSON.stringify(message));
   }
 
-  _joinSession() {
-    const codeInput = this.shadowRoot.querySelector('#session-code-input');
-    const code = codeInput ? codeInput.value.trim() : '';
+  _joinSession(sessionCode) {
+    const code = sessionCode ? sessionCode.trim() : '';
 
     if (!code) return this._showNotification('Please enter a session code', 'error');
     if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
