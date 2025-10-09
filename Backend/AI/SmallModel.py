@@ -12,7 +12,6 @@ from uuid import uuid4
 
 from ..models.UniversalMessage import UniversalMessage
 from ..dependencies import get_settings_manager_instance
-from .ollama_client import ollama_client
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -312,6 +311,8 @@ class SmallModel:
         import psutil, time
         start_time = time.time()
         try:
+            # Import ollama_client here to ensure it's defined
+            from .ollama_client import ollama_client
             # Use resilient Ollama client
             raw = await ollama_client.request(model=LLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
             elapsed = time.time() - start_time
