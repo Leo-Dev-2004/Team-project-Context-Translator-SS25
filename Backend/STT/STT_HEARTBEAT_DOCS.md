@@ -64,8 +64,10 @@ The system tracks two timestamps:
 ### Error Handling
 - Connection failures during heartbeat sending are logged but don't crash the service
 - Heartbeat failures fall back to standard connection retry mechanisms
-- **WebSocket state is checked before sending heartbeats** to prevent "no close frame received or sent" errors during connection closure
+- **WebSocket state is checked before sending heartbeats** to prevent unnecessary work when the connection is closed
+- **ConnectionClosed exceptions are caught and handled gracefully** without logging warnings during normal shutdown
 - If the WebSocket is not open, the heartbeat is silently skipped with a debug log message
+- The fix uses both proactive state checking and defensive exception handling to prevent race conditions
 
 ## Benefits
 1. **Connection Stability**: Prevents timeout-based disconnections

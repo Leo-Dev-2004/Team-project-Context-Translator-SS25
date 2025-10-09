@@ -23,6 +23,13 @@ This typically occurred during:
 
 ### Code Changes
 
+The fix uses a **defense-in-depth approach** with both proactive state checking and defensive exception handling to prevent race conditions:
+
+1. **Proactive state check**: Check `websocket.open` before attempting to send
+2. **Defensive exception handling**: Catch `websockets.exceptions.ConnectionClosed` specifically and handle it gracefully without warnings
+
+This approach addresses the **time-of-check to time-of-use (TOCTOU)** race condition where the connection might close between checking the state and sending the message.
+
 #### 1. Added WebSocket State Check in `_send_heartbeat()` Method
 **File:** `Backend/STT/transcribe.py`
 
@@ -65,8 +72,12 @@ async def _send_heartbeat(self, websocket):
     try:
         await websocket.send(json.dumps(message))
         logger.debug("Sent heartbeat keep-alive message")
+    except websockets.exceptions.ConnectionClosed:
+        # Connection closed gracefully or unexpectedly - this is normal during shutdown
+        logger.debug("Cannot send heartbeat - WebSocket connection closed")
     except Exception as e:
-        logger.warning(f"Failed to send heartbeat, connection error: {e}")
+        # Only log warnings for unexpected errors, not connection closure
+        logger.warning(f"Failed to send heartbeat, unexpected error: {e}")
 ```
 
 #### 2. Added WebSocket State Check in `_send_sentence()` Method
@@ -79,9 +90,21 @@ if not websocket.open:
     logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
     self.unsent_sentences.append(message)
     return
+
+try:
+    await websocket.send(json.dumps(message))
+    logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
+except websockets.exceptions.ConnectionClosed:
+    # Connection closed - buffer for retry
+    logger.info(f"Cannot send sentence - WebSocket connection closed. Buffering for retry.")
+    self.unsent_sentences.append(message)
+except Exception as e:
+    # Unexpected error - buffer and log warning
+    logger.warning(f"Failed to send sentence, unexpected error: {e}. Buffering for retry.")
+    self.unsent_sentences.append(message)
 ```
 
-This ensures that transcription messages are also buffered when the WebSocket is closed, preventing the same error during normal transcription operations.
+This ensures that transcription messages are buffered when the WebSocket is closed, and connection closure is handled gracefully without warnings.
 
 ### Documentation Updates
 
@@ -95,10 +118,12 @@ Updated the "Error Handling" section to document the new behavior:
 ## Benefits
 
 1. **Eliminates Warning Messages**: The "no close frame received or sent" error no longer appears in logs
-2. **Graceful Degradation**: Service handles connection closure gracefully without errors
+2. **Graceful Degradation**: Service handles connection closure gracefully without error messages
 3. **Better Resource Management**: Avoids unnecessary exception handling for closed connections
-4. **Improved Logging**: Clear debug messages when heartbeats are skipped
+4. **Improved Logging**: Clear debug/info messages when operations are skipped, no warnings for normal closure
 5. **Maintains Buffering**: Transcription messages are still buffered for retry when connection is down
+6. **Race Condition Protection**: Defensive exception handling prevents TOCTOU issues between state check and send operation
+7. **Better Diagnostics**: Distinguishes between normal connection closure (info/debug) and unexpected errors (warning)
 
 ## Verification
 
