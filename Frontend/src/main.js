@@ -56,6 +56,11 @@ function createWindow() {
 
   // Weiterleitung der Renderer-Konsolenlogs an den Main-Prozess-Log
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    // Filter out harmless DevTools protocol warnings
+    if (message.includes('Autofill.setAddresses') || message.includes("'Autofill.setAddresses' wasn't found")) {
+      return; // Suppress this known Electron/DevTools incompatibility warning
+    }
+    
     const logPrefix = `[Renderer]`;
     if (level === 0) {
       console.log(`${logPrefix} ${message}`);
