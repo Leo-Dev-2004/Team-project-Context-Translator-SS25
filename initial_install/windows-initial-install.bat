@@ -85,11 +85,9 @@ cd /d "%SCRIPT_DIR%"
 echo --- 3. Ollama Model Preparation ---
 
 REM Aufruf der "Funktionen" (Batch-Labels)
-call :pull_ollama_model "llama3.2:3B"
-call :pull_ollama_model "llama3:8B"
+call :pull_ollama_model "llama3.2"
 
-call :run_ollama_with_timeout "llama3.2:3B"
-call :run_ollama_with_timeout "llama3:8B"
+call :run_ollama_with_timeout "llama3.2"
 
 REM Springt zum Start der Hauptanwendung, ueberspringt die Funktionsdefinitionen
 goto :start_system_runner
