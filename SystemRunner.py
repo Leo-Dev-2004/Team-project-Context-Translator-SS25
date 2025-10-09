@@ -109,8 +109,33 @@ class SystemRunner:
                 for line in iter(pipe.readline, ''):
                     log_func(f"[{prefix}]: {line.strip()}")
             except ValueError: pass
+        
+        def log_stderr(pipe):
+            """Log stderr output, filtering out known informational Electron messages."""
+            try:
+                for line in iter(pipe.readline, ''):
+                    stripped = line.strip()
+                    
+                    # Filter out known informational Electron messages that appear on stderr
+                    if prefix == "Electron":
+                        # Common Electron informational messages on stderr
+                        if any(pattern in stripped for pattern in [
+                            "Debugger listening on",
+                            "For help, see: https://nodejs.org/en/docs/inspector",
+                            "DevTools listening on",
+                            "[SECURITY WARNING]",  # Electron security warnings for dev mode
+                            "Autofill.setAddresses",
+                        ]):
+                            # Log as info instead of warning
+                            logger.info(f"[{prefix}]: {stripped}")
+                            continue
+                    
+                    # Log as warning for actual stderr messages
+                    logger.warning(f"[{prefix}]: {stripped}")
+            except ValueError: pass
+        
         threading.Thread(target=log_output, args=(process.stdout, logger.info), daemon=True).start()
-        threading.Thread(target=log_output, args=(process.stderr, logger.warning), daemon=True).start()
+        threading.Thread(target=log_stderr, args=(process.stderr,), daemon=True).start()
 
     def check_backend_ready(self, timeout=60):
         logger.info(f"SystemRunner: Waiting for Backend to be ready...")
