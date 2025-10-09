@@ -17,7 +17,8 @@ export class UI extends LitElement {
     serverStatus: { type: String },
     microphoneStatus: { type: String },
     isDarkMode: { type: Boolean },
-    scrollbarStyle: { type: String }
+    scrollbarStyle: { type: String },
+    sessionCode: { type: String }
   };
 
   constructor() {
@@ -32,6 +33,7 @@ export class UI extends LitElement {
     this.microphoneStatus = 'initializing';
     this.isDarkMode = null;
     this.scrollbarStyle = 'minimal';
+    this.sessionCode = '';
     
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
@@ -65,6 +67,7 @@ export class UI extends LitElement {
         .serverStatus=${this.serverStatus}
         .microphoneStatus=${this.microphoneStatus}
         .isDarkMode=${this.isDarkMode}
+        .sessionCode=${this.sessionCode}
         @tab-changed=${this._onTabChanged}
         @theme-changed=${this._onThemeChanged}>
         
@@ -83,6 +86,7 @@ export class UI extends LitElement {
             .domainValue=${this.domainValue}
             .explanationStyle=${this.explanationStyle}
             .scrollbarStyle=${this.scrollbarStyle}
+            .sessionCode=${this.sessionCode}
             @domain-changed=${this._onDomainChanged}
             @explanation-style-changed=${this._onExplanationStyleChanged}
             @scrollbar-style-changed=${this._onScrollbarStyleChanged}

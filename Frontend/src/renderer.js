@@ -224,13 +224,15 @@ class ElectronMyElement extends UI {
   async _handleMessage(message) {
     if (message.type === 'session.created') {
       const code = message.payload.code;
-      this.shadowRoot.querySelector('#session-code-input').value = code;
+      this.sessionCode = code;
       
-      const dialog = this.shadowRoot.querySelector('#session-dialog');
-      const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
-      if (dialog && codeDisplay) {
-        codeDisplay.textContent = code;
-        dialog.show(); // Use .show() for non-modal
+      // Access the dialog through the main-body component
+      const mainBody = this.shadowRoot.querySelector('main-body');
+      if (mainBody) {
+        const dialog = mainBody.shadowRoot.querySelector('#session-dialog');
+        if (dialog) {
+          dialog.show(); // Use .show() for non-modal
+        }
       }
     } else if (message.type === 'session.joined') {
       this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
