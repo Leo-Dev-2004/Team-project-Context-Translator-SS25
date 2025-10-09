@@ -216,6 +216,10 @@ class StreamingSTTService:
             if self.is_recording.is_set(): 
                 self.audio_queue.put(indata.copy())
         
+        if sd is None:
+            logger.error("sounddevice not available - cannot record audio in thread")
+            return
+
         try:
             with sd.InputStream(
                 samplerate=self.config.SAMPLE_RATE, 

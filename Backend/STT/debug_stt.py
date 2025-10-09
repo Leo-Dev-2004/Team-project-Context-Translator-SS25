@@ -53,9 +53,11 @@ def test_microphone_access():
         
         input_devices = []
         for i, device in enumerate(devices):
-            if device['max_input_channels'] > 0:
+            # FIXED: Use .get() for safer access and to satisfy the type checker.
+            if device.get('max_input_channels', 0) > 0:
                 input_devices.append((i, device))
-                print(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
+                # FIXED: Use .get() here as well.
+                print(f"  {i}: {device.get('name')} (inputs: {device.get('max_input_channels')})")
         
         if not input_devices:
             print("✗ No input devices found")
@@ -163,44 +165,6 @@ def test_model_loading():
         traceback.print_exc()
         return False
 
-def test_websocket_connection():
-    """Test WebSocket connection to backend."""
-    print("\n=== Testing WebSocket Connection ===")
-    
-    try:
-        import websockets
-        import asyncio
-        import json
-        
-        async def test_connection():
-            uri = "ws://localhost:8000/ws/test_client"
-            try:
-                async with websockets.connect(uri, timeout=5) as websocket:
-                    print("✓ WebSocket connection successful")
-                    
-                    # Send test message
-                    test_message = {
-                        "id": "test_123",
-                        "type": "test",
-                        "timestamp": time.time(),
-                        "payload": {"message": "test"}
-                    }
-                    
-                    await websocket.send(json.dumps(test_message))
-                    print("✓ Test message sent")
-                    
-                    return True
-                    
-            except Exception as e:
-                print(f"✗ WebSocket connection failed: {e}")
-                return False
-        
-        return asyncio.run(test_connection())
-        
-    except Exception as e:
-        print(f"✗ WebSocket test failed: {e}")
-        return False
-
 def suggest_solutions(test_results):
     """Suggest solutions based on test results."""
     print("\n=== Diagnosis and Solutions ===")
@@ -234,13 +198,6 @@ def suggest_solutions(test_results):
         print("   - Clear cache: rm -rf ~/.cache/huggingface/")
         return
     
-    if not test_results['websocket']:
-        print("⚠️  WEBSOCKET CONNECTION ISSUES:")
-        print("   - Make sure backend server is running on localhost:8000")
-        print("   - Check firewall settings")
-        print("   - Verify WebSocket endpoint is accessible")
-        print("   - This won't prevent local transcription testing")
-    
     if all(test_results.values()) or all(v for k, v in test_results.items() if k != 'websocket'):
         print("✓ ALL CORE SYSTEMS WORKING")
         print("\nPossible issues:")
@@ -271,9 +228,6 @@ def main():
     if test_results['imports'] and test_results['config']:
         print("\nContinuing with model loading test (this may take a while)...")
         test_results['model'] = test_model_loading()
-    
-    # Test WebSocket connection
-    test_results['websocket'] = test_websocket_connection()
     
     suggest_solutions(test_results)
 

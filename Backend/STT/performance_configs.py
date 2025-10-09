@@ -92,7 +92,7 @@ class STTConfigManager:
             )
         }
     
-    def get_config(self, config_name: str = None) -> STTPerformanceConfig:
+    def get_config(self, config_name: Optional[str] = None) -> STTPerformanceConfig:
         """Get configuration by name, or default/environment-specified config."""
         if config_name is None:
             # Check environment variable first
