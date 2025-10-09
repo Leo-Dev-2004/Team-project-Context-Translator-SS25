@@ -134,7 +134,7 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     console.log('Main: 💡 Running in production mode. Loading file...');
-    mainWindow.loadFile(join(__dirname, '../renderer/dist/index.html'));
+    mainWindow.loadFile(join(__dirname, '../dist/index.html'));
   }
 
   mainWindow.once('ready-to-show', () => {

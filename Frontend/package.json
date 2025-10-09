@@ -15,7 +15,7 @@
     "build:renderer": "vite build",
     "build:main": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
     "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
-    "start": "electron .",
+    "start": "cross-env NODE_ENV=production electron .",
     "clean": "rimraf dist dist-electron",
     "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0",
     "test": "web-test-runner",

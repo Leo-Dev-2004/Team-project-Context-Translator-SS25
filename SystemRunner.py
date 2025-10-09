@@ -101,10 +101,59 @@ class SystemRunner:
             logger.critical(f"SystemRunner: Failed to start Vite server: {e}", exc_info=True)
             raise
 
+    def _ensure_frontend_built(self):
+        """Ensures frontend is built for production mode."""
+        dist_dir = FRONTEND_DIR / "dist"
+        preload_file = FRONTEND_DIR / "dist-electron" / "preload.js"
+        
+        if not dist_dir.exists() or not preload_file.exists():
+            logger.warning("SystemRunner: Frontend build files not found. Building now...")
+            logger.info("SystemRunner: This may take a minute...")
+            
+            try:
+                use_shell = sys.platform == "win32"
+                # Build preload
+                build_preload = subprocess.run(
+                    ["npm", "run", "build:preload"],
+                    cwd=str(FRONTEND_DIR),
+                    shell=use_shell,
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                if build_preload.returncode != 0:
+                    logger.error(f"SystemRunner: Preload build failed: {build_preload.stderr}")
+                    raise RuntimeError("Failed to build preload script")
+                
+                # Build renderer
+                build_renderer = subprocess.run(
+                    ["npm", "run", "build:renderer"],
+                    cwd=str(FRONTEND_DIR),
+                    shell=use_shell,
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                if build_renderer.returncode != 0:
+                    logger.error(f"SystemRunner: Renderer build failed: {build_renderer.stderr}")
+                    raise RuntimeError("Failed to build renderer")
+                
+                logger.info("SystemRunner: Frontend build completed successfully")
+            except subprocess.TimeoutExpired:
+                logger.error("SystemRunner: Frontend build timed out")
+                raise RuntimeError("Frontend build timed out")
+            except Exception as e:
+                logger.error(f"SystemRunner: Failed to build frontend: {e}")
+                raise
+
     # Akzeptiert jetzt die user_session_id
     def run_electron_app(self, user_session_id: str):
         mode_str = "development" if ELECTRON_DEV_MODE else "production"
         logger.debug(f"SystemRunner: Starting Electron app process in {mode_str} mode.")
+        
+        # In production mode, ensure frontend is built
+        if not ELECTRON_DEV_MODE:
+            self._ensure_frontend_built()
         
         # Choose command based on dev mode setting
         if ELECTRON_DEV_MODE:
