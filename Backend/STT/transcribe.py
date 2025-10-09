@@ -175,6 +175,13 @@ class STTService:
             },
             "origin": "stt_module", "client_id": self.stt_client_id
         }
+        
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
+            self.unsent_sentences.append(message)
+            return
+            
         try:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
@@ -265,6 +272,11 @@ class STTService:
 
     async def _send_heartbeat(self, websocket):
         """Sends a heartbeat keep-alive message to prevent connection timeout."""
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            logger.debug("Skipping heartbeat - WebSocket is not open")
+            return
+            
         message = {
             "id": str(uuid4()), "type": "stt.heartbeat", "timestamp": time.time(),
             "payload": {
