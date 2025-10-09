@@ -24,6 +24,22 @@ from .performance_configs import config_manager
 
 # Simple configuration that delegates to performance config
 class ConfigManager:
+    # Streaming optimization settings
+    @staticmethod
+    def STREAMING_ENABLED():
+        return True
+
+    @staticmethod
+    def STREAMING_CHUNK_DURATION_S():
+        return 3.0
+
+    @staticmethod
+    def STREAMING_OVERLAP_DURATION_S():
+        return 0.5
+
+    @staticmethod
+    def STREAMING_MIN_BUFFER_S():
+        return 2.0
     """Configuration manager that dynamically reads from performance profiles."""
 
     # Static configuration
@@ -409,12 +425,12 @@ class STTService:
 
                         # STREAMING OPTIMIZATION: Process chunks while speaking continues
                         if (Config.STREAMING_ENABLED and
-                            buffer_duration >= Config.STREAMING_MIN_BUFFER_S):
+                            buffer_duration >= Config.STREAMING_MIN_BUFFER_S()):
 
                             # Check if it's time to process a streaming chunk
                             if last_streaming_process_time is None:
                                 # Start streaming processing
-                                chunk_samples = int(Config.STREAMING_CHUNK_DURATION_S * Config.SAMPLE_RATE)
+                                chunk_samples = int(Config.STREAMING_CHUNK_DURATION_S() * Config.SAMPLE_RATE)
                                 chunk_size = chunk_samples // len(audio_chunk)
 
                                 if len(audio_buffer) >= chunk_size:
@@ -422,10 +438,10 @@ class STTService:
                                     await self._start_streaming_processing(websocket, initial_buffer)
                                     last_streaming_process_time = current_time
 
-                            elif (current_time - last_streaming_process_time >= Config.STREAMING_CHUNK_DURATION_S):
+                            elif (current_time - last_streaming_process_time >= Config.STREAMING_CHUNK_DURATION_S()):
                                 # Process next streaming chunk with overlap
-                                chunk_samples = int(Config.STREAMING_CHUNK_DURATION_S * Config.SAMPLE_RATE)
-                                overlap_samples = int(Config.STREAMING_OVERLAP_DURATION_S * Config.SAMPLE_RATE)
+                                chunk_samples = int(Config.STREAMING_CHUNK_DURATION_S() * Config.SAMPLE_RATE)
+                                overlap_samples = int(Config.STREAMING_OVERLAP_DURATION_S() * Config.SAMPLE_RATE)
 
                                 chunk_size = chunk_samples // len(audio_chunk)
                                 overlap_size = overlap_samples // len(audio_chunk)
