@@ -3,11 +3,7 @@
 import asyncio
 import logging
 import time
-import uuid
 from typing import Optional
-
-from pydantic import ValidationError
-
 from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
@@ -72,7 +68,7 @@ class MessageRouter:
                 await asyncio.sleep(1)
 
     async def _service_message_listener(self):
-        """Processes messages coming from internal services (e.g., SimulationManager)."""
+        """Processes messages coming from internal services """
         # ... (method remains unchanged)
         logger.info("MessageRouter: Listening for messages from backend services...")
         while self._running:
