@@ -2,9 +2,9 @@
 setlocal
 
 REM --- KONFIGURATION ---
-set BUILD_TIMEOUT=60    REM 1 Minute fuer 'npm run build'
-set OLLAMA_TIMEOUT=120  REM 2 Minuten fuer 'ollama run'
-set LOG_FILE=frontend_build.log
+set "BUILD_TIMEOUT=10"    REM 10 Sekunden fuer 'npm run build'
+set "OLLAMA_TIMEOUT=10"  REM 10 Sek fuer 'ollama run'
+set "LOG_FILE=frontend_build.log"
 REM Speichert den Pfad des aktuellen Skripts, um spaeter zurueckzukehren.
 set "SCRIPT_DIR=%~dp0"
 
@@ -13,7 +13,7 @@ echo --- 1. Project Setup Started ---
 REM 1.1 Python Virtuelle Umgebung im uebergeordneten Ordner erstellen
 echo 1.1 Creating Python Virtual Environment (..\.venv)...
 REM Windows verwendet 'python' anstelle von 'python3' und Backslashes '\'.
-python -m venv ..\.venv
+python -m venv "%~dp0..\.venv"
 if %errorlevel% neq 0 (
     echo Error: Failed to create venv. Ensure Python is installed and in your PATH.
     exit /b 1
@@ -41,11 +41,23 @@ if %errorlevel% neq 0 (
     goto :cleanup
 )
 
-REM 2.1 npm-Abhaengigkeiten installieren
-echo 2.1 Installing npm dependencies...
-npm install
-if %errorlevel% neq 0 (
-    echo Warning: npm install failed. The build might fail.
+REM 2.1 Pruefen, ob die Abhaengigkeiten bereits installiert sind
+echo 2.1 Checking for existing npm dependencies (node_modules)...
+
+IF EXIST "node_modules" (
+    echo    -> 'node_modules' directory already exists. Skipping 'npm install'.
+) ELSE (
+    echo    -> 'node_modules' not found. Installing dependencies...
+    npm install
+    if %errorlevel% neq 0 (
+        echo ####################################################################
+        echo ##  FEHLER: 'npm install' ist fehlgeschlagen.
+        echo ##  Pruefen Sie die Fehlermeldung oben, um die Ursache zu finden.
+        echo ##  Moegliche Ursachen: Netzwerkprobleme, Fehler in package.json.
+        echo ####################################################################
+        pause
+        goto :cleanup
+)
 )
 
 REM 2.2 'npm run build' mit Zeitlimit ausfuehren
@@ -137,12 +149,4 @@ REM Deaktiviert die virtuelle Umgebung, wenn das Skript endet.
 call deactivate
 
 endlocal
-```
-
-### Anleitung zur Verwendung
-
-1.  **Speichern:** Speichern Sie den obigen Code in einer Datei mit dem Namen `install_and_run.bat` im selben `initial_install`-Verzeichnis, in dem sich auch das ursprüngliche Bash-Skript befand.
-2.  **Ausführen:** Öffnen Sie die Windows-Kommandozeile (`cmd.exe`) oder PowerShell, navigieren Sie in das `initial_install`-Verzeichnis und starten Sie das Skript, indem Sie einfach seinen Namen eingeben:
-    ```
-    install_and_run.bat
     

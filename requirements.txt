@@ -10,3 +10,4 @@ numpy
 sounddevice
 faster-whisper
 psutil
+ollama
