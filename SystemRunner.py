@@ -124,6 +124,19 @@ class SystemRunner:
         threading.Thread(target=log_output, args=(process.stdout, logger.info), daemon=True).start()
         threading.Thread(target=log_output, args=(process.stderr, logger.warning), daemon=True).start()
 
+    def check_ollama_ready(self, timeout=30):
+        logger.info(f"SystemRunner: Waiting for Ollama to be ready...")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(f"http://127.0.0.1:11434/api/tags", timeout=1)
+                if response.status_code == 200:
+                    logger.info("SystemRunner: Ollama is ready!")
+                    return True
+            except requests.RequestException: pass
+            time.sleep(0.5)
+        return False
+
     def check_backend_ready(self, timeout=60):
         logger.info(f"SystemRunner: Waiting for Backend to be ready...")
         start_time = time.time()
@@ -180,6 +193,9 @@ def main():
     
     try:
         runner.run_ollama_serve()
+        if not runner.check_ollama_ready():
+            raise RuntimeError("Ollama failed to start.")
+        
         runner.run_backend_server()
         if not runner.check_backend_ready():
             raise RuntimeError("Backend failed to start.")
