@@ -2,31 +2,60 @@
 setlocal
 
 REM --- KONFIGURATION ---
-set "BUILD_TIMEOUT=10"    REM 10 Sekunden fuer 'npm run build'
-set "OLLAMA_TIMEOUT=10"  REM 10 Sek fuer 'ollama run'
+set "BUILD_TIMEOUT=600"    REM Realistischer Timeout fuer 'npm run build' (Sekunden)
+set "OLLAMA_TIMEOUT=60"    REM Timeout fuer kurzes 'ollama run' Warmup (Sekunden)
 set "LOG_FILE=frontend_build.log"
 REM Speichert den Pfad des aktuellen Skripts, um spaeter zurueckzukehren.
 set "SCRIPT_DIR=%~dp0"
 
+REM Ermittele Projekt-Root (eine Ebene ueber dem Skriptverzeichnis) und wechsle dort hin
+cd /d "%SCRIPT_DIR%.."
+set "ROOT_DIR=%CD%"
+set "VENV_DIR=%ROOT_DIR%\.venv"
+
 echo --- 1. Project Setup Started ---
 
 REM 1.1 Python Virtuelle Umgebung im uebergeordneten Ordner erstellen
-echo 1.1 Creating Python Virtual Environment (..\.venv)...
-REM Windows verwendet 'python' anstelle von 'python3' und Backslashes '\'.
-python -m venv "%~dp0..\.venv"
-if %errorlevel% neq 0 (
-    echo Error: Failed to create venv. Ensure Python is installed and in your PATH.
+echo 1.1 Creating Python Virtual Environment (.%\venv)...
+
+REM Finde geeigneten Python Starter (bevorzugt "py -3" auf Windows)
+set "PYTHON_CMD="
+py -3 -V > nul 2>&1 && set "PYTHON_CMD=py -3"
+if not defined PYTHON_CMD (
+    python -V > nul 2>&1 && set "PYTHON_CMD=python"
+)
+if not defined PYTHON_CMD (
+    echo Error: No suitable Python launcher found. Install Python 3.10+ and ensure it is on PATH.
     exit /b 1
+)
+
+if exist "%VENV_DIR%\Scripts\activate.bat" (
+    echo    -> Virtual environment already exists. Reusing it.
+) else (
+    %PYTHON_CMD% -m venv "%VENV_DIR%"
+    if %errorlevel% neq 0 (
+        echo Warning: Initial venv creation failed. Retrying after cleanup...
+        rmdir /s /q "%VENV_DIR%" > nul 2>&1
+        %PYTHON_CMD% -m venv "%VENV_DIR%"
+        if %errorlevel% neq 0 (
+            echo Error: Failed to create venv. Ensure Python is installed and you have permissions.
+            exit /b 1
+        )
+    )
 )
 
 REM 1.2 Virtuelle Umgebung aktivieren
 echo 1.2 Activating Virtual Environment...
-REM Der Aktivierungspfad ist unter Windows anders. 'call' stellt sicher, dass das Skript hierher zurueckkehrt.
-call ..\.venv\Scripts\activate.bat
+REM Der Aktivierungspfad nutzt das absolute Verzeichnis.
+call "%VENV_DIR%\Scripts\activate.bat"
+if %errorlevel% neq 0 (
+    echo Error: Failed to activate virtual environment at %VENV_DIR%.
+    exit /b 1
+)
 
 REM 1.3 Python-Abhaengigkeiten aus dem uebergeordneten Ordner installieren
-echo 1.3 Installing Python dependencies from ..\requirements.txt...
-pip install -r ..\requirements.txt
+echo 1.3 Installing Python dependencies from %ROOT_DIR%\requirements.txt...
+pip install -r "%ROOT_DIR%\requirements.txt"
 if %errorlevel% neq 0 (
     echo Error: Failed to install Python dependencies.
     goto :cleanup
@@ -35,7 +64,7 @@ if %errorlevel% neq 0 (
 echo --- 2. Frontend Setup Started ---
 
 REM Wechsel in das Frontend-Verzeichnis im uebergeordneten Ordner
-cd ..\Frontend
+cd /d "%ROOT_DIR%\Frontend"
 if %errorlevel% neq 0 (
     echo Error: Could not switch to the '..\Frontend' directory.
     goto :cleanup
@@ -57,26 +86,18 @@ IF EXIST "node_modules" (
         echo ####################################################################
         pause
         goto :cleanup
+    )
 )
-)
 
-REM 2.2 'npm run build' mit Zeitlimit ausfuehren
-echo 2.2 Starting 'npm run build' (Timeout: %BUILD_TIMEOUT%s)...
-REM 'start' startet einen Prozess im Hintergrund. Der Titel "NPM_BUILD_PROCESS" hilft, ihn spaeter zu finden.
-start "NPM_BUILD_PROCESS" /b npm run build > "%SCRIPT_DIR%%LOG_FILE%" 2>&1
-
-REM Warten bis zum Timeout. 'timeout' ist das Windows-Aequivalent zu 'sleep'.
-timeout /t %BUILD_TIMEOUT% /nobreak > nul
-
-REM Pruefen, ob der Prozess noch laeuft, und ihn beenden.
-REM tasklist sucht nach dem Prozess ueber den Fenstertitel, den wir mit 'start' vergeben haben.
-tasklist /v /fi "WINDOWTITLE eq NPM_BUILD_PROCESS*" | find "node.exe" > nul
-if %errorlevel% equ 0 (
-    echo Timeout reached for 'npm run build'. Terminating process.
-    REM taskkill beendet den Prozess und alle seine untergeordneten Prozesse (/t).
-    taskkill /fi "WINDOWTITLE eq NPM_BUILD_PROCESS*" /t /f > nul
+REM 2.2 Optional: Synchrone Build-Ausfuehrung (Logs werden im Skriptordner gespeichert)
+echo 2.2 Running 'npm run build' (this may take a while)...
+npm run build > "%SCRIPT_DIR%%LOG_FILE%" 2>&1
+if %errorlevel% neq 0 (
+    echo FEHLER: 'npm run build' ist fehlgeschlagen. Siehe %SCRIPT_DIR%%LOG_FILE%.
+    pause
+    goto :cleanup
 ) else (
-    echo 'npm run build' finished or was terminated early.
+    echo Build abgeschlossen. Log: %SCRIPT_DIR%%LOG_FILE%
 )
 
 REM Zurueck zum Verzeichnis des Skripts wechseln
@@ -140,12 +161,13 @@ goto :eof
 
 :start_system_runner
 echo --- 4. Starting SystemRunner.py (Press CTRL+C to stop all services) ---
-python ..\SystemRunner.py
+cd /d "%ROOT_DIR%"
+python SystemRunner.py
 
 
 :cleanup
 echo --- Automation complete ---
 REM Deaktiviert die virtuelle Umgebung, wenn das Skript endet.
-call deactivate
+if defined VIRTUAL_ENV call deactivate
 
 endlocal
