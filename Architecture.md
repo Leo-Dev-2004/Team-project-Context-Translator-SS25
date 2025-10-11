@@ -42,6 +42,7 @@ Die Anwendung besteht aus vier unabhängigen Hauptkomponenten, die über WebSock
 - **Koordination**: Stellt sicher, dass Backend, STT-Modul und Frontend ordnungsgemäß initialisiert werden
 - **Fehlerbehandlung**: Überwachung der Service-Gesundheit und automatisches Neustarten bei Bedarf
 - **Session-Management**: Generiert eindeutige User-Session-IDs für die Sitzungsverfolgung
+- **Modus-Konfiguration**: `ELECTRON_DEV_MODE` Boolean steuert, ob Frontend im Development-Modus (mit Vite dev server) oder Production-Modus (mit gebauten Dateien) läuft
 
 ### 2. STT-Modul (`Backend/STT/`)
 **Rolle**: Hochleistungs-Spracherkennung
@@ -195,6 +196,7 @@ python SystemRunner.py
 ### Konfiguration
 - **Backend-Settings**: `Backend/settings.json`
 - **Frontend-Settings**: `~/.context-translator-settings.json` (via Electron)
+- **SystemRunner-Modus**: `ELECTRON_DEV_MODE` in `SystemRunner.py` (True für Development, False für Production)
 - **Environment**: `.env` für entwicklungsspezifische Konfiguration
 
 ### Logging und Monitoring
