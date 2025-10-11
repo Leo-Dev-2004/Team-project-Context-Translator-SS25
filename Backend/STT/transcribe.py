@@ -37,6 +37,9 @@ class Config:
     STREAMING_CHUNK_DURATION_S = 3.0 # Process chunks every N seconds during speech
     STREAMING_OVERLAP_DURATION_S = 0.5 # Overlap between chunks for context
     STREAMING_MIN_BUFFER_S = 2.0 # Minimum buffer before starting streaming
+    
+    # Buffering safeguards
+    MAX_UNSENT_BUFFER = 50 # Cap the number of buffered final messages for resend
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -70,6 +73,7 @@ class STTService:
         self.streaming_active = False
         self.processed_chunks = []  # Store processed chunk results
         self.unsent_sentences = []  # Buffer for unsent sentences
+        self._bg_tasks = set()      # Track background async tasks for cleanup on disconnect
         logger.info(f"STTService initialized for session {self.user_session_id}")
         if Config.STREAMING_ENABLED:
             logger.info("Streaming transcription optimization enabled")
@@ -178,7 +182,14 @@ class STTService:
         
         # Check if websocket is still open before attempting to send
         if not websocket.open:
-            logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
+            if is_interim:
+                # Don't buffer interims across reconnects; they are ephemeral
+                logger.warning("Cannot send interim - WebSocket is not open. Dropping interim.")
+                return
+            logger.warning("Cannot send sentence - WebSocket is not open. Buffering for retry.")
+            # Cap buffer to avoid unbounded growth
+            if len(self.unsent_sentences) >= Config.MAX_UNSENT_BUFFER:
+                self.unsent_sentences.pop(0)
             self.unsent_sentences.append(message)
             return
             
@@ -186,12 +197,22 @@ class STTService:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
         except websockets.exceptions.ConnectionClosed:
-            # Connection closed - buffer for retry
-            logger.info(f"Cannot send sentence - WebSocket connection closed. Buffering for retry.")
+            # Connection closed - buffer for retry (finals only)
+            if is_interim:
+                logger.info("Cannot send interim - connection closed. Dropping interim.")
+                return
+            logger.info("Cannot send sentence - WebSocket connection closed. Buffering for retry.")
+            if len(self.unsent_sentences) >= Config.MAX_UNSENT_BUFFER:
+                self.unsent_sentences.pop(0)
             self.unsent_sentences.append(message)
         except Exception as e:
             # Unexpected error - buffer and log warning
+            if is_interim:
+                logger.warning(f"Failed to send interim, unexpected error: {e}. Dropping interim.")
+                return
             logger.warning(f"Failed to send sentence, unexpected error: {e}. Buffering for retry.")
+            if len(self.unsent_sentences) >= Config.MAX_UNSENT_BUFFER:
+                self.unsent_sentences.pop(0)
             self.unsent_sentences.append(message)
 
     async def _process_streaming_chunk(self, audio_chunk: np.ndarray, chunk_index: int):
@@ -377,11 +398,13 @@ class STTService:
                                     streaming_chunk_index += 1
                                     
                                     # Process in background (fire and forget for responsiveness)
-                                    asyncio.create_task(
+                                    task = asyncio.create_task(
                                         self._process_streaming_buffer_chunk(
                                             websocket, buffer_chunk, streaming_chunk_index
                                         )
                                     )
+                                    self._bg_tasks.add(task)
+                                    task.add_done_callback(self._bg_tasks.discard)
                                     last_streaming_process_time = current_time
                         
                 else:
@@ -436,6 +459,12 @@ class STTService:
                 self.streaming_active = False
                 self.processed_chunks = []
                 await asyncio.sleep(1)
+        # Cleanup any background tasks when exiting the loop (e.g., due to disconnect)
+        if self._bg_tasks:
+            for t in list(self._bg_tasks):
+                t.cancel()
+            await asyncio.gather(*self._bg_tasks, return_exceptions=True)
+            self._bg_tasks.clear()
 
     async def _finalize_streaming_results(self, websocket, audio_buffer):
         """Finalize streaming results and send consolidated transcription."""
