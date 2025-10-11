@@ -100,12 +100,24 @@ class MainModel:
 
     # No changes needed for these helper methods
     def clean_output(self, text: str) -> str:
+        # Accept either plain text or JSON string with a 'response' field
+        if not isinstance(text, str):
+            return str(text)
+        t = text.strip()
+        # If it looks like JSON from Ollama, try parsing and take 'response'
+        if (t.startswith('{') and t.endswith('}')) or (t.startswith('[') and t.endswith(']')):
+            try:
+                obj = json.loads(t)
+                if isinstance(obj, dict) and isinstance(obj.get('response'), str):
+                    t = obj['response']
+            except Exception:
+                pass
         return (
-            text.replace("<think>", "")
-                .replace("</think>", "")
-                .replace("### Response:", "")
-                .replace("**Explanation:**", "")
-                .strip()
+            t.replace("<think>", "")
+             .replace("</think>", "")
+             .replace("### Response:", "")
+             .replace("**Explanation:**", "")
+             .strip()
         )
 
     def is_explained(self, term: str) -> bool:
@@ -119,6 +131,22 @@ class MainModel:
 
     def mark_as_explained(self, term: str):
         self.explained_terms[term.lower()] = time.time()
+
+    def _cache_get(self, cache: Dict[str, str], term: str) -> Optional[str]:
+        """Retrieve cached explanation with case-insensitive key matching."""
+        if term in cache:
+            return cache[term]
+        t = term.lower()
+        if t in cache:
+            return cache[t]
+        # Fallback: scan keys case-insensitively
+        for k, v in cache.items():
+            try:
+                if isinstance(k, str) and k.lower() == t:
+                    return v
+            except Exception:
+                continue
+        return None
 
     def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
                      explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
@@ -317,17 +345,23 @@ class MainModel:
                 logger.debug(f"Term '{term}' recently explained, skipping.")
                 continue
 
-            explanation = cache.get(term)
+            explanation = self._cache_get(cache, term)
             if not explanation:
                 logger.info(f"Generating new explanation for '{term}'...")
                 messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
                 explanation = await self.query_llm(messages)
                 if explanation:
-                    cache[term] = explanation
+                    cache[term.lower()] = explanation  # normalize key to lowercase
                     await self.save_cache(cache)
                     logger.info(f"Generated and cached explanation for '{term}'.")
                 else:
-                    logger.info(f"Loaded explanation for '{term}' from cache.")
+                    # Attempt cache fallback again in case-insensitive manner
+                    cached = self._cache_get(cache, term)
+                    if cached:
+                        logger.info(f"Using cached explanation for '{term}' after LLM failure.")
+                        explanation = cached
+                    else:
+                        logger.warning(f"No explanation generated and none found in cache for '{term}'.")
 
 
             if not explanation:

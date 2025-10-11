@@ -2,6 +2,7 @@ import httpx
 import asyncio
 import logging
 from typing import List, Dict, Optional
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ class OllamaClient:
             # Try /api/generate
             try:
                 url = f"{self.base}/api/generate"
-                payload = {"model": "llama3.2", "prompt": "ping"}
+                # Force non-streaming to avoid NDJSON for detection probes
+                payload = {"model": "llama3.2", "prompt": "ping", "stream": False}
                 r = await self._client.post(url, json=payload)
                 if r.status_code != 404:
                     logger.info("Detected Ollama endpoint: /api/generate (status %s)", r.status_code)
@@ -59,6 +61,9 @@ class OllamaClient:
         try:
             if not isinstance(data, dict):
                 return None
+            # Ollama generate/chat common top-level field
+            if 'response' in data and isinstance(data['response'], str):
+                return data['response']
             if 'message' in data and isinstance(data['message'], dict) and 'content' in data['message']:
                 return data['message']['content']
             if 'choices' in data and isinstance(data['choices'], list) and len(data['choices']) > 0:
@@ -95,9 +100,27 @@ class OllamaClient:
                 url = f"{self.base}/api/generate"
                 if prompt is None and messages is not None:
                     prompt = _messages_to_prompt(messages)
-                payload = {"model": model, "prompt": prompt}
+                # Force non-streaming so we get a single JSON document instead of NDJSON stream
+                payload = {"model": model, "prompt": prompt, "stream": False}
                 r = await self._client.post(url, json=payload)
                 r.raise_for_status()
+                # Some Ollama versions still respond with NDJSON even when stream=False; handle gracefully
+                ctype = r.headers.get('Content-Type', '')
+                if 'application/x-ndjson' in ctype or '\n' in (r.text or ''):
+                    text = _parse_ndjson_text(r.text)
+                    if text:
+                        return text
+                    # Fallback to best-effort parse of the last JSON object
+                    try:
+                        lines = [ln for ln in (r.text or '').splitlines() if ln.strip()]
+                        if lines:
+                            data = json.loads(lines[-1])
+                            text = await self._extract_text(data)
+                            if text is not None:
+                                return text
+                    except Exception:
+                        logger.debug("Failed to parse NDJSON fallback", exc_info=True)
+                # Normal JSON
                 data = r.json()
                 text = await self._extract_text(data)
                 return text if text is not None else json_dumps_short(data)
@@ -141,7 +164,6 @@ def _messages_to_prompt(messages: List[Dict]) -> str:
 
 def json_dumps_short(obj) -> str:
     try:
-        import json
         return json.dumps(obj, ensure_ascii=False)
     except Exception:
         return str(obj)
@@ -149,3 +171,34 @@ def json_dumps_short(obj) -> str:
 
 # Module-level client instance for easy reuse
 ollama_client = OllamaClient()
+
+
+def _parse_ndjson_text(text: Optional[str]) -> Optional[str]:
+    """Parse Ollama NDJSON stream and return concatenated assistant text.
+    Handles both generate-style {response: "...", done: bool} and chat-style shapes.
+    """
+    if not text:
+        return None
+    parts: List[str] = []
+    try:
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            # Generate stream shape
+            if isinstance(obj, dict):
+                if 'response' in obj and isinstance(obj.get('response'), str):
+                    parts.append(obj['response'])
+                # Some chat-like streams may include message chunks
+                msg = obj.get('message')
+                if isinstance(msg, dict) and isinstance(msg.get('content'), str):
+                    parts.append(msg['content'])
+        combined = ''.join(parts).strip()
+        return combined or None
+    except Exception:
+        logger.debug("Failed to parse NDJSON text", exc_info=True)
+        return None

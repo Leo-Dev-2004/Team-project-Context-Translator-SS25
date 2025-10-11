@@ -19,7 +19,7 @@ from pathlib import Path
 class Config:
     SAMPLE_RATE = 16000
     CHANNELS = 1
-    MODEL_SIZE = "medium"
+    MODEL_SIZE = "tiny.en"  # Smaller model for lower latency; change as needed
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
     MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
@@ -318,6 +318,10 @@ class STTService:
         silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
+            # If connection dropped, exit to let outer loop reconnect
+            if not websocket.open:
+                logger.warning("WebSocket is closed; exiting audio loop to reconnect.")
+                return
             current_time = time.monotonic()
             
             try:
@@ -402,12 +406,9 @@ class STTService:
                     audio_buffer.clear()
                     last_activity_time = current_time
 
-                # Send heartbeat if needed (no recent activity and sufficient time has passed)
+                # Send heartbeat on a fixed cadence regardless of activity to keep connection alive
                 time_since_last_heartbeat = current_time - last_heartbeat_time
-                time_since_last_activity = current_time - last_activity_time
-                
-                if (time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S and 
-                    time_since_last_activity >= Config.HEARTBEAT_INTERVAL_S):
+                if time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S:
                     await self._send_heartbeat(websocket)
                     last_heartbeat_time = current_time
 
@@ -415,10 +416,7 @@ class STTService:
                 # Check for heartbeat even when no audio data is available
                 current_time = time.monotonic()
                 time_since_last_heartbeat = current_time - last_heartbeat_time
-                time_since_last_activity = current_time - last_activity_time
-                
-                if (time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S and 
-                    time_since_last_activity >= Config.HEARTBEAT_INTERVAL_S):
+                if time_since_last_heartbeat >= Config.HEARTBEAT_INTERVAL_S:
                     await self._send_heartbeat(websocket)
                     last_heartbeat_time = current_time
                 
