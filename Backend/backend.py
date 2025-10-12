@@ -136,7 +136,6 @@ async def startup_event():
         outgoing_queue=queues.websocket_out
     )
     set_explanation_delivery_service_instance(explanation_delivery_service_instance)
-    logger.info("ExplanationDeliveryService initialized.")
 
     # Step 4: Start all background tasks.
     await websocket_manager_instance.start()

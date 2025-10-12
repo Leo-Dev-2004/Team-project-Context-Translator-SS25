@@ -95,7 +95,7 @@ class OllamaClient:
                 url = f"{self.base}/api/generate"
                 if prompt is None and messages is not None:
                     prompt = _messages_to_prompt(messages)
-                payload = {"model": model, "prompt": prompt}
+                payload = {"model": model, "prompt": prompt, "stream": False}
                 r = await self._client.post(url, json=payload)
                 r.raise_for_status()
                 data = r.json()
