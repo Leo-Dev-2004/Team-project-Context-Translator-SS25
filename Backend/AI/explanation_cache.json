@@ -1,1 +1,4 @@
-{}
+{
+  "Transmission Control Protocol": "As a computer science student with a focus on Python, you should know that TCP (Transmission Control Protocol) is a reliable protocol that ensures data packets are delivered correctly between network components, making it a crucial part of the Internet Protocol family. In simple terms, TCP helps ensure that your online interactions, such as sending emails or browsing websites, happen efficiently and accurately.",
+  "TCP": "As a Python-focused computer science student, you should know that TCP (Transmission Control Protocol) is a reliable protocol for exchanging data between devices over networks, ensuring error-free delivery of packets. In software development, understanding TCP is crucial because it enables communication between your programs and other systems, making it a fundamental component of the internet infrastructure."
+}

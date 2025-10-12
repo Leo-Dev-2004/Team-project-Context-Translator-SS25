@@ -547,59 +547,40 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📚 New explanation received:', explanation);
 
     if (explanation && explanation.term && explanation.content) {
-      // First, check if there's already an explanation with this term that needs updating
-      // (pending manual requests, automatic detections, or explanations with missing/default content)
-      const existingExplanation = explanationManager.findExplanationToUpdate(explanation.term);
-      
-      if (existingExplanation) {
-        console.log(`Renderer: 🔄 Found existing explanation to update for "${explanation.term}"`);
-        
-        // Update the existing explanation instead of creating a new one
-        const updated = explanationManager.updateExplanation(existingExplanation.id, {
-          content: explanation.content,
-          timestamp: explanation.timestamp * 1000, // Convert to milliseconds if needed
-          confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null,
-          isPending: false // Mark as no longer pending
-        });
-
-        if (updated) {
-          console.log(`Renderer: ✅ Updated existing explanation for "${explanation.term}"`);
-          
-          // Throttle notification display to prevent notification spam
-          const now = Date.now();
-          if (now - this.lastExplanationTime >= this.explanationThrottleMs) {
-            this._showNotification(`Explanation ready: ${explanation.term}`, 'success');
-            this.lastExplanationTime = now;
+      // Stronger deduplication: try pending update by term, then any existing by title
+      const pendingUpdated = explanationManager.updatePendingExplanationByTerm(explanation.term, {
+        content: explanation.content,
+        timestamp: explanation.timestamp * 1000,
+        confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null,
+        isPending: false
+      });
+      if (pendingUpdated) {
+        console.log(`Renderer: ✅ Updated pending explanation for "${explanation.term}" via explanation.new`);
+      } else {
+        // Try to find any existing explanation with the same term/title and update it
+        const existing = explanationManager.explanations.find(exp => exp.title === explanation.term && !exp.isDeleted);
+        if (existing) {
+          const updated = explanationManager.updateExplanation(existing.id, {
+            content: explanation.content,
+            timestamp: explanation.timestamp * 1000,
+            confidence: typeof explanation.confidence === 'number' ? explanation.confidence : null,
+            isPending: false
+          });
+          if (updated) {
+            console.log(`Renderer: ✅ Merged explanation.new into existing card for "${explanation.term}"`);
           }
-          return;
+        } else {
+          // No existing explanation found: create a new card
+          const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
+          explanationManager.addExplanation(
+            explanation.term,
+            explanation.content,
+            explanation.timestamp * 1000,
+            confidence
+          );
+          console.log(`Renderer: ✅ Added new explanation for "${explanation.term}"`);
         }
       }
-
-      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
-      const existingExplanations = explanationManager.explanations;
-      const recentExplanation = existingExplanations.find(exp => 
-        exp.title === explanation.term && 
-        !exp.isDeleted &&
-        exp.content && 
-        exp.content !== 'Generating explanation...' &&
-        !exp.content.includes('🔄 Generating explanation') &&
-        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
-      );
-
-      if (recentExplanation) {
-        console.log(`Renderer: 🛡️ Skipping duplicate explanation.new for "${explanation.term}" - recent explanation exists`);
-        return;
-      }
-
-      // Final fallback: Add as completely new explanation
-      const confidence = typeof explanation.confidence === 'number' ? explanation.confidence : null;
-      explanationManager.addExplanation(
-        explanation.term,
-        explanation.content,
-        explanation.timestamp * 1000, // Convert to milliseconds if needed
-        confidence
-      );
-      console.log(`Renderer: ✅ Added new explanation for "${explanation.term}"`);
 
       // Throttle notification display to prevent notification spam
       const now = Date.now();
@@ -697,45 +678,35 @@ class ElectronMyElement extends UI {
     console.log('Renderer: 📝 Explanation update received:', payload);
 
     if (payload && payload.term && payload.explanation) {
-      // First, check if there's already an explanation with this term that needs updating
-      // (pending manual requests, automatic detections, or explanations with missing/default content)
-      const existingExplanation = explanationManager.findExplanationToUpdate(payload.term);
-      
-      if (existingExplanation) {
-        console.log(`Renderer: 🔄 Found existing explanation to update for "${payload.term}"`);
-        
-        // Update the existing explanation instead of creating a new one
-        const updated = explanationManager.updateExplanation(existingExplanation.id, {
+      // Stronger merge-first strategy: pending update by term, else update any existing card by title
+      const pendingUpdated = explanationManager.updatePendingExplanationByTerm(payload.term, {
+        content: payload.explanation,
+        timestamp: (payload.timestamp || Date.now() / 1000) * 1000,
+        confidence: typeof payload.confidence === 'number' ? payload.confidence : null,
+        isPending: false
+      });
+      if (pendingUpdated) {
+        console.log(`Renderer: ✅ Updated pending explanation for "${payload.term}" via explanation.update`);
+        this._showNotification(`✨ Explanation ready: ${payload.term}`, 'success');
+        return;
+      }
+
+      const existing = explanationManager.explanations.find(exp => exp.title === payload.term && !exp.isDeleted);
+      if (existing) {
+        const updated = explanationManager.updateExplanation(existing.id, {
           content: payload.explanation,
           timestamp: (payload.timestamp || Date.now() / 1000) * 1000,
           confidence: typeof payload.confidence === 'number' ? payload.confidence : null,
-          isPending: false // Mark as no longer pending
+          isPending: false
         });
-
         if (updated) {
-          console.log(`Renderer: ✅ Updated existing explanation for "${payload.term}" via explanation.update`);
+          console.log(`Renderer: ✅ Merged explanation.update into existing card for "${payload.term}"`);
           this._showNotification(`✨ Explanation ready: ${payload.term}`, 'success');
           return;
         }
       }
 
-      // If no existing explanation found or update failed, check for recent explanations to prevent race condition duplicates
-      const existingExplanations = explanationManager.explanations;
-      const recentExplanation = existingExplanations.find(exp => 
-        exp.title === payload.term && 
-        !exp.isDeleted &&
-        exp.content && 
-        exp.content !== 'Generating explanation...' &&
-        !exp.content.includes('🔄 Generating explanation') &&
-        (Date.now() - exp.createdAt) < 5000 // Created within last 5 seconds
-      );
-
-      if (recentExplanation) {
-        console.log(`Renderer: 🛡️ Skipped duplicate explanation.update for "${payload.term}" - recent explanation exists`);
-        return;
-      }
-
-      // Final fallback: Add as new explanation
+      // As a last resort, add new card
       const confidence = typeof payload.confidence === 'number' ? payload.confidence : null;
       explanationManager.addExplanation(
         payload.term,
@@ -743,7 +714,7 @@ class ElectronMyElement extends UI {
         (payload.timestamp || Date.now() / 1000) * 1000,
         confidence
       );
-      console.log(`Renderer: ✅ Added new explanation for "${payload.term}" via explanation.update`);
+      console.log(`Renderer: ✅ Added new explanation for "${payload.term}" via explanation.update (no existing card found)`);
     } else {
       console.warn('Renderer: ⚠️ Invalid explanation update data received:', payload);
     }

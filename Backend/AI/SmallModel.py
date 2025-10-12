@@ -717,8 +717,9 @@ Return a JSON **array of objects**. Each object must have these keys:
                 message.payload.get("user_role"),
                 message.payload.get("domain")  # Pass domain context from transcription message
             )
+
             if not detected_terms:
-                logger.info(f"No terms found in transcription for client {message.client_id}")
+                logger.info(f"SmallModel: No terms found by AI/fallback in transcription for client {message.client_id}: '{transcribed_text}'")
                 return
 
             filtered_terms = []
@@ -728,14 +729,19 @@ Return a JSON **array of objects**. Each object must have these keys:
                 if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term_obj["term"].lower()] = time.time()
-                    logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
+                    logger.info(f"SmallModel: Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
+                else:
+                    logger.info(f"SmallModel: Filtered out term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
 
-            if filtered_terms:
-                # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
-                await self.send_immediate_detection_notification(message, filtered_terms)
+            if not filtered_terms:
+                logger.info(f"SmallModel: All detected terms were filtered out for client {message.client_id}: {detected_terms}")
+                return
 
-                # BACKGROUND PROCESSING: Queue for detailed explanation generation
-                await self.write_detection_to_queue(message, filtered_terms)
+            # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
+            await self.send_immediate_detection_notification(message, filtered_terms)
+
+            # BACKGROUND PROCESSING: Queue for detailed explanation generation
+            await self.write_detection_to_queue(message, filtered_terms)
 
         except Exception as e:
             logger.error(f"SmallModel failed to process message {message.id}: {e}", exc_info=True)
