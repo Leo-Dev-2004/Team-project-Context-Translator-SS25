@@ -334,7 +334,7 @@ class ElectronMyElement extends UI {
       payload: { user_session_id: userSessionId }
     };
     this.backendWs.send(JSON.stringify(message));
-    console.log(`Renderer: ✅ WebSocket handshake completed successfully for session ${userSessionId}`);
+    console.log(`Renderer: 📤 Sent handshake init message for session ${userSessionId}`);
   }
   
   // ### Manual Request Logic ###

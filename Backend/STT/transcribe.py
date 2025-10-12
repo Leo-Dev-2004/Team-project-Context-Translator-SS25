@@ -509,7 +509,7 @@ class STTService:
                         "origin": "stt_module", "client_id": self.stt_client_id
                     }
                     await websocket.send(json.dumps(initial_message))
-                    logger.info(f"STT: ✅ WebSocket handshake completed successfully for session {self.user_session_id}")
+                    logger.info(f"STT: 📤 Sent handshake init message for session {self.user_session_id}")
 
                     # Retry any unsent sentences from previous connection failures
                     if self.unsent_sentences:
