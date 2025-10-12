@@ -273,7 +273,7 @@ class ElectronMyElement extends UI {
     this.backendWs = new WebSocket(wsUrl);
 
     this.backendWs.onopen = () => {
-      console.log('Renderer: ✅ WebSocket connection established.');
+      console.log(`Renderer: ✅ WebSocket connection established to ${wsUrl}`);
       this.updateServerStatus('connected');
       this._performHandshake();
       playSound(launch_sound);
@@ -295,13 +295,17 @@ class ElectronMyElement extends UI {
     };
 
     this.backendWs.onerror = (error) => {
+      console.error(`Renderer: ❌ WebSocket error occurred on connection to ${wsUrl}:`, error);
       this.updateServerStatus('trouble');
       this._showNotification('WebSocket connection failed', 'error');
       playSound(error_sound);
     };
-    this.backendWs.onclose = () => {
+    this.backendWs.onclose = (event) => {
       this.updateServerStatus('disconnected');
-      console.log('Renderer: ⚙️ WebSocket connection closed.');
+      const reason = event.reason || 'No reason provided';
+      const code = event.code || 'Unknown';
+      const wasClean = event.wasClean ? 'cleanly' : 'unexpectedly';
+      console.warn(`Renderer: 🔌 WebSocket connection to ${wsUrl} closed ${wasClean}. Code: ${code}, Reason: ${reason}`);
       playSound(leave_sound);
       // Optionally implement reconnection logic here
     };
@@ -309,15 +313,17 @@ class ElectronMyElement extends UI {
 
   async _performHandshake() {
     if (!window.electronAPI) {
-        return console.error("Renderer: Electron API not available for handshake.");
+        console.error("Renderer: ❌ Electron API not available for handshake.");
         playSound(error_sound);
+        return;
     }
     const userSessionId = await window.electronAPI.getUserSessionId();
     this.userSessionId = userSessionId;
     
     if (!userSessionId) {
-        return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
+        console.warn("Renderer: ⚠️ Could not retrieve User Session ID for handshake.");
         playSound(error_sound);
+        return;
     }
 
     console.log(`Renderer: 🚀 Sending "frontend.init" with User Session ID: ${userSessionId}`);
@@ -328,6 +334,7 @@ class ElectronMyElement extends UI {
       payload: { user_session_id: userSessionId }
     };
     this.backendWs.send(JSON.stringify(message));
+    console.log(`Renderer: ✅ WebSocket handshake completed successfully for session ${userSessionId}`);
   }
   
   // ### Manual Request Logic ###

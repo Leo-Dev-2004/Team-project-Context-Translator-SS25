@@ -502,13 +502,14 @@ class STTService:
         while self.is_recording.is_set():
             try:
                 async with websockets.connect(websocket_uri) as websocket:
-                    logger.info("WebSocket connection established with backend.")
+                    logger.info(f"STT: ✅ WebSocket connection established to {websocket_uri}")
                     initial_message = {
                         "id": str(uuid4()), "type": "stt.init", "timestamp": time.time(),
                         "payload": {"message": "STT service connected", "user_session_id": self.user_session_id},
                         "origin": "stt_module", "client_id": self.stt_client_id
                     }
                     await websocket.send(json.dumps(initial_message))
+                    logger.info(f"STT: ✅ WebSocket handshake completed successfully for session {self.user_session_id}")
 
                     # Retry any unsent sentences from previous connection failures
                     if self.unsent_sentences:
@@ -526,10 +527,12 @@ class STTService:
 
                     await self._process_audio_loop(websocket)
             except websockets.exceptions.ConnectionClosed as e:
-                logger.info(f"WebSocket connection closed: {e}. Reconnecting in 5s...")
+                close_code = getattr(e, 'code', 'Unknown')
+                close_reason = getattr(e, 'reason', 'No reason provided')
+                logger.warning(f"STT: 🔌 WebSocket connection to {websocket_uri} closed. Code: {close_code}, Reason: {close_reason}. Reconnecting in 5s...")
                 await asyncio.sleep(5)
             except Exception as e:
-                logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
+                logger.error(f"STT: ❌ WebSocket connection to {websocket_uri} failed: {e}. Retrying in 5s...")
                 await asyncio.sleep(5)
 
     def stop(self):
