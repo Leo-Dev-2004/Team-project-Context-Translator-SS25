@@ -37,7 +37,7 @@ class SmallModel:
         DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
 
         # Using a single, reusable async HTTP client is more efficient
-        self.http_client = httpx.AsyncClient(timeout=60.0)
+        self.http_client = httpx.AsyncClient(timeout=AI_TIMEOUT_SECONDS + 10.0)
         
         # A lock is essential to prevent race conditions when writing to the shared queue file
         self.queue_lock = asyncio.Lock()
@@ -305,53 +305,86 @@ class SmallModel:
         else:
             # Unknown content type - use normal threshold
             return self.confidence_threshold  # 0.6
+            
+    def _extract_text_from_response(self, data: Dict) -> Optional[str]:
+        """Extracts the assistant's text content from an Ollama JSON response."""
+        try:
+            if not isinstance(data, dict):
+                return None
+            
+            # For /api/chat (non-streaming)
+            if 'message' in data and isinstance(data['message'], dict) and 'content' in data['message']:
+                return data['message']['content']
+            
+            # For /api/generate (non-streaming)
+            if 'response' in data and isinstance(data['response'], str):
+                return data['response']
+
+            return None
+        except Exception:
+            logger.debug("Failed to extract assistant text from response", exc_info=True)
+            return None
 
     async def _query_ollama_async(self, prompt: str) -> Optional[str]:
-        """Asynchronously queries the Ollama server to avoid blocking the event loop."""
-        import psutil, time
-        start_time = time.time()
+        """Asynchronously queries the Ollama server and returns the text content."""
+        payload = {
+            "model": LLAMA_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "format": "json" # Ask for JSON output to improve reliability
+        }
+        
         try:
-            # Import ollama_client here to ensure it's defined
-            from .ollama_client import ollama_client
-            # Use resilient Ollama client
-            raw = await ollama_client.request(model=LLAMA_MODEL, messages=[{"role": "user", "content": prompt}])
-            elapsed = time.time() - start_time
-            if elapsed > 10:
-                logger.warning(f"Ollama response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
-            mem = psutil.virtual_memory()
-            if mem.percent > 90:
-                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
-            return raw
+            response = await self.http_client.post(OLLAMA_API_URL, json=payload, timeout=AI_TIMEOUT_SECONDS)
+            response.raise_for_status() # Raise an exception for HTTP error codes
+            
+            json_response = response.json()
+            return self._extract_text_from_response(json_response)
+
+        except httpx.TimeoutException:
+            logger.error(f"Ollama request timed out after {AI_TIMEOUT_SECONDS} seconds.")
+            return None
         except httpx.RequestError as e:
-            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
+            logger.error(f"Ollama connection failed: {e}. Is Ollama running?")
+            return None
+        except json.JSONDecodeError:
+            logger.error(f"Failed to decode JSON from Ollama response: {response.text}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error during AI detection: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
+            logger.error(f"An unexpected error occurred during AI detection: {e}", exc_info=True)
             return None
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
         """Use Ollama to detect important terms in the given sentence asynchronously."""
-        # Use configurable timeout for faster fallback
-        ai_timeout = AI_TIMEOUT_SECONDS
-        
         try:
-            # Try AI detection with timeout
-            detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
-            ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
-            if ai_result:
-                logger.info(f"AI detection completed for: {sentence[:50]}...")
-                return ai_result
-        except asyncio.TimeoutError:
-            logger.error(f"AI detection timed out after {ai_timeout}s. Possible model overload or resource exhaustion. Using fallback detection.")
+            ai_result_text = await self._query_ollama_async(
+                self._build_detection_prompt(sentence, user_role, domain)
+            )
+            if not ai_result_text:
+                logger.warning("AI detection returned no result. Using fallback.")
+                return await self.detect_terms_fallback(sentence)
+            
+            now = int(time.time())
+            raw_terms = self.safe_json_extract(ai_result_text)
+            
+            processed_terms = []
+            for term_info in raw_terms:
+                if isinstance(term_info, dict) and "term" in term_info:
+                    confidence = term_info.get("confidence")
+                    processed_terms.append({
+                        "term": term_info.get("term", ""),
+                        "timestamp": term_info.get("timestamp", now),
+                        "confidence": round(confidence if isinstance(confidence, (int, float)) else 0.5, 2),
+                        "context": term_info.get("context", sentence),
+                    })
+            return processed_terms
+
         except Exception as e:
-            logger.error(f"AI detection failed: {e}. Possible backend shutdown or unexpected error. Using fallback detection.")
-        # Use fast fallback detection
-        logger.info(f"Using fallback detection for: {sentence[:50]}...")
-        return await self.detect_terms_fallback(sentence)
+            logger.error(f"AI detection failed: {e}. Using fallback detection.", exc_info=True)
+            return await self.detect_terms_fallback(sentence)
     
-    async def _perform_ai_detection(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
-        """Perform AI-based term detection with the LLM. Uses global settings for domain if not provided."""
-        # Get domain from SettingsManager if not provided
+    def _build_detection_prompt(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> str:
+        """Constructs the full prompt for the LLM to detect terms."""
         if not domain:
             settings_manager = get_settings_manager_instance()
             if settings_manager:
@@ -364,7 +397,7 @@ class SmallModel:
             context_intro += f", in the context of '{domain.strip()}'"
         context_intro += f": \"{sentence}\""
 
-        prompt = f"""
+        return f"""
 Domain Term Extraction Prompt
 {context_intro}
 
@@ -444,24 +477,6 @@ Return a JSON **array of objects**. Each object must have these keys:
 ---
 {f"Domain context: {domain.strip()}. " if domain and domain.strip() else ""}Repeat: the user's role is "{user_role}". Adjust the confidence and terms accordingly.
 """
-        raw_response = await self._query_ollama_async(prompt)
-        if not raw_response:
-            return []
-
-        now = int(time.time())
-        raw_terms = self.safe_json_extract(raw_response)
-        
-        processed_terms = []
-        for term_info in raw_terms:
-            if isinstance(term_info, dict) and "term" in term_info:
-                confidence = term_info.get("confidence")
-                processed_terms.append({
-                    "term": term_info.get("term", ""),
-                    "timestamp": term_info.get("timestamp", now),
-                    "confidence": round(confidence if isinstance(confidence, (int, float)) else 0.5, 2),
-                    "context": term_info.get("context", sentence),
-                })
-        return processed_terms
 
     async def detect_terms_fallback(self, sentence: str) -> List[Dict]:
         """Fallback detection using basic patterns when AI is unavailable."""

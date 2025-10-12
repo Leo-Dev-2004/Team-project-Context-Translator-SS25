@@ -12,7 +12,7 @@ import uuid
 from ..models.UniversalMessage import UniversalMessage, ErrorTypes
 from ..dependencies import get_settings_manager_instance
 from ..dependencies import get_explanation_delivery_service_instance
-from .ollama_client import ollama_client
+# REMOVED: from .ollama_client import ollama_client
 
 # === Config ===
 # Moved configuration to constants for clarity
@@ -53,21 +53,18 @@ class MainModel:
         self.outgoing_queue = queues.outgoing
 
         # CRITICAL FIX: Locks to prevent race conditions when accessing shared files.
-        # Each file that is read, modified, and then written back needs its own lock.
         self.detections_lock = asyncio.Lock()
         self.explanations_lock = asyncio.Lock()
         self.cache_lock = asyncio.Lock()
 
-        # Cooldown tracking (Note: this is still in-memory and will reset on restart)
+        # Cooldown tracking
         self.explained_terms = {}
 
     async def send_explanation_update(self, term: str, explanation: str, entry: Dict):
         """
-        Send immediate explanation update to frontend to progressively enhance detected terms.
-        This updates terms that were previously sent as detections with their full explanations.
+        Sends an immediate explanation update to the frontend.
         """
         try:
-            # Create explanation update message
             explanation_update = UniversalMessage(
                 type="explanation.update",
                 payload={
@@ -83,22 +80,15 @@ class MainModel:
                 origin="MainModel", 
                 destination="frontend"
             )
-
-            # Send immediately to frontend
             await self.outgoing_queue.enqueue(explanation_update)
-            
             logger.info(f"Sent explanation update for term '{term}' to client {entry.get('client_id')}")
-            
         except Exception as e:
             logger.error(f"Error sending explanation update for '{term}': {e}", exc_info=True)
 
-        # Ensure queue directories exist (synchronous operation at init is acceptable)
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
         self.explanations_queue_file.parent.mkdir(parents=True, exist_ok=True)
-
         logger.info("MainModel initialized with asynchronous and thread-safe operations.")
 
-    # No changes needed for these helper methods
     def clean_output(self, text: str) -> str:
         return (
             text.replace("<think>", "")
@@ -122,50 +112,25 @@ class MainModel:
 
     def build_prompt(self, term: str, context: str, user_role: Optional[str] = None, 
                      explanation_style: str = "detailed", is_retry: bool = False, domain: Optional[str] = None) -> List[Dict]:
-        """Build prompt for LLM explanation generation. Uses global settings for domain and style if not provided."""
-        # Get domain and explanation_style from SettingsManager if not provided
+        """Builds the prompt for the LLM explanation generation."""
         settings_manager = get_settings_manager_instance()
         if settings_manager:
             if not domain:
                 domain = settings_manager.get_setting("domain", "")
-            if explanation_style == "detailed":  # Only override default, not explicit requests
+            if explanation_style == "detailed":
                 explanation_style = settings_manager.get_setting("explanation_style", "detailed")
         
-        role_context = ""
-        if user_role:
-            role_context = f" The user is a '{user_role}', so adjust your explanation accordingly."
+        role_context = f" The user is a '{user_role}', so adjust your explanation accordingly." if user_role else ""
+        domain_context = f" The explanation should be tailored for someone in the '{domain.strip()}' field." if domain and domain.strip() else ""
+        retry_instruction = " This is a regeneration request - provide an alternative, more extensive explanation." if is_retry else ""
 
-        domain_context = ""
-        if domain and isinstance(domain, str) and domain.strip():
-            domain_context = f" The explanation should be tailored for someone working in the field of '{domain.strip()}'."
-
-        # Style-specific instructions
         style_instructions = {
             "simple": "Provide a brief, easy-to-understand explanation in 1 sentence.",
             "detailed": "Provide a comprehensive explanation in 2-3 sentences with examples if helpful.",
-            "technical": "Provide an in-depth technical explanation with precise terminology and context.",
-            "beginner": "Provide an explanation suitable for complete beginners, avoiding jargon and using simple analogies."
+            "technical": "Provide an in-depth technical explanation with precise terminology.",
+            "beginner": "Provide an explanation for complete beginners, using simple analogies."
         }
-        
         style_instruction = style_instructions.get(explanation_style, style_instructions["detailed"])
-        
-        retry_instruction = ""
-        if is_retry:
-            retry_instruction = " This is a regeneration request - provide an alternative, more extensive explanation than what might have been given before."
-
-        # Style-specific instructions
-        style_instructions = {
-            "simple": "Provide a brief, easy-to-understand explanation in 1 sentence.",
-            "detailed": "Provide a comprehensive explanation in 2-3 sentences with examples if helpful.",
-            "technical": "Provide an in-depth technical explanation with precise terminology and context.",
-            "beginner": "Provide an explanation suitable for complete beginners, avoiding jargon and using simple analogies."
-        }
-        
-        style_instruction = style_instructions.get(explanation_style, style_instructions["detailed"])
-        
-        retry_instruction = ""
-        if is_retry:
-            retry_instruction = " This is a regeneration request - provide an alternative, more extensive explanation than what might have been given before."
 
         return [
             {
@@ -177,67 +142,86 @@ class MainModel:
                 "content": f"""Please directly explain the term "{term}" as used in this context:
 "{context}"
 
-{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}Provide a clear, concise explanation in 1-2 sentences. Focus on what the term means and why it's important. Do not include reasoning or thought processes."""
+{f"Domain focus: {domain.strip()}. " if domain and domain.strip() else ""}{style_instruction} Focus on what the term means and why it's important. Do not include your reasoning."""
             }
         ]
 
-    async def query_llm(self, messages: List[Dict], model: str = MODEL) -> Optional[str]:
-        """
-        FIX: Asynchronously query the LLM using httpx to prevent blocking.
-        """
-        import psutil, time
-        start_time = time.time()
+    def _extract_text_from_response(self, data: Dict) -> Optional[str]:
+        """Extracts the assistant's text content from an Ollama JSON response."""
         try:
-            # Use the resilient Ollama client which autodetects endpoint and normalizes response
-            raw_response = await ollama_client.request(model=model, messages=messages)
-            if raw_response is None:
-                raise RuntimeError("No response from Ollama client")
-            elapsed = time.time() - start_time
-            if elapsed > 10:
-                logger.warning(f"LLM response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
-            mem = psutil.virtual_memory()
-            if mem.percent > 90:
-                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
-            return self.clean_output(raw_response)
+            if not isinstance(data, dict):
+                return None
+            
+            # For /api/chat (non-streaming)
+            if 'message' in data and isinstance(data['message'], dict) and 'content' in data['message']:
+                return data['message']['content']
+            
+            # For /api/generate (non-streaming)
+            if 'response' in data and isinstance(data['response'], str):
+                return data['response']
+
+            return None
+        except Exception:
+            logger.debug("Failed to extract assistant text from response", exc_info=True)
+            return None
+
+    async def query_llm(self, messages: List[Dict], model: str = MODEL) -> Optional[str]:
+        """Asynchronously queries the Ollama server and returns the text content."""
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False
+        }
+        
+        try:
+            response = await self.http_client.post(OLLAMA_API_URL, json=payload)
+            response.raise_for_status()
+            
+            json_response = response.json()
+            text_content = self._extract_text_from_response(json_response)
+            
+            if text_content is None:
+                logger.error("Could not extract text from Ollama response: %s", json_response)
+                return None
+            
+            return self.clean_output(text_content)
+
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}. Possible Ollama connection issue or model error.")
+            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}")
         except httpx.RequestError as e:
-            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
+            logger.error(f"Ollama connection failed: {e}. Is Ollama running?")
+        except json.JSONDecodeError:
+            logger.error(f"Failed to decode JSON from Ollama response: {response.text}")
         except Exception as e:
-            logger.error(f"Error querying LLM: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
+            logger.error(f"Error querying LLM: {e}", exc_info=True)
         return None
 
     async def load_cache(self) -> Dict[str, str]:
-        """Load explanation cache from file safely."""
+        """Loads the explanation cache from a file."""
         async with self.cache_lock:
             try:
-                # Use try/except instead of a blocking .exists() call
                 async with aiofiles.open(self.cache_file, 'r', encoding='utf-8') as f:
                     content = await f.read()
                     return json.loads(content) if content.strip() else {}
             except FileNotFoundError:
-                return {} # Return empty cache if file doesn't exist
+                return {}
             except Exception as e:
                 logger.error(f"Error loading cache: {e}")
                 return {}
 
     async def save_cache(self, cache: Dict[str, str]):
-        """Save explanation cache to file atomically and safely."""
+        """Saves the explanation cache to a file atomically."""
         async with self.cache_lock:
             try:
                 temp_file = self.cache_file.with_suffix('.tmp')
                 async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
                     await f.write(json.dumps(cache, indent=2, ensure_ascii=False))
-                
-                # FIX: Run the blocking os.replace call in a separate thread
                 await asyncio.to_thread(os.replace, str(temp_file), str(self.cache_file))
             except Exception as e:
                 logger.error(f"Error saving cache: {e}")
 
     async def write_explanation_to_queue(self, explanation_entry: Dict) -> bool:
-        """
-        FIX: Write explanation to output queue safely using a lock to prevent race conditions.
-        """
+        """Writes an explanation entry to the output queue file."""
         async with self.explanations_lock:
             try:
                 current_queue = []
@@ -259,7 +243,6 @@ class MainModel:
                 
                 logger.info(f"Successfully wrote explanation to queue for client {explanation_entry.get('client_id')}")
                 
-                # Trigger immediate check in ExplanationDeliveryService for faster delivery
                 delivery_service = get_explanation_delivery_service_instance()
                 if delivery_service:
                     delivery_service.trigger_immediate_check()
@@ -271,10 +254,9 @@ class MainModel:
                 return False
 
     async def process_detections_queue(self):
-        """Process detected terms from SmallModel and generate explanations."""
+        """Processes detected terms from SmallModel and generates explanations."""
         pending_detections = []
         
-        # --- Stage 1: Safely read and update the detections queue ---
         async with self.detections_lock:
             all_detections = []
             try:
@@ -284,23 +266,18 @@ class MainModel:
                 if not all_detections:
                     return
 
-                something_to_process = False
-                pending_detections = []
-                for entry in all_detections:
-                    if entry.get("status") == "pending":
-                        pending_detections.append(entry)
-                        entry["status"] = "processing"
-                        something_to_process = True
+                items_to_keep = [e for e in all_detections if e.get("status") != "pending"]
+                pending_detections = [e for e in all_detections if e.get("status") == "pending"]
 
-                if something_to_process:
+                if pending_detections:
                     temp_file = self.detections_queue_file.with_suffix('.tmp')
                     async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
-                        await f.write(json.dumps(all_detections, indent=2, ensure_ascii=False))
+                        await f.write(json.dumps(items_to_keep, indent=2, ensure_ascii=False))
                     await asyncio.to_thread(os.replace, str(temp_file), str(self.detections_queue_file))
-                    logger.info(f"Marked {len(pending_detections)} detections as 'processing'.")
+                    logger.info(f"Atomically moved {len(pending_detections)} detections from queue for processing.")
             except FileNotFoundError:
                 return
-        # --- Stage 2: Process the items outside the lock to avoid blocking other writers ---
+
         if not pending_detections:
             return
 
@@ -308,68 +285,36 @@ class MainModel:
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
-            is_manual_request = entry.get("is_manual_request", False)  # Check if this is a manual request
-            explanation_style = entry.get("explanation_style", "detailed")
-            original_explanation_id = entry.get("original_explanation_id")
+            is_manual_request = entry.get("is_manual_request", False)
             
-            # For retry requests, skip cache and cooldown checks
             if not is_retry and self.is_explained(term):
                 logger.debug(f"Term '{term}' recently explained, skipping.")
                 continue
 
             explanation = cache.get(term)
-            if not explanation:
-                logger.info(f"Generating new explanation for '{term}'...")
-                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
+            if not explanation or is_retry:
+                logger.info(f"Generating {'new' if not is_retry else 'retry'} explanation for '{term}'...")
+                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("explanation_style"), is_retry, entry.get("domain"))
                 explanation = await self.query_llm(messages)
                 if explanation:
                     cache[term] = explanation
                     await self.save_cache(cache)
-                    logger.info(f"Generated and cached explanation for '{term}'.")
-                else:
-                    logger.info(f"Loaded explanation for '{term}' from cache.")
-
+            else:
+                logger.info(f"Loaded explanation for '{term}' from cache.")
 
             if not explanation:
                 logger.warning(f"Failed to generate explanation for '{term}'.")
                 continue
 
-            # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
+            # Send the update directly to the frontend.
             await self.send_explanation_update(term, explanation, entry)
 
-            # BACKGROUND: Only queue for file-based delivery system if this is NOT a manual request
-            # Manual requests already have pending explanations in the frontend that are updated by the immediate feedback above
-            if not is_manual_request:
-                message_type = "explanation.retry" if is_retry else "explanation.new"
-                explanation_entry = {
-                    "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
-                    "context": entry["context"], "timestamp": int(time.time()),
-                    "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                    "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                    "confidence": entry.get("confidence", 0), "message_type": message_type
-                }
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
-
-                # Add original explanation ID for retry responses
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
-                
-                # Queue for file-based delivery system (backwards compatibility for automatic detections)
-                if await self.write_explanation_to_queue(explanation_entry):
-                    # Only mark as explained for non-retry requests
-                    if not is_retry:
-                        self.mark_as_explained(term)
-                    logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
-            else:
-                # For manual requests, only send immediate feedback - no background queuing to avoid duplicates
-                logger.info(f"Successfully processed manual request for term '{term}' - sent immediate update only.")
-                # Still mark as explained to prevent duplicate processing
-                if not is_retry:
-                    self.mark_as_explained(term)
+            # Mark the term as explained to respect the cooldown.
+            if not is_retry:
+                self.mark_as_explained(term)
 
     async def run_continuous_processing(self):
-        """Run continuous processing loop for detected terms."""
+        """Runs the continuous processing loop for detected terms."""
         logger.info(f"Starting MainModel continuous processing, monitoring: {self.detections_queue_file}")
         while True:
             try:
