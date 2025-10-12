@@ -23,7 +23,7 @@ LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "10"))  # Configurable AI timeout
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "30"))  # Configurable AI timeout
 BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:

@@ -85,7 +85,7 @@ class MainModel:
             )
 
             # Send immediately to frontend
-            await self.outgoing_queue.enqueue(explanation_update)
+            # await self.outgoing_queue.enqueue(explanation_update)
             
             logger.info(f"Sent explanation update for term '{term}' to client {entry.get('client_id')}")
             
@@ -234,9 +234,9 @@ class MainModel:
             except Exception as e:
                 logger.error(f"Error saving cache: {e}")
 
-    async def write_explanation_to_queue(self, explanation_entry: Dict) -> bool:
+    async def write_explanation_to_queue(self, message_to_queue: UniversalMessage) -> bool:
         """
-        FIX: Write explanation to output queue safely using a lock to prevent race conditions.
+        Writes a complete UniversalMessage object to the explanations queue file.
         """
         async with self.explanations_lock:
             try:
@@ -249,7 +249,8 @@ class MainModel:
                 except FileNotFoundError:
                     logger.info("Explanations queue file not found, creating a new one.")
 
-                current_queue.append(explanation_entry)
+                # KORREKTUR: Konvertiere das Pydantic-Modell in ein Dictionary für JSON
+                current_queue.append(message_to_queue.model_dump(mode='json'))
 
                 temp_file = self.explanations_queue_file.with_suffix('.tmp')
                 async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
@@ -257,26 +258,26 @@ class MainModel:
                 
                 await asyncio.to_thread(os.replace, str(temp_file), str(self.explanations_queue_file))
                 
-                logger.info(f"Successfully wrote explanation to queue for client {explanation_entry.get('client_id')}")
+                logger.info(f"Successfully wrote UniversalMessage to explanations queue for client {message_to_queue.client_id}")
                 
-                # Trigger immediate check in ExplanationDeliveryService for faster delivery
                 delivery_service = get_explanation_delivery_service_instance()
                 if delivery_service:
                     delivery_service.trigger_immediate_check()
-                    logger.debug("Triggered immediate explanation delivery check")
                 
                 return True
             except Exception as e:
-                logger.error(f"Error writing explanation to queue: {e}", exc_info=True)
+                logger.error(f"Error writing to explanations queue: {e}", exc_info=True)
                 return False
-
+   
     async def process_detections_queue(self):
-        """Process detected terms from SmallModel and generate explanations."""
+        """
+        Processes detected terms, generates explanations, and queues a complete
+        UniversalMessage for the delivery service.
+        """
         pending_detections = []
         
-        # --- Stage 1: Safely read and update the detections queue ---
+        # --- Stage 1: Atomically read and clear pending items from the queue ---
         async with self.detections_lock:
-            all_detections = []
             try:
                 async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
                     content = await f.read()
@@ -284,23 +285,22 @@ class MainModel:
                 if not all_detections:
                     return
 
-                something_to_process = False
-                pending_detections = []
-                for entry in all_detections:
-                    if entry.get("status") == "pending":
-                        pending_detections.append(entry)
-                        entry["status"] = "processing"
-                        something_to_process = True
+                items_to_keep = [entry for entry in all_detections if entry.get("status") != "pending"]
+                pending_detections = [entry for entry in all_detections if entry.get("status") == "pending"]
 
-                if something_to_process:
+                if pending_detections:
                     temp_file = self.detections_queue_file.with_suffix('.tmp')
                     async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
-                        await f.write(json.dumps(all_detections, indent=2, ensure_ascii=False))
+                        await f.write(json.dumps(items_to_keep, indent=2, ensure_ascii=False))
                     await asyncio.to_thread(os.replace, str(temp_file), str(self.detections_queue_file))
-                    logger.info(f"Marked {len(pending_detections)} detections as 'processing'.")
+                    logger.info(f"Atomically moved {len(pending_detections)} detections from queue for processing.")
             except FileNotFoundError:
                 return
-        # --- Stage 2: Process the items outside the lock to avoid blocking other writers ---
+            except Exception as e:
+                logger.error(f"Error reading detections queue: {e}", exc_info=True)
+                return
+
+        # --- Stage 2: Process the items outside the lock ---
         if not pending_detections:
             return
 
@@ -308,66 +308,50 @@ class MainModel:
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
-            is_manual_request = entry.get("is_manual_request", False)  # Check if this is a manual request
-            explanation_style = entry.get("explanation_style", "detailed")
-            original_explanation_id = entry.get("original_explanation_id")
             
-            # For retry requests, skip cache and cooldown checks
             if not is_retry and self.is_explained(term):
                 logger.debug(f"Term '{term}' recently explained, skipping.")
                 continue
 
             explanation = cache.get(term)
-            if not explanation:
-                logger.info(f"Generating new explanation for '{term}'...")
-                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("domain"))
+            if not explanation or is_retry:
+                messages = self.build_prompt(term, entry["context"], entry.get("user_role"), entry.get("explanation_style", "detailed"), is_retry, entry.get("domain"))
                 explanation = await self.query_llm(messages)
                 if explanation:
                     cache[term] = explanation
                     await self.save_cache(cache)
-                    logger.info(f"Generated and cached explanation for '{term}'.")
-                else:
-                    logger.info(f"Loaded explanation for '{term}' from cache.")
-
+            else:
+                logger.info(f"Loaded explanation for '{term}' from cache.")
 
             if not explanation:
-                logger.warning(f"Failed to generate explanation for '{term}'.")
+                logger.warning(f"Failed to generate or load explanation for '{term}'.")
                 continue
 
-            # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
-            await self.send_explanation_update(term, explanation, entry)
-
-            # BACKGROUND: Only queue for file-based delivery system if this is NOT a manual request
-            # Manual requests already have pending explanations in the frontend that are updated by the immediate feedback above
-            if not is_manual_request:
-                message_type = "explanation.retry" if is_retry else "explanation.new"
-                explanation_entry = {
-                    "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
-                    "context": entry["context"], "timestamp": int(time.time()),
-                    "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                    "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                    "confidence": entry.get("confidence", 0), "message_type": message_type
-                }
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
-
-                # Add original explanation ID for retry responses
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
-                
-                # Queue for file-based delivery system (backwards compatibility for automatic detections)
-                if await self.write_explanation_to_queue(explanation_entry):
-                    # Only mark as explained for non-retry requests
-                    if not is_retry:
-                        self.mark_as_explained(term)
-                    logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
-            else:
-                # For manual requests, only send immediate feedback - no background queuing to avoid duplicates
-                logger.info(f"Successfully processed manual request for term '{term}' - sent immediate update only.")
-                # Still mark as explained to prevent duplicate processing
+            # --- KORREKTUR: Erstelle die finale UniversalMessage hier ---
+            # Der Typ ist immer 'explanation.update', da ein Platzhalter bereits existiert.
+            update_message = UniversalMessage(
+                type="explanation.update",
+                payload={
+                    "term": term,
+                    "explanation": explanation,
+                    "context": entry["context"],
+                    "confidence": entry.get("confidence", 0.5),
+                    "timestamp": int(time.time()),
+                    "original_detection_id": entry.get("id"),
+                    "status": "explained"
+                },
+                client_id=entry.get("client_id"),
+                origin="MainModel",
+                destination="frontend" # Ziel ist das Frontend
+            )
+            
+            # Schreibe die fertige UniversalMessage in die Warteschlange
+            if await self.write_explanation_to_queue(update_message):
                 if not is_retry:
                     self.mark_as_explained(term)
-
+                logger.info(f"Successfully queued 'explanation.update' message for term '{term}'.")
+    
+    
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""
         logger.info(f"Starting MainModel continuous processing, monitoring: {self.detections_queue_file}")

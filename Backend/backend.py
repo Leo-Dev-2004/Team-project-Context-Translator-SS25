@@ -39,7 +39,7 @@ from .MessageRouter import MessageRouter # Importiere die MessageRouter-Klasse (
 from .services.WebSocketManager import WebSocketManager
 
 # Importiere ExplanationDeliveryService
-from .services.ExplanationDeliveryService import ExplanationDeliveryService
+#from .services.ExplanationDeliveryService import ExplanationDeliveryService
 
 # Importiere die Funktionen zum Setzen und Holen von Instanzen aus dependencies.py
 from .dependencies import (
@@ -91,7 +91,7 @@ app.include_router(endpoints.router)
 queue_status_sender_task: Optional[asyncio.Task] = None
 websocket_manager_instance: Optional[WebSocketManager] = None
 message_router_instance: Optional[MessageRouter] = None
-explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
+#explanation_delivery_service_instance: Optional[ExplanationDeliveryService] = None
 
 main_model_instance: Optional[MainModel] = None
 main_model_task: Optional[asyncio.Task] = None
@@ -132,15 +132,15 @@ async def startup_event():
     logger.info("MessageRouter initialized with dependencies.")
 
     # Step 3: Initialize ExplanationDeliveryService
-    explanation_delivery_service_instance = ExplanationDeliveryService(
-        outgoing_queue=queues.websocket_out
-    )
-    set_explanation_delivery_service_instance(explanation_delivery_service_instance)
+    #explanation_delivery_service_instance = ExplanationDeliveryService(
+     #   outgoing_queue=queues.websocket_out
+    #)
+    #set_explanation_delivery_service_instance(explanation_delivery_service_instance)
 
     # Step 4: Start all background tasks.
     await websocket_manager_instance.start()
     await message_router_instance.start()
-    await explanation_delivery_service_instance.start()
+    #await explanation_delivery_service_instance.start()
     queue_status_sender_task = asyncio.create_task(send_queue_status_to_frontend())
 
     logger.info("Application startup complete. All services started.")
@@ -211,12 +211,12 @@ async def shutdown_event():
         except Exception as e:
             logger.error(f"Error during MessageRouter shutdown: {e}", exc_info=True)
 
-    if explanation_delivery_service_instance:
-        logger.info("Stopping ExplanationDeliveryService...")
-        try:
-            await explanation_delivery_service_instance.stop()
-        except Exception as e:
-            logger.error(f"Error during ExplanationDeliveryService shutdown: {e}", exc_info=True)
+    #if explanation_delivery_service_instance:
+      #  logger.info("Stopping ExplanationDeliveryService...")
+     #   try:
+   #         await explanation_delivery_service_instance.stop()
+    #    except Exception as e:
+     #       logger.error(f"Error during ExplanationDeliveryService shutdown: {e}", exc_info=True)
 
     # 3. WebSocketManager als LETZTES stoppen
     # Dies stellt sicher, dass alle vorherigen Dienste die Möglichkeit hatten,
