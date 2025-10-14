@@ -566,12 +566,12 @@ class STTService:
         while self.is_recording.is_set():
             logger.info("Main loop: Attempting to connect to WebSocket...")
             try:
-                async with websockets.connect(websocket_uri) as websocket:
+                async with websockets.connect(websocket_uri, ping_interval=10, ping_timeout=10) as websocket:
                     logger.info(f"STT: ✅ WebSocket connection established to {websocket_uri}")
                     initial_message = {
                         "id": str(uuid4()), "type": "stt.init", "timestamp": time.time(),
                         "payload": {"message": "STT service connected", "user_session_id": self.user_session_id},
-                        "origin": "stt_module", "client_id": self.stt_client_id
+                        "origin": "stt_module", "client_id": self.stt_client_id,
                     }
                     await websocket.send(json.dumps(initial_message))
                     logger.info(f"STT: 📤 Sent handshake init message for session {self.user_session_id}")
