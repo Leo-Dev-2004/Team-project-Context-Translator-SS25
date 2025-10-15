@@ -23,7 +23,7 @@ LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "30"))  # Configurable AI timeout
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "180"))  # Configurable AI timeout
 BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:
@@ -33,8 +33,11 @@ class SmallModel:
     """
 
     def __init__(self):
+        # Flush detections queue at startup
+        DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
+
         # Using a single, reusable async HTTP client is more efficient
-        self.http_client = httpx.AsyncClient(timeout=60.0)
+        self.http_client = httpx.AsyncClient(timeout=180.0)
         
         # A lock is essential to prevent race conditions when writing to the shared queue file
         self.queue_lock = asyncio.Lock()
@@ -50,7 +53,7 @@ class SmallModel:
         self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
-        self.confidence_threshold = 0.6  # Terms with confidence < this are ignored 
+        self.confidence_threshold = 0.4  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
             # Basic articles, pronouns, prepositions, conjunctions
@@ -573,18 +576,19 @@ Return a JSON **array of objects**. Each object must have these keys:
 
         try:
             transcribed_text = message.payload.get("text", "")
+            logger.info(f"SmallModel: Processing transcript: '{transcribed_text}' for client {message.client_id}")
             if not transcribed_text or not transcribed_text.strip():
                 logger.warning(f"SmallModel: Blocked empty transcription from client {message.client_id}.")
                 return
-            
+
             # Additional filtering for silence contamination and low-quality transcriptions
             text_lower = transcribed_text.lower().strip()
-            
+
             # Skip very short transcriptions that are likely noise
             if len(text_lower.split()) < 2:
                 logger.debug(f"SmallModel: Skipped short transcription: '{transcribed_text}'")
                 return
-                
+
             # Check for prompt contamination patterns
             prompt_indicators = [
                 "extract technical terms", "domain term extraction", "confidence float",
@@ -593,13 +597,120 @@ Return a JSON **array of objects**. Each object must have these keys:
             if any(indicator in text_lower for indicator in prompt_indicators):
                 logger.debug(f"SmallModel: Detected prompt contamination, skipping: '{transcribed_text}'")
                 return
-            
+
             # Check for repetitive patterns that suggest transcription errors during silence
             words = text_lower.split()
             if len(set(words)) == 1 and len(words) > 3:  # Same word repeated
                 logger.debug(f"SmallModel: Detected repetitive pattern, likely silence error: '{transcribed_text}'")
                 return
+            
+            # Check for common Whisper hallucination patterns (defense in depth)
+            # Define patterns with different strictness levels
+            strict_patterns = [
+                "thanks for watching", "thank you for watching", 
+                "please like and subscribe", "don't forget to subscribe",
+                "hit that subscribe button", "smash that like button"
+            ]
+            
+            moderate_patterns = [
+                "see you next time", "that's all for today", "until next time",
+                "catch you later", "thanks for your attention", "thank you for your time",
+                "appreciate you watching", "goodbye", "bye bye"
+            ]
+            
+            simple_patterns = ["thanks", "thank you"]
+            
+            # Check for multiple patterns (even if individually they wouldn't be blocked)
+            pattern_count = 0
+            found_patterns = []
+            all_patterns = strict_patterns + moderate_patterns + simple_patterns
+            for pattern in all_patterns:
+                if pattern in text_lower:
+                    pattern_count += 1
+                    found_patterns.append(pattern)
+            
+            # If multiple patterns found, be more aggressive about blocking
+            if pattern_count >= 2:
+                # Calculate how much of the sentence is NOT pattern-related
+                clean_text = text_lower
+                for pattern in found_patterns:
+                    clean_text = clean_text.replace(pattern, "")
+                clean_text = clean_text.strip()
+                non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today", ","]]
+                if len(non_filler_words) < 3:
+                    logger.warning(f"SmallModel: Blocked Whisper hallucination pattern (multiple): '{transcribed_text}'")
+                    return
+            
+            # Check strict patterns - block even with some extra content, but allow clear technical context
+            for pattern in strict_patterns:
+                if pattern in text_lower:
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone"]]
+                    
+                    # Allow if there's substantial technical content
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 3:  # Less than 3 meaningful words left
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+            
+            # Check moderate patterns - block if they dominate
+            for pattern in moderate_patterns:
+                if pattern in text_lower:
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today"]]
+                    
+                    # Allow if there's substantial technical content
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 2:  # Less than 2 meaningful words left
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+            
+            # Check simple patterns - block if entire sentence or very dominant, but allow technical context
+            for pattern in simple_patterns:
+                if pattern in text_lower:
+                    # Special case: if the entire sentence is just "thanks" or "thank you", block it
+                    if text_lower.strip() == pattern.strip():
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+                    
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    
+                    # Allow if there's clear technical context
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "advances", "implementation", "process", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    # Special handling for "thanks" - only allow if it's clearly part of "thanks to X" construction with technical content
+                    if pattern == "thanks":
+                        if "to" in clean_text and (has_tech_content or has_professional_content):
+                            continue  # Allow "thanks to machine learning" etc.
+                        # If it's not "thanks to X" with tech content, and there's little else, block it
+                        if len(clean_text) < 5:  # Very little other content
+                            logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                            return
+                    
+                    # For other simple patterns, only block if there's very little other content AND no technical context
+                    elif not (has_tech_content or has_professional_content) and len(clean_text) < 3:
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
 
+            # Log before AI detection
+            logger.info(f"SmallModel: Running AI detection on: '{transcribed_text}'")
             detected_terms = await self.detect_terms_with_ai(
                 transcribed_text,
                 message.payload.get("user_role"),
@@ -611,17 +722,19 @@ Return a JSON **array of objects**. Each object must have these keys:
 
             filtered_terms = []
             for term_obj in detected_terms:
+                # Always set context to actual transcript
+                term_obj["context"] = transcribed_text
                 if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
                     self.cooldown_map[term_obj["term"].lower()] = time.time()
                     logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
-            
+
             if filtered_terms:
                 # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
                 await self.send_immediate_detection_notification(message, filtered_terms)
-                
+
                 # BACKGROUND PROCESSING: Queue for detailed explanation generation
                 await self.write_detection_to_queue(message, filtered_terms)
-        
+
         except Exception as e:
             logger.error(f"SmallModel failed to process message {message.id}: {e}", exc_info=True)

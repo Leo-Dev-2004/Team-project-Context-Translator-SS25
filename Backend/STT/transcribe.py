@@ -19,14 +19,14 @@ from pathlib import Path
 class Config:
     SAMPLE_RATE = 16000
     CHANNELS = 1
-    MODEL_SIZE = "medium"
+    MODEL_SIZE = "tiny"
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
     MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
     
     # VAD (Voice Activity Detection) settings are key for responsiveness
     VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
-    VAD_SILENCE_DURATION_S = 1.0 # How long of a pause indicates end of sentence
+    VAD_SILENCE_DURATION_S = 1.5 # How long of a pause indicates end of sentence
     VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
     
     # Heartbeat settings to prevent connection timeouts during silence
@@ -185,6 +185,7 @@ class STTService:
         
         # Check if websocket is still open before attempting to send
         if not websocket.open:
+            
             logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
             self.unsent_sentences.append(message)
             return
@@ -609,7 +610,7 @@ class STTService:
         while self.is_recording.is_set():
             logger.info("Main loop: Attempting to connect to WebSocket...")
             try:
-                async with websockets.connect(websocket_uri, ping_interval=10, ping_timeout=10) as websocket:
+                async with websockets.connect(websocket_uri, ping_interval=5, ping_timeout=30) as websocket:
                     logger.info(f"STT: ✅ WebSocket connection established to {websocket_uri}")
                     initial_message = {
                         "id": str(uuid4()), "type": "stt.init", "timestamp": time.time(),
@@ -637,11 +638,11 @@ class STTService:
             except websockets.exceptions.ConnectionClosed as e:
                 close_code = getattr(e, 'code', 'Unknown')
                 close_reason = getattr(e, 'reason', 'No reason provided')
-                logger.warning(f"STT: 🔌 WebSocket connection to {websocket_uri} closed. Code: {close_code}, Reason: {close_reason}. Reconnecting in 5s...", exc_info=True)
-                await asyncio.sleep(5)
+                logger.warning(f"STT: 🔌 WebSocket connection to {websocket_uri} closed. Code: {close_code}, Reason: {close_reason}. Reconnecting in 3s...", exc_info=True)
+                await asyncio.sleep(3)
             except Exception as e:
-                logger.error(f"STT: ❌ WebSocket connection to {websocket_uri} failed: {e}. Retrying in 5s...", exc_info=True)
-                await asyncio.sleep(5)
+                logger.error(f"STT: ❌ WebSocket connection to {websocket_uri} failed: {e}. Retrying in 3s...", exc_info=True)
+                await asyncio.sleep(3)
 
     def stop(self):
         """Stops the recording and shuts down the service."""

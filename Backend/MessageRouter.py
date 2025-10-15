@@ -36,7 +36,6 @@ class MessageRouter:
 
     async def stop(self):
         """Stops the message routing process."""
-        # ... (method remains unchanged)
         if self._running:
             self._running = False
             if self._router_task:
@@ -48,14 +47,12 @@ class MessageRouter:
 
     async def _run_message_loops(self):
         """Orchestrates the two parallel listener tasks."""
-        # ... (method remains unchanged)
         client_listener = asyncio.create_task(self._client_message_listener())
         service_listener = asyncio.create_task(self._service_message_listener())
         await asyncio.gather(client_listener, service_listener)
 
     async def _client_message_listener(self):
         """Processes messages coming directly from clients (via WebSocket)."""
-        # ... (method remains unchanged)
         logger.info("MessageRouter: Listening for messages from clients...")
         while self._running:
             try:
@@ -69,7 +66,6 @@ class MessageRouter:
 
     async def _service_message_listener(self):
         """Processes messages coming from internal services """
-        # ... (method remains unchanged)
         logger.info("MessageRouter: Listening for messages from backend services...")
         while self._running:
             try:
