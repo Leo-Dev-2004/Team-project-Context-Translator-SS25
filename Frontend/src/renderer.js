@@ -195,30 +195,28 @@ class ElectronMyElement extends UI {
 
   // ### WebSocket & Messaging ###
 
-  async _processMessageQueue() {
+  _processMessageQueue() {
     if (this.isProcessingMessages || this.messageQueue.length === 0) {
       return;
     }
 
     this.isProcessingMessages = true;
-
-    try {
-      while (this.messageQueue.length > 0) {
-        const message = this.messageQueue.shift();
-        console.log(`Renderer: 💡 Processing message from backend:`, message);
-
-        await this._handleMessage(message);
-
-        // Small delay to prevent blocking the UI thread
-        if (this.messageQueue.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
+    const processNext = async () => {
+      if (this.messageQueue.length === 0) {
+        this.isProcessingMessages = false;
+        return;
       }
-    } catch (error) {
-      console.error('Renderer: ❌ Error processing message queue:', error);
-    } finally {
-      this.isProcessingMessages = false;
-    }
+      const message = this.messageQueue.shift();
+      try {
+        console.log(`Renderer: 💡 Processing message from backend:`, message);
+        await this._handleMessage(message);
+      } catch (error) {
+        console.error('Renderer: ❌ Error processing message queue:', error);
+      }
+      // Schedule next message for next tick
+      setTimeout(processNext, 0);
+    };
+    processNext();
   }
 
   async _handleMessage(message) {

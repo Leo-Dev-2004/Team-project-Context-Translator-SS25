@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # === Config ===
 # Centralized configuration for clarity and easy modification
 OLLAMA_API_URL = "http://localhost:11434/api/chat"
-LLAMA_MODEL = "llama3.2"
+LLAMA_MODEL = "llama3.2:3B"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
@@ -47,13 +47,10 @@ class SmallModel:
         from ..core.Queues import queues
         self.outgoing_queue = queues.outgoing
 
-        # Batching for improved performance
-        self.detection_batch = []
-        self.batch_timeout = None
-        self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
+    # Removed batching logic: now sends terms one at a time
 
         # Filtering configuration
-        self.confidence_threshold = 0.4  # Terms with confidence < this are ignored 
+        self.confidence_threshold = 0.65  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
             # Basic articles, pronouns, prepositions, conjunctions
@@ -730,11 +727,10 @@ Return a JSON **array of objects**. Each object must have these keys:
                     logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
 
             if filtered_terms:
-                # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
-                await self.send_immediate_detection_notification(message, filtered_terms)
-
-                # BACKGROUND PROCESSING: Queue for detailed explanation generation
-                await self.write_detection_to_queue(message, filtered_terms)
+                # Send each term individually to frontend and queue
+                for term_obj in filtered_terms:
+                    await self.send_immediate_detection_notification(message, [term_obj])
+                    await self.write_detection_to_queue(message, [term_obj])
 
         except Exception as e:
             logger.error(f"SmallModel failed to process message {message.id}: {e}", exc_info=True)

@@ -22,12 +22,12 @@ class Config:
     MODEL_SIZE = "tiny"
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
-    MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
+    MIN_WORDS_PER_SENTENCE = 15 # Reduced for better responsiveness
     
     # VAD (Voice Activity Detection) settings are key for responsiveness
     VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
-    VAD_SILENCE_DURATION_S = 1.5 # How long of a pause indicates end of sentence
-    VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
+    VAD_SILENCE_DURATION_S = 2.0  # How long of a pause indicates end of sentence
+    VAD_BUFFER_DURATION_S = 0.75 # Seconds of silence to keep before speech starts
     
     # Heartbeat settings to prevent connection timeouts during silence
     HEARTBEAT_INTERVAL_S = 5.0 # Send heartbeat every 10 seconds during silence (30s default was too long)
@@ -39,7 +39,7 @@ class Config:
     STREAMING_MIN_BUFFER_S = 2.0 # Minimum buffer before starting streaming
 
     # Maximum duration (seconds) for any single chunk that is transcribed/sent.
-    MAX_CHUNK_DURATION_S = 20.0
+    MAX_CHUNK_DURATION_S = 35.0
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -62,7 +62,7 @@ class STTService:
         self.user_session_id = user_session_id
         self.stt_client_id = f"stt_instance_{uuid4()}"
         logger.info(f"Loading Whisper model '{Config.MODEL_SIZE}'...")
-        self.model = WhisperModel(Config.MODEL_SIZE, device="cpu", compute_type="int8")
+        self.model = WhisperModel(Config.MODEL_SIZE, device="auto", compute_type="int8")
         logger.info("Whisper model loaded.")
         self.audio_queue = asyncio.Queue()
         self.is_recording = threading.Event()
@@ -192,7 +192,7 @@ class STTService:
             
         try:
             await websocket.send(json.dumps(message))
-            logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
+            # logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
         except websockets.exceptions.ConnectionClosed:
             # Connection closed - buffer for retry
             logger.info(f"Cannot send sentence - WebSocket connection closed. Buffering for retry.")
