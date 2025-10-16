@@ -116,11 +116,9 @@ run_ollama_with_timeout() {
 }
 
 # Execute Ollama commands
-pull_ollama_model "llama3.2:3B"
-pull_ollama_model "llama3:8B"
+pull_ollama_model "llama3.2"
 
-run_ollama_with_timeout "llama3.2:3B"
-run_ollama_with_timeout "llama3:8B"
+run_ollama_with_timeout "llama3.2"
 
 # --- 4. Start SystemRunner ---
 
