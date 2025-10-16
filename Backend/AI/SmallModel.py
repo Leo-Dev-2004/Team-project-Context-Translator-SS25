@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 # === Config ===
 # Centralized configuration for clarity and easy modification
 OLLAMA_API_URL = "http://localhost:11434/api/chat"
-LLAMA_MODEL = "llama3.2:3B"
+LLAMA_MODEL = "llama3:8B"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "180"))  # Configurable AI timeout
-BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "90"))  # Configurable AI timeout
+BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.25"))  # Configurable batch delay
 
 class SmallModel:
     """
@@ -37,7 +37,7 @@ class SmallModel:
         DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
 
         # Using a single, reusable async HTTP client is more efficient
-        self.http_client = httpx.AsyncClient(timeout=180.0)
+        self.http_client = httpx.AsyncClient(timeout=95.0)
         
         # A lock is essential to prevent race conditions when writing to the shared queue file
         self.queue_lock = asyncio.Lock()
@@ -50,7 +50,7 @@ class SmallModel:
     # Removed batching logic: now sends terms one at a time
 
         # Filtering configuration
-        self.confidence_threshold = 0.65  # Terms with confidence < this are ignored 
+        self.confidence_threshold = 0.71  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
             # Basic articles, pronouns, prepositions, conjunctions

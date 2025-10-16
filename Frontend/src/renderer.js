@@ -201,22 +201,42 @@ class ElectronMyElement extends UI {
     }
 
     this.isProcessingMessages = true;
-    const processNext = async () => {
-      if (this.messageQueue.length === 0) {
-        this.isProcessingMessages = false;
-        return;
+    const batchSize = 3; // Number of messages to process per frame to avoid jank
+
+    const yieldToBrowser = () => new Promise(resolve => {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => resolve());
+      } else {
+        // Fallback for environments without rAF
+        setTimeout(resolve, 0);
       }
-      const message = this.messageQueue.shift();
+    });
+
+    const processLoop = async () => {
       try {
-        console.log(`Renderer: 💡 Processing message from backend:`, message);
-        await this._handleMessage(message);
+        while (this.messageQueue.length > 0) {
+          // Process up to batchSize messages in a tight loop, then yield
+          for (let i = 0; i < batchSize && this.messageQueue.length > 0; i++) {
+            const message = this.messageQueue.shift();
+            try {
+              console.log(`Renderer: 💡 Processing message from backend:`, message);
+              await this._handleMessage(message);
+            } catch (error) {
+              console.error('Renderer: ❌ Error processing message:', error);
+            }
+          }
+
+          // Yield to the browser to keep the UI responsive
+          await yieldToBrowser();
+        }
       } catch (error) {
-        console.error('Renderer: ❌ Error processing message queue:', error);
+        console.error('Renderer: ❌ Error in message processing loop:', error);
+      } finally {
+        this.isProcessingMessages = false;
       }
-      // Schedule next message for next tick
-      setTimeout(processNext, 0);
     };
-    processNext();
+
+    processLoop();
   }
 
   async _handleMessage(message) {

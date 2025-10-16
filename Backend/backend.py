@@ -149,10 +149,11 @@ async def startup_event():
 
 async def send_queue_status_to_frontend():
     while True:
-        await asyncio.sleep(1)
         try:
             websocket_manager = get_websocket_manager_instance()
+            # If there's no manager or no connections, sleep to avoid busy-waiting
             if not websocket_manager or not websocket_manager.connections:
+                await asyncio.sleep(1.5)
                 continue
 
             status_payload = {
@@ -173,8 +174,13 @@ async def send_queue_status_to_frontend():
                     )
                     await queues.websocket_out.enqueue(status_message)
 
+            # Throttle frequency of status updates to reduce load when active
+            await asyncio.sleep(1.5)
+
         except Exception as e:
             logger.error(f"Error in status sending task: {e}", exc_info=True)
+            # Sleep briefly on errors to avoid tight exception loops
+            await asyncio.sleep(1.5)
 
 
 # --- FASTAPI-ANWENDUNGS-SHUTDOWN-EVENT ---

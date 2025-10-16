@@ -22,24 +22,24 @@ class Config:
     MODEL_SIZE = "tiny"
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
-    MIN_WORDS_PER_SENTENCE = 15 # Reduced for better responsiveness
+    MIN_WORDS_PER_SENTENCE = 6 # Reduced for better responsiveness
     
     # VAD (Voice Activity Detection) settings are key for responsiveness
-    VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
-    VAD_SILENCE_DURATION_S = 2.0  # How long of a pause indicates end of sentence
-    VAD_BUFFER_DURATION_S = 0.75 # Seconds of silence to keep before speech starts
+    VAD_ENERGY_THRESHOLD = 0.0035 # Energy threshold to detect speech
+    VAD_SILENCE_DURATION_S = 0.35  # How long of a pause indicates end of sentence
+    VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
     
     # Heartbeat settings to prevent connection timeouts during silence
     HEARTBEAT_INTERVAL_S = 5.0 # Send heartbeat every 10 seconds during silence (30s default was too long)
     
     # STREAMING OPTIMIZATION SETTINGS
     STREAMING_ENABLED = True # Enable streaming transcription for long speech
-    STREAMING_CHUNK_DURATION_S = 3.0 # Process chunks every N seconds during speech
-    STREAMING_OVERLAP_DURATION_S = 0.5 # Overlap between chunks for context
-    STREAMING_MIN_BUFFER_S = 2.0 # Minimum buffer before starting streaming
+    STREAMING_CHUNK_DURATION_S = 3.5 # Process chunks every N seconds during speech
+    STREAMING_OVERLAP_DURATION_S = 0.8 # Overlap between chunks for context
+    STREAMING_MIN_BUFFER_S = 3.0 # Minimum buffer before starting streaming
 
     # Maximum duration (seconds) for any single chunk that is transcribed/sent.
-    MAX_CHUNK_DURATION_S = 35.0
+    MAX_CHUNK_DURATION_S = 14.0
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
