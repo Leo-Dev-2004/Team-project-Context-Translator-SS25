@@ -6,12 +6,17 @@ Test to verify that manual requests get proper confidence scores.
 import asyncio
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from uuid import uuid4
 from unittest.mock import patch, AsyncMock
 
 import pytest
+
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from Backend.MessageRouter import MessageRouter
 from Backend.models.UniversalMessage import UniversalMessage

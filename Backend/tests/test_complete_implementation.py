@@ -9,8 +9,9 @@ import os
 import tempfile
 from pathlib import Path
 
-# Add the backend to path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from Backend.core.settings_manager import SettingsManager
 

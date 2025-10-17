@@ -8,8 +8,10 @@ import sys
 import os
 import json
 
-# Add the backend to path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# Add project root to Python path for imports
+from pathlib import Path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from Backend.core.settings_manager import SettingsManager
 from Backend.dependencies import set_settings_manager_instance, get_settings_manager_instance
