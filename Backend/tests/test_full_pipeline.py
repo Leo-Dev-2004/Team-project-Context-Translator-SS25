@@ -10,8 +10,9 @@ import json
 from pathlib import Path
 import time
 
-# Add Backend to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from Backend.AI.SmallModel import SmallModel
 from Backend.AI.MainModel import MainModel
