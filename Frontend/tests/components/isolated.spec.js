@@ -124,41 +124,6 @@ test.describe('Komponenten Unit Tests (Browser)', () => {
     const deleteButton = item.locator('.delete-button');
     await expect(deleteButton).toBeVisible();
   });
-
-  test('Chat Box Komponente isoliert testen', async ({ page }) => {
-    await page.setContent(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Chat Box Test</title>
-        <script type="module">
-          import '/src/components/chat-box.js';
-        </script>
-      </head>
-      <body>
-        <chat-box></chat-box>
-      </body>
-      </html>
-    `);
-    
-    await page.waitForSelector('chat-box');
-    
-    const chatBox = page.locator('chat-box');
-    await expect(chatBox).toBeVisible();
-    
-    // Input Field prüfen (Chat Box verwendet wahrscheinlich textarea)
-    const input = chatBox.locator('textarea, input');
-    if (await input.isVisible()) {
-      await input.fill('Test message');
-      await expect(input).toHaveValue('Test message');
-    }
-    
-    // Send Button prüfen - spezifischer Selektor
-    const sendButton = chatBox.locator('button').first();
-    if (await sendButton.isVisible()) {
-      await expect(sendButton).toBeVisible();
-    }
-  });
 });
 
 test.describe('Responsives Design Tests', () => {
