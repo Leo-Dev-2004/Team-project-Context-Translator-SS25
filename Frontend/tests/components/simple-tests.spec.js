@@ -126,7 +126,6 @@ test.describe('Komponenten Integration Tests', () => {
       '/src/components/ui.js',
       '/src/components/explanation-item.js', 
       '/src/components/status-bar.js',
-      '/src/components/chat-box.js',
       '/src/components/explanation-manager.js',
       '/src/components/setup-tab.js',
       '/src/components/explanations-tab.js',

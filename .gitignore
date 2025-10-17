@@ -146,4 +146,6 @@ Backend/STT/transcription.log
 # Test files (temporary)
 test_heartbeat*.py
 test_messagerouter_heartbeat.py
+Frontend/playwright-report/
+Frontend/test-results/
 
