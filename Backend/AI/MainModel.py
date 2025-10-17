@@ -45,7 +45,7 @@ class MainModel:
         self.cache_file.write_text(json.dumps({}), encoding='utf-8')
 
         # A single, reusable async HTTP client is more efficient.
-        self.http_client = httpx.AsyncClient(timeout=60.0)
+        self.http_client = httpx.AsyncClient(timeout=180.0)
 
         # Import outgoing queue for immediate explanation updates
         from ..core.Queues import queues
@@ -84,7 +84,7 @@ class MainModel:
             )
 
             # Send immediately to frontend
-            await self.outgoing_queue.enqueue(explanation_update)
+            # await self.outgoing_queue.enqueue(explanation_update)
             
             logger.info(f"Sent explanation update for term '{term}' to client {entry.get('client_id')}")
             
@@ -184,8 +184,6 @@ class MainModel:
         """
         FIX: Asynchronously query the LLM using httpx to prevent blocking.
         """
-        import psutil, time
-        start_time = time.time()
         try:
             response = await self.http_client.post(
                 OLLAMA_API_URL,
@@ -193,19 +191,11 @@ class MainModel:
             )
             response.raise_for_status()
             raw_response = response.json()["message"]["content"].strip()
-            elapsed = time.time() - start_time
-            if elapsed > 10:
-                logger.warning(f"LLM response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
-            mem = psutil.virtual_memory()
-            if mem.percent > 90:
-                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
             return self.clean_output(raw_response)
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}. Possible Ollama connection issue or model error.")
-        except httpx.RequestError as e:
-            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
+            logger.error(f"HTTP error querying LLM: {e.response.status_code} - {e.response.text}")
         except Exception as e:
-            logger.error(f"Error querying LLM: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
+            logger.error(f"Error querying LLM: {e}", exc_info=True)
         return None
 
     async def load_cache(self) -> Dict[str, str]:
@@ -309,7 +299,6 @@ class MainModel:
         for entry in pending_detections:
             term = entry["term"]
             is_retry = entry.get("is_retry", False)
-            is_manual_request = entry.get("is_manual_request", False)  # Check if this is a manual request
             explanation_style = entry.get("explanation_style", "detailed")
             original_explanation_id = entry.get("original_explanation_id")
             
@@ -338,36 +327,27 @@ class MainModel:
             # IMMEDIATE FEEDBACK: Send explanation update to frontend right away
             await self.send_explanation_update(term, explanation, entry)
 
-            # BACKGROUND: Only queue for file-based delivery system if this is NOT a manual request
-            # Manual requests already have pending explanations in the frontend that are updated by the immediate feedback above
-            if not is_manual_request:
-                message_type = "explanation.retry" if is_retry else "explanation.new"
-                explanation_entry = {
-                    "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
-                    "context": entry["context"], "timestamp": int(time.time()),
-                    "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
-                    "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
-                    "confidence": entry.get("confidence", 0), "message_type": message_type
-                }
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
+            message_type = "explanation.retry" if is_retry else "explanation.new"
+            explanation_entry = {
+                "id": str(uuid.uuid4()), "term": term, "explanation": explanation,
+                "context": entry["context"], "timestamp": int(time.time()),
+                "client_id": entry.get("client_id"), "user_session_id": entry.get("user_session_id"),
+                "original_detection_id": entry.get("id"), "status": "ready_for_delivery",
+                "confidence": entry.get("confidence", 0), "message_type": message_type
+            }
+            if is_retry and original_explanation_id:
+                explanation_entry["original_explanation_id"] = original_explanation_id
 
-                # Add original explanation ID for retry responses
-                if is_retry and original_explanation_id:
-                    explanation_entry["original_explanation_id"] = original_explanation_id
-                
-                # Queue for file-based delivery system (backwards compatibility for automatic detections)
-                if await self.write_explanation_to_queue(explanation_entry):
-                    # Only mark as explained for non-retry requests
-                    if not is_retry:
-                        self.mark_as_explained(term)
-                    logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
-            else:
-                # For manual requests, only send immediate feedback - no background queuing to avoid duplicates
-                logger.info(f"Successfully processed manual request for term '{term}' - sent immediate update only.")
-                # Still mark as explained to prevent duplicate processing
+            # Add original explanation ID for retry responses
+            if is_retry and original_explanation_id:
+                explanation_entry["original_explanation_id"] = original_explanation_id
+            
+            # BACKGROUND: Still queue for file-based delivery system (backwards compatibility)
+            if await self.write_explanation_to_queue(explanation_entry):
+                # Only mark as explained for non-retry requests
                 if not is_retry:
                     self.mark_as_explained(term)
+                logger.info(f"Successfully processed and queued {'retry ' if is_retry else ''}explanation for term '{term}'.")
 
     async def run_continuous_processing(self):
         """Run continuous processing loop for detected terms."""

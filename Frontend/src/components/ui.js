@@ -17,7 +17,8 @@ export class UI extends LitElement {
     serverStatus: { type: String },
     microphoneStatus: { type: String },
     isDarkMode: { type: Boolean },
-    scrollbarStyle: { type: String }
+    scrollbarStyle: { type: String },
+    sessionCode: { type: String }
   };
 
   constructor() {
@@ -30,8 +31,9 @@ export class UI extends LitElement {
     this.manualTerm = '';
     this.serverStatus = 'initializing';
     this.microphoneStatus = 'initializing';
-    this.isDarkMode = null;
-    this.scrollbarStyle = 'minimal';
+    this.isDarkMode = true; // Default to dark mode
+    this.scrollbarStyle = 'hidden';
+    this.sessionCode = '';
     
     this._lastExplanationUpdate = 0;
     this._explanationUpdateThrottle = 100; // Throttle UI updates to every 100ms
@@ -65,6 +67,7 @@ export class UI extends LitElement {
         .serverStatus=${this.serverStatus}
         .microphoneStatus=${this.microphoneStatus}
         .isDarkMode=${this.isDarkMode}
+        .sessionCode=${this.sessionCode}
         @tab-changed=${this._onTabChanged}
         @theme-changed=${this._onThemeChanged}>
         
@@ -83,6 +86,7 @@ export class UI extends LitElement {
             .domainValue=${this.domainValue}
             .explanationStyle=${this.explanationStyle}
             .scrollbarStyle=${this.scrollbarStyle}
+            .sessionCode=${this.sessionCode}
             @domain-changed=${this._onDomainChanged}
             @explanation-style-changed=${this._onExplanationStyleChanged}
             @scrollbar-style-changed=${this._onScrollbarStyleChanged}
@@ -104,9 +108,7 @@ export class UI extends LitElement {
             @pin-explanation=${this._onPinExplanation}
             @delete-explanation=${this._onDeleteExplanation}
             @copy-explanation=${this._onCopyExplanation}
-            @regenerate-explanation=${this._onRegenerateExplanation}
-            @send-chat-message=${this._onSendChatMessage}
-            @clear-chat=${this._onClearChat}>
+            @regenerate-explanation=${this._onRegenerateExplanation}>
           </explanations-tab>
         `;
       default:
@@ -183,14 +185,6 @@ export class UI extends LitElement {
     this._handleRegenerate(e.detail.explanation);
   }
 
-  _onSendChatMessage(e) {
-    this._sendChatMessage(e.detail.message);
-  }
-
-  _onClearChat(e) {
-    this._clearChat();
-  }
-
   // Implementation methods (these should be overridden in child classes)
   async _saveSettings(settings) { 
     if (window.electronAPI) {
@@ -209,13 +203,13 @@ export class UI extends LitElement {
   async _resetSettings() { 
     this.domainValue = ''; 
     this.explanationStyle = 'detailed';
-    this.scrollbarStyle = 'minimal';
+    this.scrollbarStyle = 'hidden';
     this._applyScrollbarStyle();
     if (window.electronAPI) {
       const result = await window.electronAPI.saveSettings({ 
         domain: '', 
         explanationStyle: 'detailed', 
-        scrollbarStyle: 'minimal' 
+        scrollbarStyle: 'hidden' 
       });
       if (result.success) {
         this._showNotificationIfAvailable?.('Settings reset successfully', 'success');
@@ -235,14 +229,6 @@ export class UI extends LitElement {
 
   _sendManualRequest(term) { 
     console.warn('UI: _sendManualRequest() called, but not implemented. Must be overridden in child class.'); 
-  }
-
-  _sendChatMessage(message) {
-    console.warn('UI: _sendChatMessage() called, but not implemented. Must be overridden in child class.');
-  }
-
-  _clearChat() {
-    console.warn('UI: _clearChat() called, but not implemented. Must be overridden in child class.');
   }
 
   _clearAllExplanations() { 
@@ -357,30 +343,6 @@ export class UI extends LitElement {
       }
     } catch (_) { }
     this.requestUpdate();
-  }
-
-  // Method to add chat messages to the explanations tab
-  addChatMessage(content, type = 'assistant') {
-    const explanationsTab = this.shadowRoot.querySelector('explanations-tab');
-    if (explanationsTab) {
-      explanationsTab.addChatMessage(content, type);
-    }
-  }
-
-  // Method to update chat connection status
-  setChatConnectionStatus(isConnected) {
-    const explanationsTab = this.shadowRoot.querySelector('explanations-tab');
-    if (explanationsTab) {
-      explanationsTab.setChatConnectionStatus(isConnected);
-    }
-  }
-
-  // Method to set chat loading state
-  setChatLoading(isLoading) {
-    const explanationsTab = this.shadowRoot.querySelector('explanations-tab');
-    if (explanationsTab) {
-      explanationsTab.setChatLoading(isLoading);
-    }
   }
 
   static styles = [sharedStyles];

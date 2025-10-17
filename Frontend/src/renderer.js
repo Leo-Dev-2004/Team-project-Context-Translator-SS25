@@ -224,13 +224,29 @@ class ElectronMyElement extends UI {
   async _handleMessage(message) {
     if (message.type === 'session.created') {
       const code = message.payload.code;
-      this.shadowRoot.querySelector('#session-code-input').value = code;
+      this.sessionCode = code;
       
-      const dialog = this.shadowRoot.querySelector('#session-dialog');
-      const codeDisplay = this.shadowRoot.querySelector('#dialog-session-code');
-      if (dialog && codeDisplay) {
-        codeDisplay.textContent = code;
-        dialog.show(); // Use .show() for non-modal
+      // Wait for the component to update with the new sessionCode
+      await this.updateComplete;
+      
+      // Set the session code in the input field
+      const setupTab = this.shadowRoot.querySelector('setup-tab');
+      if (setupTab) {
+        await setupTab.updateComplete;
+        const sessionCodeInput = setupTab.shadowRoot.querySelector('#session-code-input');
+        if (sessionCodeInput) {
+          sessionCodeInput.value = code;
+        }
+      }
+      
+      // Access the dialog through the main-body component
+      const mainBody = this.shadowRoot.querySelector('main-body');
+      if (mainBody) {
+        await mainBody.updateComplete;
+        const dialog = mainBody.shadowRoot.querySelector('#session-dialog');
+        if (dialog) {
+          dialog.show(); // Use .show() for non-modal
+        }
       }
     } else if (message.type === 'session.joined') {
       this._showNotification(`Successfully joined session ${message.payload.code}`, 'success');
@@ -257,7 +273,7 @@ class ElectronMyElement extends UI {
     this.backendWs = new WebSocket(wsUrl);
 
     this.backendWs.onopen = () => {
-      console.log('Renderer: ✅ WebSocket connection established.');
+      console.log(`Renderer: ✅ WebSocket connection established to ${wsUrl}`);
       this.updateServerStatus('connected');
       this._performHandshake();
       playSound(launch_sound);
@@ -279,13 +295,17 @@ class ElectronMyElement extends UI {
     };
 
     this.backendWs.onerror = (error) => {
+      console.error(`Renderer: ❌ WebSocket error occurred on connection to ${wsUrl}:`, error);
       this.updateServerStatus('trouble');
       this._showNotification('WebSocket connection failed', 'error');
       playSound(error_sound);
     };
-    this.backendWs.onclose = () => {
+    this.backendWs.onclose = (event) => {
       this.updateServerStatus('disconnected');
-      console.log('Renderer: ⚙️ WebSocket connection closed.');
+      const reason = event.reason || 'No reason provided';
+      const code = event.code || 'Unknown';
+      const wasClean = event.wasClean ? 'cleanly' : 'unexpectedly';
+      console.warn(`Renderer: 🔌 WebSocket connection to ${wsUrl} closed ${wasClean}. Code: ${code}, Reason: ${reason}`);
       playSound(leave_sound);
       // Optionally implement reconnection logic here
     };
@@ -293,15 +313,17 @@ class ElectronMyElement extends UI {
 
   async _performHandshake() {
     if (!window.electronAPI) {
-        return console.error("Renderer: Electron API not available for handshake.");
+        console.error("Renderer: ❌ Electron API not available for handshake.");
         playSound(error_sound);
+        return;
     }
     const userSessionId = await window.electronAPI.getUserSessionId();
     this.userSessionId = userSessionId;
     
     if (!userSessionId) {
-        return console.warn("Renderer: Could not retrieve User Session ID for handshake.");
+        console.warn("Renderer: ⚠️ Could not retrieve User Session ID for handshake.");
         playSound(error_sound);
+        return;
     }
 
     console.log(`Renderer: 🚀 Sending "frontend.init" with User Session ID: ${userSessionId}`);
@@ -312,6 +334,7 @@ class ElectronMyElement extends UI {
       payload: { user_session_id: userSessionId }
     };
     this.backendWs.send(JSON.stringify(message));
+    console.log(`Renderer: 📤 Sent handshake init message for session ${userSessionId}`);
   }
   
   // ### Manual Request Logic ###
@@ -379,9 +402,8 @@ class ElectronMyElement extends UI {
     this.backendWs.send(JSON.stringify(message));
   }
 
-  _joinSession() {
-    const codeInput = this.shadowRoot.querySelector('#session-code-input');
-    const code = codeInput ? codeInput.value.trim() : '';
+  _joinSession(sessionCode) {
+    const code = sessionCode ? sessionCode.trim() : '';
 
     if (!code) return this._showNotification('Please enter a session code', 'error');
     if (!this.backendWs || this.backendWs.readyState !== WebSocket.OPEN) {
@@ -425,7 +447,7 @@ class ElectronMyElement extends UI {
   // Override settings methods from base UI class
   async _saveSettings() {
     if (!window.electronAPI) {
-      return console.error("Renderer: window.electronAPI not available for saving settings.");
+      return console.error("Renderer: ❌ window.electronAPI not available for saving settings.");
     }
 
     const settings = {
@@ -433,12 +455,20 @@ class ElectronMyElement extends UI {
       explanationStyle: this.explanationStyle
     };
 
+    console.log('Renderer: 💾 Starting settings save process with:', settings);
+
     try {
       // Save settings locally via Electron IPC
+      const ipcStartTime = Date.now();
+      console.log('Renderer: 📤 Calling Electron IPC saveSettings...');
       const result = await window.electronAPI.saveSettings(settings);
+      const ipcDuration = Date.now() - ipcStartTime;
+      
       if (result.success) {
+        console.log(`Renderer: ✅ IPC saveSettings completed successfully (${ipcDuration}ms)`);
         this._showNotification('Settings saved successfully', 'success');
       } else {
+        console.error('Renderer: ❌ IPC saveSettings failed:', result.error);
         this._showNotification('Failed to save settings', 'error');
       }
       
@@ -458,18 +488,19 @@ class ElectronMyElement extends UI {
         };
         
         try {
+          console.log('Renderer: 📡 Sending settings to Backend via WebSocket (message ID:', message.id + ')...');
           this.backendWs.send(JSON.stringify(message));
-          console.log('Renderer: Settings sent to Backend via WebSocket:', message.payload);
+          console.log('Renderer: ✅ Settings sent to Backend via WebSocket:', message.payload);
         } catch (wsError) {
-          console.error('Renderer: Failed to send settings to Backend via WebSocket:', wsError);
+          console.error('Renderer: ❌ Failed to send settings to Backend via WebSocket:', wsError);
           // Don't show error to user as local save succeeded
         }
       } else {
-        console.log('Renderer: Backend WebSocket not available, settings only saved locally');
+        console.log('Renderer: ⚠️ Backend WebSocket not available, settings only saved locally');
       }
       
     } catch (error) {
-      console.error('Renderer: Error saving settings:', error);
+      console.error('Renderer: ❌ Error saving settings:', error);
       this._showNotification('Error saving settings', 'error');
     }
     if (settings.explanationStyle) {

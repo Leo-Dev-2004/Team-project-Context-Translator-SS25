@@ -23,7 +23,7 @@ LLAMA_MODEL = "llama3.2"
 DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
 
 # Performance configuration
-AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "20"))  # Configurable AI timeout
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "180"))  # Configurable AI timeout
 BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:
@@ -37,7 +37,7 @@ class SmallModel:
         DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
 
         # Using a single, reusable async HTTP client is more efficient
-        self.http_client = httpx.AsyncClient(timeout=60.0)
+        self.http_client = httpx.AsyncClient(timeout=180.0)
         
         # A lock is essential to prevent race conditions when writing to the shared queue file
         self.queue_lock = asyncio.Lock()
@@ -53,7 +53,7 @@ class SmallModel:
         self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
-        self.confidence_threshold = 0.6  # Terms with confidence < this are ignored 
+        self.confidence_threshold = 0.4  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
         self.known_terms = {
             # Basic articles, pronouns, prepositions, conjunctions
@@ -308,8 +308,6 @@ class SmallModel:
 
     async def _query_ollama_async(self, prompt: str) -> Optional[str]:
         """Asynchronously queries the Ollama server to avoid blocking the event loop."""
-        import psutil, time
-        start_time = time.time()
         try:
             response = await self.http_client.post(
                 OLLAMA_API_URL,
@@ -320,18 +318,12 @@ class SmallModel:
                 }
             )
             response.raise_for_status()
-            elapsed = time.time() - start_time
-            if elapsed > 10:
-                logger.warning(f"Ollama response time slow: {elapsed:.2f}s. Possible resource exhaustion.")
-            mem = psutil.virtual_memory()
-            if mem.percent > 90:
-                logger.warning(f"High memory usage detected: {mem.percent}%. Possible resource exhaustion.")
             return response.json()['message']['content']
         except httpx.RequestError as e:
-            logger.error(f"Ollama connection failed: {e}. Ollama may not be running or reachable.")
+            logger.error(f"Ollama query failed (HTTP request error): {e}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error during AI detection: {e}. Possible backend shutdown or unexpected error.", exc_info=True)
+            logger.error(f"An unexpected error occurred during AI detection: {e}", exc_info=True)
             return None
 
     async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
@@ -343,13 +335,16 @@ class SmallModel:
             # Try AI detection with timeout
             detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
             ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
+            
             if ai_result:
                 logger.info(f"AI detection completed for: {sentence[:50]}...")
                 return ai_result
+                
         except asyncio.TimeoutError:
-            logger.error(f"AI detection timed out after {ai_timeout}s. Possible model overload or resource exhaustion. Using fallback detection.")
+            logger.warning(f"AI detection timed out after {ai_timeout}s, using fallback detection")
         except Exception as e:
-            logger.error(f"AI detection failed: {e}. Possible backend shutdown or unexpected error. Using fallback detection.")
+            logger.error(f"AI detection failed: {e}, using fallback detection")
+        
         # Use fast fallback detection
         logger.info(f"Using fallback detection for: {sentence[:50]}...")
         return await self.detect_terms_fallback(sentence)
@@ -554,8 +549,7 @@ Return a JSON **array of objects**. Each object must have these keys:
                         "user_session_id": message.payload.get("user_session_id"),
                         "original_message_id": message.id,
                         "status": "pending",
-                        "explannation": None,
-                        "is_manual_request": term_data.get("is_manual_request", False)  # Track manual requests to avoid duplicate queuing
+                        "explannation": None
                     }
                         # Include confidence only when provided by producer (e.g., AI detection),
                         # manual requests may omit it deliberately.
@@ -716,7 +710,7 @@ Return a JSON **array of objects**. Each object must have these keys:
                         return
 
             # Log before AI detection
-            logger.info(f"SmallModel: Running AI/fallback detection on: '{transcribed_text}'")
+            logger.info(f"SmallModel: Running AI detection on: '{transcribed_text}'")
             detected_terms = await self.detect_terms_with_ai(
                 transcribed_text,
                 message.payload.get("user_role"),

@@ -32,6 +32,18 @@ class SystemRunner:
         self.processes = []
         self.running = True
 
+    def run_ollama_serve(self):
+        logger.debug("SystemRunner: Starting Ollama serve process.")
+        try:
+            use_shell = sys.platform == "win32"
+            ollama_process = subprocess.Popen(["ollama", "serve"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell, bufsize=1)
+            self.processes.append(ollama_process)
+            logger.info(f"SystemRunner: Ollama serve process started with PID: {ollama_process.pid}")
+            self._start_logging(ollama_process, "Ollama")
+        except Exception as e:
+            logger.critical(f"SystemRunner: Failed to start Ollama serve: {e}", exc_info=True)
+            raise
+
     def run_backend_server(self):
         logger.debug("SystemRunner: Starting backend server process.")
         env = os.environ.copy()
@@ -109,8 +121,46 @@ class SystemRunner:
                 for line in iter(pipe.readline, ''):
                     log_func(f"[{prefix}]: {line.strip()}")
             except ValueError: pass
+        
+        def log_stderr(pipe):
+            """Log stderr output, filtering out known informational Electron messages."""
+            try:
+                for line in iter(pipe.readline, ''):
+                    stripped = line.strip()
+                    
+                    # Filter out known informational Electron messages that appear on stderr
+                    if prefix == "Electron":
+                        # Common Electron informational messages on stderr
+                        if any(pattern in stripped for pattern in [
+                            "Debugger listening on",
+                            "For help, see: https://nodejs.org/en/docs/inspector",
+                            "DevTools listening on",
+                            "[SECURITY WARNING]",  # Electron security warnings for dev mode
+                            "Autofill.setAddresses",
+                        ]):
+                            # Log as info instead of warning
+                            logger.info(f"[{prefix}]: {stripped}")
+                            continue
+                    
+                    # Log as warning for actual stderr messages
+                    logger.warning(f"[{prefix}]: {stripped}")
+            except ValueError: pass
+        
         threading.Thread(target=log_output, args=(process.stdout, logger.info), daemon=True).start()
-        threading.Thread(target=log_output, args=(process.stderr, logger.warning), daemon=True).start()
+        threading.Thread(target=log_stderr, args=(process.stderr,), daemon=True).start()
+
+    def check_ollama_ready(self, timeout=30):
+        logger.info(f"SystemRunner: Waiting for Ollama to be ready...")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(f"http://127.0.0.1:11434/api/tags", timeout=1)
+                if response.status_code == 200:
+                    logger.info("SystemRunner: Ollama is ready!")
+                    return True
+            except requests.RequestException: pass
+            time.sleep(0.5)
+        return False
 
     def check_backend_ready(self, timeout=60):
         logger.info(f"SystemRunner: Waiting for Backend to be ready...")
@@ -167,6 +217,10 @@ def main():
     logger.info(f"Generated User Session ID: {user_session_id}")
     
     try:
+        runner.run_ollama_serve()
+        if not runner.check_ollama_ready():
+            raise RuntimeError("Ollama failed to start.")
+        
         runner.run_backend_server()
         if not runner.check_backend_ready():
             raise RuntimeError("Backend failed to start.")

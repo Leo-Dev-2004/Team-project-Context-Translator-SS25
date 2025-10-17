@@ -3,11 +3,7 @@
 import asyncio
 import logging
 import time
-import uuid
 from typing import Optional
-
-from pydantic import ValidationError
-
 from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
@@ -40,7 +36,6 @@ class MessageRouter:
 
     async def stop(self):
         """Stops the message routing process."""
-        # ... (method remains unchanged)
         if self._running:
             self._running = False
             if self._router_task:
@@ -52,14 +47,12 @@ class MessageRouter:
 
     async def _run_message_loops(self):
         """Orchestrates the two parallel listener tasks."""
-        # ... (method remains unchanged)
         client_listener = asyncio.create_task(self._client_message_listener())
         service_listener = asyncio.create_task(self._service_message_listener())
         await asyncio.gather(client_listener, service_listener)
 
     async def _client_message_listener(self):
         """Processes messages coming directly from clients (via WebSocket)."""
-        # ... (method remains unchanged)
         logger.info("MessageRouter: Listening for messages from clients...")
         while self._running:
             try:
@@ -72,8 +65,7 @@ class MessageRouter:
                 await asyncio.sleep(1)
 
     async def _service_message_listener(self):
-        """Processes messages coming from internal services (e.g., SimulationManager)."""
-        # ... (method remains unchanged)
+        """Processes messages coming from internal services """
         logger.info("MessageRouter: Listening for messages from backend services...")
         while self._running:
             try:
@@ -209,25 +201,28 @@ class MessageRouter:
 
             elif message.type == 'settings.save':
                 # Handle settings.save messages - update global settings
+                logger.info(f"MessageRouter: 📥 Received settings.save message from client {message.client_id}")
                 try:
                     if self._settings_manager:
                         settings_data = message.payload or {}
+                        logger.info(f"MessageRouter: 🔧 Updating settings with data: {settings_data}")
                         self._settings_manager.update_settings(settings_data)
                         
                         # Optionally save to file for persistence
+                        logger.debug(f"MessageRouter: 💾 Attempting to persist settings to file...")
                         save_success = await self._settings_manager.save_to_file()
                         
                         if save_success:
                             response = self._create_ack_message(message, "Settings saved successfully")
-                            logger.info(f"Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
+                            logger.info(f"MessageRouter: ✅ Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
                         else:
                             response = self._create_ack_message(message, "Settings updated (persistence failed)")
-                            logger.warning(f"Settings updated but persistence failed for client {message.client_id}")
+                            logger.warning(f"MessageRouter: ⚠️ Settings updated but persistence failed for client {message.client_id}")
                     else:
                         response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "SettingsManager not available.")
-                        logger.error("SettingsManager not available for settings.save message")
+                        logger.error("MessageRouter: ❌ SettingsManager not available for settings.save message")
                 except Exception as e:
-                    logger.error(f"Error handling settings.save: {e}", exc_info=True)
+                    logger.error(f"MessageRouter: ❌ Error handling settings.save: {e}", exc_info=True)
                     response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during settings.save.")
 
             elif message.type == 'ping':

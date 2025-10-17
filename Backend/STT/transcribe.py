@@ -19,24 +19,27 @@ from pathlib import Path
 class Config:
     SAMPLE_RATE = 16000
     CHANNELS = 1
-    MODEL_SIZE = "medium"
+    MODEL_SIZE = "tiny"
     LANGUAGE = "en"
     WEBSOCKET_URI = "ws://localhost:8000/ws"
     MIN_WORDS_PER_SENTENCE = 1 # Reduced for better responsiveness
     
     # VAD (Voice Activity Detection) settings are key for responsiveness
     VAD_ENERGY_THRESHOLD = 0.004 # Energy threshold to detect speech
-    VAD_SILENCE_DURATION_S = 1.0 # How long of a pause indicates end of sentence
+    VAD_SILENCE_DURATION_S = 1.5 # How long of a pause indicates end of sentence
     VAD_BUFFER_DURATION_S = 0.5 # Seconds of silence to keep before speech starts
     
     # Heartbeat settings to prevent connection timeouts during silence
-    HEARTBEAT_INTERVAL_S = 30.0 # Send heartbeat every 30 seconds during silence
+    HEARTBEAT_INTERVAL_S = 5.0 # Send heartbeat every 10 seconds during silence (30s default was too long)
     
     # STREAMING OPTIMIZATION SETTINGS
     STREAMING_ENABLED = True # Enable streaming transcription for long speech
     STREAMING_CHUNK_DURATION_S = 3.0 # Process chunks every N seconds during speech
     STREAMING_OVERLAP_DURATION_S = 0.5 # Overlap between chunks for context
     STREAMING_MIN_BUFFER_S = 2.0 # Minimum buffer before starting streaming
+
+    # Maximum duration (seconds) for any single chunk that is transcribed/sent.
+    MAX_CHUNK_DURATION_S = 20.0
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -61,7 +64,7 @@ class STTService:
         logger.info(f"Loading Whisper model '{Config.MODEL_SIZE}'...")
         self.model = WhisperModel(Config.MODEL_SIZE, device="cpu", compute_type="int8")
         logger.info("Whisper model loaded.")
-        self.audio_queue = queue.Queue()
+        self.audio_queue = asyncio.Queue()
         self.is_recording = threading.Event()
         self.is_recording.set()
         
@@ -78,7 +81,7 @@ class STTService:
         """[Thread Target] Captures audio from microphone into a thread-safe queue."""
         def callback(indata, frames, time_info, status):
             if status: logger.warning(f"Recording status: {status}")
-            if self.is_recording.is_set(): self.audio_queue.put(indata.copy())
+            if self.is_recording.is_set(): self.audio_queue.put_nowait(indata.copy())
             
         try:
             with sd.InputStream(samplerate=Config.SAMPLE_RATE, channels=Config.CHANNELS, callback=callback, dtype='float32') as stream:
@@ -91,6 +94,10 @@ class STTService:
 
     async def _send_sentence(self, websocket, sentence: str, is_interim: bool = False):
         """Formats and sends a transcribed sentence over the WebSocket."""
+        
+        if is_interim:
+            return  # Skip filtering for interim results
+        
         if not sentence or not sentence.strip():
             logger.warning("STTService: Blocked empty or whitespace-only transcription from being sent.")
             return
@@ -175,37 +182,94 @@ class STTService:
             },
             "origin": "stt_module", "client_id": self.stt_client_id
         }
+        
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            
+            logger.warning(f"Cannot send sentence - WebSocket is not open. Buffering for retry.")
+            self.unsent_sentences.append(message)
+            return
+            
         try:
             await websocket.send(json.dumps(message))
             logger.info(f"Sent {'interim' if is_interim else 'final'}: {sentence}")
+        except websockets.exceptions.ConnectionClosed:
+            # Connection closed - buffer for retry
+            logger.info(f"Cannot send sentence - WebSocket connection closed. Buffering for retry.")
+            self.unsent_sentences.append(message)
         except Exception as e:
-            logger.warning(f"Failed to send sentence, connection error: {e}. Buffering for retry.")
+            # Unexpected error - buffer and log warning
+            logger.warning(f"Failed to send sentence, unexpected error: {e}. Buffering for retry.")
             self.unsent_sentences.append(message)
 
     async def _process_streaming_chunk(self, audio_chunk: np.ndarray, chunk_index: int):
-        """Process a streaming audio chunk in the background."""
+        """Process a streaming audio chunk in the background.
+        Returns a list of chunk_info dicts. Each returned chunk_info corresponds to
+        at most Config.MAX_CHUNK_DURATION_S seconds of audio.
+        """
         try:
-            chunk_duration = len(audio_chunk) / Config.SAMPLE_RATE
+            total_samples = len(audio_chunk)
+            chunk_duration = total_samples / Config.SAMPLE_RATE
             logger.info(f"Processing streaming chunk {chunk_index} ({chunk_duration:.2f}s)")
             
-            start_time = time.monotonic()
-            segments, _ = await asyncio.to_thread(
-                self.model.transcribe, audio_chunk, language=Config.LANGUAGE
-            )
-            processing_time = time.monotonic() - start_time
+            # If the chunk is within the max allowed duration, process normally
+            max_samples = int(Config.MAX_CHUNK_DURATION_S * Config.SAMPLE_RATE)
+            results = []
             
-            result = "".join(s.text for s in segments).strip()
+            if total_samples <= max_samples:
+                start_time = time.monotonic()
+                segments, _ = await asyncio.to_thread(
+                    self.model.transcribe, audio_chunk, language=Config.LANGUAGE
+                )
+                processing_time = time.monotonic() - start_time
+                
+                result_text = "".join(s.text for s in segments).strip()
+                
+                chunk_info = {
+                    'index': chunk_index,
+                    'text': result_text,
+                    'duration': chunk_duration,
+                    'processing_time': processing_time,
+                    'timestamp': time.time()
+                }
+                
+                logger.info(f"Chunk {chunk_index} processed in {processing_time:.2f}s: '{result_text}'")
+                results.append(chunk_info)
+                return results
             
-            chunk_info = {
-                'index': chunk_index,
-                'text': result,
-                'duration': chunk_duration,
-                'processing_time': processing_time,
-                'timestamp': time.time()
-            }
+            # If the chunk is too long, split into multiple subchunks (no overlap),
+            # process each subchunk and return a list of chunk infos.
+            logger.info(f"Chunk {chunk_index} exceeds max duration ({chunk_duration:.2f}s > {Config.MAX_CHUNK_DURATION_S}s). Splitting...")
+            start_sample = 0
+            part_idx = 0
+            while start_sample < total_samples:
+                end_sample = min(start_sample + max_samples, total_samples)
+                part_audio = audio_chunk[start_sample:end_sample]
+                part_duration = len(part_audio) / Config.SAMPLE_RATE
+                
+                start_time = time.monotonic()
+                segments, _ = await asyncio.to_thread(
+                    self.model.transcribe, part_audio, language=Config.LANGUAGE
+                )
+                processing_time = time.monotonic() - start_time
+                
+                part_text = "".join(s.text for s in segments).strip()
+                
+                part_info = {
+                    'index': f"{chunk_index}.{part_idx}",
+                    'text': part_text,
+                    'duration': part_duration,
+                    'processing_time': processing_time,
+                    'timestamp': time.time()
+                }
+                
+                logger.info(f"Subchunk {chunk_index}.{part_idx} processed in {processing_time:.2f}s: '{part_text}'")
+                results.append(part_info)
+                
+                part_idx += 1
+                start_sample = end_sample
             
-            logger.info(f"Chunk {chunk_index} processed in {processing_time:.2f}s: '{result}'")
-            return chunk_info
+            return results
             
         except Exception as e:
             logger.error(f"Error processing streaming chunk {chunk_index}: {e}", exc_info=True)
@@ -224,12 +288,14 @@ class STTService:
         try:
             # Process initial chunk
             chunk_audio = np.concatenate([chunk.flatten() for chunk in initial_buffer])
-            chunk_info = await self._process_streaming_chunk(chunk_audio, 0)
+            chunk_infos = await self._process_streaming_chunk(chunk_audio, 0)
             
-            if chunk_info and chunk_info['text']:
-                self.processed_chunks.append(chunk_info)
-                # Send interim result immediately
-                await self._send_sentence(websocket, chunk_info['text'], is_interim=True)
+            if chunk_infos:
+                for ci in chunk_infos:
+                    if ci and ci.get('text'):
+                        self.processed_chunks.append(ci)
+                        # Send interim result for each sub-chunk
+                        await self._send_sentence(websocket, ci['text'], is_interim=True)
                 
         except Exception as e:
             logger.error(f"Error starting streaming processing: {e}", exc_info=True)
@@ -242,12 +308,14 @@ class STTService:
             
         try:
             chunk_audio = np.concatenate([chunk.flatten() for chunk in buffer_chunk])
-            chunk_info = await self._process_streaming_chunk(chunk_audio, chunk_index)
+            chunk_infos = await self._process_streaming_chunk(chunk_audio, chunk_index)
             
-            if chunk_info and chunk_info['text']:
-                self.processed_chunks.append(chunk_info)
-                # Send interim result
-                await self._send_sentence(websocket, chunk_info['text'], is_interim=True)
+            if chunk_infos:
+                for ci in chunk_infos:
+                    if ci and ci.get('text'):
+                        self.processed_chunks.append(ci)
+                        # Send interim result for each sub-chunk
+                        await self._send_sentence(websocket, ci['text'], is_interim=True)
                 
         except Exception as e:
             logger.error(f"Error processing streaming buffer chunk: {e}", exc_info=True)
@@ -265,6 +333,11 @@ class STTService:
 
     async def _send_heartbeat(self, websocket):
         """Sends a heartbeat keep-alive message to prevent connection timeout."""
+        # Check if websocket is still open before attempting to send
+        if not websocket.open:
+            logger.debug("Skipping heartbeat - WebSocket is not open")
+            return
+            
         message = {
             "id": str(uuid4()), "type": "stt.heartbeat", "timestamp": time.time(),
             "payload": {
@@ -276,11 +349,16 @@ class STTService:
         try:
             await websocket.send(json.dumps(message))
             logger.debug("Sent heartbeat keep-alive message")
+        except websockets.exceptions.ConnectionClosed:
+            # Connection closed gracefully or unexpectedly - this is normal during shutdown
+            logger.debug("Cannot send heartbeat - WebSocket connection closed")
         except Exception as e:
-            logger.warning(f"Failed to send heartbeat, connection error: {e}")
+            # Only log warnings for unexpected errors, not connection closure
+            logger.warning(f"Failed to send heartbeat, unexpected error: {e}")
 
     async def _process_audio_loop(self, websocket):
         """[Async Task] Implements the VAD-based 'record-then-transcribe' logic with streaming optimization."""
+        logger.info("Entered _process_audio_loop")
         audio_buffer = []
         is_speaking = False
         silence_start_time = None
@@ -297,11 +375,17 @@ class STTService:
         silence_buffer = deque(maxlen=silence_buffer_size)
 
         while self.is_recording.is_set():
+            logger.debug("Audio loop: Waiting for audio chunk...")
             current_time = time.monotonic()
             
             try:
                 # Get a chunk of audio from the queue
-                audio_chunk = self.audio_queue.get(timeout=1.0)
+                audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=1.0)
+                
+                # Mark the task as done after processing
+                self.audio_queue.task_done()
+                
+                logger.debug("Audio loop: Got an audio chunk.")
                 frame_energy = np.sqrt(np.mean(np.square(audio_chunk)))
                 
                 if is_speaking:
@@ -390,7 +474,8 @@ class STTService:
                     await self._send_heartbeat(websocket)
                     last_heartbeat_time = current_time
 
-            except queue.Empty:
+            except asyncio.TimeoutError:
+                logger.debug("Audio loop: Queue was empty, continuing.")
                 # Check for heartbeat even when no audio data is available
                 current_time = time.monotonic()
                 time_since_last_heartbeat = current_time - last_heartbeat_time
@@ -410,7 +495,7 @@ class STTService:
                         last_activity_time = current_time
                 continue
             except Exception as e:
-                logger.error(f"Error in transcription loop: {e}", exc_info=True)
+                logger.error(f"CRITICAL ERROR in transcription loop: {e}", exc_info=True)
                 # Reset state on error
                 audio_buffer.clear()
                 is_speaking = False
@@ -422,38 +507,30 @@ class STTService:
         """Finalize streaming results and send consolidated transcription."""
         try:
             if self.processed_chunks:
-                # Use streaming results as base
-                consolidated = self._consolidate_streaming_results()
+                # Optionally process any remaining audio not covered by streaming.
+                # This is the most crucial part.
+                remaining_audio = np.concatenate([chunk.flatten() for chunk in audio_buffer]) if audio_buffer else np.array([])
                 
-                # Optionally process any remaining audio not covered by streaming
-                remaining_samples = len(audio_buffer) * len(audio_buffer[0]) if audio_buffer else 0
-                last_processed = sum(chunk.get('duration', 0) for chunk in self.processed_chunks) * Config.SAMPLE_RATE
+                # Use the new, safe helper function to transcribe the entire utterance.
+                # This handles both short and long audio gracefully by chunking it.
+                logger.info("Finalizing transcription for the complete utterance...")
+                final_transcription = await self._transcribe_long_audio(remaining_audio)
                 
-                if remaining_samples > last_processed + (Config.SAMPLE_RATE * 0.5):  # 0.5s threshold
-                    logger.info("Processing remaining audio after streaming chunks")
-                    remaining_audio = np.concatenate([chunk.flatten() for chunk in audio_buffer])
-                    
-                    segments, _ = await asyncio.to_thread(
-                        self.model.transcribe, remaining_audio, language=Config.LANGUAGE
-                    )
-                    final_transcription = "".join(s.text for s in segments).strip()
-                    
-                    if len(final_transcription.split()) >= Config.MIN_WORDS_PER_SENTENCE:
-                        await self._send_sentence(websocket, final_transcription, is_interim=False)
+                if len(final_transcription.split()) >= Config.MIN_WORDS_PER_SENTENCE:
+                    await self._send_sentence(websocket, final_transcription, is_interim=False)
                 else:
-                    # Send consolidated streaming result as final
-                    if consolidated and len(consolidated.split()) >= Config.MIN_WORDS_PER_SENTENCE:
-                        await self._send_sentence(websocket, consolidated, is_interim=False)
-                        
-            # Reset streaming state
+                    # This branch is now less likely to be hit, but good for safety
+                    logger.info(f"Skipping final short or empty sentence: '{final_transcription}'")
+
+            # Reset streaming state for the next utterance
             self.streaming_active = False
             self.processed_chunks = []
             
         except Exception as e:
             logger.error(f"Error finalizing streaming results: {e}", exc_info=True)
-
+    
     async def _process_final_utterance(self, websocket, audio_buffer, current_time):
-        """Process final utterance - either from streaming or traditional processing."""
+        """Process final utterance using the new chunking transcription method."""
         if self.streaming_active and self.processed_chunks:
             # We have streaming results, finalize them
             await self._finalize_streaming_results(websocket, audio_buffer)
@@ -461,33 +538,87 @@ class STTService:
             # Traditional processing for short utterances or when streaming is disabled
             full_utterance = np.concatenate([chunk.flatten() for chunk in audio_buffer])
             
-            logger.info(f"Processing utterance of duration {len(full_utterance)/Config.SAMPLE_RATE:.2f}s...")
-            segments, _ = await asyncio.to_thread(
-                self.model.transcribe, full_utterance, language=Config.LANGUAGE
-            )
-            
-            full_sentence = "".join(s.text for s in segments).strip()
+            # Use the new, safe helper function to transcribe
+            # This handles both short and long audio gracefully
+            full_sentence = await self._transcribe_long_audio(full_utterance)
             
             if len(full_sentence.split()) >= Config.MIN_WORDS_PER_SENTENCE:
                 await self._send_sentence(websocket, full_sentence, is_interim=False)
             else:
                 logger.info(f"Skipping short sentence: '{full_sentence}'")
 
+
+    async def _transcribe_long_audio(self, audio_data: np.ndarray) -> str:
+        """
+        Transcribes audio data, splitting it into manageable chunks if it exceeds
+        a maximum duration to avoid long blocking calls.
+        """
+        MAX_CHUNK_DURATION_S = 20.0
+        OVERLAP_DURATION_S = 1.0  # 1-second overlap for context between chunks
+
+        total_samples = len(audio_data)
+        total_duration_s = total_samples / Config.SAMPLE_RATE
+
+        # If the audio is short enough, transcribe it directly
+        if total_duration_s <= MAX_CHUNK_DURATION_S:
+            logger.info(f"Transcribing short utterance ({total_duration_s:.2f}s) in a single pass.")
+            segments, _ = await asyncio.to_thread(
+                self.model.transcribe, audio_data, language=Config.LANGUAGE
+            )
+            return "".join(s.text for s in segments).strip()
+
+        # --- Logic for splitting long audio ---
+        logger.info(f"Audio duration ({total_duration_s:.2f}s) exceeds max chunk size. Splitting into chunks...")
+        
+        transcribed_parts = []
+        
+        # Convert durations to sample counts
+        max_samples_per_chunk = int(MAX_CHUNK_DURATION_S * Config.SAMPLE_RATE)
+        overlap_samples = int(OVERLAP_DURATION_S * Config.SAMPLE_RATE)
+        
+        start_sample = 0
+        chunk_index = 0
+        while start_sample < total_samples:
+            end_sample = min(start_sample + max_samples_per_chunk, total_samples)
+            
+            chunk_audio = audio_data[start_sample:end_sample]
+            chunk_duration = len(chunk_audio) / Config.SAMPLE_RATE
+            
+            logger.info(f"Transcribing chunk {chunk_index} ({chunk_duration:.2f}s)...")
+            
+            segments, _ = await asyncio.to_thread(
+                self.model.transcribe, chunk_audio, language=Config.LANGUAGE
+            )
+            
+            chunk_text = "".join(s.text for s in segments).strip()
+            transcribed_parts.append(chunk_text)
+            
+            logger.info(f"Chunk {chunk_index} result: '{chunk_text}'")
+            
+            # Move to the next chunk
+            start_sample += max_samples_per_chunk - overlap_samples
+            chunk_index += 1
+            
+        return " ".join(part for part in transcribed_parts if part)
+
     async def run(self):
         """Main service loop that manages WebSocket connection and tasks."""
+        logger.info("Starting STTService.run()")
         websocket_uri = f"{Config.WEBSOCKET_URI}/{self.stt_client_id}"
         threading.Thread(target=self._record_audio_thread, daemon=True).start()
 
         while self.is_recording.is_set():
+            logger.info("Main loop: Attempting to connect to WebSocket...")
             try:
-                async with websockets.connect(websocket_uri) as websocket:
-                    logger.info("WebSocket connection established with backend.")
+                async with websockets.connect(websocket_uri, ping_interval=5, ping_timeout=30) as websocket:
+                    logger.info(f"STT: ✅ WebSocket connection established to {websocket_uri}")
                     initial_message = {
                         "id": str(uuid4()), "type": "stt.init", "timestamp": time.time(),
                         "payload": {"message": "STT service connected", "user_session_id": self.user_session_id},
-                        "origin": "stt_module", "client_id": self.stt_client_id
+                        "origin": "stt_module", "client_id": self.stt_client_id,
                     }
                     await websocket.send(json.dumps(initial_message))
+                    logger.info(f"STT: 📤 Sent handshake init message for session {self.user_session_id}")
 
                     # Retry any unsent sentences from previous connection failures
                     if self.unsent_sentences:
@@ -496,14 +627,22 @@ class STTService:
                             try:
                                 await websocket.send(json.dumps(msg))
                                 logger.info(f"Retried and sent buffered sentence: {msg['payload']['text']}")
+                            except websockets.exceptions.ConnectionClosed:
+                                logger.info("Cannot resend buffered sentence - connection closed during retry.")
+                                break  # Stop trying to send more if connection is closed
                             except Exception as e:
                                 logger.warning(f"Failed to resend buffered sentence: {e}")
                         self.unsent_sentences.clear()
 
                     await self._process_audio_loop(websocket)
+            except websockets.exceptions.ConnectionClosed as e:
+                close_code = getattr(e, 'code', 'Unknown')
+                close_reason = getattr(e, 'reason', 'No reason provided')
+                logger.warning(f"STT: 🔌 WebSocket connection to {websocket_uri} closed. Code: {close_code}, Reason: {close_reason}. Reconnecting in 3s...", exc_info=True)
+                await asyncio.sleep(3)
             except Exception as e:
-                logger.error(f"WebSocket connection failed, retrying in 5s: {e}")
-                await asyncio.sleep(5)
+                logger.error(f"STT: ❌ WebSocket connection to {websocket_uri} failed: {e}. Retrying in 3s...", exc_info=True)
+                await asyncio.sleep(3)
 
     def stop(self):
         """Stops the recording and shuts down the service."""
@@ -511,6 +650,7 @@ class STTService:
         self.streaming_active = False
         self.processed_chunks = []
         logger.info("Shutdown signal received. Stopping STT service.")
+        logger.info("STTService.stop() method completed.")
 
 # --- MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
