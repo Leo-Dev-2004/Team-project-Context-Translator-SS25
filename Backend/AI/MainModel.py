@@ -18,7 +18,7 @@ from ..dependencies import get_explanation_delivery_service_instance
 INPUT_FILE = "Backend/AI/detections_queue.json"
 OUTPUT_FILE = "Backend/AI/explanations_queue.json"
 CACHE_FILE = "Backend/AI/explanation_cache.json"
-MODEL = "llama3.2"
+MODEL = "llama3:8B"
 COOLDOWN_SECONDS = 300
 OLLAMA_API_URL = "http://localhost:11434/api/chat"
 

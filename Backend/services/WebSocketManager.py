@@ -16,6 +16,9 @@ class WebSocketManager:
     def __init__(self, incoming_queue: AbstractMessageQueue, outgoing_queue: AbstractMessageQueue):
         self.connections: Dict[str, WebSocket] = {}
         self.client_tasks: Dict[str, asyncio.Task] = {}
+        # Keepalive tasks send lightweight messages periodically to keep
+        # connections alive (helps with proxies and idle timeouts).
+        self._keepalive_tasks: Dict[str, asyncio.Task] = {}
         self.user_session_map: Dict[str, str] = {}
         self.incoming_queue = incoming_queue
         self.websocket_out_queue = outgoing_queue
@@ -57,6 +60,14 @@ class WebSocketManager:
             # before continuing.
             await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
             self.client_tasks.clear()
+        # Also cancel any keepalive tasks we created for connections
+        keepalive_tasks_to_cancel = list(self._keepalive_tasks.values())
+        if keepalive_tasks_to_cancel:
+            logger.info(f"Cancelling {len(keepalive_tasks_to_cancel)} keepalive tasks...")
+            for task in keepalive_tasks_to_cancel:
+                task.cancel()
+            await asyncio.gather(*keepalive_tasks_to_cancel, return_exceptions=True)
+            self._keepalive_tasks.clear()
             
         # Finally, close all WebSocket connections.
         connections_to_close = list(self.connections.values())
@@ -92,6 +103,13 @@ class WebSocketManager:
 
         receiver_task = asyncio.create_task(self._receiver(websocket, client_id))
         self.client_tasks[client_id] = receiver_task
+        # Start a keepalive ping task for this connection to help maintain
+        # long-lived connections behind proxies/load balancers.
+        try:
+            keepalive_task = asyncio.create_task(self._keepalive_ping(websocket, client_id))
+            self._keepalive_tasks[client_id] = keepalive_task
+        except Exception as e:
+            logger.warning(f"Failed to start keepalive task for {client_id}: {e}")
 
         try:
             await receiver_task
@@ -101,6 +119,19 @@ class WebSocketManager:
             # Cleanup
             if client_id in self.connections: del self.connections[client_id]
             if client_id in self.client_tasks: del self.client_tasks[client_id]
+            # Ensure keepalive task for this client is also stopped and removed
+            if client_id in self._keepalive_tasks:
+                try:
+                    kt = self._keepalive_tasks.pop(client_id)
+                    kt.cancel()
+                    # Await gracefully to let it finish
+                    try:
+                        await kt
+                    except asyncio.CancelledError:
+                        pass
+                except Exception:
+                    # Swallow errors during cleanup to avoid masking original exceptions
+                    pass
             # HINZUGEFÜGT: Bereinigung der Session-Map bei Disconnect
             if client_id in self.user_session_map: del self.user_session_map[client_id]
             logger.info(f"Connection for {client_id} cleaned up.")
@@ -152,8 +183,19 @@ class WebSocketManager:
     async def _receiver(self, websocket: WebSocket, client_id: str):
         """Listens for incoming messages from a single client."""
         try:
+            # Allow clients to remain idle for up to 5 minutes (300s).
+            # Use asyncio.wait_for to increase the receive timeout window.
+            receive_timeout = 300  # seconds
             while True:
-                data = await websocket.receive_text()
+                try:
+                    data = await asyncio.wait_for(websocket.receive_text(), timeout=receive_timeout)
+                except asyncio.TimeoutError:
+                    logger.info(f"Client {client_id} idle for {receive_timeout}s - closing connection due to inactivity.")
+                    try:
+                        await websocket.close(code=1000)
+                    except Exception:
+                        pass
+                    break
                 try:
                     message = UniversalMessage.model_validate(json.loads(data))
                     
@@ -181,3 +223,25 @@ class WebSocketManager:
             pass  # Normal during a graceful shutdown
         except Exception as e:
             logger.error(f"Unexpected error in receiver for {client_id}: {e}", exc_info=True)
+
+    async def _keepalive_ping(self, websocket: WebSocket, client_id: str, interval: int = 60):
+        """Periodically send lightweight keepalive messages to the client.
+
+        This helps to keep connections alive when proxies or load-balancers
+        have shorter idle timeouts. Interval defaults to 60s and can be
+        adjusted if necessary.
+        """
+        try:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        # Send a minimal keepalive event; receivers should ignore unknown types
+                        await websocket.send_text(json.dumps({"type": "system.keepalive", "timestamp": time.time()}))
+                except Exception as e:
+                    logger.debug(f"Keepalive send failed for {client_id}: {e}")
+                    break
+        except asyncio.CancelledError:
+            logger.debug(f"Keepalive task for {client_id} cancelled.")
+        except Exception as e:
+            logger.error(f"Unexpected error in keepalive for {client_id}: {e}", exc_info=True)

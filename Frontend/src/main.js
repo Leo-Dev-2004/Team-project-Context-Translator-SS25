@@ -26,8 +26,8 @@ function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
     // Vertikale, seitenleistenartige Standardgröße (increased by 20%)
-    width: 504,
-    height: 984,
+    width: 700,
+    height: 1200,
     minWidth: 320,
     minHeight: 500,
     webPreferences: {
