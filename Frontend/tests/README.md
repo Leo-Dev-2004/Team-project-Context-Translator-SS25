@@ -1,196 +1,194 @@
-# Frontend Tests mit Playwright
+# Frontend Tests with Playwright
 
-Dieses Verzeichnis enthält End-to-End und Komponenten-Tests für das Context Translator Frontend.
+This directory contains End-to-End and component tests for the Context Translator Frontend.
 
-## 🏗️ **Test-Struktur**
+## 🏗️ **Test Structure**
 
 ```
 tests/
-├── electron/                    # Electron App E2E Tests
-│   ├── ui-basic.spec.js        # Grundlegende UI Tests
+├── electron/                        # Electron App E2E Tests
+│   ├── ui-basic.spec.js             # Basic UI Tests
 │   ├── explanation-manager.spec.js  # Explanation Management
-│   └── websocket.spec.js       # WebSocket Integration
-├── components/                  # Isolierte Komponenten Tests
-│   └── isolated.spec.js        # Komponenten ohne Electron
-├── electron-fixtures.js        # Electron Test Utilities
-└── README.md                   # Diese Datei
+│   └── websocket.spec.js            # WebSocket Integration
+├── components/                      # Isolated Component Tests
+│   └── isolated.spec.js             # Components without Electron
+├── electron-fixtures.js             # Electron Test Utilities
+└── README.md                        # This file
 ```
 
-## 🚀 **Tests ausführen**
+## 🚀 **Running Tests**
+```bash
+cd Frontend
+```
 
-### Alle Tests
+### All Tests
 ```bash
 npm test
 ```
 
-### Nur Electron Tests
+### Electron Tests Only
 ```bash
 npm run test:electron
 ```
 
-### Nur Komponenten Tests
+### Component Tests Only
 ```bash
 npm run test:components
 ```
 
-### Tests mit Browserfenster (headed)
+### Tests with Browser Window (headed)
 ```bash
 npm run test:headed
 ```
 
-### Debug Modus
+### Specific Tests
 ```bash
-npm run test:debug
-```
-
-### Spezifische Tests
-```bash
-# Nur UI Tests
+# UI Tests only
 npm run test:ui
 
-# Spezifische Datei
+# Specific file
 npx playwright test ui-basic.spec.js
 
-# Spezifischer Test
+# Specific test
 npx playwright test --grep "Tab-Navigation"
 ```
 
 ## 🔧 **Setup**
 
-### Erstmalige Installation
+### Initial Installation
 ```bash
-# Playwright installieren
+# Install Playwright
 npm install
 
-# Playwright Browser installieren
+# Install Playwright browsers
 npm run test:install
 ```
 
-### Vor Tests
+### Before Tests
 ```bash
-# Preload Script builden (für Electron Tests)
+# Build preload script (for Electron tests)
 npm run build:preload
 
-# Vite Dev Server starten (für Komponenten Tests)
+# Start Vite dev server (for component tests)
 npm run dev:renderer
 ```
 
-## 📋 **Test-Kategorien**
+## 📋 **Test Categories**
 
-### 1. **UI Grundfunktionen** (`ui-basic.spec.js`)
+### 1. **Basic UI Functions** (`ui-basic.spec.js`)
 - ✅ App Startup
 - ✅ Tab Navigation (Setup ↔ Explanations)
-- ✅ Input Felder (Domain, Manual Request)
-- ✅ Buttons und Interaktionen
-- ✅ Status Bar Anzeige
+- ✅ Input Fields (Domain, Manual Request)
+- ✅ Buttons and Interactions
+- ✅ Status Bar Display
 
 ### 2. **Explanation Manager** (`explanation-manager.spec.js`)
-- ✅ Explanations hinzufügen/entfernen
-- ✅ Expand/Collapse Funktionalität
-- ✅ Pin/Unpin Erklärungen  
+- ✅ Add/Remove Explanations
+- ✅ Expand/Collapse Functionality
+- ✅ Pin/Unpin Explanations  
 - ✅ Dark Mode Toggle
-- ✅ Leere Liste Handling
+- ✅ Empty List Handling
 
 ### 3. **WebSocket Integration** (`websocket.spec.js`)
-- ✅ Verbindungsaufbau
-- ✅ Nachrichten senden/empfangen
+- ✅ Connection Establishment
+- ✅ Send/Receive Messages
 - ✅ Session Start/Join
 - ✅ Error Handling
 - ✅ Reconnection Logic
 
-### 4. **Isolierte Komponenten** (`isolated.spec.js`)
-- ✅ Komponenten ohne Electron Context
-- ✅ Status Bar isoliert
-- ✅ Explanation Item isoliert
-- ✅ Chat Box isoliert
+### 4. **Isolated Components** (`isolated.spec.js`)
+- ✅ Components without Electron Context
+- ✅ Status Bar isolated
+- ✅ Explanation Item isolated
+- ✅ Chat Box isolated
 - ✅ Responsive Design
 - ✅ Accessibility
 
-## 🎯 **Test-Features**
+## 🎯 **Test Features**
 
 ### **Electron App Tests**
-- Starten echte Electron App
-- Testen vollständige User Journey
-- WebSocket Mocking für Backend-lose Tests
-- Screenshot bei Fehlern
+- Launch real Electron App
+- Test complete user journey
+- WebSocket mocking for backend-less tests
+- Screenshots on failures
 
-### **Komponenten Tests**
-- Testen einzelne Lit Components
-- Ohne Electron Overhead
-- Schneller für Unit-Test-ähnliche Szenarien
-- Vite Dev Server Integration
+### **Component Tests**
+- Test individual Lit Components
+- Without Electron overhead
+- Faster for unit-test-like scenarios
+- Vite dev server integration
 
 ### **Mocking & Stubs**
-- WebSocket Mock für offline Tests
-- Error Simulation
-- Backend Response Simulation
+- WebSocket mock for offline tests
+- Error simulation
+- Backend response simulation
 
 ## 🔍 **Debug & Troubleshooting**
 
-### Tests debuggen
+### Debug Tests
 ```bash
-# Mit Browser öffnen
+# Open with browser
 npm run test:debug
 
-# Spezifischen Test debuggen
+# Debug specific test
 npx playwright test --debug ui-basic.spec.js
 ```
 
 ### Screenshots & Videos
 ```bash
-# Tests mit Screenshots
+# Tests with screenshots
 npx playwright test --screenshot=only-on-failure
 
-# Test Report anzeigen
+# Show test report
 npx playwright show-report
 ```
 
-### Häufige Probleme
+### Common Issues
 
-**1. Electron startet nicht**
+**1. Electron won't start**
 ```bash
-# Preload Script muss gebaut sein
+# Preload script must be built
 npm run build:preload
 ```
 
-**2. WebSocket Tests fehlschlagen**
-- Backend nicht erreichbar → Tests nutzen Mocks
-- Ports blockiert → Andere Terminals schließen
+**2. WebSocket tests fail**
+- Backend unreachable → Tests use mocks
+- Ports blocked → Close other terminals
 
-**3. Komponenten Tests fehlschlagen**
+**3. Component tests fail**
 ```bash
-# Vite Dev Server muss laufen
+# Vite dev server must be running
 npm run dev:renderer
 ```
 
 **4. Timing Issues**
-- `page.waitForSelector()` nutzen
-- `page.waitForTimeout()` sparsam verwenden
-- `page.waitForLoadState()` für Seitenladung
+- Use `page.waitForSelector()`
+- Use `page.waitForTimeout()` sparingly
+- Use `page.waitForLoadState()` for page loading
 
 ## 📊 **Test Reports**
 
 ### HTML Report
 ```bash
-# Report generieren und öffnen
+# Generate and open report
 npx playwright show-report
 ```
 
 ### CI/CD Integration
-- GitHub Actions Workflow in `.github/workflows/playwright.yml`
-- Automatische Tests bei Push/PR
-- Test Reports als Artifacts
+- GitHub Actions workflow in `.github/workflows/playwright.yml`
+- Automatic tests on Push/PR
+- Test reports as artifacts
 
 ## 💡 **Best Practices**
 
-### **Test-Struktur**
+### **Test Structure**
 ```javascript
 test.describe('Feature Name', () => {
   test.beforeEach(async ({ page }) => {
-    // Setup für alle Tests in dieser Gruppe
+    // Setup for all tests in this group
   });
 
-  test('sollte spezifisches Verhalten testen', async ({ page }) => {
+  test('should test specific behavior', async ({ page }) => {
     // Arrange
     await page.waitForSelector('my-element');
     
@@ -199,68 +197,6 @@ test.describe('Feature Name', () => {
     
     // Assert
     await expect(page.locator('.result')).toBeVisible();
-  });
-});
-```
-
-### **Selektoren**
-```javascript
-// ✅ Gute Selektoren
-page.locator('md-filled-button:has-text("Save")')
-page.locator('[data-testid="explanation-item"]')
-page.locator('setup-tab md-outlined-text-field[label="Domain"]')
-
-// ❌ Vermeiden
-page.locator('.btn-primary')  // CSS Klassen können sich ändern
-page.locator('div > div > button')  // Fragile DOM Struktur
-```
-
-### **Warten & Timing**
-```javascript
-// ✅ Explicit Waits
-await page.waitForSelector('my-element');
-await page.waitForLoadState('networkidle');
-
-// ❌ Vermeiden
-await page.waitForTimeout(3000);  // Feste Wartezeiten
-```
-
-## 🧪 **Neue Tests hinzufügen**
-
-### Electron Test
-```javascript
-// tests/electron/new-feature.spec.js
-import { test, expect } from '../electron-fixtures.js';
-
-test.describe('Neue Feature', () => {
-  test('sollte Feature X testen', async ({ page }) => {
-    // Test Implementation
-  });
-});
-```
-
-### Komponenten Test
-```javascript
-// tests/components/new-component.spec.js
-import { test, expect } from '@playwright/test';
-
-test.describe('Neue Komponente', () => {
-  test('sollte isoliert funktionieren', async ({ page }) => {
-    await page.setContent(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <script type="module">
-            import '/src/components/new-component.js';
-          </script>
-        </head>
-        <body>
-          <new-component></new-component>
-        </body>
-      </html>
-    `);
-    
-    // Test Implementation
   });
 });
 ```
