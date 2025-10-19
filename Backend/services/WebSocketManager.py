@@ -16,7 +16,6 @@ class WebSocketManager:
     def __init__(self, incoming_queue: AbstractMessageQueue, outgoing_queue: AbstractMessageQueue):
         self.connections: Dict[str, WebSocket] = {}
         self.client_tasks: Dict[str, asyncio.Task] = {}
-        # HINZUGEFÜGT: Das fehlende Dictionary für die Session-Zuordnung
         self.user_session_map: Dict[str, str] = {}
         self.incoming_queue = incoming_queue
         self.websocket_out_queue = outgoing_queue
@@ -24,24 +23,68 @@ class WebSocketManager:
         logger.info("WebSocketManager initialized.")
 
     async def start(self):
-        # ... (Diese Methode ist korrekt und bleibt unverändert)
         if not self._dispatcher_task:
             self._dispatcher_task = asyncio.create_task(self._message_dispatcher())
             logger.info("WebSocketManager central message dispatcher started.")
 
     async def stop(self):
-        # ... (Diese Methode ist korrekt und bleibt unverändert)
+        """
+        Gracefully stops the WebSocketManager by closing all connections
+        and stopping background tasks.
+        """
         logger.info("Initiating WebSocketManager shutdown...")
-        # ... (Rest der Logik)
+        
+        # Cancel the main dispatcher task first to stop processing new outgoing messages.
+        if self._dispatcher_task:
+            self._dispatcher_task.cancel()
+            try:
+                # Await the task to ensure it has a chance to clean up.
+                await self._dispatcher_task
+            except asyncio.CancelledError:
+                pass # This is expected behavior
+            self._dispatcher_task = None
+            logger.info("Central message dispatcher stopped.")
 
-    # KORRIGIERT: Diese Methode wurde aus der `stop`-Methode heraus an die richtige Stelle verschoben.
+        # Iterate through a copy of the client_tasks dictionary to avoid issues
+        # with dictionary size changes during the loop.
+        tasks_to_cancel = list(self.client_tasks.values())
+        if tasks_to_cancel:
+            logger.info(f"Cancelling {len(tasks_to_cancel)} client receiver tasks...")
+            for task in tasks_to_cancel:
+                task.cancel()
+            
+            # Gather all cancellation tasks to ensure they are all processed
+            # before continuing.
+            await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+            self.client_tasks.clear()
+            
+        # Finally, close all WebSocket connections.
+        connections_to_close = list(self.connections.values())
+        if connections_to_close:
+            logger.info(f"Closing {len(connections_to_close)} WebSocket "
+                       f"connections...")
+            for ws in connections_to_close:
+                # Attempt to close the WebSocket connection with code=1000.
+                
+                # If the connection is in an unexpected state, log the error
+                # and continue.
+                try:
+                    await ws.close(code=1000)
+                except Exception as e:
+                    logger.error(f"Error closing WebSocket connection: {e}",
+                               exc_info=True)
+        
+        self.connections.clear()
+        self.user_session_map.clear()
+        
+        logger.info("WebSocketManager shutdown complete. All tasks and connections are closed.")
+
     def associate_user_session(self, client_id: str, user_session_id: str):
         """Stores the link between a client_id and a user_session_id."""
         self.user_session_map[client_id] = user_session_id
         logger.info(f"Associated client {client_id} with User Session ID {user_session_id}.")
 
     async def handle_connection(self, websocket: WebSocket, client_id: str):
-        # ... (Bestehende Logik ist gut, aber wir fügen die Bereinigung der user_session_map hinzu)
         await websocket.accept()
         self.connections[client_id] = websocket
         client_info = f"{websocket.client.host}:{websocket.client.port}" if websocket.client else "unknown"
@@ -73,7 +116,8 @@ class WebSocketManager:
                 # Case 1: Message is for a specific, connected client ID
                 if destination and destination in self.connections:
                     await self._send_to_websocket(self.connections[destination], message)
-                    logger.debug(f"Dispatched message '{message.type}' to client {destination}")
+                    if message.type != "system.queue_status_update":
+                        logger.debug(f"Dispatched message '{message.type}' to client {destination}")
 
                 # Case 2: Message is for the group of all frontend clients
                 elif destination == "all_frontends":

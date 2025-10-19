@@ -17,7 +17,15 @@
     "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
     "start": "electron .",
     "clean": "rimraf dist dist-electron",
-    "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0"
+    "build:clean": "rimraf dist dist-electron || rmdir /s /q dist dist-electron 2>NUL || exit 0",
+    "test": "playwright test",
+    "test:electron": "playwright test tests/electron",
+    "test:components": "playwright test tests/components",
+    "test:ui": "playwright test --grep \"UI\"",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:watch": "web-test-runner --watch",
+    "test:install": "playwright install"
   },
   "dependencies": {
     "@material/web": "^2.3.0",
@@ -25,11 +33,16 @@
     "marked": "^15.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^38.1.0",
     "electron-builder": "^24.6.4",
     "esbuild": "^0.25.8",
+    "howler": "^2.2.4",
+    "lit": "^3.3.0",
+    "marked": "^15.0.12",
+    "playwright": "^1.55.1",
     "rimraf": "^5.0.5",
     "vite": "^6.3.5",
     "wait-on": "^7.0.1"

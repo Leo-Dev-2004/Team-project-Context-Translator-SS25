@@ -35,6 +35,13 @@
 	/* Transitions */
 	--transition-fast: 0.15s;
 	--transition-normal: 0.3s;
+
+	/* Scrollbar Styling Variables */
+	--scrollbar-width: 8px;
+	--scrollbar-track-bg: transparent;
+	--scrollbar-thumb-bg: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-bg-hover: rgba(0, 0, 0, 0.4);
+	--scrollbar-border-radius: 4px;
 	/* Material Design Mappings - Light Mode */
 	--md-sys-color-primary: var(--color-primary);
 	--md-sys-color-primary-container: var(--color-primary-light);
@@ -53,10 +60,14 @@
 	--md-sys-color-error: #DC2626;
 	--md-sys-color-error-container: #FEE2E2;
 	--md-sys-color-on-error-container: #991B1B;
+	
+	/* Material Web Select Component Colors for Light Mode */
+	--md-sys-color-surface-container-highest: var(--color-surface-light);
 }
 
+/* Dark mode support via media query (system preference) */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not(.force-light) {
 		/* Harmonische Farbpalette - Dark Mode */
 		--color-primary: #60A5FA;
 		--color-secondary: #9CA3AF;
@@ -70,7 +81,32 @@
 		--md-sys-color-on-surface: var(--color-secondary-light);
 		--md-sys-color-outline-variant: #4B5563;
 		--md-sys-color-error: #F87171;
+		
+		/* Material Web Select Component Colors for Dark Mode */
+		--md-sys-color-surface-container-highest: var(--color-surface-light);
+		--md-sys-color-on-surface-variant: var(--color-secondary-light);
 	}
+}
+
+/* Manual dark mode override */
+:root.force-dark {
+	/* Harmonische Farbpalette - Dark Mode */
+	--color-primary: #60A5FA;
+	--color-secondary: #9CA3AF;
+	--color-surface: #1F2937;
+	--color-surface-dark: #111827;
+	--color-surface-light: #374151;
+
+	/* Dark Mode Material Design Mappings */
+	--md-sys-color-surface: var(--color-surface-dark);
+	--md-sys-color-surface-variant: var(--color-surface-light);
+	--md-sys-color-on-surface: var(--color-secondary-light);
+	--md-sys-color-outline-variant: #4B5563;
+	--md-sys-color-error: #F87171;
+	
+	/* Material Web Select Component Colors for Dark Mode */
+	--md-sys-color-surface-container-highest: var(--color-surface-light);
+	--md-sys-color-on-surface-variant: var(--color-secondary-light);
 }
 
 /* Globale Basis-Styles */
@@ -99,6 +135,10 @@ body {
 }
 
 /* Header */
+.app-header {
+	position: relative;
+}
+
 .app-header h1 {
 	font-size: 2.5rem;
 	color: var(--md-sys-color-primary);
@@ -111,6 +151,30 @@ body {
 	color: var(--md-sys-color-secondary);
 	margin: 0;
 	text-align: center;
+}
+
+/* Dark mode toggle */
+.theme-toggle {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	font-size: 0.75rem;
+	color: var(--md-sys-color-on-surface-variant);
+	transform: scale(0.8);
+	transform-origin: left top;
+}
+
+.theme-toggle md-switch {
+	--md-switch-selected-track-color: var(--md-sys-color-primary);
+	--md-switch-selected-handle-color: var(--md-sys-color-on-primary);
+}
+
+.theme-icon {
+	font-size: 1.125rem;
+	opacity: 0.7;
 }
 
 /* Tabs */
@@ -129,7 +193,7 @@ md-tabs {
 }
 
 /* Buttons - Vereinheitlicht */
-.btn, .action-button, .copy-button, .expand-icon {
+.btn, .action-button, .copy-button, .regenerate-button, .expand-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -159,7 +223,7 @@ md-tabs {
 	color: var(--md-sys-color-primary);
 }
 
-.btn:hover, .action-button:hover, .copy-button:hover {
+.btn:hover, .action-button:hover, .copy-button:hover, .regenerate-button:hover {
 	transform: translateY(-1px);
 	box-shadow: var(--shadow-md);
 }
@@ -214,6 +278,28 @@ md-tabs {
 	border-width: 2px;
 }
 
+.explanation-card.pending {
+	border-color: var(--md-sys-color-tertiary);
+	border-style: dashed;
+	background: color-mix(in srgb, var(--md-sys-color-surface) 95%, var(--md-sys-color-tertiary));
+}
+
+.loading-indicator {
+	color: var(--md-sys-color-tertiary);
+	animation: rotate 2s linear infinite;
+	margin-right: var(--space-xs);
+}
+
+@keyframes rotate {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+.pending-content {
+	opacity: 0.7;
+	font-style: italic;
+}
+
 /* Explanation-spezifische Layouts */
 .explanation-header {
 	display: flex;
@@ -228,6 +314,24 @@ md-tabs {
 	font-weight: 500;
 }
 
+/* Confidence badge */
+.confidence-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: var(--space-sm);
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1;
+	min-width: 34px;
+	user-select: none;
+}
+.confidence-badge.low { background: #D32F2F; color: #fff; }
+.confidence-badge.medium { background: #F59E0B; color: #111827; }
+.confidence-badge.high { background: #2E7D32; color: #fff; }
+
 .explanation-actions {
 	display: flex;
 	gap: var(--space-xs);
@@ -241,6 +345,28 @@ md-tabs {
 	padding-top: var(--space-sm);
 	border-top: 1px solid var(--md-sys-color-outline-variant);
 	margin-top: var(--space-md);
+}
+
+.footer-actions {
+	display: flex;
+	gap: var(--space-sm);
+	align-items: center;
+}
+
+.regenerate-button {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	padding: var(--space-xs) var(--space-sm);
+	font-size: 0.75rem;
+	gap: var(--space-xs);
+}
+
+.copy-button {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	padding: var(--space-xs) var(--space-sm);
+	font-size: 0.75rem;
+	gap: var(--space-xs);
 }
 
 .explanation-content {
@@ -261,10 +387,39 @@ md-tabs {
 	margin-bottom: var(--space-lg);
 }
 
+/* Explanations Content Areas - Scrollable Setup */
+.explanations-content {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.explanations-list {
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: hidden;
+}
+
 /* Input Fields */
 md-outlined-text-field, md-outlined-select {
 	width: 100%;
 	margin-bottom: var(--space-md);
+}
+
+.domain-input-group, .style-input-group {
+	margin-top: var(--space-sm);
+}
+
+.style-field {
+	--md-outlined-select-text-field-container-height: 64px;
+}
+
+/* Material Web Select Option Styles */
+md-outlined-select {
+	/* Set menu colors for proper visibility in both light and dark modes */
+	--md-menu-container-color: var(--md-sys-color-surface-container-highest);
+	--md-menu-item-label-text-color: var(--md-sys-color-on-surface);
+	--md-menu-item-supporting-text-color: var(--md-sys-color-on-surface-variant);
 }
 
 /* Clear Button im Textfeld */
@@ -341,6 +496,169 @@ md-outlined-text-field md-icon-button[slot="trailing-icon"] .material-icons {
 .action-button .material-icons { font-size: 20px; }
 .expand-icon .material-icons { font-size: 20px; transition: transform var(--transition-normal) ease; }
 .expand-icon.expanded .material-icons { transform: rotate(180deg); }
-.copy-button .material-icons { font-size: 16px; }
+.copy-button .material-icons { font-size: 14px; }
+.regenerate-button .material-icons { font-size: 14px; }
 .empty-icon.material-icons { font-size: 72px; margin-bottom: var(--space-lg); opacity: 0.6; }
-md-text-button .material-icons, md-filled-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
+md-text-button .material-icons, md-filled-button .material-icons, md-outlined-button .material-icons { font-size: 18px; margin-right: var(--space-xs); }
+
+/* Processing/Loading State Styles */
+.processing-content {
+  padding: var(--space-md);
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8eeff 100%);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-primary-300);
+}
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary-700);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary-200);
+  border-top: 2px solid var(--color-primary-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.processing-details {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Scrollbar Styles */
+/* Base scrollbar styling that applies to all scrollable content */
+.scrollable, .explanations-content, .explanation-content.expanded, .explanations-list {
+  /* Default webkit scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+.scrollable::-webkit-scrollbar, 
+.explanations-content::-webkit-scrollbar,
+.explanation-content.expanded::-webkit-scrollbar,
+.explanations-list::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.scrollable::-webkit-scrollbar-track,
+.explanations-content::-webkit-scrollbar-track,
+.explanation-content.expanded::-webkit-scrollbar-track,
+.explanations-list::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.scrollable::-webkit-scrollbar-thumb,
+.explanations-content::-webkit-scrollbar-thumb,
+.explanation-content.expanded::-webkit-scrollbar-thumb,
+.explanations-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg);
+  border-radius: var(--scrollbar-border-radius);
+  transition: background var(--transition-fast) ease;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover,
+.explanations-content::-webkit-scrollbar-thumb:hover,
+.explanation-content.expanded::-webkit-scrollbar-thumb:hover,
+.explanations-list::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-bg-hover);
+}
+
+/* Scrollbar Style Options */
+
+/* Minimal/Subtle Style */
+.scrollbar-minimal {
+  --scrollbar-width: 4px;
+  --scrollbar-track-bg: transparent;
+  --scrollbar-thumb-bg: rgba(100, 116, 139, 0.3);
+  --scrollbar-thumb-bg-hover: rgba(100, 116, 139, 0.6);
+}
+
+/* Glassy/Transparent Style */
+.scrollbar-glassy {
+  --scrollbar-width: 6px;
+  --scrollbar-track-bg: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-bg-hover: rgba(255, 255, 255, 0.4);
+  --scrollbar-border-radius: 3px;
+}
+
+.scrollbar-glassy::-webkit-scrollbar-thumb {
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hidden Style */
+.scrollbar-hidden {
+  --scrollbar-width: 0px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Default Style (browser default) */
+.scrollbar-default {
+  --scrollbar-width: auto;
+  --scrollbar-track-bg: initial;
+  --scrollbar-thumb-bg: initial;
+  --scrollbar-thumb-bg-hover: initial;
+  scrollbar-width: auto;
+  scrollbar-color: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar {
+  width: initial;
+  height: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar-track {
+  background: initial;
+  border-radius: initial;
+}
+
+.scrollbar-default::-webkit-scrollbar-thumb {
+  background: initial;
+  border-radius: initial;
+}
+
+/* Dark mode adjustments for scrollbar styles */
+@media (prefers-color-scheme: dark) {
+  :root:not(.force-light) {
+    --scrollbar-thumb-bg: rgba(156, 163, 175, 0.4);
+    --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.7);
+  }
+  
+  :root:not(.force-light) .scrollbar-glassy {
+    --scrollbar-track-bg: rgba(0, 0, 0, 0.1);
+    --scrollbar-thumb-bg: rgba(156, 163, 175, 0.3);
+    --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.6);
+  }
+}
+
+:root.force-dark {
+  --scrollbar-thumb-bg: rgba(156, 163, 175, 0.4);
+  --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.7);
+}
+
+:root.force-dark .scrollbar-glassy {
+  --scrollbar-track-bg: rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb-bg: rgba(156, 163, 175, 0.3);
+  --scrollbar-thumb-bg-hover: rgba(156, 163, 175, 0.6);
+}

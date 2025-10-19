@@ -1,0 +1,8 @@
+{
+  "domain": "",
+  "explanation_style": "detailed",
+  "ai_model": "llama3.2",
+  "confidence_threshold": 1,
+  "cooldown_seconds": 300,
+  "last_updated": "2025-10-16T11:27:50.982595"
+}

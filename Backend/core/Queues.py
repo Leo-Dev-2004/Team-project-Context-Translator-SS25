@@ -1,5 +1,4 @@
 # Backend/core/Queues.py
-# (Dies ist eine beispielhafte Struktur, passe sie an deine tatsächliche Queue-Implementierung an)
 from ..queues.QueueTypes import AbstractMessageQueue # Korrigierter Importpfad
 from ..queues.MessageQueue import MessageQueue # Korrigierter Importpfad
 import logging
@@ -24,9 +23,6 @@ class Queues:
             self.incoming: AbstractMessageQueue = MessageQueue()
             self.outgoing: AbstractMessageQueue = MessageQueue()
             self.websocket_out: AbstractMessageQueue = MessageQueue()
-            # === NEUE QUEUES FÜR SIMULATION HINZUFÜGEN ===
-            self.simulation_input: AbstractMessageQueue = MessageQueue() # NEU
-            self.simulation_output: AbstractMessageQueue = MessageQueue() # NEU
             self._initialized = True
             logger.info("Global message queues initialized.")
 
@@ -35,9 +31,7 @@ class Queues:
         return {
             "incoming": self.incoming,
             "outgoing": self.outgoing,
-            "websocket_out": self.websocket_out,
-            "simulation_input": self.simulation_input,
-            "simulation_output": self.simulation_output
+            "websocket_out": self.websocket_out
         }
 
 # Erstelle eine globale Instanz, die von anderen Modulen importiert werden kann

@@ -43,8 +43,8 @@ async def test_real_time_integration():
             "user_role": "student"  # Lower role to detect more terms
         },
         origin="test_script",
-        destination="small_model",
-        client_id="integration_test"
+        destination="SmallModel",
+        client_id="integration_test",
     )
     
     logger.info(f"Processing test message: {test_message.payload['text']}")
@@ -58,8 +58,9 @@ async def test_real_time_integration():
     end_time = time.time()
     processing_time = end_time - start_time
     
-    logger.info(f"SmallModel processing completed in {processing_time:.2f} seconds")
-    logger.info(f"SmallModel result: {result.type}")
+    if result:
+        logger.info(f"SmallModel processing completed in {processing_time:.2f} seconds")
+        logger.info(f"SmallModel result: {result.type}")
     
     # Check if detections were created
     if detections_file.exists():
@@ -90,31 +91,33 @@ async def test_real_time_integration():
     # Test Results Analysis
     logger.info("\n=== INTEGRATION TEST RESULTS ===")
     
-    if result.type == "ai.terms_detected":
-        logger.info("✅ SmallModel successfully detected terms")
-        detected_terms = result.payload.get('detected_terms', [])
-        logger.info(f"   Detected terms: {detected_terms}")
-        
-        if explanations_file.exists():
-            with open(explanations_file, 'r', encoding='utf-8') as f:
-                explanations = json.load(f)
-            test_explanations = [exp for exp in explanations if exp.get('client_id') == 'integration_test']
+    if result:
+        if result.type == "ai.terms_detected":
+            logger.info("✅ SmallModel successfully detected terms")
+            detected_terms = result.payload.get('detected_terms', [])
+            logger.info(f"   Detected terms: {detected_terms}")
             
-            if test_explanations:
-                logger.info("✅ MainModel automatically generated explanations")
-                logger.info(f"   Generated {len(test_explanations)} explanations")
-                logger.info("✅ OPTION B INTEGRATION SUCCESSFUL - Real-time pipeline working!")
+            if explanations_file.exists():
+                with open(explanations_file, 'r', encoding='utf-8') as f:
+                    explanations = json.load(f)
+                test_explanations = [exp for exp in explanations if exp.get('client_id') == 'integration_test']
+                
+                if test_explanations:
+                    logger.info("✅ MainModel automatically generated explanations")
+                    logger.info(f"   Generated {len(test_explanations)} explanations")
+                    logger.info("✅ OPTION B INTEGRATION SUCCESSFUL - Real-time pipeline working!")
+                else:
+                    logger.warning("⚠️  MainModel processing may be delayed or failed")
+                    logger.info("   Check logs above for MainModel errors")
             else:
-                logger.warning("⚠️  MainModel processing may be delayed or failed")
-                logger.info("   Check logs above for MainModel errors")
-        else:
-            logger.warning("⚠️  No explanations file found - MainModel may not have processed")
-            
-    elif result.type == "ai.no_terms_detected":
+                logger.warning("⚠️  No explanations file found - MainModel may not have processed")
+                
+    elif result and result.type == "ai.no_terms_detected":
         logger.warning("⚠️  SmallModel found no terms - check detection logic")
         
     else:
-        logger.error(f"❌ SmallModel returned unexpected result: {result.type}")
+        if result:
+            logger.error(f"❌ SmallModel returned unexpected result: {result.type}")
     
     logger.info(f"\nTotal test time: {processing_time:.2f} seconds")
     logger.info("=== Test Complete ===")

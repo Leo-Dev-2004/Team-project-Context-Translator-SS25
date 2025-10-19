@@ -2,8 +2,11 @@ import asyncio
 import json
 import logging
 import time
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
+import aiofiles
 
 from ..models.UniversalMessage import UniversalMessage
 from ..queues.QueueTypes import AbstractMessageQueue
@@ -12,32 +15,44 @@ logger = logging.getLogger(__name__)
 
 class ExplanationDeliveryService:
     """
-    Service that monitors explanations_queue.json and delivers explanations to frontend clients via WebSocket.
+    Monitors explanations_queue.json and delivers explanations to frontend clients.
     
-    This service bridges the gap between MainModel explanation generation and frontend display by:
-    1. Monitoring explanations_queue.json for status "ready_for_delivery"
-    2. Converting explanations to UniversalMessage format
-    3. Enqueueing messages to websocket_out queue for delivery
-    4. Marking explanations as "delivered" to prevent duplicates
+    This service is a CONSUMER that polls a file queue and pushes messages to the
+    outgoing WebSocket queue. It is fully asynchronous and thread-safe.
     """
     
     def __init__(self, outgoing_queue: AbstractMessageQueue):
         self.outgoing_queue = outgoing_queue
         self.explanations_file = Path("Backend/AI/explanations_queue.json")
-        self.delivered_explanations: Set[str] = set()  # Track delivered explanation IDs
+        
+        # A lock is essential to prevent race conditions when updating the shared queue file.
+        self.queue_lock = asyncio.Lock()
+        
+        # In-memory set to track delivered IDs for the current session to prevent duplicates.
+        self.delivered_explanations: Set[str] = set()
+        
+        # Event-driven notification system to replace polling
+        self._new_explanation_event = asyncio.Event()
+        
         self._running = False
         self._task: Optional[asyncio.Task] = None
         logger.info("ExplanationDeliveryService initialized")
 
     async def start(self):
-        """Start the explanation monitoring service"""
+        """Start the explanation monitoring service."""
         if not self._running:
             self._running = True
             self._task = asyncio.create_task(self._monitor_explanations())
             logger.info("ExplanationDeliveryService started monitoring explanations queue")
 
+    def trigger_immediate_check(self):
+        """Trigger immediate check for new explanations without waiting for polling interval."""
+        if self._running:
+            self._new_explanation_event.set()
+            logger.debug("Triggered immediate explanation check")
+
     async def stop(self):
-        """Stop the explanation monitoring service"""
+        """Stop the explanation monitoring service."""
         if self._running:
             self._running = False
             if self._task:
@@ -49,63 +64,97 @@ class ExplanationDeliveryService:
             logger.info("ExplanationDeliveryService stopped")
 
     async def _monitor_explanations(self):
-        """Monitor the explanations queue file and deliver ready explanations"""
         logger.info("Started monitoring explanations queue for ready explanations")
-        
         while self._running:
             try:
-                if self.explanations_file.exists():
+                # Continuously process until the queue is empty
+                while True:
                     ready_explanations = await self._load_ready_explanations()
-                    
-                    for explanation in ready_explanations:
-                        explanation_id = explanation.get("id")
-                        
-                        # Skip if already delivered
-                        if explanation_id and explanation_id not in self.delivered_explanations:
-                            await self._deliver_explanation(explanation)
-                            self.delivered_explanations.add(explanation_id)
-                            
-                            # Mark as delivered in the queue file
-                            await self._mark_as_delivered(explanation_id)
-                
-                # Check every 2 seconds for new explanations
-                await asyncio.sleep(2)
-                
+                    if not ready_explanations:
+                        break # Break the inner loop if queue is empty
+
+                    # Process the entire batch that was found
+                    await self._process_and_deliver_batch(ready_explanations)
+
+                # If the queue was empty, wait for event notification or timeout
+                # This replaces the fixed 1-second polling delay with event-driven approach
+                try:
+                    await asyncio.wait_for(self._new_explanation_event.wait(), timeout=5.0)
+                    # Clear the event flag for next iteration
+                    self._new_explanation_event.clear()
+                except asyncio.TimeoutError:
+                    # Timeout is normal - provides periodic check as fallback
+                    pass
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Error in explanation monitoring loop: {e}", exc_info=True)
-                await asyncio.sleep(5)  # Wait longer on error
+                await asyncio.sleep(1)
+
+    async def _process_and_deliver_batch(self, batch: List[Dict]):
+        """Processes a given batch of explanations."""
+        delivered_ids_in_batch = []
+        for explanation in batch:
+            explanation_id = explanation.get("id")
+            if explanation_id and explanation_id not in self.delivered_explanations:
+                await self._deliver_explanation(explanation)
+                self.delivered_explanations.add(explanation_id)
+                delivered_ids_in_batch.append(explanation_id)
+        
+        if delivered_ids_in_batch:
+            await self._mark_batch_as_delivered(delivered_ids_in_batch)
+
+
+    async def _process_and_deliver(self):
+        """Load, deliver, and update status for ready explanations."""
+        ready_explanations = await self._load_ready_explanations()
+        
+        if not ready_explanations:
+            return
+
+        for explanation in ready_explanations:
+            explanation_id = explanation.get("id")
+            if explanation_id and explanation_id not in self.delivered_explanations:
+                await self._deliver_explanation(explanation)
+                self.delivered_explanations.add(explanation_id)
+        
+        # Mark all newly delivered items as "delivered" in a single file write.
+        await self._mark_batch_as_delivered( [exp.get("id") for exp in ready_explanations] ) # type: ignore
 
     async def _load_ready_explanations(self) -> List[Dict]:
-        """Load explanations with status 'ready_for_delivery' from the queue file"""
-        try:
-            with open(self.explanations_file, 'r', encoding='utf-8') as f:
-                explanations = json.load(f)
-            
-            # Filter for ready explanations that haven't been delivered
-            ready_explanations = [
-                exp for exp in explanations 
-                if exp.get("status") == "ready_for_delivery"
-                and exp.get("id") not in self.delivered_explanations
-            ]
-            
-            if ready_explanations:
-                logger.debug(f"Found {len(ready_explanations)} ready explanations to deliver")
-            
-            return ready_explanations
-            
-        except Exception as e:
-            logger.error(f"Error loading explanations queue: {e}")
-            return []
+        """Asynchronously load explanations with status 'ready_for_delivery'."""
+        async with self.queue_lock:
+            try:
+                async with aiofiles.open(self.explanations_file, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                
+                explanations = json.loads(content) if content.strip() else []
+                
+                ready = [
+                    exp for exp in explanations 
+                    if exp.get("status") == "ready_for_delivery"
+                ]
+                
+                if ready:
+                    logger.debug(f"Found {len(ready)} ready explanations to deliver")
+                
+                return ready
+            except FileNotFoundError:
+                return []
+            except Exception as e:
+                logger.error(f"Error loading explanations queue: {e}")
+                return []
 
     async def _deliver_explanation(self, explanation: Dict):
-        """Deliver an explanation to the frontend via WebSocket"""
+        """Format and enqueue a single explanation for delivery."""
         try:
-            # Create UniversalMessage for the explanation
+            # Use the message_type from the explanation, defaulting to "explanation.new"
+            message_type = explanation.get("message_type", "explanation.new")
+            
             message = UniversalMessage(
                 id=f"explanation_delivery_{explanation.get('id', 'unknown')}",
-                type="explanation.new",
+                type=message_type,
                 timestamp=time.time(),
                 payload={
                     "explanation": {
@@ -115,73 +164,47 @@ class ExplanationDeliveryService:
                         "context": explanation.get("context"),
                         "timestamp": explanation.get("timestamp"),
                         "client_id": explanation.get("client_id"),
-                        "user_session_id": explanation.get("user_session_id")
+                        "user_session_id": explanation.get("user_session_id"),
+                        "confidence": explanation.get("confidence", 0),
+                        "original_explanation_id": explanation.get("original_explanation_id")
                     }
                 },
-                # Route to specific client if available and frontend, otherwise to all frontends
-                destination=explanation.get("client_id") if explanation.get("client_id", "").startswith("frontend_") else "all_frontends",
-                origin="explanation_delivery_service"
+                destination="all_frontends", # Simplified to always broadcast
+                origin="explanation_delivery_service",
+                client_id=explanation.get("client_id")
             )
             
-            # Send to WebSocket queue for delivery
             await self.outgoing_queue.enqueue(message)
-            
-            logger.info(f"Delivered explanation for term '{explanation.get('term')}' (id: {explanation.get('id')}) to {message.destination}")
-            
+            logger.info(f"Delivered {'retry ' if message_type == 'explanation.retry' else ''}explanation for term '{explanation.get('term')}' (id: {explanation.get('id')})")
         except Exception as e:
             logger.error(f"Error delivering explanation {explanation.get('id')}: {e}", exc_info=True)
 
-    async def _mark_as_delivered(self, explanation_id: str):
-        """Mark an explanation as delivered in the queue file"""
-        try:
-            # Read current explanations
-            with open(self.explanations_file, 'r', encoding='utf-8') as f:
-                explanations = json.load(f)
-            
-            # Update status to delivered
-            for explanation in explanations:
-                if explanation.get("id") == explanation_id:
-                    explanation["status"] = "delivered"
-                    explanation["delivered_at"] = time.time()
-                    break
-            
-            # Write back to file atomically
-            temp_file = self.explanations_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(explanations, f, indent=2, ensure_ascii=False)
-            
-            # Atomic rename
-            temp_file.replace(self.explanations_file)
-            
-            logger.debug(f"Marked explanation {explanation_id} as delivered")
-            
-        except Exception as e:
-            logger.error(f"Error marking explanation {explanation_id} as delivered: {e}")
+    async def _mark_batch_as_delivered(self, delivered_ids: List[str]):
+        """Safely mark a batch of explanations as delivered in the queue file."""
+        if not delivered_ids:
+            return
 
-    async def force_deliver_all_ready(self):
-        """Force delivery of all ready explanations (useful for testing)"""
-        logger.info("Force delivering all ready explanations")
-        ready_explanations = await self._load_ready_explanations()
-        
-        for explanation in ready_explanations:
-            explanation_id = explanation.get("id")
-            if explanation_id and explanation_id not in self.delivered_explanations:
-                await self._deliver_explanation(explanation)
-                self.delivered_explanations.add(explanation_id)
-                await self._mark_as_delivered(explanation_id)
-        
-        logger.info(f"Force delivered {len(ready_explanations)} explanations")
+        delivered_id_set = set(delivered_ids)
+        async with self.queue_lock:
+            try:
+                async with aiofiles.open(self.explanations_file, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                
+                explanations = json.loads(content) if content.strip() else []
 
-    def get_status(self) -> Dict:
-        """Get service status for debugging"""
-        return {
-            "running": self._running,
-            "delivered_count": len(self.delivered_explanations),
-            "queue_file_exists": self.explanations_file.exists(),
-            "delivered_ids": list(self.delivered_explanations)[:10]  # Show last 10 for brevity
-        }
-
-    def reset_delivered_tracking(self):
-        """Reset delivered explanations tracking (useful for testing)"""
-        self.delivered_explanations.clear()
-        logger.info("Reset delivered explanations tracking")
+                for explanation in explanations:
+                    if explanation.get("id") in delivered_id_set:
+                        explanation["status"] = "delivered"
+                        explanation["delivered_at"] = time.time()
+                
+                temp_file = self.explanations_file.with_suffix('.tmp')
+                async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(explanations, indent=2, ensure_ascii=False))
+                
+                await asyncio.to_thread(os.replace, str(temp_file), str(self.explanations_file))
+                
+                logger.debug(f"Marked {len(delivered_ids)} explanations as delivered in queue file.")
+            except FileNotFoundError:
+                logger.error("Cannot mark explanations as delivered: queue file not found.")
+            except Exception as e:
+                logger.error(f"Error marking explanations as delivered: {e}")

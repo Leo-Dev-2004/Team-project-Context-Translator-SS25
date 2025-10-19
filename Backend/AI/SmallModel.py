@@ -1,43 +1,62 @@
-# Backend/AI/SmallModel.py
-
-import asyncio
 import json
-import logging
+import httpx  # Use httpx for asynchronous HTTP requests
+import os
 import time
 import aiofiles
+import asyncio
+import logging
 import re
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
 
-try:
-    import ollama
-except ImportError:
-    ollama = None
-    logging.warning("Ollama not available - SmallModel will use fallback detection")
+from ..models.UniversalMessage import UniversalMessage
+from ..dependencies import get_settings_manager_instance
 
-from ..models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
-
+# Setup logging
 logger = logging.getLogger(__name__)
+
+# === Config ===
+# Centralized configuration for clarity and easy modification
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
+LLAMA_MODEL = "llama3.2"
+DETECTIONS_QUEUE_FILE = Path("Backend/AI/detections_queue.json")
+
+# Performance configuration
+AI_TIMEOUT_SECONDS = int(os.getenv("SMALLMODEL_AI_TIMEOUT", "180"))  # Configurable AI timeout
+BATCH_DELAY_SECONDS = float(os.getenv("SMALLMODEL_BATCH_DELAY", "0.5"))  # Configurable batch delay
 
 class SmallModel:
     """
-    AI-powered detection model using Ollama/llama3.2 that processes transcription messages,
-    identifies important terms, and writes them to file-based queues for MainModel processing.
+    Processes transcriptions to detect important terms and writes them to a file-based queue.
+    This service is a PRODUCER; it is fully decoupled and does not interact with MainModel directly.
     """
 
     def __init__(self):
-        self.detections_queue_file = Path("Backend/AI/detections_queue.json")
+        # Flush detections queue at startup
+        DETECTIONS_QUEUE_FILE.write_text(json.dumps([]), encoding='utf-8')
+
+        # Using a single, reusable async HTTP client is more efficient
+        self.http_client = httpx.AsyncClient(timeout=180.0)
+        
+        # A lock is essential to prevent race conditions when writing to the shared queue file
+        self.queue_lock = asyncio.Lock()
+        self.detections_queue_file = DETECTIONS_QUEUE_FILE
+
+        # Import outgoing queue for immediate notifications
+        from ..core.Queues import queues
+        self.outgoing_queue = queues.outgoing
+
+        # Batching for improved performance
+        self.detection_batch = []
+        self.batch_timeout = None
+        self.batch_delay = BATCH_DELAY_SECONDS  # seconds to collect terms before sending batch
 
         # Filtering configuration
-        self.confidence_threshold = 0.9
+        self.confidence_threshold = 0.4  # Terms with confidence < this are ignored 
         self.cooldown_seconds = 300
-
-        # MainModel integration for real-time processing
-        self._main_model = None
-
-        # Known terms to filter out (common words)
         self.known_terms = {
+            # Basic articles, pronouns, prepositions, conjunctions
             "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
             "from", "has", "have", "he", "her", "his", "i", "if", "in", "into", "is", "it",
             "its", "me", "my", "no", "not", "of", "on", "or", "our", "she", "so", "that",
@@ -47,399 +66,675 @@ class SmallModel:
             "having", "how", "than", "those", "also", "just", "such", "yet", "only", "any",
             "each", "few", "most", "other", "some", "because", "while", "about", "before",
             "after", "again", "against", "between", "both", "once", "during", "over",
-            "under", "out", "off", "very", "same", "all", "each", "another", "whoever",
+            "under", "out", "off", "very", "same", "all", "another", "whoever",
             "whichever", "whomever", "whom", "whilst", "perhaps", "random", "randomized",
+            
+            # Common technical terms that shouldn't be explained
             "login", "system", "module", "process", "service", "function", "model",
             "input", "output", "data", "rate", "code", "structure", "operation", "performance",
             "memory", "network", "flow", "solution", "platform", "application", "tool",
             "resource", "logic", "signal", "protocol", "instance", "modular", "password",
             "user", "error", "file", "program", "install", "update", "run", "command",
             "website", "page", "link", "browser", "button", "web", "account", "credentials",
-            "access", "secure", "permission", "number", "chart", "email"
+            "access", "secure", "permission", "number", "chart", "email", 
+            
+            # Common verbs that were incorrectly detected
+            "need", "uses", "shows", "implementing", "increase", "optimize", "better",
+            "make", "get", "set", "put", "take", "give", "find", "work", "create",
+            "build", "develop", "test", "check", "use", "run", "start", "stop",
+            
+            # Common nouns that aren't technical
+            "time", "way", "day", "year", "work", "life", "part", "place", "case",
+            "point", "government", "company", "group", "problem", "fact", "hand",
+            "right", "thing", "world", "information", "office", "home", "money",
+            "business", "service", "health", "community", "name", "team", "area"
+            "access", "secure", "permission", "number", "chart", "email",
+            
+            # Small talk and conversational fillers
+            "hello", "hi", "hey", "goodbye", "bye", "thanks", "thank", "please", "sorry",
+            "excuse", "pardon", "well", "ok", "okay", "right", "sure", "yes", "yeah", "yep",
+            "no", "nah", "nope", "maybe", "perhaps", "actually", "really", "quite", "pretty",
+            "kind", "sort", "like", "you know", "i mean", "basically", "essentially",
+            "obviously", "clearly", "definitely", "probably", "certainly", "absolutely",
+            "exactly", "totally", "completely", "perfectly", "generally", "usually",
+            "typically", "normally", "commonly", "frequently", "often", "sometimes",
+            "occasionally", "rarely", "seldom", "never", "always", "forever",
+            
+            # Time and sequence words
+            "now", "today", "yesterday", "tomorrow", "soon", "later", "earlier", "first",
+            "second", "third", "last", "final", "next", "previous", "current", "recent",
+            "past", "future", "present", "since", "until", "before", "after", "during",
+            
+            # Quantifiers and modifiers
+            "much", "many", "more", "most", "less", "least", "enough", "too", "quite",
+            "rather", "fairly", "somewhat", "slightly", "extremely", "incredibly",
+            "amazingly", "surprisingly", "unfortunately", "fortunately", "hopefully",
+            
+            # Common verbs that rarely need explanation
+            "go", "get", "make", "take", "come", "see", "look", "know", "think", "feel",
+            "want", "need", "try", "use", "work", "play", "help", "ask", "tell", "say",
+            "speak", "talk", "listen", "hear", "read", "write", "learn", "teach", "show",
+            "find", "give", "bring", "put", "keep", "leave", "start", "stop", "continue",
+            "finish", "complete", "begin", "end", "open", "close", "turn", "move", "stay",
+            
+            # Common adjectives
+            "good", "bad", "big", "small", "new", "old", "long", "short", "high", "low",
+            "fast", "slow", "hot", "cold", "warm", "cool", "easy", "hard", "simple",
+            "difficult", "important", "interesting", "boring", "fun", "nice", "great",
+            "wonderful", "terrible", "awful", "amazing", "incredible", "beautiful", "ugly",
+            
+            # Prompt contamination words (commonly appear during silence)
+            "domain", "extract", "technical", "terms", "sentence", "confidence", "json",
+            "array", "objects", "context", "timestamp", "response", "example", "perfect",
+            "format", "keys", "string", "float", "int", "output", "prompt", "user", "role"
         }
-
-        # Cooldown tracking
         self.cooldown_map = {}
-
-        # Ensure queue directory exists
         self.detections_queue_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("SmallModel initialized and ready to produce detections.")
 
-        logger.info("SmallModel initialized with AI detection and file queue integration.")
+    async def send_immediate_detection_notification(self, message: UniversalMessage, detected_terms: List[Dict]):
+        """
+        Send immediate detection notification to frontend while processing continues in background.
+        This provides instant user feedback showing detected terms without waiting for explanations.
+        """
+        try:
+            if not detected_terms:
+                return
+
+            # Create immediate notification with detected terms (without explanations)
+            detection_notification = UniversalMessage(
+                type="detection.immediate",
+                payload={
+                    "detected_terms": [
+                        {
+                            "term": term_data["term"],
+                            "confidence": term_data.get("confidence", 0.5),
+                            "context": term_data["context"],
+                            "timestamp": term_data["timestamp"],
+                            "status": "detected",  # Status: detected -> processing -> explained
+                            "explanation": None  # Will be filled in later
+                        }
+                        for term_data in detected_terms
+                    ],
+                    "original_message_id": message.id,
+                    "processing_status": "terms_detected"
+                },
+                client_id=message.client_id,
+                origin="SmallModel",
+                destination="frontend"
+            )
+
+            # Send immediately to frontend via outgoing queue
+            await self.outgoing_queue.enqueue(detection_notification)
+            
+            logger.info(f"Sent immediate detection notification with {len(detected_terms)} terms to client {message.client_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending immediate detection notification: {e}", exc_info=True)
 
     def safe_json_extract(self, content: str) -> List[Dict]:
-        """Safely extract JSON from LLM response."""
+        """
+        Safely and aggressively extracts a JSON array from a raw LLM response.
+        """
         try:
-            content = re.sub(r"```(?:json)?", "", content).strip()
+            # Find the start and end of the main JSON array
+            start_index = content.find('[')
+            end_index = content.rfind(']')
 
-            # Try to find array format first
-            array_match = re.search(r"\[\s*{.*?}\s*.*?\]", content, re.DOTALL)
-            if array_match:
-                return json.loads(array_match.group(0))
-
-            # Try to find individual objects
+            if start_index != -1 and end_index != -1 and end_index > start_index:
+                json_str = content[start_index : end_index + 1]
+                return json.loads(json_str)
+            
+            # Fallback for individual objects if no array is found
             object_matches = re.findall(r"\{\s*\"term\".*?\}", content, re.DOTALL)
             if object_matches:
                 return [json.loads(obj) for obj in object_matches]
 
-            raise ValueError("No valid JSON structure found.")
-        except Exception as e:
-            logger.error(f"Failed to extract JSON: {e}")
+            raise ValueError("No valid JSON array or object structure found in the response.")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to extract JSON. Error: {e}")
+            logger.error(f"LLM returned non-JSON response: {content}")
             return []
 
-    def should_pass_filters(self, confidence: float, term: str) -> bool:
-        """Apply filtering logic to determine if a term should be processed."""
+    def _get_domain_examples(self, domain: Optional[str]) -> str:
+        """Generate domain-specific examples to help the AI understand what terms to extract."""
+        if not domain or not domain.strip():
+            return """
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- Medicine: diagnosis, treatment, pathology, pharmaceutical, clinical trial
+- Finance: portfolio, derivative, liquidity, hedge fund, cryptocurrency
+- Engineering: algorithm, optimization, architecture, infrastructure, scalability"""
+        
+        domain_lower = domain.strip().lower()
+        
+        # Domain-specific example mappings
+        domain_examples = {
+            "technology": "API, database, machine learning, cybersecurity, blockchain, microservices, DevOps, containerization, REST, GraphQL",
+            "software": "algorithm, debugging, refactoring, deployment, version control, continuous integration, unit testing, design patterns",
+            "business": "revenue stream, stakeholder, ROI, market segmentation, supply chain, business intelligence, KPI, value proposition",
+            "finance": "portfolio, derivative, liquidity, hedge fund, cryptocurrency, asset allocation, risk management, compound interest",
+            "medicine": "diagnosis, treatment, pathology, pharmaceutical, clinical trial, symptoms, prognosis, immunotherapy, radiology",
+            "science": "hypothesis, methodology, peer review, statistical significance, genome, experiment, research, analysis, variable",
+            "engineering": "optimization, architecture, infrastructure, scalability, load balancing, fault tolerance, system design",
+            "education": "curriculum, pedagogy, assessment, learning objectives, differentiated instruction, scaffolding, rubric",
+            "marketing": "brand awareness, conversion rate, customer acquisition, segmentation, attribution, funnel, retention",
+            "healthcare": "patient care, medical records, treatment plan, healthcare provider, insurance, telemedicine, preventive care",
+            "legal": "jurisdiction, litigation, contract law, compliance, intellectual property, due diligence, statute of limitations"
+        }
+        
+        # Find matching domain examples
+        for key, examples in domain_examples.items():
+            if key in domain_lower or domain_lower in key:
+                return f"- {domain.title()}: {examples}"
+        
+        # Default fallback with general examples
+        return f"""
+- Technology: API, database, machine learning, cybersecurity, blockchain
+- Business: revenue stream, stakeholder, ROI, market segmentation, supply chain  
+- Science: hypothesis, methodology, peer review, statistical significance, genome
+- {domain.title()}: [domain-specific technical terms that would need explanation]"""
+
+    def should_pass_filters(self, confidence: float, term: str, context_sentence: str = "") -> bool:
+        """Apply filtering logic with adaptive thresholds based on conversation type."""
         now = time.time()
         term_lower = term.lower()
 
-        # High confidence terms are too common
-        if confidence >= self.confidence_threshold:
-            logger.debug(f"Filtered: '{term}' - confidence too high ({confidence})")
-            return False
-
-        # Known common terms
+        # Check if term is in known terms blacklist
         if term_lower in self.known_terms:
             logger.debug(f"Filtered: '{term}' - known common term")
             return False
-
-        # Cooldown check
+            
+        # Check cooldown
         if term_lower in self.cooldown_map and now - self.cooldown_map[term_lower] < self.cooldown_seconds:
             time_ago = int(now - self.cooldown_map[term_lower])
             logger.debug(f"Filtered: '{term}' - in cooldown ({time_ago}s ago)")
             return False
 
+        # Adaptive confidence threshold based on conversation type
+        adaptive_threshold = self._get_adaptive_threshold(context_sentence)
+        
+        if confidence < adaptive_threshold:
+            logger.debug(f"Filtered: '{term}' - confidence too low ({confidence} < {adaptive_threshold}) for context type")
+            return False
+            
         return True
 
-    def get_main_model(self):
-        """Lazy loading of MainModel instance to avoid circular imports."""
-        if self._main_model is None:
-            try:
-                from .MainModel import MainModel
-                self._main_model = MainModel()
-                logger.info("MainModel instance created for real-time processing")
-            except Exception as e:
-                logger.error(f"Failed to load MainModel: {e}")
-                self._main_model = None
-        return self._main_model
+    def _get_adaptive_threshold(self, sentence: str) -> float:
+        """Calculate adaptive confidence threshold based on conversation content."""
+        if not sentence:
+            return self.confidence_threshold
+            
+        sentence_lower = sentence.lower()
+        
+        # Check for high technical content indicators (advanced/complex terms)
+        advanced_technical_indicators = [
+            "implement", "algorithm", "neural network", "machine learning", "artificial intelligence", 
+            "blockchain", "cryptocurrency", "data science", "optimization", "methodology", "hypothesis"
+        ]
+        
+        # Check for moderate technical content indicators
+        moderate_technical_indicators = [
+            "database", "server", "api", "protocol", "framework", "authentication", 
+            "encryption", "deployment", "architecture", "analytics"
+        ]
+        
+        # Check for casual conversation indicators  
+        casual_indicators = [
+            "enjoyed", "interesting", "workshop", "class", "meeting", "presentation",
+            "project", "team", "colleague", "experience", "learned", "discussed",
+            "planning", "thinking", "considering", "wondering", "recently", "yesterday"
+        ]
+        
+        # Count indicators
+        advanced_count = sum(1 for indicator in advanced_technical_indicators if indicator in sentence_lower)
+        moderate_count = sum(1 for indicator in moderate_technical_indicators if indicator in sentence_lower)
+        casual_count = sum(1 for indicator in casual_indicators if indicator in sentence_lower)
+        
+        # Adaptive threshold logic
+        if advanced_count >= 1:
+            # High technical content - use stricter threshold
+            return self.confidence_threshold + 0.1  # 0.7
+        elif moderate_count >= 1 and casual_count == 0:
+            # Pure technical content - use normal threshold
+            return self.confidence_threshold  # 0.6
+        elif casual_count >= 1:
+            # Casual conversation - use more permissive threshold
+            return max(0.5, self.confidence_threshold - 0.1)  # 0.5
+        else:
+            # Unknown content type - use normal threshold
+            return self.confidence_threshold  # 0.6
 
-    async def trigger_main_model_processing(self):
-        """Trigger MainModel to process new detections from the queue."""
+    async def _query_ollama_async(self, prompt: str) -> Optional[str]:
+        """Asynchronously queries the Ollama server to avoid blocking the event loop."""
         try:
-            main_model = self.get_main_model()
-            if main_model:
-                logger.info("Triggering MainModel processing for new detections")
-                await main_model.process_detections_queue()
-            else:
-                logger.warning("MainModel not available for real-time processing")
+            response = await self.http_client.post(
+                OLLAMA_API_URL,
+                json={
+                    "model": LLAMA_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False
+                }
+            )
+            response.raise_for_status()
+            return response.json()['message']['content']
+        except httpx.RequestError as e:
+            logger.error(f"Ollama query failed (HTTP request error): {e}")
+            return None
         except Exception as e:
-            logger.error(f"Error triggering MainModel processing: {e}", exc_info=True)
+            logger.error(f"An unexpected error occurred during AI detection: {e}", exc_info=True)
+            return None
 
-    async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None) -> List[Dict]:
-        """Use Ollama/llama3.2 to detect important terms in the given sentence."""
-        if not ollama:
-            logger.warning("Ollama not available, using fallback detection")
-            return await self.detect_terms_fallback(sentence)
-
-        context_intro = "Mark the technical terms or words that might not be understood by a general audience in this sentence"
+    async def detect_terms_with_ai(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
+        """Use Ollama to detect important terms in the given sentence asynchronously."""
+        # Use configurable timeout for faster fallback
+        ai_timeout = AI_TIMEOUT_SECONDS
+        
+        try:
+            # Try AI detection with timeout
+            detection_task = asyncio.create_task(self._perform_ai_detection(sentence, user_role, domain))
+            ai_result = await asyncio.wait_for(detection_task, timeout=ai_timeout)
+            
+            if ai_result:
+                logger.info(f"AI detection completed for: {sentence[:50]}...")
+                return ai_result
+                
+        except asyncio.TimeoutError:
+            logger.warning(f"AI detection timed out after {ai_timeout}s, using fallback detection")
+        except Exception as e:
+            logger.error(f"AI detection failed: {e}, using fallback detection")
+        
+        # Use fast fallback detection
+        logger.info(f"Using fallback detection for: {sentence[:50]}...")
+        return await self.detect_terms_fallback(sentence)
+    
+    async def _perform_ai_detection(self, sentence: str, user_role: Optional[str] = None, domain: Optional[str] = None) -> List[Dict]:
+        """Perform AI-based term detection with the LLM. Uses global settings for domain if not provided."""
+        # Get domain from SettingsManager if not provided
+        if not domain:
+            settings_manager = get_settings_manager_instance()
+            if settings_manager:
+                domain = settings_manager.get_setting("domain", "")
+                
+        context_intro = f"Mark the technical terms or words that might not be understood by a general audience in this sentence"
         if user_role:
             context_intro += f", considering the user is a '{user_role}'"
+        if domain and domain.strip():
+            context_intro += f", in the context of '{domain.strip()}'"
         context_intro += f": \"{sentence}\""
 
         prompt = f"""
 Domain Term Extraction Prompt
-
 {context_intro}
 
-MOST IMPORTANTLY:
-Extract technical or domain specific terms from the following sentence ONLY if it has any, and return ONLY a JSON array.
-Do not return anything else — no markdown, no comments.
+CRITICAL FILTERING RULES:
+1. IGNORE small talk, greetings, fillers (hello, hi, okay, well, you know, etc.)
+2. IGNORE basic common words (the, and, but, very, really, etc.)  
+3. IGNORE prompt-related words (extract, technical, terms, confidence, json, etc.)
+4. IGNORE generic tech words without domain specificity (system, data, process, etc.)
+5. PRIORITIZE genuinely technical, domain-specific, or specialized terms
+6. If the input seems to be silence, empty, or contains prompt fragments, return []
 
+ADAPTIVE EXTRACTION STRATEGY:
+- If sentence contains clear technical/domain terms: Extract ONLY high-confidence technical terms
+- If sentence is mostly casual/small talk: Extract 1-2 moderately interesting words to maintain user engagement
+- NEVER extract pure greetings or fillers, but consider contextually relevant words
+
+DOMAIN-SPECIFIC EXAMPLES:
+{self._get_domain_examples(domain)}
+
+CONFIDENCE SCORING (0.01-0.99):
+- 0.90-0.99: Highly technical/specialized terms needing explanation (neural network, backpropagation, cryptocurrency)
+- 0.70-0.89: Moderately technical terms (algorithm, database, authentication)
+- 0.50-0.69: Somewhat technical but commonly known (website, email, password)
+- 0.01-0.49: Common/basic terms (should rarely be extracted unless in casual conversation)
+
+Extract technical or domain specific terms and return ONLY a valid JSON array of objects.
+Do not return anything else — no markdown, no comments, no prose.
+{f"Focus on terms relevant to: {domain.strip()}" if domain and domain.strip() else ""}
 ---
+### EXAMPLE RESPONSES ###
 
-Goal:
-Extract technical, domain-specific, or uncommon/difficult words or phrases from the sentence (if they exist) — specifically those that might not be immediately understood by a general audience. The focus is on identifying terms that carry specialized meaning in professional, academic, or technical contexts.
+Technical conversation example:
+Input: "We implemented a neural network using backpropagation."
+Output:
+[
+  {{
+    "term": "neural network",
+    "confidence": 0.92,
+    "context": "We implemented a neural network using backpropagation.",
+    "timestamp": 1234567890
+  }},
+  {{
+    "term": "backpropagation", 
+    "confidence": 0.89,
+    "context": "We implemented a neural network using backpropagation.",
+    "timestamp": 1234567890
+  }}
+]
 
-What Does "May Not Be Understood by a General Audience" Mean?
-General audience = people without formal education or experience in the topic area (e.g., students, laypeople, non-specialists).
-Include terms if:
-- They require background knowledge to understand
-- They are acronyms, standards, or jargon
-- They are domain-specific verbs, adjectives, protocols, frameworks, or measurements
+Casual conversation with some interesting terms:
+Input: "I really enjoyed that photography workshop last weekend."
+Output:
+[
+  {{
+    "term": "photography workshop",
+    "confidence": 0.65,
+    "context": "I really enjoyed that photography workshop last weekend.",
+    "timestamp": 1234567890
+  }}
+]
 
+Pure small talk example:
+Input: "Hi there, how are you doing today?"
+Output: []
+
+Silence/contamination example:
+Input: "extract technical terms"
+Output: []
+########################################
 ---
-
-What Counts as a Phrase?
-Extract phrases as a **single `term`** if:
-- They represent a unified domain-specific concept
-- Their meaning is lost if words are split
-- They include numeric or technical suffixes (e.g., "2.0", "4K", "802.11ac")
-
-Extract as:
-- "natural language processing"
-- "TLS 1.3"
-- "public key infrastructure"
-- "JSON Web Token"
-
-Do NOT split into:
-- "OAuth" and "2.0"
-- "neural" and "network"
-
-- If you have already extracted a word, but you see that word in combination with other words, you need to extract it in combination (as a phrase).
-Example: if you have already extracted the term "API", but you then see "RESTful API", you MUST extract "RESTful API" as a whole.
----
-
 Output Format:
-Return a JSON **array of objects**. Each object must have:
-
-- `term` (string): The word or phrase
-- `confidence` (float): Between 0.0 and 0.99 — lower means more confusing to non-experts
-- `context` (string): The full input sentence
-- `timestamp` (int): A Unix timestamp
-
-Important:
-- Do **not** return markdown (```json)
-- Do **not** include explanations or intro text
-- Only return a **raw JSON array**
-
+Return a JSON **array of objects**. Each object must have these keys:
+- "term" (string): The technical term
+- "confidence" (float): 0.01 (simple/common) to 0.99 (very technical/obscure)
+- "context" (string): The full input sentence
+- "timestamp" (int): A Unix timestamp
 ---
-
-Confidence Scoring Rules:
-
-"confidence" = how likely an average person (non-expert) would ALREADY understand this term without needing explanation.
-
-0.9 = common and familiar
-0.2 = domain specific, obscure, or technical
-
-Do NOT interpret "confidence" as how confident you are that this is a technical term.
-Lower confidence = needs explanation.
-Higher confidence = simple, familiar, everyday.
-
-Examples of **lower-confidence** technical terms:
-- "OAuth 2.0" → 0.25
-- "PostgreSQL" → 0.40
-- "JWT" → 0.30
-- "register allocation" → 0.30
-
-Examples of **high-confidence** terms (don't include unless justified):
-- "email", "file", "login", "text" → 0.75 to 0.95
-
----
-
-Final Notes:
-- Always return a JSON array — no markdown, prose, or explanation.
-- If no technical terms are present, return `[]` and nothing else.
-Adjust confidence dynamically based on `user_role`:
-- If the user is a beginner or student, assume lower prior knowledge.
-- If the user is a professor or expert, assume more familiarity.
-This should affect both which terms are included and their confidence levels.
-
----
-
-Repeat: the user's role is "{user_role}". Adjust the confidence accordingly:
-- If the user is a professor or expert, exclude common terms and raise confidence.
-- If the user is a beginner or student, include simpler terms and lower the confidence score.
+{f"Domain context: {domain.strip()}. " if domain and domain.strip() else ""}Repeat: the user's role is "{user_role}". Adjust the confidence and terms accordingly.
 """
+        raw_response = await self._query_ollama_async(prompt)
+        if not raw_response:
+            return []
 
-        try:
-            response = ollama.chat(
-                model="llama3.2",
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.1, "reset": True}
-            )
-
-            raw = response['message']['content']
-            now = int(time.time())
-            raw_terms = self.safe_json_extract(raw)
-
-            enriched_terms = []
-            for term_info in raw_terms:
-                enriched_terms.append({
+        now = int(time.time())
+        raw_terms = self.safe_json_extract(raw_response)
+        
+        processed_terms = []
+        for term_info in raw_terms:
+            if isinstance(term_info, dict) and "term" in term_info:
+                confidence = term_info.get("confidence")
+                processed_terms.append({
                     "term": term_info.get("term", ""),
                     "timestamp": term_info.get("timestamp", now),
-                    "confidence": round(term_info.get("confidence", 0.5), 2),
+                    "confidence": round(confidence if isinstance(confidence, (int, float)) else 0.5, 2),
                     "context": term_info.get("context", sentence),
-                    "status": "pending",
-                    "explanation": None
                 })
-
-            return enriched_terms
-
-        except Exception as e:
-            logger.error(f"Error during AI detection: {e}", exc_info=True)
-            return await self.detect_terms_fallback(sentence)
+        return processed_terms
 
     async def detect_terms_fallback(self, sentence: str) -> List[Dict]:
         """Fallback detection using basic patterns when AI is unavailable."""
-        logger.info("Using fallback detection method")
-
-        # Basic patterns for fallback
+        logger.info("Using enhanced fallback detection method")
+        
+        # Enhanced patterns for better technical term detection - more specific patterns
         patterns = {
-            'technical_terms': r'\b(?:API|database|server|client|authentication|encryption|algorithm|framework|protocol)\b',
-            'business_terms': r'\b(?:revenue|profit|strategy|market|customer|stakeholder|ROI|KPI|budget)\b',
-            'academic_terms': r'\b(?:hypothesis|methodology|analysis|research|study|theory|experiment|conclusion)\b',
-            'complex_words': r'\b\w{14,}\b'
+            'ml_ai_terms': r'\b(?:machine learning|neural network|artificial intelligence|deep learning|algorithm|backpropagation|gradient descent|overfitting|underfitting|regression|classification|clustering|reinforcement learning|supervised learning|unsupervised learning|convolutional|transformer|lstm|rnn|cnn)\b',
+            'tech_terms': r'\b(?:API|REST|GraphQL|microservices|database|server|authentication|encryption|blockchain|cloud computing|docker|kubernetes|DevOps|CI/CD|framework|library|HTTP|HTTPS|TCP|UDP|JSON|XML|SQL|NoSQL|webhook|endpoint)\b',
+            'programming_terms': r'\b(?:inheritance|polymorphism|encapsulation|recursion|debugging|refactoring|version control|repository|commit|pull request|merge|branch|async|await|callback|middleware|dependency injection)\b',
+            'business_terms': r'\b(?:ROI|KPI|scalability|monetization|business model|value proposition|market penetration|customer acquisition|stakeholder)\b',
+            'academic_terms': r'\b(?:hypothesis|methodology|qualitative|quantitative|peer review|literature review|systematic review|meta-analysis|statistical significance|correlation|causation|validity|reliability)\b',
+            'specific_acronyms': r'\b(?:API|SQL|JSON|XML|HTTP|HTTPS|REST|TCP|UDP|CPU|GPU|RAM|SSD|HDD|URL|URI|CSS|HTML|JS|AWS|GCP|AI|ML|DL|NLP|CNN|RNN|LSTM|GRU|SVM|KNN|PCA|SVD|BERT|GPT|RPA|ETL|CRUD|ACID|BASE|SOLID|DRY|KISS|YAGNI)\b',
+            'technical_compounds': r'\b(?:end.?point|data.?set|work.?flow|frame.?work|time.?stamp|name.?space|class.?name|file.?name|user.?name|pass.?word|data.?base|web.?site|soft.?ware|hard.?ware|middle.?ware|firm.?ware|open.?source|source.?code)\b'
+
         }
-
+        
         detected_terms = set()
-        text_lower = sentence.lower()
-
+        
         for category, pattern in patterns.items():
-            matches = re.findall(pattern, text_lower, re.IGNORECASE)
+            matches = re.findall(pattern, sentence, re.IGNORECASE)
             for match in matches:
-                detected_terms.add(match.lower())
-
+                # More strict filtering - only add terms that are not common words
+                term_clean = match.lower().strip()
+                if (term_clean not in self.known_terms and 
+                    len(term_clean) > 2 and 
+                    not term_clean.isdigit() and
+                    term_clean not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']):
+                    detected_terms.add(match)
+        
+        # Filter out any terms that are in our known_terms blacklist
+        filtered_terms = {term for term in detected_terms if term not in self.known_terms}
+        
         now = int(time.time())
-        return [
-            {
-                "term": term,
-                "timestamp": now,
-                "confidence": 0.3,  # Default fallback confidence
-                "context": sentence,
-                "status": "pending",
-                "explanation": None
-            }
-            for term in detected_terms
-        ]
+        result_terms = []
+        
+        for term in detected_terms:
+            # Assign confidence based on term characteristics - be more conservative
+            confidence = 0.3  # Start lower, let the filtering decide
+            term_lower = term.lower()
+            
+            if any(tech_word in term_lower for tech_word in ['api', 'machine learning', 'neural', 'algorithm', 'backpropagation', 'gradient descent']):
+                confidence = 0.8  # Higher confidence for specific technical terms
+            elif any(tech_word in term_lower for tech_word in ['database', 'server', 'framework', 'authentication', 'encryption']):
+                confidence = 0.7  # Medium-high for common tech terms
+            elif term.isupper() and len(term) >= 3 and term in ['API', 'SQL', 'JSON', 'XML', 'HTTP', 'HTTPS', 'REST']:
+                confidence = 0.9  # Very high for well-known tech acronyms
+            elif len(term) > 15:  # Very long words are likely technical
+                confidence = 0.6
+            elif term.isupper() and len(term) >= 3:  # Other acronyms
+                confidence = 0.5
+                
+            result_terms.append({
+                "term": term, 
+                "timestamp": now, 
+                "confidence": confidence, 
+                "context": sentence
+            })
+        
+        logger.info(f"Fallback detection found {len(result_terms)} terms")
+        return result_terms
 
     async def write_detection_to_queue(self, message: UniversalMessage, detected_terms: List[Dict]) -> bool:
-        """Write detected terms to file-based queue for MainModel processing."""
-        try:
-            # Read current queue
-            current_queue = []
-            if self.detections_queue_file.exists():
-                async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
-                    content = await f.read()
-                    if content.strip():
-                        current_queue = json.loads(content)
+        """Safely write detected terms to the file-based queue."""
+        async with self.queue_lock:
+            try:
+                current_queue = []
+                try:
+                    async with aiofiles.open(self.detections_queue_file, 'r', encoding='utf-8') as f:
+                        content = await f.read()
+                        if content.strip():
+                            current_queue = json.loads(content)
+                except FileNotFoundError:
+                    logger.info("Detections queue file not found, creating a new one.")
 
-            # Add new detections
-            for term_data in detected_terms:
-                queue_entry = {
-                    "id": str(uuid4()),
-                    "term": term_data["term"],
-                    "context": term_data["context"],
-                    "confidence": term_data["confidence"],
-                    "timestamp": term_data["timestamp"],
-                    "client_id": message.client_id,
-                    "user_session_id": message.payload.get("user_session_id"),
-                    "original_message_id": message.id,
-                    "status": "pending",
-                    "explanation": None
-                }
-                current_queue.append(queue_entry)
+                for term_data in detected_terms:
+                    queue_entry = {
+                        "id": str(uuid4()),
+                        "term": term_data["term"],
+                        "context": term_data["context"],
+                        "domain": term_data.get("domain", ""),  # Include domain context
+                        "explanation_style": term_data.get("explanation_style", "detailed"),  # Include explanation style
+                        "timestamp": term_data["timestamp"],
+                        "client_id": message.client_id,
+                        "user_session_id": message.payload.get("user_session_id"),
+                        "original_message_id": message.id,
+                        "status": "pending",
+                        "explannation": None
+                    }
+                        # Include confidence only when provided by producer (e.g., AI detection),
+                        # manual requests may omit it deliberately.
+                    if "confidence" in term_data and term_data["confidence"] is not None:
+                        queue_entry["confidence"] = term_data["confidence"]
 
-            # Write back to file atomically
-            temp_file = self.detections_queue_file.with_suffix('.tmp')
-            async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(current_queue, indent=2, ensure_ascii=False))
+                    current_queue.append(queue_entry)
 
-            # Atomic move
-            import os
-            os.replace(str(temp_file), str(self.detections_queue_file))
+                temp_file = self.detections_queue_file.with_suffix('.tmp')
+                async with aiofiles.open(temp_file, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(current_queue, indent=2, ensure_ascii=False))
+                
+                await asyncio.to_thread(os.replace, str(temp_file), str(self.detections_queue_file))
+                logger.info(f"Successfully wrote {len(detected_terms)} detections to queue.")
+                return True
+            except Exception as e:
+                logger.error(f"Error writing detections to queue: {e}", exc_info=True)
+                return False
 
-            logger.info(f"Successfully wrote {len(detected_terms)} detections to queue for client {message.client_id}")
-
-            # Trigger MainModel processing for real-time response
-            await self.trigger_main_model_processing()
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Error writing detections to queue: {e}", exc_info=True)
-            return False
-
-    async def process_message(self, message: UniversalMessage) -> UniversalMessage:
-        """
-        Processes an incoming UniversalMessage (specifically 'stt.transcription' types),
-        detects important terms using AI, applies filters, and forwards them to the MainModel via file queue.
-        """
+    async def process_message(self, message: UniversalMessage):
+        """Processes a transcription, detects terms, and queues them for the MainModel."""
         if message.type != "stt.transcription":
-            logger.warning(f"SmallModel received unexpected message type: {message.type}")
-            return UniversalMessage(
-                type=ErrorTypes.INVALID_ACTION.value,
-                payload={"error": f"SmallModel cannot process message type '{message.type}'"},
-                origin="SmallModel",
-                destination=message.client_id,
-                client_id=message.client_id
-            )
+            return  # Silently ignore messages it can't handle
 
         try:
             transcribed_text = message.payload.get("text", "")
-            user_role = message.payload.get("user_role", None)
+            logger.info(f"SmallModel: Processing transcript: '{transcribed_text}' for client {message.client_id}")
+            if not transcribed_text or not transcribed_text.strip():
+                logger.warning(f"SmallModel: Blocked empty transcription from client {message.client_id}.")
+                return
 
-            if not transcribed_text:
-                raise ValueError("Received empty transcription text.")
+            # Additional filtering for silence contamination and low-quality transcriptions
+            text_lower = transcribed_text.lower().strip()
 
-            # Use AI to detect important terms
-            detected_terms = await self.detect_terms_with_ai(transcribed_text, user_role)
+            # Skip very short transcriptions that are likely noise
+            if len(text_lower.split()) < 2:
+                logger.debug(f"SmallModel: Skipped short transcription: '{transcribed_text}'")
+                return
 
+            # Check for prompt contamination patterns
+            prompt_indicators = [
+                "extract technical terms", "domain term extraction", "confidence float",
+                "json array", "timestamp int", "output format", "perfect response"
+            ]
+            if any(indicator in text_lower for indicator in prompt_indicators):
+                logger.debug(f"SmallModel: Detected prompt contamination, skipping: '{transcribed_text}'")
+                return
+
+            # Check for repetitive patterns that suggest transcription errors during silence
+            words = text_lower.split()
+            if len(set(words)) == 1 and len(words) > 3:  # Same word repeated
+                logger.debug(f"SmallModel: Detected repetitive pattern, likely silence error: '{transcribed_text}'")
+                return
+            
+            # Check for common Whisper hallucination patterns (defense in depth)
+            # Define patterns with different strictness levels
+            strict_patterns = [
+                "thanks for watching", "thank you for watching", 
+                "please like and subscribe", "don't forget to subscribe",
+                "hit that subscribe button", "smash that like button"
+            ]
+            
+            moderate_patterns = [
+                "see you next time", "that's all for today", "until next time",
+                "catch you later", "thanks for your attention", "thank you for your time",
+                "appreciate you watching", "goodbye", "bye bye"
+            ]
+            
+            simple_patterns = ["thanks", "thank you"]
+            
+            # Check for multiple patterns (even if individually they wouldn't be blocked)
+            pattern_count = 0
+            found_patterns = []
+            all_patterns = strict_patterns + moderate_patterns + simple_patterns
+            for pattern in all_patterns:
+                if pattern in text_lower:
+                    pattern_count += 1
+                    found_patterns.append(pattern)
+            
+            # If multiple patterns found, be more aggressive about blocking
+            if pattern_count >= 2:
+                # Calculate how much of the sentence is NOT pattern-related
+                clean_text = text_lower
+                for pattern in found_patterns:
+                    clean_text = clean_text.replace(pattern, "")
+                clean_text = clean_text.strip()
+                non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today", ","]]
+                if len(non_filler_words) < 3:
+                    logger.warning(f"SmallModel: Blocked Whisper hallucination pattern (multiple): '{transcribed_text}'")
+                    return
+            
+            # Check strict patterns - block even with some extra content, but allow clear technical context
+            for pattern in strict_patterns:
+                if pattern in text_lower:
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone"]]
+                    
+                    # Allow if there's substantial technical content
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 3:  # Less than 3 meaningful words left
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+            
+            # Check moderate patterns - block if they dominate
+            for pattern in moderate_patterns:
+                if pattern in text_lower:
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    non_filler_words = [w for w in clean_text.split() if w not in ["for", "and", "the", "a", "to", "my", "your", "our", "everyone", "today"]]
+                    
+                    # Allow if there's substantial technical content
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "patterns", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    if not (has_tech_content or has_professional_content) and len(non_filler_words) < 2:  # Less than 2 meaningful words left
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+            
+            # Check simple patterns - block if entire sentence or very dominant, but allow technical context
+            for pattern in simple_patterns:
+                if pattern in text_lower:
+                    # Special case: if the entire sentence is just "thanks" or "thank you", block it
+                    if text_lower.strip() == pattern.strip():
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+                    
+                    clean_text = text_lower.replace(pattern, "").strip()
+                    
+                    # Allow if there's clear technical context
+                    technical_indicators = ["algorithm", "neural", "network", "machine learning", "api", "database", "server", "technical", "system", "data", "code", "software", "engineering", "programming", "advances", "implementation", "process", "metrics", "updates", "notifications"]
+                    has_tech_content = any(tech_word in clean_text for tech_word in technical_indicators)
+                    
+                    # Allow if there are business/professional words indicating legitimate context
+                    professional_indicators = ["newsletter", "notifications", "updates", "service", "company", "team", "colleagues", "business", "professional", "implementation", "explain"]
+                    has_professional_content = any(prof_word in clean_text for prof_word in professional_indicators)
+                    
+                    # Special handling for "thanks" - only allow if it's clearly part of "thanks to X" construction with technical content
+                    if pattern == "thanks":
+                        if "to" in clean_text and (has_tech_content or has_professional_content):
+                            continue  # Allow "thanks to machine learning" etc.
+                        # If it's not "thanks to X" with tech content, and there's little else, block it
+                        if len(clean_text) < 5:  # Very little other content
+                            logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                            return
+                    
+                    # For other simple patterns, only block if there's very little other content AND no technical context
+                    elif not (has_tech_content or has_professional_content) and len(clean_text) < 3:
+                        logger.warning(f"SmallModel: Blocked Whisper hallucination pattern: '{transcribed_text}'")
+                        return
+
+            # Log before AI detection
+            logger.info(f"SmallModel: Running AI detection on: '{transcribed_text}'")
+            detected_terms = await self.detect_terms_with_ai(
+                transcribed_text,
+                message.payload.get("user_role"),
+                message.payload.get("domain")  # Pass domain context from transcription message
+            )
             if not detected_terms:
-                logger.info(f"SmallModel found no terms in transcription for client {message.client_id}")
-                return UniversalMessage(
-                    type="ai.no_terms_detected",
-                    payload={
-                        "message": "No important terms detected in transcription",
-                        "original_text": transcribed_text,
-                        "original_message_id": message.id
-                    },
-                    origin="small_model",
-                    destination=message.client_id,
-                    client_id=message.client_id
-                )
+                logger.info(f"No terms found in transcription for client {message.client_id}")
+                return
 
-            # Apply filters and queue valid terms
             filtered_terms = []
             for term_obj in detected_terms:
-                term = term_obj["term"]
-                confidence = term_obj["confidence"]
-
-                logger.debug(f"Processing term: '{term}' (confidence: {confidence})")
-
-                # Apply filtering logic
-                if self.should_pass_filters(confidence, term):
+                # Always set context to actual transcript
+                term_obj["context"] = transcribed_text
+                if self.should_pass_filters(term_obj["confidence"], term_obj["term"], transcribed_text):
                     filtered_terms.append(term_obj)
-                    # Update cooldown
-                    self.cooldown_map[term.lower()] = time.time()
-                    logger.info(f"Accepted term: '{term}' for client {message.client_id}")
+                    self.cooldown_map[term_obj["term"].lower()] = time.time()
+                    logger.info(f"Accepted term: '{term_obj['term']}' (confidence: {term_obj['confidence']}) for client {message.client_id}")
 
             if filtered_terms:
-                # Write to file queue for MainModel
-                success = await self.write_detection_to_queue(message, filtered_terms)
+                # IMMEDIATE FEEDBACK: Send detection notification to frontend right away
+                await self.send_immediate_detection_notification(message, filtered_terms)
 
-                if success:
-                    return UniversalMessage(
-                        type="ai.terms_detected",
-                        payload={
-                            "detected_terms": [t["term"] for t in filtered_terms],
-                            "original_text": transcribed_text,
-                            "terms_count": len(filtered_terms),
-                            "original_message_id": message.id,
-                            "user_role": user_role
-                        },
-                        origin="small_model",
-                        destination=message.client_id,
-                        client_id=message.client_id
-                    )
-                else:
-                    raise Exception("Failed to write detections to queue")
-            else:
-                return UniversalMessage(
-                    type="ai.no_terms_detected",
-                    payload={
-                        "message": "All detected terms were filtered out",
-                        "original_text": transcribed_text,
-                        "original_message_id": message.id
-                    },
-                    origin="small_model",
-                    destination=message.client_id,
-                    client_id=message.client_id
-                )
+                # BACKGROUND PROCESSING: Queue for detailed explanation generation
+                await self.write_detection_to_queue(message, filtered_terms)
 
         except Exception as e:
             logger.error(f"SmallModel failed to process message {message.id}: {e}", exc_info=True)
-            return UniversalMessage(
-                type=ErrorTypes.PROCESSING_ERROR.value,
-                payload={"error": f"SmallModel processing failed: {str(e)}", "original_message_id": message.id},
-                origin="small_model",
-                destination=message.client_id,
-                client_id=message.client_id
-            )

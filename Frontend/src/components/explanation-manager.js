@@ -1,0 +1,200 @@
+// flattened copy from shared/src/explanation-manager.js
+export class ExplanationManager {
+  constructor() {
+    this.explanations = [];
+    this.listeners = [];
+    this.storageKey = 'context-translator-explanations';
+    this.saveThrottleTimeout = null;
+    this.loadFromStorage();
+  }
+  static getInstance() { if (!ExplanationManager.instance) ExplanationManager.instance = new ExplanationManager(); return ExplanationManager.instance; }
+  addListener(cb) { this.listeners.push(cb); }
+  removeListener(cb) { this.listeners = this.listeners.filter(l => l !== cb); }
+  notifyListeners() { this.listeners.forEach(cb => cb(this.explanations)); }
+  addExplanation(title, content, timestamp = Date.now(), confidence = null, isPending = false, requestId = null) {
+    // Clamp and normalize confidence to [0,1] if provided
+    const normConfidence = (typeof confidence === 'number' && isFinite(confidence))
+      ? Math.max(0, Math.min(1, confidence))
+      : null;
+    const explanation = { 
+      id: this._generateId(), 
+      title, 
+      content, 
+      timestamp, 
+      confidence: normConfidence, 
+      isPinned: false, 
+      isDeleted: false, 
+      createdAt: Date.now(),
+      isPending: isPending,
+      requestId: requestId
+    };
+    this.explanations.unshift(explanation); 
+    
+    // Limit total explanations to prevent memory issues (keep last 1000)
+    const maxExplanations = 1000;
+    if (this.explanations.length > maxExplanations) {
+      // Remove oldest unpinned explanations
+      const pinnedCount = this.explanations.filter(e => e.isPinned && !e.isDeleted).length;
+      if (this.explanations.length - pinnedCount > maxExplanations) {
+        this.explanations = this.explanations.filter(e => e.isPinned || e.isDeleted)
+          .concat(this.explanations.filter(e => !e.isPinned && !e.isDeleted).slice(0, maxExplanations - pinnedCount));
+        console.log(`ExplanationManager: Trimmed explanations to limit memory usage`);
+      }
+    }
+    
+    this._sortExplanations(); 
+    this.saveToStorage(); 
+    this.notifyListeners(); 
+    return explanation;
+
+  }
+  updateExplanation(id, updates) {
+    const i = this.explanations.findIndex(e => e.id === id);
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this._saveToStorageThrottled();
+      this.notifyListeners();
+      return this.explanations[i];
+    }
+    return null;
+  }
+
+  updatePendingExplanation(requestId, updates) {
+    const i = this.explanations.findIndex(e => e.requestId === requestId && e.isPending);
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      // Mark as no longer pending when updating with real content
+      if ('content' in normUpdates && normUpdates.content) {
+        normUpdates.isPending = false;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this._saveToStorageThrottled();
+      this.notifyListeners();
+      return this.explanations[i];
+    }
+    return null;
+  }
+
+  /**
+   * Find existing explanation that should be updated instead of creating a new one.
+   * This checks for explanations with placeholder/missing content that match the term.
+   * @param {string} term - The term to search for
+   * @returns {Object|null} - The explanation to update, or null if none found
+   */
+  findExplanationToUpdate(term) {
+    // Look for explanations with the same term that have placeholder or missing content
+    return this.explanations.find(e => 
+      e.title === term && 
+      !e.isDeleted &&
+      (
+        // Pending manual requests
+        (e.isPending === true && e.content === 'Generating explanation...') ||
+        // Automatic detection placeholders
+        (e.content && e.content.includes('🔄 Generating explanation')) ||
+        // Empty or null content (missing explanations)
+        !e.content || 
+        e.content === '' || 
+        e.content === null || 
+        e.content === undefined ||
+        // Other placeholder patterns
+        e.content === 'Loading...' ||
+        e.content === 'Pending...' ||
+        e.content.trim() === ''
+      )
+    );
+  }
+
+  updatePendingExplanationByTerm(term, updates) {
+    // Look for pending manual request explanations specifically
+    const i = this.explanations.findIndex(e => 
+      e.title === term && 
+      e.isPending === true && 
+      !e.isDeleted &&
+      e.content === 'Generating explanation...' // Specific to manual requests
+    );
+    
+    if (i !== -1) {
+      // Normalize confidence if present in updates
+      let normUpdates = { ...updates };
+      if ('confidence' in normUpdates) {
+        const c = normUpdates.confidence;
+        normUpdates.confidence = (typeof c === 'number' && isFinite(c))
+          ? Math.max(0, Math.min(1, c))
+          : null;
+      }
+      // Mark as no longer pending when updating with real content
+      if ('content' in normUpdates && normUpdates.content && normUpdates.content !== 'Generating explanation...') {
+        normUpdates.isPending = false;
+      }
+      this.explanations[i] = { ...this.explanations[i], ...normUpdates };
+      this._sortExplanations();
+      this._saveToStorageThrottled();
+      this.notifyListeners();
+      console.log(`ExplanationManager: Updated pending manual request for "${term}"`);
+      return this.explanations[i];
+    }
+    return null;
+  }
+
+  deleteExplanation(id) { 
+    const i = this.explanations.findIndex(e => e.id === id); 
+    if (i !== -1) { 
+      this.explanations[i].isDeleted = true; 
+      this.saveToStorage(); 
+      this.notifyListeners(); 
+      
+      // Schedule cleanup if we have too many deleted items
+      if (this.explanations.filter(e => e.isDeleted).length > 50) {
+        this._cleanupDeletedExplanations();
+      }
+    } 
+  }
+  
+  _cleanupDeletedExplanations() {
+    const originalLength = this.explanations.length;
+    this.explanations = this.explanations.filter(e => !e.isDeleted);
+    const removedCount = originalLength - this.explanations.length;
+    
+    if (removedCount > 0) {
+      console.log(`ExplanationManager: Cleaned up ${removedCount} deleted explanations`);
+      this.saveToStorage();
+      // No need to notify listeners as this doesn't affect visible explanations
+    }
+  }
+  pinExplanation(id) { const e = this.explanations.find(e => e.id === id); if (e) { e.isPinned = !e.isPinned; this._sortExplanations(); this.saveToStorage(); this.notifyListeners(); } }
+
+  _sortExplanations() { this.explanations.sort((a,b)=> (a.isPinned===b.isPinned ? b.createdAt-a.createdAt : a.isPinned?-1:1)); }
+  getVisibleExplanations() { return this.explanations.filter(e => !e.isDeleted); }
+  clearAll() { this.explanations = []; this.saveToStorage(); this.notifyListeners(); }
+  _saveToStorageThrottled() {
+    // Throttle storage saves to prevent excessive I/O during rapid explanation additions
+    if (this.saveThrottleTimeout) {
+      clearTimeout(this.saveThrottleTimeout);
+    }
+    this.saveThrottleTimeout = setTimeout(() => {
+      this.saveToStorage();
+      this.saveThrottleTimeout = null;
+    }, 500); // Save after 500ms of inactivity
+  }
+  saveToStorage() { try { sessionStorage.setItem(this.storageKey, JSON.stringify(this.explanations)); } catch (e) { console.error('Failed to save explanations to storage:', e); } }
+  loadFromStorage() { try { const stored = sessionStorage.getItem(this.storageKey); if (stored) { this.explanations = JSON.parse(stored); this._sortExplanations(); } } catch (e) { console.error('Failed to load explanations from storage:', e); this.explanations = []; } }
+  _generateId() { return `exp_${Date.now()}_${Math.random().toString(36).substr(2,9)}`; }
+}
+export const explanationManager = ExplanationManager.getInstance();

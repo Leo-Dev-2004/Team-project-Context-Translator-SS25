@@ -25,32 +25,42 @@ const settingsPath = join(os.homedir(), '.context-translator-settings.json');
 function createWindow() {
   console.log('Main: ⚙️ Creating main window...');
   mainWindow = new BrowserWindow({
-    // Vertikale, seitenleistenartige Standardgröße
-    width: 420,
-    height: 820,
+    // Vertikale, seitenleistenartige Standardgröße (increased by 20%)
+    width: 504,
+    height: 984,
     minWidth: 320,
     minHeight: 500,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, '..', 'dist-electron', 'preload.js'),
-  // Security hardening
-  webSecurity: true,
-  allowRunningInsecureContent: false,
-    },
-  // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
-  frame: isFrameless ? false : true,
-  titleBarStyle: isFrameless ? 'hidden' : 'default',
+      // Security hardening
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      spellcheck: true
+      },
+    // Frameless nur auf Windows in Produktion, damit eigene Titlebar verwendet werden kann
+    frame: isFrameless ? false : true,
+    titleBarStyle: isFrameless ? 'hidden' : 'default',
     autoHideMenuBar: true,
     show: false,
     icon: join(__dirname, '../assets/icon.png')
   });
   console.log('Main: ✅ Main window created.');
+
+  mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'en-GB', 'de-DE']);
+  console.log('Main: 🗣️ SpellChecker: Languages set to German and English.');
+
   // Sicherstellen, dass die Menüleiste ausgeblendet ist (Windows Alt-Taste)
   try { mainWindow.setMenuBarVisibility(false); } catch {}
 
   // Weiterleitung der Renderer-Konsolenlogs an den Main-Prozess-Log
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    // Filter out harmless DevTools protocol warnings
+    if (message.includes('Autofill.setAddresses') || message.includes("'Autofill.setAddresses' wasn't found")) {
+      return; // Suppress this known Electron/DevTools incompatibility warning
+    }
+    
     const logPrefix = `[Renderer]`;
     if (level === 0) {
       console.log(`${logPrefix} ${message}`);
@@ -118,7 +128,13 @@ function createWindow() {
     });
   });
 
-  if (isDev) {
+  // Check if we're in test mode
+  const isTest = process.env.NODE_ENV === 'test';
+  
+  if (isTest) {
+    console.log('Main: 🧪 Running in test mode. Loading test-index.html...');
+    mainWindow.loadFile(join(__dirname, '../test-index.html'));
+  } else if (isDev) {
     console.log('Main: 💡 Running in development mode. Loading Vite URL...');
     mainWindow.loadURL('http://localhost:5174');
     mainWindow.webContents.openDevTools();
@@ -154,6 +170,7 @@ app.whenReady().then(() => {
   });
 
   console.log('Main: ✅ App is ready. Calling createWindow...');
+  console.log(`Main: 📁 Settings will be saved to: ${settingsPath}`);
   createWindow();
   // In Dev das Menü behalten, in Prod entfernen für aufgeräumtes UI
   if (isDev) {
@@ -168,6 +185,7 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+
 });
 
 app.on('window-all-closed', () => {
@@ -192,16 +210,35 @@ ipcMain.handle('get-platform', () => {
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
+  const timestamp = new Date().toISOString();
+  console.log(`Main: 💾 [${timestamp}] Received save-settings IPC request`);
+  console.log('Main:    Settings to save:', JSON.stringify(settings));
+  console.log('Main:    Target file:', settingsPath);
+  
   try {
     const settingsData = {
       ...settings,
       lastUpdated: new Date().toISOString()
     };
     
+    console.log('Main: 📝 Writing settings to file...');
     await fs.writeFile(settingsPath, JSON.stringify(settingsData, null, 2));
+    console.log('Main: ✅ Settings successfully saved to:', settingsPath);
+    
+    // Verify the file was written by reading it back
+    try {
+      const savedContent = await fs.readFile(settingsPath, 'utf8');
+      const savedData = JSON.parse(savedContent);
+      console.log('Main: ✓ Verified settings file written with keys:', Object.keys(savedData));
+    } catch (verifyError) {
+      console.warn('Main: ⚠️ Could not verify saved file:', verifyError.message);
+    }
+    
     return { success: true };
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    console.error('Main: ❌ Failed to save settings:', error);
+    console.error('Main:    Error details:', error.message);
+    console.error('Main:    Target file was:', settingsPath);
     return { success: false, error: error.message };
   }
 });

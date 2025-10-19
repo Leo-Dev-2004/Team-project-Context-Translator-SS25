@@ -3,16 +3,12 @@
 import asyncio
 import logging
 import time
-import uuid
 from typing import Optional
-
-from pydantic import ValidationError
-
 from .models.UniversalMessage import UniversalMessage, ErrorTypes, ProcessingPathEntry
 from .core.Queues import queues
 from .queues.QueueTypes import AbstractMessageQueue
 from .AI.SmallModel import SmallModel
-from .dependencies import get_simulation_manager, get_session_manager_instance, get_websocket_manager_instance
+from .dependencies import get_session_manager_instance, get_websocket_manager_instance, get_settings_manager_instance
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +21,9 @@ class MessageRouter:
         self._running = False
         self._router_task: Optional[asyncio.Task] = None
         self._small_model: SmallModel = SmallModel()
-        self._simulation_manager = get_simulation_manager()
         self._session_manager = get_session_manager_instance()
         self._websocket_manager = get_websocket_manager_instance()
+        self._settings_manager = get_settings_manager_instance()
 
         logger.info("MessageRouter initialized with all dependencies.")
 
@@ -40,7 +36,6 @@ class MessageRouter:
 
     async def stop(self):
         """Stops the message routing process."""
-        # ... (method remains unchanged)
         if self._running:
             self._running = False
             if self._router_task:
@@ -52,14 +47,12 @@ class MessageRouter:
 
     async def _run_message_loops(self):
         """Orchestrates the two parallel listener tasks."""
-        # ... (method remains unchanged)
         client_listener = asyncio.create_task(self._client_message_listener())
         service_listener = asyncio.create_task(self._service_message_listener())
         await asyncio.gather(client_listener, service_listener)
 
     async def _client_message_listener(self):
         """Processes messages coming directly from clients (via WebSocket)."""
-        # ... (method remains unchanged)
         logger.info("MessageRouter: Listening for messages from clients...")
         while self._running:
             try:
@@ -72,8 +65,7 @@ class MessageRouter:
                 await asyncio.sleep(1)
 
     async def _service_message_listener(self):
-        """Processes messages coming from internal services (e.g., SimulationManager)."""
-        # ... (method remains unchanged)
+        """Processes messages coming from internal services """
         logger.info("MessageRouter: Listening for messages from backend services...")
         while self._running:
             try:
@@ -102,7 +94,20 @@ class MessageRouter:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Init message missing user_session_id.")
             
             elif message.type == 'stt.transcription':
-                response = await self._small_model.process_message(message)
+                # Block empty transcriptions before passing to SmallModel
+                transcribed_text = message.payload.get("text", "").strip()
+                if not transcribed_text:
+                    logger.warning(f"MessageRouter: Blocked empty transcription from client {message.client_id}")
+                    response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Empty transcription text not allowed.")
+                else:
+                    asyncio.create_task(self._small_model.process_message(message))
+                    response = None  # Response will be handled asynchronously
+            
+            elif message.type == 'stt.heartbeat':
+                # Handle heartbeat keep-alive messages from STT service
+                logger.debug(f"MessageRouter: Received heartbeat from STT client {message.client_id}")
+                # Simply acknowledge the heartbeat - no further processing needed
+                response = self._create_ack_message(message, "Heartbeat acknowledged.")
 
             elif message.type == 'session.start':
                 if self._session_manager and message.client_id:
@@ -125,11 +130,108 @@ class MessageRouter:
                 else:
                     response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Kein Code angegeben oder SessionManager nicht verfügbar.")
 
+            elif message.type == 'manual.request':
+                # Allow users to manually request an explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    domain = (message.payload.get('domain') or '').strip()
+                    explanation_style = (message.payload.get('explanation_style') or 'detailed').strip()
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in manual.request payload.")
+                    else:
+                        # Generate confidence score for manual request using AI detection
+                        ai_detected_terms = await self._small_model.detect_terms_with_ai(
+                            context,
+                            message.payload.get("user_role")
+                        )
+                        
+                        # Find confidence for the requested term, or use a default confidence for manual requests
+                        confidence = 0.7  # Default confidence for manual requests
+                        for ai_term in ai_detected_terms:
+                            if ai_term.get("term", "").lower() == term.lower():
+                                confidence = ai_term.get("confidence", 0.7)
+                                break
+                        
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "context": context,
+                            "domain": domain,  # Include domain for AI processing
+                            "confidence": confidence,
+                            "explanation_style": explanation_style,  # Include explanation style
+                            "is_manual_request": True,  # Mark as manual request to avoid duplicate queuing
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"manual.request accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue manual detection.")
+                except Exception as e:
+                    logger.error(f"Error handling manual.request: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during manual.request.")
+
+            elif message.type == 'explanation.retry':
+                # Allow users to request a regenerated explanation for a term
+                try:
+                    term = (message.payload.get('term') or '').strip()
+                    context = (message.payload.get('context') or term).strip()
+                    original_explanation_id = message.payload.get('original_explanation_id')
+                    explanation_style = message.payload.get('explanation_style', 'detailed')
+                    
+                    if not term:
+                        response = self._create_error_message(message, ErrorTypes.INVALID_INPUT, "Missing 'term' in explanation.retry payload.")
+                    else:
+                        detected_terms = [{
+                            "term": term,
+                            "timestamp": int(time.time()),
+                            "context": context,
+                            "explanation_style": explanation_style,
+                            "original_explanation_id": original_explanation_id,
+                            "is_retry": True
+                        }]
+                        success = await self._small_model.write_detection_to_queue(message, detected_terms)
+                        if success:
+                            response = self._create_ack_message(message, f"explanation.retry accepted for term '{term}'")
+                        else:
+                            response = self._create_error_message(message, ErrorTypes.PROCESSING_ERROR, "Failed to enqueue retry detection.")
+                except Exception as e:
+                    logger.error(f"Error handling explanation.retry: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during explanation.retry.")
+
+            elif message.type == 'settings.save':
+                # Handle settings.save messages - update global settings
+                logger.info(f"MessageRouter: 📥 Received settings.save message from client {message.client_id}")
+                try:
+                    if self._settings_manager:
+                        settings_data = message.payload or {}
+                        logger.info(f"MessageRouter: 🔧 Updating settings with data: {settings_data}")
+                        self._settings_manager.update_settings(settings_data)
+                        
+                        # Optionally save to file for persistence
+                        logger.debug(f"MessageRouter: 💾 Attempting to persist settings to file...")
+                        save_success = await self._settings_manager.save_to_file()
+                        
+                        if save_success:
+                            response = self._create_ack_message(message, "Settings saved successfully")
+                            logger.info(f"MessageRouter: ✅ Settings updated and persisted for client {message.client_id}: {list(settings_data.keys())}")
+                        else:
+                            response = self._create_ack_message(message, "Settings updated (persistence failed)")
+                            logger.warning(f"MessageRouter: ⚠️ Settings updated but persistence failed for client {message.client_id}")
+                    else:
+                        response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "SettingsManager not available.")
+                        logger.error("MessageRouter: ❌ SettingsManager not available for settings.save message")
+                except Exception as e:
+                    logger.error(f"MessageRouter: ❌ Error handling settings.save: {e}", exc_info=True)
+                    response = self._create_error_message(message, ErrorTypes.INTERNAL_SERVER_ERROR, "Unhandled error during settings.save.")
+
             elif message.type == 'ping':
                 response = self._create_pong_message(message)
 
             else:
-                response = self._create_error_message(message, ErrorTypes.UNKNOWN_MESSAGE_TYPE, f"Unknown message type: '{message.type}'")
+                # Generic handler for unknown message types: output the type and provide info response
+                logger.info(f"MessageRouter: Received unknown message type: '{message.type}' from client {message.client_id}")
+                response = self._create_ack_message(message, f"Received unknown message type: '{message.type}'. No specific handler implemented.")
 
             if response:
                 await self._websocket_out_queue.enqueue(response)

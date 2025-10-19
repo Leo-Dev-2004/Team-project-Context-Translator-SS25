@@ -1,8 +1,8 @@
 # Backend/dependencies.py
 from typing import Optional
 from .services.WebSocketManager import WebSocketManager
-from .core.simulator import SimulationManager
 from .core.session_manager import SessionManager
+from .core.settings_manager import SettingsManager
 
 _global_session_manager_instance: Optional[SessionManager] = None
 
@@ -23,21 +23,28 @@ def set_websocket_manager_instance(instance: WebSocketManager):
 def get_websocket_manager_instance() -> Optional[WebSocketManager]:
     return _global_ws_manager_instance
 
-# Global instance for SimulationManager
-_global_simulation_manager_instance: Optional[SimulationManager] = None
+# Global instance for SettingsManager
+_global_settings_manager_instance: Optional[SettingsManager] = None
 
-def set_simulation_manager_instance(instance: SimulationManager):
-    global _global_simulation_manager_instance
-    _global_simulation_manager_instance = instance
+def set_settings_manager_instance(instance: SettingsManager):
+    global _global_settings_manager_instance
+    _global_settings_manager_instance = instance
 
-def get_simulation_manager() -> Optional[SimulationManager]:
-    return _global_simulation_manager_instance
+def get_settings_manager_instance() -> Optional[SettingsManager]:
+    return _global_settings_manager_instance
 
-# Du kannst hier auch weitere Instanzen für andere Services hinzufügen
-# Beispiel:
-# _global_message_router_instance: Optional[MessageRouter] = None
-# def set_message_router_instance(instance: MessageRouter):
-#     global _global_message_router_instance
-#     _global_message_router_instance = instance
-# def get_message_router_instance() -> Optional[MessageRouter]:
-#     return _global_message_router_instance
+# Global instance for ExplanationDeliveryService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .services.ExplanationDeliveryService import ExplanationDeliveryService
+
+_global_explanation_delivery_service_instance: Optional['ExplanationDeliveryService'] = None
+
+def set_explanation_delivery_service_instance(instance: 'ExplanationDeliveryService'):
+    global _global_explanation_delivery_service_instance
+    _global_explanation_delivery_service_instance = instance
+
+def get_explanation_delivery_service_instance() -> Optional['ExplanationDeliveryService']:
+    return _global_explanation_delivery_service_instance
+
+
