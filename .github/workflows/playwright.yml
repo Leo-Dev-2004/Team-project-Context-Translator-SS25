@@ -1,0 +1,52 @@
+# Playwright Test Runner für GitHub Actions
+name: Playwright Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'Frontend/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'Frontend/**' ]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        working-directory: ./Frontend
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: Frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+      
+    - name: Build preload script
+      run: npm run build:preload
+      
+    - name: Run Playwright Component Tests
+      run: npm run test:components
+      
+    - name: Run Playwright Electron Tests
+      run: npm run test:electron
+      env:
+        NODE_ENV: test
+      
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: Frontend/playwright-report/
+        retention-days: 30

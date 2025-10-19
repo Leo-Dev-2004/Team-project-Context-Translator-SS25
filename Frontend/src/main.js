@@ -128,7 +128,13 @@ function createWindow() {
     });
   });
 
-  if (isDev) {
+  // Check if we're in test mode
+  const isTest = process.env.NODE_ENV === 'test';
+  
+  if (isTest) {
+    console.log('Main: 🧪 Running in test mode. Loading test-index.html...');
+    mainWindow.loadFile(join(__dirname, '../test-index.html'));
+  } else if (isDev) {
     console.log('Main: 💡 Running in development mode. Loading Vite URL...');
     mainWindow.loadURL('http://localhost:5174');
     mainWindow.webContents.openDevTools();
