@@ -156,3 +156,4 @@ Frontend/test-results/
 Backend/AI/explanation_cache.json
 Backend/AI/explanation_cache.json
 Backend/AI/explanation_cache.json
+Backend/tests/test_results.json

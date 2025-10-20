@@ -8,8 +8,14 @@ Tests that SmallModel triggers MainModel automatically after detecting terms.
 import asyncio
 import json
 import logging
+import sys
 import time
 from pathlib import Path
+
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from Backend.AI.SmallModel import SmallModel
 from Backend.models.UniversalMessage import UniversalMessage
 

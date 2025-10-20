@@ -8,15 +8,16 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import tempfile
 import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
-# Add Backend to Python path for imports
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from Backend.AI.MainModel import MainModel
 from Backend.services.ExplanationDeliveryService import ExplanationDeliveryService
